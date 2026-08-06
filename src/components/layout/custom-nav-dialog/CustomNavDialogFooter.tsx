@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
 import { DialogFooter } from '@/ui/shadcn/dialog';
+import { Separator } from '@/ui/shadcn/separator';
 
 type CustomNavDialogFooterProps = {
     onAddDashboard: () => void;
@@ -44,17 +45,18 @@ export function CustomNavDialogFooter({
                     <PlusIcon data-icon="inline-start" />
                     {t('dashboard.new_dashboard')}
                 </Button>
+            </div>
+            <div className="flex items-center gap-2">
                 <Button
                     type="button"
                     variant="ghost"
-                    className="text-destructive"
+                    className="text-muted-foreground"
                     onClick={onReset}
                 >
                     <RotateCcwIcon data-icon="inline-start" />
                     {t('nav_menu.custom_nav.restore_default')}
                 </Button>
-            </div>
-            <div className="flex gap-2">
+                <Separator orientation="vertical" className="h-5" />
                 <Button type="button" variant="secondary" onClick={onCancel}>
                     {t('nav_menu.custom_nav.cancel')}
                 </Button>

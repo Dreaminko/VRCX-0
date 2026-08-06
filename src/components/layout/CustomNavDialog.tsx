@@ -24,6 +24,7 @@ import { useModalStore } from '@/state/modalStore';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
@@ -55,6 +56,8 @@ import {
     type CustomNavItemEntry,
     type CustomNavLayout
 } from './custom-nav-dialog/customNavLayout';
+
+const JUST_MOVED_RESET_MS = 260;
 
 type HiddenNavItem = {
     key: unknown;
@@ -107,6 +110,7 @@ export function CustomNavDialog({
     const [hiddenPlacement, setHiddenPlacement] = useState(() =>
         buildHiddenPlacementMap(defaultLayout, hiddenKeys)
     );
+    const [justMovedKey, setJustMovedKey] = useState('');
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
@@ -127,7 +131,20 @@ export function CustomNavDialog({
             new Set((hiddenKeys || []).filter((key) => !isToolNavKey(key)))
         );
         setHiddenPlacement(buildHiddenPlacementMap(defaultLayout, hiddenKeys));
+        setJustMovedKey('');
     }, [defaultLayout, hiddenKeys, layout, open]);
+
+    useEffect(() => {
+        if (!justMovedKey) {
+            return undefined;
+        }
+        const timer = window.setTimeout(() => {
+            setJustMovedKey('');
+        }, JUST_MOVED_RESET_MS);
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [justMovedKey]);
 
     const definitionMap = useMemo<Map<unknown, CustomNavDefinition>>(
         () =>
@@ -365,9 +382,30 @@ export function CustomNavDialog({
         moveItemByDrag(activeNode, targetNode);
     }
 
+    function moveItemToFolder(key: unknown, folderId: unknown) {
+        const next = cloneLayout(localLayout);
+        const folder = findFolder(next, String(folderId));
+        if (
+            !folder ||
+            folder.items.some(
+                (item) => String(getFolderItemKey(item)) === String(key)
+            )
+        ) {
+            return;
+        }
+        const removed = removeLayoutItem(next, key);
+        if (!removed?.key) {
+            return;
+        }
+        folder.items.push(createFolderItem(removed.key, removed.icon || ''));
+        setLocalLayout(next);
+        setJustMovedKey(String(key || ''));
+    }
+
     function hideItem(key: unknown) {
         const normalizedKey = String(key || '');
         const result = removeKeyFromLayout(localLayout, key);
+        setJustMovedKey(normalizedKey);
         setLocalLayout(result.layout);
         if (result.placement) {
             const placement = result.placement;
@@ -390,6 +428,7 @@ export function CustomNavDialog({
     function showItem(key: unknown) {
         const normalizedKey = String(key || '');
         const placement = hiddenPlacement.get(normalizedKey) || null;
+        setJustMovedKey(normalizedKey);
         setLocalHiddenKeys((current) => {
             const next = new Set(current);
             next.delete(key);
@@ -457,7 +496,7 @@ export function CustomNavDialog({
         );
     }
 
-    function deleteFolder(folderIndex: number) {
+    function ungroupFolder(folderIndex: number) {
         setLocalLayout((current) => {
             const folder = current[folderIndex];
             if (!folder || folder.type !== 'folder') {
@@ -559,7 +598,7 @@ export function CustomNavDialog({
         );
         const result = await confirm({
             title: t('dashboard.confirmations.delete_title'),
-            description: t('dashboard.confirmations.delete_description'),
+            description: `${t('dashboard.confirmations.delete_description')} ${t('nav_menu.custom_nav.applies_immediately')}`,
             destructive: true
         });
         if (!result.ok) {
@@ -579,7 +618,18 @@ export function CustomNavDialog({
         }
     }
 
-    function resetLayout() {
+    async function resetLayout() {
+        const result = await confirm({
+            title: t('nav_menu.custom_nav.restore_default'),
+            description: t('nav_menu.custom_nav.restore_default_description'),
+            destructive: true,
+            confirmText: t('nav_menu.custom_nav.restore_default'),
+            cancelText: t('nav_menu.custom_nav.cancel')
+        });
+        if (!result.ok) {
+            return;
+        }
+        setJustMovedKey('');
         setLocalLayout(cloneLayout(defaultLayout));
         setLocalHiddenKeys(
             new Set(
@@ -602,46 +652,51 @@ export function CustomNavDialog({
                     <DialogTitle>
                         {t('nav_menu.custom_nav.dialog_title')}
                     </DialogTitle>
+                    <DialogDescription>
+                        {t('nav_menu.custom_nav.dialog_description')}
+                    </DialogDescription>
                 </DialogHeader>
-                <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-                    <CustomNavDialogLayoutEditor
-                        sensors={sensors}
-                        sortableNodeIds={sortableNodeIds}
-                        localLayout={localLayout}
-                        definitionMap={definitionMap}
-                        hiddenItems={hiddenItems}
-                        onDragEnd={handleDragEnd}
-                        onFolderIconChange={(
-                            index: number,
-                            icon: unknown,
-                            fallbackIcon: unknown
-                        ) =>
-                            updateEntryIcon(
-                                index,
-                                icon,
-                                fallbackIcon || DEFAULT_FOLDER_ICON
-                            )
-                        }
-                        onFolderEdit={(index: number) => {
-                            editFolder(index);
-                        }}
-                        onFolderDelete={deleteFolder}
-                        onFolderChildIconChange={updateFolderChildIcon}
-                        onHideItem={hideItem}
-                        onEditDashboard={(key: unknown) => {
-                            editDashboard(key);
-                        }}
-                        onDeleteDashboard={(key: unknown) => {
-                            removeDashboard(key);
-                        }}
-                        onShowItem={showItem}
-                    />
-                </div>
+                <CustomNavDialogLayoutEditor
+                    sensors={sensors}
+                    sortableNodeIds={sortableNodeIds}
+                    localLayout={localLayout}
+                    definitionMap={definitionMap}
+                    hiddenItems={hiddenItems}
+                    justMovedKey={justMovedKey}
+                    onDragEnd={handleDragEnd}
+                    onFolderIconChange={(
+                        index: number,
+                        icon: unknown,
+                        fallbackIcon: unknown
+                    ) =>
+                        updateEntryIcon(
+                            index,
+                            icon,
+                            fallbackIcon || DEFAULT_FOLDER_ICON
+                        )
+                    }
+                    onFolderEdit={(index: number) => {
+                        editFolder(index);
+                    }}
+                    onFolderUngroup={ungroupFolder}
+                    onFolderChildIconChange={updateFolderChildIcon}
+                    onMoveItemToFolder={moveItemToFolder}
+                    onHideItem={hideItem}
+                    onEditDashboard={(key: unknown) => {
+                        editDashboard(key);
+                    }}
+                    onDeleteDashboard={(key: unknown) => {
+                        removeDashboard(key);
+                    }}
+                    onShowItem={showItem}
+                />
                 <CustomNavDialogFooter
                     onAddDashboard={addDashboard}
                     onAddFolder={addFolder}
                     onCancel={() => onOpenChange(false)}
-                    onReset={resetLayout}
+                    onReset={() => {
+                        resetLayout();
+                    }}
                     onSave={save}
                 />
             </DialogContent>

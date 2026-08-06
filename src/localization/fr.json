@@ -523,6 +523,14 @@
         "edit_dashboard": "Modifier le tableau de bord",
         "delete_dashboard": "Supprimer le tableau de bord",
         "custom_nav": {
+            "dialog_description": "Glissez pour réordonner, ou déposez un élément dans un dossier pour le regrouper. Les éléments masqués rejoignent la liste « Masqués » et peuvent être rétablis à tout moment. Les modifications de tableaux de bord sont immédiates.",
+            "visible_items": "Dans le menu",
+            "hidden_empty": "Rien de masqué",
+            "folder_item_count": "{count} éléments",
+            "ungroup_folder": "Dissoudre le dossier",
+            "move_into_folder": "Déplacer un élément dans ce dossier",
+            "restore_default_description": "Remplace votre disposition actuelle par celle par défaut.",
+            "applies_immediately": "Cette action est immédiate et annuler ne la défait pas.",
             "header": "Personnaliser la navigation",
             "dialog_title": "Personnaliser le menu de navigation",
             "new_folder": "Nouveau dossier",
@@ -538,12 +546,12 @@
             "cancel": "Annuler",
             "restore_default": "Réinitialiser",
             "dynamic": {
+                "rename_value": "Renommer {value}",
                 "drag_value": "Glisser {value}",
                 "icon_for_value": "Icône pour {value}",
                 "edit_value": "Modifier {value}",
                 "delete_value": "Supprimer {value}",
                 "hide_value": "Masquer {value}",
-                "remove_value": "Retirer {value}",
                 "show_value": "Afficher {value}"
             }
         }

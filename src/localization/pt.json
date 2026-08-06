@@ -523,6 +523,14 @@
         "edit_dashboard": "Editar Painel",
         "delete_dashboard": "Excluir Painel",
         "custom_nav": {
+            "dialog_description": "Arraste para reordenar ou solte um item em uma pasta para agrupá-lo. O que você ocultar vai para a lista \"Ocultos\" e pode voltar a qualquer momento. Alterações em painéis valem imediatamente.",
+            "visible_items": "No menu",
+            "hidden_empty": "Nada oculto",
+            "folder_item_count": "{count} itens",
+            "ungroup_folder": "Desfazer pasta",
+            "move_into_folder": "Mover um item para esta pasta",
+            "restore_default_description": "Substitui a sua organização atual pela padrão.",
+            "applies_immediately": "Isto vale imediatamente e cancelar não desfaz.",
             "header": "Personalizar Navegação",
             "dialog_title": "Personalizar Menu de Navegação",
             "new_folder": "Nova Pasta",
@@ -538,12 +546,12 @@
             "cancel": "Cancelar",
             "restore_default": "Restaurar Padrão",
             "dynamic": {
+                "rename_value": "Renomear {value}",
                 "drag_value": "Arrastar {value}",
                 "icon_for_value": "Ícone de {value}",
                 "edit_value": "Editar {value}",
                 "delete_value": "Excluir {value}",
                 "hide_value": "Ocultar {value}",
-                "remove_value": "Remover {value}",
                 "show_value": "Mostrar {value}"
             }
         }

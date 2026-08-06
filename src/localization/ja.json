@@ -123,9 +123,9 @@
     "language": "日本語 (ja)",
     "data_dir_migration": {
         "title": "VRCX-0 のデータを移動",
-        "description": "選択したフォルダーの使用方法を選んでください。",
+        "description": "選択したフォルダの使用方法を選んでください。",
         "completed_title": "データの移動が完了しました",
-        "completed_description": "VRCX-0 を再起動すると、新しいデータフォルダーが使用されます。",
+        "completed_description": "VRCX-0 を再起動すると、新しいデータフォルダが使用されます。",
         "error_short": "データの移動に失敗",
         "start": "移動を開始",
         "restart_now": "今すぐ再起動",
@@ -134,14 +134,14 @@
         "space_summary": "必要：{required}・空き：{available}",
         "insufficient_space": "データを移動するための空き容量が不足しています。",
         "contents_notice": "データベース、アプリ設定、ギャラリーの索引とサムネイルをコピーします。画像キャッシュは新しい場所で再取得されます。古いデータは削除を選ぶまで保持されます。",
-        "unsupported_storage_warning": "ネットワークドライブ、クラウド同期フォルダー（OneDrive、iCloud など）、リムーバブルドライブは選択しないでください。これらの場所にあるデータベースは破損する可能性があり、サポート対象外です。",
+        "unsupported_storage_warning": "ネットワークドライブ、クラウド同期フォルダ（OneDrive、iCloud など）、リムーバブルドライブは選択しないでください。これらの場所にあるデータベースは破損する可能性があり、サポート対象外です。",
         "mode": {
             "migrate": "現在のデータを移動（推奨）",
-            "adoptExisting": "このフォルダーにある VRCX-0 プロファイルを使用",
-            "freshStart": "このフォルダーで新しいプロファイルを作成"
+            "adoptExisting": "このフォルダにある VRCX-0 プロファイルを使用",
+            "freshStart": "このフォルダで新しいプロファイルを作成"
         },
         "target": {
-            "empty": "選択したフォルダーは空です。",
+            "empty": "選択したフォルダは空です。",
             "existingProfile": "VRCX-0 プロファイルが既にあります。置き換える前に退避されます。",
             "foreignContent": "他のファイルがあります。VRCX-0 は自身のファイルだけを管理します。"
         },
@@ -157,15 +157,15 @@
             "databaseUnavailable": "現在データベースを移動できません。",
             "pendingRestore": "保留中のプロファイル復元を先に完了またはキャンセルしてください。",
             "pendingLegacyMigration": "保留中の旧データ移行を先に完了してください。",
-            "pendingMigration": "データフォルダーの移動が保留中です。VRCX-0 を再起動してください。",
-            "cleanupConflict": "このフォルダーへ戻す前に古いデータを処理してください。",
+            "pendingMigration": "データフォルダの移動が保留中です。VRCX-0 を再起動してください。",
+            "cleanupConflict": "このフォルダへ戻す前に古いデータを処理してください。",
             "insufficientSpace": "データを移動するための空き容量が不足しています。",
-            "invalidAdoptionTarget": "既存の VRCX-0 プロファイルを含むフォルダーだけを引き継げます。",
-            "invalidFreshStartTarget": "既存の VRCX-0 プロファイルを含むフォルダーは新規開始に使用できません。",
+            "invalidAdoptionTarget": "既存の VRCX-0 プロファイルを含むフォルダだけを引き継げます。",
+            "invalidFreshStartTarget": "既存の VRCX-0 プロファイルを含むフォルダは新規開始に使用できません。",
             "copyFailed": "データベースをコピーできませんでした。元のデータはそのまま使用されています。",
             "commitFailed": "コピーしたデータベースを配置できませんでした。元のデータはそのまま使用されています。",
-            "pointerCommitFailed": "新しいデータフォルダーを有効にできませんでした。再起動して安全に再試行してください。",
-            "io": "データフォルダーのファイルを読み書きできませんでした。"
+            "pointerCommitFailed": "新しいデータフォルダを有効にできませんでした。再起動して安全に再試行してください。",
+            "io": "データフォルダのファイルを読み書きできませんでした。"
         },
         "warning": {
             "configCopyFailed": "一部のアプリ設定をコピーできず、既定値に戻る場合があります。",
@@ -173,14 +173,14 @@
             "cacheCleanupFailed": "一部の古いキャッシュを削除できませんでした。"
         },
         "result": {
-            "succeeded": "データフォルダーの移動が完了しました",
-            "failed_title": "新しいデータフォルダーを使用できませんでした",
-            "database_open_failed": "元のフォルダーを引き続き使用しています。データへの影響はありません。",
-            "interrupted_title": "データフォルダーの移動が中断されました",
-            "interrupted": "元のフォルダーを引き続き使用しています。もう一度試せます。"
+            "succeeded": "データフォルダの移動が完了しました",
+            "failed_title": "新しいデータフォルダを使用できませんでした",
+            "database_open_failed": "元のフォルダを引き続き使用しています。データへの影響はありません。",
+            "interrupted_title": "データフォルダの移動が中断されました",
+            "interrupted": "元のフォルダを引き続き使用しています。もう一度試せます。"
         },
         "cleanup": {
-            "ready_title": "データフォルダーの移動が完了しました",
+            "ready_title": "データフォルダの移動が完了しました",
             "ready_description": "古いデータは {path} に残っています。",
             "action": "古いデータを削除",
             "action_with_size": "古いデータを削除（{size}）",
@@ -199,7 +199,7 @@
         "header": "バックアップと復元",
         "tools_description": "VRCX-0 のデータをバックアップし、必要なときに復元できます。",
         "automatic": "自動バックアップ",
-        "automatic_description": "選択したフォルダーに定期的にバックアップを保存します。",
+        "automatic_description": "選択したフォルダに定期的にバックアップを保存します。",
         "automatic_on": "オン",
         "automatic_off": "オフ",
         "enable_automatic": "自動バックアップを有効にする",
@@ -209,9 +209,9 @@
         "location_not_set": "バックアップ先が選択されていません",
         "last_automatic_backup": "前回の自動バックアップ",
         "no_automatic_backup": "まだバックアップされていません",
-        "change_folder": "フォルダーを変更",
+        "change_folder": "フォルダを変更",
         "manual_backup": "手動バックアップ",
-        "manual_backup_description": "自動バックアップの予定を変更せず、選択したフォルダーにバックアップを作成します。",
+        "manual_backup_description": "自動バックアップの予定を変更せず、選択したフォルダにバックアップを作成します。",
         "phase_snapshot": "データを準備しています",
         "phase_package": "バックアップを作成しています",
         "phase_deliver": "バックアップ先に保存しています",
@@ -276,7 +276,7 @@
             "delivery_pending": "前回のバックアップの保存が完了していません。再試行するか破棄してから、新しいバックアップを開始してください。",
             "pending_restore": "復元の準備ができています。VRCX-0 を再起動すると復元が完了します。",
             "directory_unavailable": "バックアップ先を使用できません。ドライブやネットワーク接続を確認してください。",
-            "permission_denied": "この場所に保存する権限がありません。別のフォルダーを選択してください。",
+            "permission_denied": "この場所に保存する権限がありません。別のフォルダを選択してください。",
             "local_disk_full": "バックアップを作成するための空き容量が VRCX-0 のデータ保存先にありません。",
             "target_disk_full": "バックアップ先の空き容量が不足しています。",
             "device_removed": "バックアップ先が切断されました。ドライブを接続し直してから再試行してください。",
@@ -523,6 +523,14 @@
         "edit_dashboard": "ダッシュボードを編集",
         "delete_dashboard": "ダッシュボードを削除",
         "custom_nav": {
+            "dialog_description": "ドラッグで並べ替え、フォルダに入れるとまとめられます。非表示にした項目は「非表示」一覧に移り、いつでも戻せます。ダッシュボードの変更はすぐに反映されます。",
+            "visible_items": "メニュー内",
+            "hidden_empty": "非表示の項目はありません",
+            "folder_item_count": "{count} 件",
+            "ungroup_folder": "フォルダを解除",
+            "move_into_folder": "このフォルダに項目を入れる",
+            "restore_default_description": "現在の並びを既定の並びで上書きします。",
+            "applies_immediately": "この操作はすぐに反映され、キャンセルしても元に戻せません。",
             "header": "ナビゲーションの編集",
             "dialog_title": "ナビゲーションメニューのカスタマイズ",
             "new_folder": "フォルダを追加",
@@ -538,13 +546,13 @@
             "cancel": "キャンセル",
             "restore_default": "デフォルトに戻す",
             "dynamic": {
+                "rename_value": "{value} の名前を変更",
                 "drag_value": "{value} をドラッグ",
                 "icon_for_value": "{value} のアイコン",
-                "edit_value": "{value}を編集",
+                "edit_value": "{value} を編集",
                 "delete_value": "{value} を削除",
-                "hide_value": "{value}を非表示",
-                "remove_value": "{value} を削除",
-                "show_value": "{value}を表示"
+                "hide_value": "{value} を非表示",
+                "show_value": "{value} を表示"
             }
         }
     },
@@ -1727,7 +1735,7 @@
                 "inventory_description": "Emoji、ステッカー、アイテム、コスメティックを管理"
             },
             "shortcuts": {
-                "header": "フォルダー",
+                "header": "フォルダ",
                 "vrcx_data": "VRCX-0 のデータ",
                 "vrcx_data_description": "VRCX-0 のデータフォルダを開く",
                 "vrchat_data": "VRChat のデータ",
@@ -1904,7 +1912,7 @@
                 "failed_to_update_profile_media": "プロフィールメディアの更新に失敗しました",
                 "failed_to_consume_inventory_bundle": "インベントリバンドルの使用に失敗しました",
                 "failed_to_redeem_reward": "報酬の受け取りに失敗しました",
-                "failed_to_open_folder": "フォルダーを開けませんでした",
+                "failed_to_open_folder": "フォルダを開けませんでした",
                 "failed_to_copy_image": "画像のコピーに失敗しました",
                 "failed_to_pin_tool_to_navigation": "ツールをナビゲーションに固定できませんでした",
                 "failed_to_unpin_tool_from_navigation": "ツールのナビゲーション固定解除に失敗しました",
@@ -2429,7 +2437,7 @@
                     "storage": {
                         "header": "保存先とクリーンアップ",
                         "data_location": "データの保存先",
-                        "change_folder": "フォルダーを変更…",
+                        "change_folder": "フォルダを変更…",
                         "more": "データ保存先のその他の操作",
                         "restore_default": "既定の保存先に戻す",
                         "cache_header": "VRChat のキャッシュを自動的に整理",
@@ -2456,7 +2464,7 @@
                     "import_recovery": {
                         "header": "インポートと復元",
                         "import_from_vrcx": "VRCX からインポート",
-                        "description": "固定の VRCX データフォルダーにあるデータで、現在の VRCX-0 の設定とデータベースを置き換えます。",
+                        "description": "固定の VRCX データフォルダにあるデータで、現在の VRCX-0 の設定とデータベースを置き換えます。",
                         "review": "インポート内容を確認…"
                     },
                     "usage_data": {
@@ -2541,10 +2549,10 @@
                     },
                     "data_directory": {
                         "header": "データディレクトリ",
-                        "description": "現在のソース: {source}。ここではフォルダーの場所だけを保存します。VRCX-0 はデータをコピーしません。",
+                        "description": "現在のソース: {source}。ここではフォルダの場所だけを保存します。VRCX-0 はデータをコピーしません。",
                         "current": "現在のディレクトリ",
                         "actions": "データディレクトリ操作",
-                        "choose": "フォルダーを選択",
+                        "choose": "フォルダを選択",
                         "reset": "既定に戻す",
                         "restart": "再起動",
                         "restart_hint": "変更は VRCX-0 の再起動後に適用されます。",
@@ -2554,8 +2562,8 @@
                         "cli_override": "この起動では --data-dir が使われています。保存済みディレクトリを変更するには、コマンドライン指定なしで起動してください。",
                         "confirm_title": "VRCX-0 のデータディレクトリを切り替えますか？",
                         "confirm_description": "VRCX-0 は現在のデータをコピーしません。ログイン、データベース、設定、キャッシュを保持するには、再起動前に現在のデータディレクトリの内容を {path} に手動でコピーしてください。このディレクトリを保存し、再起動後に適用します。",
-                        "confirm_empty": "選択したフォルダーは空です。手動でデータをコピーしない限り、新しいプロファイルとして起動します。",
-                        "confirm_missing_profile": "選択したフォルダーには VRCX-0.sqlite3 または VRCX-0.json がなく、新しいプロファイルとして起動する可能性があります。",
+                        "confirm_empty": "選択したフォルダは空です。手動でデータをコピーしない限り、新しいプロファイルとして起動します。",
+                        "confirm_missing_profile": "選択したフォルダには VRCX-0.sqlite3 または VRCX-0.json がなく、新しいプロファイルとして起動する可能性があります。",
                         "saved_restart_required": "データディレクトリを保存しました。適用するには VRCX-0 を再起動してください。",
                         "reset_confirm_title": "VRCX-0 のデータディレクトリを既定に戻しますか？",
                         "reset_confirm_description": "再起動後、VRCX-0 は既定のデータディレクトリを使用します。ファイルはコピーされません。",
@@ -2613,7 +2621,7 @@
                         "purge_failed": "削除に失敗しました: {error}",
                         "purge_optimization_failed": "アバターデータは削除されましたが、データベースを最適化できませんでした: {error}",
                         "legacy_migration": "VRCX データを移行",
-                        "legacy_migration_description": "指定した VRCX データフォルダーのデータで、現在の VRCX-0 設定とデータベースを置き換えます。",
+                        "legacy_migration_description": "指定した VRCX データフォルダのデータで、現在の VRCX-0 設定とデータベースを置き換えます。",
                         "legacy_migration_confirm_title": "VRCX-0 のデータを VRCX のデータで置き換えますか？",
                         "legacy_migration_confirm_description": "現在の VRCX-0 設定とローカルデータベースを削除し、{path} で見つかったデータに置き換えます。移行を完了するため VRCX-0 は再起動します。元の VRCX データは変更されません。",
                         "legacy_migration_confirm": "移行して再起動",
@@ -2664,7 +2672,7 @@
             },
             "modal": {
                 "crop_existing_prints": "既存のプリントを切り抜き",
-                "crop_already_saved_instance_prints_in_the_config": "設定済みの UGC フォルダーに保存済みのインスタンスプリントを今すぐ切り抜きますか？",
+                "crop_already_saved_instance_prints_in_the_config": "設定済みの UGC フォルダに保存済みのインスタンスプリントを今すぐ切り抜きますか？",
                 "crop_prints": "プリントを切り抜き",
                 "skip": "スキップ"
             },
@@ -3009,9 +3017,9 @@
             },
             "developer": {
                 "header": "ローカルテーマプレビュー",
-                "description": "テーマ制作中にローカルテーマフォルダーを読み込みます。フォルダーには theme.css が必要で、theme.json も含められます。",
-                "no_folder": "フォルダー未選択",
-                "select_folder": "フォルダーを選択",
+                "description": "テーマ制作中にローカルテーマフォルダを読み込みます。フォルダには theme.css が必要で、theme.json も含められます。",
+                "no_folder": "フォルダ未選択",
+                "select_folder": "フォルダを選択",
                 "reload": "再読み込み",
                 "start_watch": "watch を開始",
                 "stop_watch": "watch を停止",
@@ -3083,8 +3091,8 @@
                 "description": "デイリー画像ソース、またはローカル画像ソースを背景に使用します。",
                 "apod_note": "NASA APOD は著作権情報のない画像のみを使用します。",
                 "custom_source": "ローカル画像",
-                "custom_source_description": "画像 1 枚なら固定背景、複数画像またはフォルダーならローテーションになります。",
-                "folder_first_level_note": "フォルダーは直下の画像だけを読み込みます。サブフォルダーは読み込みません。",
+                "custom_source_description": "画像 1 枚なら固定背景、複数画像またはフォルダならローテーションになります。",
+                "folder_first_level_note": "フォルダは直下の画像だけを読み込みます。サブフォルダは読み込みません。",
                 "selected_files": "{count} 枚の画像を選択済み",
                 "current_image": "現在の画像",
                 "image_count": "{count} 枚の画像",
@@ -3094,7 +3102,7 @@
                 "no_image_description": "再読み込みするかソースを選択すると画像を読み込みます。",
                 "source_type_file": "ローカルファイル",
                 "source_type_files": "選択済みファイル",
-                "source_type_folder": "フォルダー",
+                "source_type_folder": "フォルダ",
                 "resolved_at": "読み込み日時"
             },
             "mode": {
@@ -3108,7 +3116,7 @@
             "action": {
                 "refresh": "再読み込み",
                 "select_images": "画像を選択",
-                "select_folder": "フォルダーを選択"
+                "select_folder": "フォルダを選択"
             },
             "toast": {
                 "enabled": "背景画像を有効化しました。",
@@ -3759,7 +3767,7 @@
                 "memo_saved": "ローカルノートを保存しました",
                 "memo_cleared": "ローカルノートをクリアしました",
                 "failed_to_save_memo": "ローカルノートの保存に失敗しました",
-                "failed_to_open_world_cache_folder": "ワールドキャッシュフォルダーを開けませんでした",
+                "failed_to_open_world_cache_folder": "ワールドキャッシュフォルダを開けませんでした",
                 "failed_to_delete_world_cache": "ワールドキャッシュを削除できませんでした",
                 "world_published": "ワールドを公開しました",
                 "world_unpublished": "ワールドを非公開にしました",
@@ -3914,7 +3922,7 @@
                 "memo_saved": "ローカルノートを保存しました",
                 "memo_cleared": "ローカルノートをクリアしました",
                 "failed_to_save_memo": "ローカルノートの保存に失敗しました",
-                "failed_to_open_avatar_cache_folder": "アバターキャッシュフォルダーを開けませんでした",
+                "failed_to_open_avatar_cache_folder": "アバターキャッシュフォルダを開けませんでした",
                 "failed_to_delete_avatar_cache": "アバターキャッシュの削除に失敗しました",
                 "selected_file_is_too_large": "選択したファイルが大きすぎます",
                 "selected_file_is_not_an_image": "選択したファイルは画像ではありません",
@@ -4456,12 +4464,12 @@
             "back_to_results": "{count} 件の結果に戻る",
             "result_count": "{count} 件の結果",
             "gallery": "ギャラリー",
-            "folders": "フォルダー",
+            "folders": "フォルダ",
             "scanning": "スクリーンショットをスキャン中",
             "image_count": "{count} 枚",
-            "empty_gallery": "このフォルダーにスクリーンショットはありません",
-            "empty_gallery_description": "別のフォルダーを選択するか、スクリーンショットライブラリを更新してください。",
-            "empty_folders": "スクリーンショットフォルダーがありません",
+            "empty_gallery": "このフォルダにスクリーンショットはありません",
+            "empty_gallery_description": "別のフォルダを選択するか、スクリーンショットライブラリを更新してください。",
+            "empty_folders": "スクリーンショットフォルダがありません",
             "empty_folders_description": "VRChat がスクリーンショットを保存した後に更新してください。",
             "loading_gallery": "スクリーンショットを読み込み中",
             "loading_gallery_description": "インデックス済みのスクリーンショット一覧を読み込んでいます。",
@@ -5155,13 +5163,13 @@
             "upgrade_failed_title": "データベースのアップグレードに失敗しました",
             "failure_record": "エラー記録",
             "failure_record_hint": "GitHub で問題を報告する際は error-log.txt を添付してください。ローカルパスやアカウントに関する情報が含まれる場合があるため、添付前に内容を確認してください。",
-            "open_failure_log_folder": "ログフォルダーを開く",
+            "open_failure_log_folder": "ログフォルダを開く",
             "create_github_issue": "GitHub Issue を作成",
             "preserved_work_database": "保存されたアップグレード作業用データベース",
             "database_upload_warning": "このデータベースには、アカウントやアクティビティに関する個人情報が含まれる場合があります。GitHub にはアップロードしないでください。",
             "use_new_database": "新しいデータベースを使用",
             "fresh_start_confirm_title": "新しいデータベースを使用しますか？",
-            "fresh_start_confirm_description": "VRCX-0 は現在のデータベースとアップグレード失敗時のファイルを復旧フォルダーに保存し、新しい空のデータベースで再起動します。新しいデータベースには設定、ローカル履歴、保存済みアカウント情報は引き継がれません。",
+            "fresh_start_confirm_description": "VRCX-0 は現在のデータベースとアップグレード失敗時のファイルを復旧フォルダに保存し、新しい空のデータベースで再起動します。新しいデータベースには設定、ローカル履歴、保存済みアカウント情報は引き継がれません。",
             "fresh_start_restarting": "現在のデータベースを保存して VRCX-0 を再起動しています...",
             "fresh_start_failed": "新しいデータベースを作成できませんでした。"
         },
@@ -5621,7 +5629,7 @@
                 "failed_to_load_launch_options": "起動オプションを読み込めませんでした",
                 "failed_to_save_launch_options": "起動オプションを保存できませんでした",
                 "failed_to_load_vrchat_configuration": "VRChat 設定を読み込めませんでした",
-                "failed_to_select_folder": "フォルダーを選択できませんでした",
+                "failed_to_select_folder": "フォルダを選択できませんでした",
                 "removed_value_cache_entries": "{value} 件のキャッシュ項目を削除しました",
                 "failed_to_sweep_asset_cache": "アセットキャッシュを掃除できませんでした",
                 "failed_to_delete_asset_cache": "アセットキャッシュを削除できませんでした",
@@ -5736,7 +5744,7 @@
                 "vrcx_update_available": "VRCX-0 の更新があります"
             },
             "description": {
-                "registry_backup_restore_description": "VRChat レジストリフォルダーが見つからず、保存済みのレジストリバックアップがあります。VRChat を起動する前にバックアップを復元してください"
+                "registry_backup_restore_description": "VRChat レジストリフォルダが見つからず、保存済みのレジストリバックアップがあります。VRChat を起動する前にバックアップを復元してください"
             }
         }
     },
@@ -5803,7 +5811,7 @@
             "charts_mutual": "チャート: 共通フレンド",
             "mutual_friends_graph_over_cached_data": "キャッシュデータに基づく共通フレンドグラフです。",
             "tools": "ツール",
-            "tools_landing_route_and_folder_shortcuts": "ツール機能のトップページとフォルダーショートカットです。",
+            "tools_landing_route_and_folder_shortcuts": "ツール機能のトップページとフォルダショートカットです。",
             "gallery": "ギャラリー",
             "gallery_browser_and_media_actions": "ギャラリーブラウザーとメディア操作です。",
             "inventory": "インベントリ",

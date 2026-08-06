@@ -523,6 +523,14 @@
         "edit_dashboard": "Edit Dashboard",
         "delete_dashboard": "Delete Dashboard",
         "custom_nav": {
+            "dialog_description": "Drag to reorder, or drop an item into a folder to group it. Items you hide move to the Hidden list and can be brought back any time. Dashboard changes apply immediately.",
+            "visible_items": "In the menu",
+            "hidden_empty": "Nothing hidden",
+            "folder_item_count": "{count} items",
+            "ungroup_folder": "Ungroup folder",
+            "move_into_folder": "Move an item into this folder",
+            "restore_default_description": "This replaces your current arrangement with the default one.",
+            "applies_immediately": "This applies immediately and is not undone by cancelling.",
             "header": "Customize Navigation",
             "dialog_title": "Customize Navigation Menu",
             "new_folder": "New Folder",
@@ -538,12 +546,12 @@
             "cancel": "Cancel",
             "restore_default": "Restore Default",
             "dynamic": {
+                "rename_value": "Rename {value}",
                 "drag_value": "Drag {value}",
                 "icon_for_value": "Icon for {value}",
                 "edit_value": "Edit {value}",
                 "delete_value": "Delete {value}",
                 "hide_value": "Hide {value}",
-                "remove_value": "Remove {value}",
                 "show_value": "Show {value}"
             }
         }

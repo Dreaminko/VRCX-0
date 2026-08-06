@@ -13,10 +13,12 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     EyeIcon,
     EyeOffIcon,
-    FolderXIcon,
     GripVerticalIcon,
+    ListPlusIcon,
     PencilIcon,
-    Trash2Icon
+    Trash2Icon,
+    UngroupIcon,
+    type LucideIcon
 } from 'lucide-react';
 import type {
     CSSProperties,
@@ -24,6 +26,7 @@ import type {
     MouseEvent,
     ReactNode
 } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { getNavIconComponent } from '@/components/layout/navIconRegistry';
@@ -31,20 +34,12 @@ import { cn } from '@/lib/utils';
 import {
     DEFAULT_FOLDER_ICON,
     DEFAULT_NAV_ICON_KEY,
-    NAV_ICON_OPTIONS,
     normalizeNavIconKey
 } from '@/shared/constants/navIcons';
 import { isToolNavKey } from '@/shared/constants/tools';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
-import { Separator } from '@/ui/shadcn/separator';
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     definitionLabel,
@@ -55,9 +50,9 @@ import {
     getItemSortableId,
     isDashboardKey,
     type CustomNavDefinition,
-    type CustomNavLayout,
-    type CustomNavFolderItem
+    type CustomNavLayout
 } from './customNavLayout';
+import { NavIconPicker } from './NavIconPicker';
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 type DndSensors = Parameters<typeof DndContext>[0]['sensors'];
@@ -71,29 +66,39 @@ type SortableRowRenderProps = {
     isDragging: boolean;
 };
 
-type NavIconSelectProps = {
-    value?: unknown;
-    fallbackIcon?: unknown;
-    ariaLabel: string;
-    onValueChange: (value: string) => void;
-};
-
-type NavItemRowProps = Partial<SortableRowRenderProps> & {
-    label: ReactNode;
-    icon?: unknown;
-    fallbackIcon?: unknown;
-    indent?: boolean;
-    isTool: boolean;
-    isDashboard: boolean;
-    onHide: () => void;
-    onIconChange?: (value: string) => void;
-    onEditDashboard: () => void;
-    onDeleteDashboard: () => void;
+type MoveCandidate = {
+    key: unknown;
+    label: string;
+    icon: unknown;
 };
 
 type SortableNavItemRowProps = {
     id: string;
     children: (props: SortableRowRenderProps) => ReactNode;
+};
+
+type NavDefinitionRowProps = {
+    itemKey: unknown;
+    definition: CustomNavDefinition;
+    icon: unknown;
+    indent?: boolean;
+    justMoved: boolean;
+    onIconChange: (icon: string) => void;
+    onHide: () => void;
+    onEditDashboard: () => void;
+    onDeleteDashboard: () => void;
+};
+
+type FolderHeaderRowProps = {
+    folderId: unknown;
+    name: unknown;
+    icon: unknown;
+    itemCount: number;
+    candidates: MoveCandidate[];
+    onIconChange: (icon: string) => void;
+    onAddItem: (key: unknown) => void;
+    onRename: () => void;
+    onUngroup: () => void;
 };
 
 type FolderDropZoneProps = {
@@ -112,6 +117,7 @@ type CustomNavDialogLayoutEditorProps = {
     localLayout: CustomNavLayout;
     definitionMap: Map<unknown, CustomNavDefinition>;
     hiddenItems: HiddenNavItem[];
+    justMovedKey: string;
     onDragEnd: (event: DragEndEvent) => void;
     onFolderIconChange: (
         index: number,
@@ -119,166 +125,105 @@ type CustomNavDialogLayoutEditorProps = {
         fallbackIcon?: unknown
     ) => void;
     onFolderEdit: (index: number) => void;
-    onFolderDelete: (index: number) => void;
+    onFolderUngroup: (index: number) => void;
     onFolderChildIconChange: (
         folderIndex: number,
         itemIndex: number,
         icon: string,
         fallbackIcon: unknown
     ) => void;
+    onMoveItemToFolder: (key: unknown, folderId: unknown) => void;
     onHideItem: (key: unknown) => void;
     onEditDashboard: (key: unknown) => void;
     onDeleteDashboard: (key: unknown) => void;
     onShowItem: (key: unknown) => void;
 };
 
+const JUST_MOVED_CLASS =
+    'animate-in fade-in-0 slide-in-from-top-1 duration-[160ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:slide-in-from-top-0';
+
 function customNavActionLabel(t: TranslationFn, key: string, value: unknown) {
     return t(`nav_menu.custom_nav.dynamic.${key}`, { value });
 }
 
-function NavIconSelect({
-    value,
-    fallbackIcon,
-    ariaLabel,
-    onValueChange
-}: NavIconSelectProps) {
-    const normalizedIcon = normalizeNavIconKey(value, fallbackIcon);
-
+function IconAction({
+    label,
+    icon: Icon,
+    destructive = false,
+    onClick
+}: {
+    label: string;
+    icon: LucideIcon;
+    destructive?: boolean;
+    onClick: () => void;
+}) {
     return (
-        <Select
-            value={normalizedIcon}
-            items={NAV_ICON_OPTIONS.map((option) => {
-                const OptionIcon = getNavIconComponent(option.key);
-                return {
-                    value: option.key,
-                    label: (
-                        <span className="flex min-w-0 items-center gap-2">
-                            <OptionIcon data-icon="inline-start" />
-                            <span className="truncate">{option.label}</span>
-                        </span>
-                    )
-                };
-            })}
-            onValueChange={(value) => onValueChange(value ?? '')}
-        >
-            <SelectTrigger size="sm" className="w-32" aria-label={ariaLabel}>
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="start">
-                <SelectGroup>
-                    {NAV_ICON_OPTIONS.map((option) => {
-                        const OptionIcon = getNavIconComponent(option.key);
-                        return (
-                            <SelectItem key={option.key} value={option.key}>
-                                <span className="flex min-w-0 items-center gap-2">
-                                    <OptionIcon data-icon="inline-start" />
-                                    <span className="truncate">
-                                        {option.label}
-                                    </span>
-                                </span>
-                            </SelectItem>
-                        );
-                    })}
-                </SelectGroup>
-            </SelectContent>
-        </Select>
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className={cn(
+                            'shrink-0',
+                            destructive && 'text-destructive'
+                        )}
+                        aria-label={label}
+                        onClick={onClick}
+                    >
+                        <Icon data-icon="icon" />
+                    </Button>
+                }
+            />
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
     );
 }
 
-function NavItemRow({
+function DragHandleButton({
     label,
-    icon,
-    fallbackIcon = DEFAULT_NAV_ICON_KEY,
-    indent = false,
-    rowRef,
-    rowStyle,
-    dragHandleProps,
-    isDragging = false,
-    isTool,
-    isDashboard,
-    onHide,
-    onIconChange,
-    onEditDashboard,
-    onDeleteDashboard
-}: NavItemRowProps) {
-    const { t } = useTranslation();
-
+    dragHandleProps
+}: {
+    label: string;
+    dragHandleProps: DragHandleProps;
+}) {
     return (
-        <div
-            ref={rowRef}
-            style={rowStyle}
-            className={cn(
-                'flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-colors',
-                isDragging && 'opacity-50',
-                indent && 'ml-6'
-            )}
+        <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground shrink-0 cursor-grab touch-none active:cursor-grabbing"
+            aria-label={label}
+            {...dragHandleProps}
         >
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="shrink-0 cursor-grab touch-none active:cursor-grabbing"
-                aria-label={customNavActionLabel(t, 'drag_value', label)}
-                {...dragHandleProps}
-            >
-                <GripVerticalIcon data-icon="inline-start" />
-            </Button>
-            {onIconChange ? (
-                <NavIconSelect
-                    value={icon}
-                    fallbackIcon={fallbackIcon}
-                    ariaLabel={customNavActionLabel(t, 'icon_for_value', label)}
-                    onValueChange={(onValue) => onIconChange(onValue)}
-                />
-            ) : null}
-            <span className="min-w-0 flex-1 truncate">{label}</span>
-            {isDashboard ? (
-                <>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={customNavActionLabel(
-                            t,
-                            'edit_value',
-                            label
-                        )}
-                        onClick={onEditDashboard}
-                    >
-                        <PencilIcon data-icon="inline-start" />
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={customNavActionLabel(
-                            t,
-                            'delete_value',
-                            label
-                        )}
-                        onClick={onDeleteDashboard}
-                    >
-                        <Trash2Icon data-icon="inline-start" />
-                    </Button>
-                </>
-            ) : null}
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={customNavActionLabel(
-                    t,
-                    isTool ? 'remove_value' : 'hide_value',
-                    label
-                )}
-                onClick={onHide}
-            >
-                {isTool ? (
-                    <Trash2Icon data-icon="inline-start" />
-                ) : (
-                    <EyeOffIcon data-icon="inline-start" />
-                )}
-            </Button>
+            <GripVerticalIcon data-icon="icon" />
+        </Button>
+    );
+}
+
+function ColumnShell({
+    title,
+    count,
+    children
+}: {
+    title: string;
+    count: number;
+    children: ReactNode;
+}) {
+    return (
+        <div className="flex min-h-0 flex-col gap-2">
+            <div className="flex items-baseline gap-2 px-1">
+                <span className="text-xs font-medium tracking-wide uppercase">
+                    {title}
+                </span>
+                <span className="text-muted-foreground text-xs tabular-nums">
+                    {count}
+                </span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                {children}
+            </div>
         </div>
     );
 }
@@ -312,6 +257,93 @@ function SortableNavItemRow({ id, children }: SortableNavItemRowProps) {
     });
 }
 
+function NavDefinitionRow({
+    itemKey,
+    definition,
+    icon,
+    indent = false,
+    justMoved,
+    onIconChange,
+    onHide,
+    onEditDashboard,
+    onDeleteDashboard
+}: NavDefinitionRowProps) {
+    const { t } = useTranslation();
+    const label = definitionLabel(definition, t);
+
+    return (
+        <SortableNavItemRow id={getItemSortableId(itemKey)}>
+            {({ rowRef, rowStyle, dragHandleProps, isDragging }) => (
+                <div
+                    ref={rowRef}
+                    style={rowStyle}
+                    className={cn(
+                        'flex items-center gap-1 rounded-md border px-1 py-1 text-sm transition-colors',
+                        isDragging && 'opacity-50',
+                        indent && 'ml-6',
+                        justMoved && JUST_MOVED_CLASS
+                    )}
+                >
+                    <DragHandleButton
+                        label={customNavActionLabel(t, 'drag_value', label)}
+                        dragHandleProps={dragHandleProps}
+                    />
+                    <NavIconPicker
+                        value={icon}
+                        fallbackIcon={definition.icon || DEFAULT_NAV_ICON_KEY}
+                        ariaLabel={customNavActionLabel(
+                            t,
+                            'icon_for_value',
+                            label
+                        )}
+                        onValueChange={onIconChange}
+                    />
+                    <span className="min-w-0 flex-1 truncate px-1">
+                        {label}
+                    </span>
+                    {isDashboardKey(itemKey) ? (
+                        <>
+                            <IconAction
+                                label={customNavActionLabel(
+                                    t,
+                                    'edit_value',
+                                    label
+                                )}
+                                icon={PencilIcon}
+                                onClick={onEditDashboard}
+                            />
+                            <IconAction
+                                label={customNavActionLabel(
+                                    t,
+                                    'delete_value',
+                                    label
+                                )}
+                                icon={Trash2Icon}
+                                destructive
+                                onClick={onDeleteDashboard}
+                            />
+                        </>
+                    ) : null}
+                    {isToolNavKey(itemKey) ? (
+                        <IconAction
+                            label={t('nav_menu.custom_nav.unpin_from_nav')}
+                            icon={Trash2Icon}
+                            destructive
+                            onClick={onHide}
+                        />
+                    ) : (
+                        <IconAction
+                            label={customNavActionLabel(t, 'hide_value', label)}
+                            icon={EyeOffIcon}
+                            onClick={onHide}
+                        />
+                    )}
+                </div>
+            )}
+        </SortableNavItemRow>
+    );
+}
+
 function FolderDropZone({ folderId, label }: FolderDropZoneProps) {
     const { setNodeRef } = useDroppable({
         id: getFolderDropId(folderId)
@@ -320,10 +352,145 @@ function FolderDropZone({ folderId, label }: FolderDropZoneProps) {
     return (
         <div
             ref={setNodeRef}
-            className="text-muted-foreground ml-6 rounded-md border border-dashed px-2 py-1.5 text-sm"
+            className="text-muted-foreground ml-6 rounded-md border border-dashed px-2 py-1.5 text-xs"
         >
             {label}
         </div>
+    );
+}
+
+function FolderAddItemsButton({
+    candidates,
+    onAdd
+}: {
+    candidates: MoveCandidate[];
+    onAdd: (key: unknown) => void;
+}) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const label = t('nav_menu.custom_nav.move_into_folder');
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <Tooltip>
+                <TooltipTrigger
+                    render={
+                        <span className="inline-flex shrink-0">
+                            <PopoverTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        disabled={!candidates.length}
+                                        aria-label={label}
+                                    >
+                                        <ListPlusIcon data-icon="icon" />
+                                    </Button>
+                                }
+                            />
+                        </span>
+                    }
+                />
+                <TooltipContent>{label}</TooltipContent>
+            </Tooltip>
+            <PopoverContent
+                align="end"
+                className="max-h-72 gap-1 overflow-y-auto p-1"
+            >
+                {candidates.map((candidate) => {
+                    const CandidateIcon = getNavIconComponent(
+                        normalizeNavIconKey(
+                            candidate.icon,
+                            DEFAULT_NAV_ICON_KEY
+                        )
+                    );
+                    return (
+                        <Button
+                            key={String(candidate.key)}
+                            type="button"
+                            variant="ghost"
+                            className="h-auto w-full justify-start px-2 py-1.5 font-normal"
+                            onClick={() => {
+                                onAdd(candidate.key);
+                                setOpen(false);
+                            }}
+                        >
+                            <CandidateIcon data-icon="inline-start" />
+                            <span className="min-w-0 flex-1 truncate text-left">
+                                {candidate.label}
+                            </span>
+                        </Button>
+                    );
+                })}
+            </PopoverContent>
+        </Popover>
+    );
+}
+
+function FolderHeaderRow({
+    folderId,
+    name,
+    icon,
+    itemCount,
+    candidates,
+    onIconChange,
+    onAddItem,
+    onRename,
+    onUngroup
+}: FolderHeaderRowProps) {
+    const { t } = useTranslation();
+
+    return (
+        <SortableNavItemRow id={getFolderSortableId(folderId)}>
+            {({ rowRef, rowStyle, dragHandleProps, isDragging }) => (
+                <div
+                    ref={rowRef}
+                    style={rowStyle}
+                    className={cn(
+                        'bg-muted/40 flex items-center gap-1 rounded-md px-1 py-1 text-sm font-medium transition-colors',
+                        isDragging && 'opacity-50'
+                    )}
+                >
+                    <DragHandleButton
+                        label={customNavActionLabel(t, 'drag_value', name)}
+                        dragHandleProps={dragHandleProps}
+                    />
+                    <NavIconPicker
+                        value={icon}
+                        fallbackIcon={DEFAULT_FOLDER_ICON}
+                        ariaLabel={customNavActionLabel(
+                            t,
+                            'icon_for_value',
+                            name
+                        )}
+                        onValueChange={onIconChange}
+                    />
+                    <span className="min-w-0 flex-1 truncate px-1">
+                        {String(name || '')}
+                    </span>
+                    <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                        {t('nav_menu.custom_nav.folder_item_count', {
+                            count: itemCount
+                        })}
+                    </span>
+                    <FolderAddItemsButton
+                        candidates={candidates}
+                        onAdd={onAddItem}
+                    />
+                    <IconAction
+                        label={customNavActionLabel(t, 'rename_value', name)}
+                        icon={PencilIcon}
+                        onClick={onRename}
+                    />
+                    <IconAction
+                        label={t('nav_menu.custom_nav.ungroup_folder')}
+                        icon={UngroupIcon}
+                        onClick={onUngroup}
+                    />
+                </div>
+            )}
+        </SortableNavItemRow>
     );
 }
 
@@ -333,291 +500,227 @@ export function CustomNavDialogLayoutEditor({
     localLayout,
     definitionMap,
     hiddenItems,
+    justMovedKey,
     onDragEnd,
     onFolderIconChange,
     onFolderEdit,
-    onFolderDelete,
+    onFolderUngroup,
     onFolderChildIconChange,
+    onMoveItemToFolder,
     onHideItem,
     onEditDashboard,
     onDeleteDashboard,
     onShowItem
 }: CustomNavDialogLayoutEditorProps) {
     const { t } = useTranslation();
+    const topLevelCandidates: MoveCandidate[] = localLayout.flatMap((entry) => {
+        if (entry.type !== 'item') {
+            return [];
+        }
+        const definition = definitionMap.get(entry.key);
+        if (!definition) {
+            return [];
+        }
+        return [
+            {
+                key: entry.key,
+                label: definitionLabel(definition, t),
+                icon: entry.icon || definition.icon
+            }
+        ];
+    });
+    const visibleCount = localLayout.reduce(
+        (total, entry) =>
+            total + (entry.type === 'folder' ? entry.items.length : 1),
+        0
+    );
 
     return (
-        <>
-            <DndContext
-                accessibility={
-                    typeof document === 'undefined'
-                        ? undefined
-                        : { container: document.body }
-                }
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={onDragEnd}
+        <div className="grid min-h-0 flex-1 gap-4 sm:grid-cols-[minmax(0,1fr)_15rem]">
+            <ColumnShell
+                title={t('nav_menu.custom_nav.visible_items')}
+                count={visibleCount}
             >
-                <SortableContext
-                    items={sortableNodeIds}
-                    strategy={verticalListSortingStrategy}
+                <DndContext
+                    accessibility={
+                        typeof document === 'undefined'
+                            ? undefined
+                            : { container: document.body }
+                    }
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={onDragEnd}
                 >
-                    <div className="flex flex-col gap-1">
-                        {localLayout.map((entry, index) => {
-                            if (entry.type === 'folder') {
-                                return (
-                                    <div
-                                        key={String(entry.id)}
-                                        className="flex flex-col gap-1 rounded-lg border p-2"
-                                    >
-                                        <SortableNavItemRow
-                                            id={getFolderSortableId(entry.id)}
+                    <SortableContext
+                        items={sortableNodeIds}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div className="flex flex-col gap-1">
+                            {localLayout.map((entry, index) => {
+                                if (entry.type === 'folder') {
+                                    return (
+                                        <div
+                                            key={String(entry.id)}
+                                            className="flex flex-col gap-1 rounded-lg border p-2"
                                         >
-                                            {({
-                                                rowRef,
-                                                rowStyle,
-                                                dragHandleProps,
-                                                isDragging
-                                            }) => (
-                                                <div
-                                                    ref={rowRef}
-                                                    style={rowStyle}
-                                                    className={cn(
-                                                        'flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium transition-colors',
-                                                        isDragging &&
-                                                            'opacity-50'
-                                                    )}
-                                                >
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon-sm"
-                                                        className="shrink-0 cursor-grab touch-none active:cursor-grabbing"
-                                                        aria-label={customNavActionLabel(
-                                                            t,
-                                                            'drag_value',
-                                                            entry.name
-                                                        )}
-                                                        {...dragHandleProps}
-                                                    >
-                                                        <GripVerticalIcon data-icon="inline-start" />
-                                                    </Button>
-                                                    <NavIconSelect
-                                                        value={entry.icon}
-                                                        fallbackIcon={
-                                                            DEFAULT_FOLDER_ICON
-                                                        }
-                                                        ariaLabel={customNavActionLabel(
-                                                            t,
-                                                            'icon_for_value',
-                                                            entry.name
-                                                        )}
-                                                        onValueChange={(icon) =>
-                                                            onFolderIconChange(
-                                                                index,
-                                                                icon
-                                                            )
-                                                        }
-                                                    />
-                                                    <span className="min-w-0 flex-1 truncate">
-                                                        {String(
-                                                            entry.name || ''
-                                                        )}
-                                                    </span>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon-sm"
-                                                        aria-label={customNavActionLabel(
-                                                            t,
-                                                            'edit_value',
-                                                            entry.name
-                                                        )}
-                                                        onClick={() =>
-                                                            onFolderEdit(index)
-                                                        }
-                                                    >
-                                                        <PencilIcon data-icon="inline-start" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon-sm"
-                                                        aria-label={customNavActionLabel(
-                                                            t,
-                                                            'delete_value',
-                                                            entry.name
-                                                        )}
-                                                        onClick={() =>
-                                                            onFolderDelete(
-                                                                index
-                                                            )
-                                                        }
-                                                    >
-                                                        <FolderXIcon data-icon="inline-start" />
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </SortableNavItemRow>
-                                        {entry.items?.length ? (
-                                            <div className="flex flex-col gap-1">
-                                                {entry.items.map(
-                                                    (
-                                                        item: CustomNavFolderItem,
-                                                        childIndex
-                                                    ) => {
-                                                        const key =
-                                                            getFolderItemKey(
-                                                                item
-                                                            );
-                                                        const definition =
-                                                            definitionMap.get(
-                                                                key
-                                                            );
-                                                        if (!definition) {
-                                                            return null;
-                                                        }
-                                                        return (
-                                                            <SortableNavItemRow
-                                                                key={String(
-                                                                    key
-                                                                )}
-                                                                id={getItemSortableId(
-                                                                    key
-                                                                )}
-                                                            >
-                                                                {(rowProps) => (
-                                                                    <NavItemRow
-                                                                        {...rowProps}
-                                                                        indent
-                                                                        label={definitionLabel(
-                                                                            definition,
-                                                                            t
-                                                                        )}
-                                                                        icon={
-                                                                            getFolderItemIcon(
-                                                                                item
-                                                                            ) ||
-                                                                            definition.icon
-                                                                        }
-                                                                        fallbackIcon={
-                                                                            definition.icon ||
-                                                                            DEFAULT_NAV_ICON_KEY
-                                                                        }
-                                                                        isTool={isToolNavKey(
-                                                                            key
-                                                                        )}
-                                                                        isDashboard={isDashboardKey(
-                                                                            key
-                                                                        )}
-                                                                        onIconChange={(
-                                                                            icon
-                                                                        ) =>
-                                                                            onFolderChildIconChange(
-                                                                                index,
-                                                                                childIndex,
-                                                                                icon,
-                                                                                definition.icon ||
-                                                                                    DEFAULT_NAV_ICON_KEY
-                                                                            )
-                                                                        }
-                                                                        onHide={() =>
-                                                                            onHideItem(
-                                                                                key
-                                                                            )
-                                                                        }
-                                                                        onEditDashboard={() =>
-                                                                            onEditDashboard(
-                                                                                key
-                                                                            )
-                                                                        }
-                                                                        onDeleteDashboard={() =>
-                                                                            onDeleteDashboard(
-                                                                                key
-                                                                            )
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            </SortableNavItemRow>
-                                                        );
-                                                    }
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <FolderDropZone
+                                            <FolderHeaderRow
                                                 folderId={entry.id}
-                                                label={t(
-                                                    'nav_menu.custom_nav.folder_drop_here'
-                                                )}
+                                                name={entry.name}
+                                                icon={entry.icon}
+                                                itemCount={entry.items.length}
+                                                candidates={topLevelCandidates}
+                                                onIconChange={(icon) =>
+                                                    onFolderIconChange(
+                                                        index,
+                                                        icon
+                                                    )
+                                                }
+                                                onAddItem={(key) =>
+                                                    onMoveItemToFolder(
+                                                        key,
+                                                        entry.id
+                                                    )
+                                                }
+                                                onRename={() =>
+                                                    onFolderEdit(index)
+                                                }
+                                                onUngroup={() =>
+                                                    onFolderUngroup(index)
+                                                }
                                             />
-                                        )}
-                                    </div>
-                                );
-                            }
+                                            {entry.items.length ? (
+                                                <div className="flex flex-col gap-1">
+                                                    {entry.items.map(
+                                                        (item, childIndex) => {
+                                                            const key =
+                                                                getFolderItemKey(
+                                                                    item
+                                                                );
+                                                            const definition =
+                                                                definitionMap.get(
+                                                                    key
+                                                                );
+                                                            if (!definition) {
+                                                                return null;
+                                                            }
+                                                            return (
+                                                                <NavDefinitionRow
+                                                                    key={String(
+                                                                        key
+                                                                    )}
+                                                                    itemKey={
+                                                                        key
+                                                                    }
+                                                                    definition={
+                                                                        definition
+                                                                    }
+                                                                    icon={
+                                                                        getFolderItemIcon(
+                                                                            item
+                                                                        ) ||
+                                                                        definition.icon
+                                                                    }
+                                                                    indent
+                                                                    justMoved={
+                                                                        justMovedKey ===
+                                                                        String(
+                                                                            key
+                                                                        )
+                                                                    }
+                                                                    onIconChange={(
+                                                                        icon
+                                                                    ) =>
+                                                                        onFolderChildIconChange(
+                                                                            index,
+                                                                            childIndex,
+                                                                            icon,
+                                                                            definition.icon ||
+                                                                                DEFAULT_NAV_ICON_KEY
+                                                                        )
+                                                                    }
+                                                                    onHide={() =>
+                                                                        onHideItem(
+                                                                            key
+                                                                        )
+                                                                    }
+                                                                    onEditDashboard={() =>
+                                                                        onEditDashboard(
+                                                                            key
+                                                                        )
+                                                                    }
+                                                                    onDeleteDashboard={() =>
+                                                                        onDeleteDashboard(
+                                                                            key
+                                                                        )
+                                                                    }
+                                                                />
+                                                            );
+                                                        }
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <FolderDropZone
+                                                    folderId={entry.id}
+                                                    label={t(
+                                                        'nav_menu.custom_nav.folder_drop_here'
+                                                    )}
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                }
 
-                            const definition = definitionMap.get(entry.key);
-                            if (!definition) {
-                                return null;
-                            }
-                            return (
-                                <SortableNavItemRow
-                                    key={String(entry.key)}
-                                    id={getItemSortableId(entry.key)}
-                                >
-                                    {(rowProps) => (
-                                        <NavItemRow
-                                            {...rowProps}
-                                            label={definitionLabel(
-                                                definition,
-                                                t
-                                            )}
-                                            icon={entry.icon || definition.icon}
-                                            fallbackIcon={
+                                const definition = definitionMap.get(entry.key);
+                                if (!definition) {
+                                    return null;
+                                }
+                                return (
+                                    <NavDefinitionRow
+                                        key={String(entry.key)}
+                                        itemKey={entry.key}
+                                        definition={definition}
+                                        icon={entry.icon || definition.icon}
+                                        justMoved={
+                                            justMovedKey === String(entry.key)
+                                        }
+                                        onIconChange={(icon) =>
+                                            onFolderIconChange(
+                                                index,
+                                                icon,
                                                 definition.icon ||
-                                                DEFAULT_NAV_ICON_KEY
-                                            }
-                                            isTool={isToolNavKey(entry.key)}
-                                            isDashboard={isDashboardKey(
-                                                entry.key
-                                            )}
-                                            onIconChange={(icon) =>
-                                                onFolderIconChange(
-                                                    index,
-                                                    icon,
-                                                    definition.icon ||
-                                                        DEFAULT_NAV_ICON_KEY
-                                                )
-                                            }
-                                            onHide={() => onHideItem(entry.key)}
-                                            onEditDashboard={() =>
-                                                onEditDashboard(entry.key)
-                                            }
-                                            onDeleteDashboard={() =>
-                                                onDeleteDashboard(entry.key)
-                                            }
-                                        />
-                                    )}
-                                </SortableNavItemRow>
-                            );
-                        })}
-                    </div>
-                </SortableContext>
-            </DndContext>
-            {hiddenItems.length ? (
-                <>
-                    <div className="my-4 flex items-center gap-2">
-                        <Separator className="flex-1" />
-                        <span className="text-muted-foreground text-xs">
-                            {t('nav_menu.custom_nav.hidden_items')}
-                        </span>
-                        <Separator className="flex-1" />
-                    </div>
+                                                    DEFAULT_NAV_ICON_KEY
+                                            )
+                                        }
+                                        onHide={() => onHideItem(entry.key)}
+                                        onEditDashboard={() =>
+                                            onEditDashboard(entry.key)
+                                        }
+                                        onDeleteDashboard={() =>
+                                            onDeleteDashboard(entry.key)
+                                        }
+                                    />
+                                );
+                            })}
+                        </div>
+                    </SortableContext>
+                </DndContext>
+            </ColumnShell>
+            <ColumnShell
+                title={t('nav_menu.custom_nav.hidden_items')}
+                count={hiddenItems.length}
+            >
+                {hiddenItems.length ? (
                     <div className="flex flex-col gap-1">
                         {hiddenItems.map((item) => (
                             <Button
                                 key={String(item.key)}
                                 type="button"
                                 variant="ghost"
-                                className="text-muted-foreground h-auto w-full justify-start px-2 py-1.5 text-left font-normal"
+                                className={cn(
+                                    'text-muted-foreground h-auto w-full justify-start px-2 py-1.5 text-left font-normal',
+                                    justMovedKey === String(item.key) &&
+                                        JUST_MOVED_CLASS
+                                )}
                                 aria-label={customNavActionLabel(
                                     t,
                                     'show_value',
@@ -632,8 +735,12 @@ export function CustomNavDialogLayoutEditor({
                             </Button>
                         ))}
                     </div>
-                </>
-            ) : null}
-        </>
+                ) : (
+                    <p className="text-muted-foreground rounded-md border border-dashed px-2 py-3 text-center text-xs">
+                        {t('nav_menu.custom_nav.hidden_empty')}
+                    </p>
+                )}
+            </ColumnShell>
+        </div>
     );
 }

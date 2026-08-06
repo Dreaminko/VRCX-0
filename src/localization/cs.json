@@ -523,6 +523,14 @@
         "edit_dashboard": "Upravit nástěnku",
         "delete_dashboard": "Odstranit nástěnku",
         "custom_nav": {
+            "dialog_description": "Přetažením změníte pořadí, přetažením do složky položky seskupíte. Skryté položky se přesunou do seznamu „Skryté“ a kdykoli je vrátíte. Změny nástěnek platí okamžitě.",
+            "visible_items": "V nabídce",
+            "hidden_empty": "Nic není skryté",
+            "folder_item_count": "{count} položek",
+            "ungroup_folder": "Zrušit složku",
+            "move_into_folder": "Přesunout položku do této složky",
+            "restore_default_description": "Nahradí vaše současné uspořádání výchozím.",
+            "applies_immediately": "Projeví se okamžitě a zrušením se to nevrátí zpět.",
             "header": "Přizpůsobit navigaci",
             "dialog_title": "Přizpůsobit navigační menu",
             "new_folder": "Nová složka",
@@ -538,12 +546,12 @@
             "cancel": "Zrušit",
             "restore_default": "Obnovit výchozí",
             "dynamic": {
+                "rename_value": "Přejmenovat {value}",
                 "drag_value": "Přetáhnout {value}",
                 "icon_for_value": "Ikona pro {value}",
                 "edit_value": "Upravit {value}",
                 "delete_value": "Odstranit {value}",
                 "hide_value": "Skrýt {value}",
-                "remove_value": "Odebrat {value}",
                 "show_value": "Zobrazit {value}"
             }
         }

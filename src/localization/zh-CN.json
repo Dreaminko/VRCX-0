@@ -523,6 +523,14 @@
         "edit_dashboard": "编辑仪表板",
         "delete_dashboard": "删除仪表板",
         "custom_nav": {
+            "dialog_description": "拖动可排序,把条目拖进文件夹即可分组。隐藏的条目会进入「已隐藏」列表,随时可以放回来。仪表盘的改动立即生效。",
+            "visible_items": "菜单中",
+            "hidden_empty": "没有隐藏的条目",
+            "folder_item_count": "{count} 项",
+            "ungroup_folder": "解散文件夹",
+            "move_into_folder": "把条目移入此文件夹",
+            "restore_default_description": "会用默认排列覆盖你当前的排列。",
+            "applies_immediately": "此操作立即生效,取消也无法撤销。",
             "header": "自定义导航栏",
             "dialog_title": "自定义导航栏",
             "new_folder": "添加文件夹",
@@ -538,12 +546,12 @@
             "cancel": "取消",
             "restore_default": "恢复默认",
             "dynamic": {
+                "rename_value": "重命名 {value}",
                 "drag_value": "拖动 {value}",
                 "icon_for_value": "{value} 的图标",
                 "edit_value": "编辑 {value}",
                 "delete_value": "删除 {value}",
                 "hide_value": "隐藏 {value}",
-                "remove_value": "移除 {value}",
                 "show_value": "显示 {value}"
             }
         }

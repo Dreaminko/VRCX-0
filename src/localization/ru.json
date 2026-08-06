@@ -523,6 +523,14 @@
         "edit_dashboard": "Правка Dashboard",
         "delete_dashboard": "Удалить Dashboard",
         "custom_nav": {
+            "dialog_description": "Перетаскивайте, чтобы изменить порядок, или бросьте пункт в папку, чтобы сгруппировать. Скрытые пункты попадают в список «Скрытые» и в любой момент возвращаются. Изменения панелей применяются сразу.",
+            "visible_items": "В меню",
+            "hidden_empty": "Ничего не скрыто",
+            "folder_item_count": "{count} шт.",
+            "ungroup_folder": "Расформировать папку",
+            "move_into_folder": "Переместить пункт в эту папку",
+            "restore_default_description": "Текущее расположение будет заменено расположением по умолчанию.",
+            "applies_immediately": "Действие применяется сразу, отмена его не вернёт.",
             "header": "Настроить навигацию",
             "dialog_title": "Упорядочить навигационную панель",
             "new_folder": "Новая папка",
@@ -538,12 +546,12 @@
             "cancel": "Отмена",
             "restore_default": "Восстановить по умолчанию",
             "dynamic": {
+                "rename_value": "Переименовать {value}",
                 "drag_value": "Перетащить {value}",
                 "icon_for_value": "Значок для {value}",
                 "edit_value": "Изменить {value}",
                 "delete_value": "Удалить {value}",
                 "hide_value": "Скрыть {value}",
-                "remove_value": "Удалить {value}",
                 "show_value": "Показать {value}"
             }
         }

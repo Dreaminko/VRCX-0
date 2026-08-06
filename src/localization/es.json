@@ -523,6 +523,14 @@
         "edit_dashboard": "Editar panel",
         "delete_dashboard": "Eliminar panel",
         "custom_nav": {
+            "dialog_description": "Arrastra para ordenar o suelta un elemento en una carpeta para agruparlo. Lo que ocultes pasa a la lista «Ocultos» y puedes recuperarlo cuando quieras. Los cambios de paneles se aplican al instante.",
+            "visible_items": "En el menú",
+            "hidden_empty": "No hay nada oculto",
+            "folder_item_count": "{count} elementos",
+            "ungroup_folder": "Deshacer carpeta",
+            "move_into_folder": "Mover un elemento a esta carpeta",
+            "restore_default_description": "Sustituye tu disposición actual por la predeterminada.",
+            "applies_immediately": "Esto se aplica al instante y cancelar no lo deshace.",
             "header": "Personalizar navegación",
             "dialog_title": "Personalizar menú de navegación",
             "new_folder": "Nueva carpeta",
@@ -538,12 +546,12 @@
             "cancel": "Cancelar",
             "restore_default": "Restablecer valores predeterminados",
             "dynamic": {
+                "rename_value": "Renombrar {value}",
                 "drag_value": "Arrastrar {value}",
                 "icon_for_value": "Icono de {value}",
                 "edit_value": "Editar {value}",
                 "delete_value": "Eliminar {value}",
                 "hide_value": "Ocultar {value}",
-                "remove_value": "Quitar {value}",
                 "show_value": "Mostrar {value}"
             }
         }

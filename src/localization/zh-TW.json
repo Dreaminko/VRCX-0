@@ -523,6 +523,14 @@
         "edit_dashboard": "編輯儀錶板",
         "delete_dashboard": "刪除儀錶板",
         "custom_nav": {
+            "dialog_description": "拖曳可排序,把項目拖進資料夾即可分組。隱藏的項目會進入「已隱藏」清單,隨時可以放回來。儀表板的變更會立即生效。",
+            "visible_items": "選單中",
+            "hidden_empty": "沒有隱藏的項目",
+            "folder_item_count": "{count} 項",
+            "ungroup_folder": "解散資料夾",
+            "move_into_folder": "把項目移入此資料夾",
+            "restore_default_description": "會用預設排列覆蓋你目前的排列。",
+            "applies_immediately": "此操作立即生效,取消也無法復原。",
             "header": "自訂導覽",
             "dialog_title": "自訂導覽選單",
             "new_folder": "新增資料夾",
@@ -538,12 +546,12 @@
             "cancel": "取消",
             "restore_default": "恢復預設",
             "dynamic": {
+                "rename_value": "重新命名 {value}",
                 "drag_value": "拖曳 {value}",
                 "icon_for_value": "{value} 的圖示",
                 "edit_value": "編輯 {value}",
                 "delete_value": "刪除 {value}",
                 "hide_value": "隱藏 {value}",
-                "remove_value": "移除 {value}",
                 "show_value": "顯示 {value}"
             }
         }

@@ -523,6 +523,14 @@
         "edit_dashboard": "Dashboard bearbeiten",
         "delete_dashboard": "Dashboard löschen",
         "custom_nav": {
+            "dialog_description": "Zum Sortieren ziehen, zum Gruppieren in einen Ordner ablegen. Ausgeblendete Einträge wandern in die Liste „Ausgeblendet“ und lassen sich jederzeit zurückholen. Dashboard-Änderungen greifen sofort.",
+            "visible_items": "Im Menü",
+            "hidden_empty": "Nichts ausgeblendet",
+            "folder_item_count": "{count} Einträge",
+            "ungroup_folder": "Ordner auflösen",
+            "move_into_folder": "Eintrag in diesen Ordner verschieben",
+            "restore_default_description": "Ersetzt deine aktuelle Anordnung durch die Standardanordnung.",
+            "applies_immediately": "Das greift sofort und wird durch Abbrechen nicht rückgängig gemacht.",
             "header": "Navigation anpassen",
             "dialog_title": "Navigationsmenü anpassen",
             "new_folder": "Neuer Ordner",
@@ -538,12 +546,12 @@
             "cancel": "Abbrechen",
             "restore_default": "Standard wiederherstellen",
             "dynamic": {
+                "rename_value": "{value} umbenennen",
                 "drag_value": "{value} ziehen",
                 "icon_for_value": "Symbol für {value}",
                 "edit_value": "{value} bearbeiten",
                 "delete_value": "{value} löschen",
                 "hide_value": "{value} ausblenden",
-                "remove_value": "{value} entfernen",
                 "show_value": "{value} anzeigen"
             }
         }
