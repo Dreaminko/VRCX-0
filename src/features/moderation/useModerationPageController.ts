@@ -7,7 +7,10 @@ import {
 import { useMemo } from 'react';
 
 import { useModerationColumns } from './components/ModerationColumns';
-import { matchesModerationSearch } from './moderationPageState';
+import {
+    getModerationRowKey,
+    matchesModerationSearch
+} from './moderationPageState';
 import type { ModerationRow } from './moderationPageTypes';
 import { useModerationFilters } from './useModerationFilters';
 import { useModerationRowActions } from './useModerationRowActions';
@@ -70,6 +73,7 @@ export function useModerationPageController({
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
+        getRowId: getModerationRowKey,
         enableColumnResizing: true,
         columnResizeMode: 'onChange',
         meta: {

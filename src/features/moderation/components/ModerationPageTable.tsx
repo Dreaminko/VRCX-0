@@ -50,7 +50,7 @@ export function ModerationPageTable({
                             <DataTableHeader table={table} />
                             <TableBody>
                                 {table.getRowModel().rows.map((row) => (
-                                    <TableRow key={row.original?.id || row.id}>
+                                    <TableRow key={row.id}>
                                         <DataTableColumnSortableContext
                                             table={table}
                                         >
