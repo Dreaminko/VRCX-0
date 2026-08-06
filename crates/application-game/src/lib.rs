@@ -2,7 +2,8 @@ mod background_capabilities;
 mod game_client;
 mod game_event_bus;
 mod game_log;
-mod log_watcher;
+mod game_log_parser;
+mod game_log_watcher;
 mod overlay_activity;
 mod process_monitor;
 mod registry_backup;
@@ -46,9 +47,10 @@ pub use game_log::{
     PlayerListSnapshotContext, PlayerListSnapshotOutput, PlayerListSnapshotPlayer,
     PlayerListSnapshotSource, PlayerState, RuntimeSnapshot, ScreenshotInput,
 };
-pub use log_watcher::{
-    GameLogEvent, GameLogEventOrigin, GameLogEventSink, LogLocationSnapshot,
-    LogLocationSnapshotScanner, LogWatcher, NoopLogLocationSnapshotScanner,
+pub use game_log_parser::GameLogEvent;
+pub use game_log_watcher::{
+    GameLogEventOrigin, GameLogEventSink, LogLocationSnapshot, LogLocationSnapshotScanner,
+    LogWatcher, NoopLogLocationSnapshotScanner,
 };
 pub use overlay_activity::OverlayActivityGameIngestExt;
 pub use process_monitor::{GameProcessMonitorActions, GameProcessStatus, ProcessMonitor};

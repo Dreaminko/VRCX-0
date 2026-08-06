@@ -2,10 +2,11 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use crate::log_watcher::{GameLogEvent, GameLogEventOrigin, GameLogEventSink};
-use vrcx_0_core::log_watcher::GameLogEventKind;
+use crate::game_log_parser::GameLogEvent;
+use vrcx_0_core::game_log_parser::GameLogEventKind;
 
-use super::{update, LogWatcher};
+use super::sink::{GameLogEventOrigin, GameLogEventSink};
+use super::watcher::{update, LogWatcher};
 
 #[derive(Default)]
 struct RecordingSink {
@@ -156,9 +157,9 @@ fn flush_labels_initial_and_live_batches() {
         .lock()
         .unwrap()
         .push(event.clone());
-    crate::log_watcher::queue::flush_game_log_events(&watcher.inner, true);
+    super::queue::flush_game_log_events(&watcher.inner, true);
     watcher.inner.event_buffer.lock().unwrap().push(event);
-    crate::log_watcher::queue::flush_game_log_events(&watcher.inner, false);
+    super::queue::flush_game_log_events(&watcher.inner, false);
 
     assert_eq!(
         *sink.origins.lock().unwrap(),

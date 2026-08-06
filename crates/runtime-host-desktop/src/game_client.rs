@@ -9,7 +9,7 @@ use vrcx_0_application_game::{
     GameClientActions, GameClientCacheActions, GameClientDebugLoggingActions,
     GameClientLocationSource, GameClientRuntime, GameClientRuntimeDeps, GameClientWindowActions,
 };
-use vrcx_0_core::log_watcher::LogLocationSnapshot;
+use vrcx_0_core::game_log_parser::LogLocationSnapshot;
 use vrcx_0_host::app_paths::AppPaths;
 use vrcx_0_host_desktop::vrchat_registry;
 use vrcx_0_host_desktop::{asset_bundle_cache, game_launch, process_status};

@@ -1,6 +1,6 @@
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
-use vrcx_0_core::log_watcher::GameLogEventKind;
+use vrcx_0_core::game_log_parser::GameLogEventKind;
 use vrcx_0_overlay_runtime::VrOverlayRuntime;
 
 #[test]

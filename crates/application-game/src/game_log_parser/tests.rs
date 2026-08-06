@@ -1,54 +1,39 @@
-use std::sync::atomic::{AtomicBool, AtomicU64};
-use std::sync::{Arc, Mutex, RwLock};
+use vrcx_0_core::game_log_parser::{parse_log_line_header, ParsedLogEntry};
 
-use vrcx_0_core::log_watcher::parse_log_line_header;
+use super::context::LogContext;
+use super::sink::GameLogParseSink;
+use super::{media, presence, system};
 
-use super::super::super::watcher::NoopLogLocationSnapshotScanner;
-use super::*;
+#[derive(Default)]
+struct RecordingParseSink {
+    rows: Vec<Vec<String>>,
+    vrc_closed_gracefully: bool,
+}
 
-fn make_inner() -> Inner {
-    Inner {
-        log_list: RwLock::new(Vec::new()),
-        event_buffer: Mutex::new(Vec::new()),
-        compat_event_buffer: Mutex::new(Vec::new()),
-        event_sink: None,
-        log_dir: RwLock::new(None),
-        till_date: Mutex::new(None),
-        active: Mutex::new(false),
-        reset_flag: Mutex::new(false),
-        vrc_closed_gracefully: Mutex::new(false),
-        game_running: Mutex::new(false),
-        poll_without_process_monitor: Mutex::new(false),
-        keep_polling_until: Mutex::new(None),
-        location_snapshot_scanner: Arc::new(NoopLogLocationSnapshotScanner),
-        started: AtomicBool::new(false),
-        stop_requested: AtomicBool::new(false),
-        generation: AtomicU64::new(0),
-        initial_scan_latest_file_only: AtomicBool::new(false),
-        handle: Mutex::new(None),
+impl GameLogParseSink for RecordingParseSink {
+    fn push(&mut self, entry: ParsedLogEntry) {
+        self.rows.push(entry.compat_row);
+    }
+
+    fn set_vrc_closed_gracefully(&mut self, value: bool) {
+        self.vrc_closed_gracefully = value;
     }
 }
+
+impl RecordingParseSink {
+    fn payloads(&self) -> Vec<Vec<String>> {
+        self.rows.iter().map(|row| row[2..].to_vec()).collect()
+    }
+}
+
+const FILE: &str = "output_log.txt";
 
 fn content(line: &str) -> &str {
     parse_log_line_header(line).unwrap().1
 }
 
-fn parsed_payloads(inner: &Inner) -> Vec<Vec<String>> {
-    inner
-        .log_list
-        .read()
-        .unwrap()
-        .iter()
-        .map(|row| row[2..].to_vec())
-        .collect()
-}
-
 fn payload(fields: &[&str]) -> Vec<String> {
     fields.iter().map(|field| (*field).to_string()).collect()
-}
-
-fn clear_payloads(inner: &Inner) {
-    inner.log_list.write().unwrap().clear();
 }
 
 #[test]
@@ -64,34 +49,34 @@ fn parse_user_info_keeps_display_name_and_filters_user_id() {
 
 #[test]
 fn parses_location_with_recent_world_name_and_clears_session_state() {
-    let inner = make_inner();
+    let mut sink = RecordingParseSink {
+        vrc_closed_gracefully: true,
+        ..RecordingParseSink::default()
+    };
     let mut ctx = LogContext::new();
     ctx.last_audio_device = "Old Mic".into();
     ctx.video_errors.insert("previous video error".into());
-    *inner.vrc_closed_gracefully.lock().unwrap() = true;
 
     let room_line = "2026.06.21 22:10:00 Log        -  [Behaviour] Entering Room: Midnight Rooftop";
     assert!(presence::parse_location(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         room_line,
         content(room_line),
         &mut ctx,
-        false,
     ));
     let join_line =
         "2026.06.21 22:10:05 Log        -  [Behaviour] Joining wrld_abc:123~group(grp_1)";
     assert!(presence::parse_location(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         join_line,
         content(join_line),
         &mut ctx,
-        false,
     ));
 
     assert_eq!(
-        parsed_payloads(&inner),
+        sink.payloads(),
         vec![payload(&[
             "location",
             "wrld_abc:123~group(grp_1)",
@@ -100,12 +85,12 @@ fn parses_location_with_recent_world_name_and_clears_session_state() {
     );
     assert!(ctx.last_audio_device.is_empty());
     assert!(ctx.video_errors.is_empty());
-    assert!(!*inner.vrc_closed_gracefully.lock().unwrap());
+    assert!(!sink.vrc_closed_gracefully);
 }
 
 #[test]
 fn parses_player_join_leave_resource_vote_and_sticker_lines() {
-    let inner = make_inner();
+    let mut sink = RecordingParseSink::default();
     let cases = [
         "2026.06.21 22:11:00 Log        -  [Behaviour] OnPlayerJoined Maple (usr_join)",
         "2026.06.21 22:12:00 Log        -  [Behaviour] OnPlayerLeft Guest (usr_left)",
@@ -114,55 +99,49 @@ fn parses_player_join_leave_resource_vote_and_sticker_lines() {
     ];
 
     assert!(presence::parse_player_joined_or_left(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         cases[0],
         content(cases[0]),
-        false,
     ));
     assert!(presence::parse_player_joined_or_left(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         cases[1],
         content(cases[1]),
-        false,
     ));
     assert!(system::parse_vote_kick(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         cases[2],
         content(cases[2]),
-        false,
     ));
     assert!(system::parse_sticker_spawn(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         cases[3],
         content(cases[3]),
-        false,
     ));
 
     let local_line =
         "2026.06.21 22:15:00 Log        -  [Behaviour] Attempting to load String from URL 'http://127.0.0.1:22500/internal'";
     assert!(system::parse_string_download(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         local_line,
         content(local_line),
-        false,
     ));
     let remote_line =
         "2026.06.21 22:16:00 Log        -  [Behaviour] Attempting to load String from URL 'https://example.test/data.json'";
     assert!(system::parse_string_download(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         remote_line,
         content(remote_line),
-        false,
     ));
 
     assert_eq!(
-        parsed_payloads(&inner),
+        sink.payloads(),
         vec![
             payload(&["player-joined", "Maple", "usr_join"]),
             payload(&["player-left", "Guest", "usr_left"]),
@@ -180,7 +159,7 @@ fn parses_player_join_leave_resource_vote_and_sticker_lines() {
 
 #[test]
 fn parses_location_destination_portal_and_notification_lines() {
-    let inner = make_inner();
+    let mut sink = RecordingParseSink::default();
     let mut ctx = LogContext::new();
     let destination_line = "2026.06.21 22:17:00 Log        -  [Behaviour] Destination fetching: wrld_dest:456~group(grp_1)";
     let left_room_line = "2026.06.21 22:17:10 Log        -  [Behaviour] OnLeftRoom";
@@ -190,37 +169,29 @@ fn parses_location_destination_portal_and_notification_lines() {
         "2026.06.21 22:17:30 Log        -  [API] Received Notification: <{\"type\":\"invite\"}> received at 2026-06-21T22:17:30Z";
 
     assert!(presence::parse_location_destination(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         destination_line,
         content(destination_line),
         &mut ctx,
-        false,
     ));
     assert!(presence::parse_location_destination(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         left_room_line,
         content(left_room_line),
         &mut ctx,
-        false,
     ));
-    assert!(presence::parse_portal_spawn(
-        &inner,
-        "output_log.txt",
-        portal_line,
-        false,
-    ));
+    assert!(presence::parse_portal_spawn(&mut sink, FILE, portal_line,));
     assert!(presence::parse_notification(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         notification_line,
         content(notification_line),
-        false,
     ));
 
     assert_eq!(
-        parsed_payloads(&inner),
+        sink.payloads(),
         vec![
             payload(&["location-destination", "wrld_dest:456~group(grp_1)"]),
             payload(&["portal-spawn"]),
@@ -232,7 +203,7 @@ fn parses_location_destination_portal_and_notification_lines() {
 
 #[test]
 fn parses_runtime_mode_quit_shader_and_moderation_events() {
-    let inner = make_inner();
+    let mut sink = RecordingParseSink::default();
     let mut ctx = LogContext::new();
     let shader_line = "2026.06.21 22:18:00 Error      -  Maximum number (384) of shader global keywords exceeded, keyword FOO ignored.";
     let quit_line =
@@ -245,67 +216,58 @@ fn parses_runtime_mode_quit_shader_and_moderation_events() {
         "2026.06.21 22:19:00 Log        -  [ModerationManager] Vote to kick Maple succeeded.";
 
     assert!(system::parse_shader_keywords_limit(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         shader_line,
         content(shader_line),
         &mut ctx,
-        false,
     ));
     assert!(system::parse_shader_keywords_limit(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         shader_line,
         content(shader_line),
         &mut ctx,
-        false,
     ));
     assert!(system::parse_application_quit(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         quit_line,
         content(quit_line),
-        &mut ctx,
-        false,
     ));
     assert!(system::parse_openvr_init(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         openvr_line,
         content(openvr_line),
-        false,
     ));
     assert!(system::parse_desktop_mode(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         desktop_line,
         content(desktop_line),
-        false,
     ));
     assert!(system::parse_instance_reset(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         reset_line,
         content(reset_line),
-        false,
     ));
     assert!(system::parse_vote_kick_init(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         vote_init_line,
         content(vote_init_line),
-        false,
     ));
     assert!(system::parse_vote_kick_success(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         vote_success_line,
         content(vote_success_line),
-        false,
     ));
 
     assert_eq!(
-        parsed_payloads(&inner),
+        sink.payloads(),
         vec![
             payload(&["event", "Shader Keyword Limit has been reached"]),
             payload(&["vrc-quit"]),
@@ -317,12 +279,12 @@ fn parses_runtime_mode_quit_shader_and_moderation_events() {
         ]
     );
     assert!(ctx.shader_keywords_limit_reached);
-    assert!(*inner.vrc_closed_gracefully.lock().unwrap());
+    assert!(sink.vrc_closed_gracefully);
 }
 
 #[test]
 fn parses_download_failure_and_deduplicated_video_errors() {
-    let inner = make_inner();
+    let mut sink = RecordingParseSink::default();
     let mut ctx = LogContext::new();
     let image_line =
         "2026.06.21 22:20:00 Log        -  [Behaviour] Attempting to load image from URL 'https://example.test/image.png'";
@@ -335,52 +297,46 @@ fn parses_download_failure_and_deduplicated_video_errors() {
         "2026.06.21 22:20:30 Warning    -  Attempted to play an untrusted URL https://bad.example/video";
 
     assert!(system::parse_image_download(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         image_line,
         content(image_line),
-        false,
     ));
     assert!(system::parse_image_download(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         local_image_line,
         content(local_image_line),
-        false,
     ));
     assert!(system::parse_failed_to_join(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         failed_join_line,
         content(failed_join_line),
-        false,
     ));
     assert!(system::parse_osc_failed(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         osc_line,
         content(osc_line),
-        false,
     ));
     assert!(system::parse_untrusted_url(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         untrusted_line,
         content(untrusted_line),
         &mut ctx,
-        false,
     ));
     assert!(system::parse_untrusted_url(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         untrusted_line,
         content(untrusted_line),
         &mut ctx,
-        false,
     ));
 
     assert_eq!(
-        parsed_payloads(&inner),
+        sink.payloads(),
         vec![
             payload(&["resource-load-image", "https://example.test/image.png"]),
             payload(&["event", "Failed to join instance wrld_fail:123"]),
@@ -399,7 +355,7 @@ fn parses_download_failure_and_deduplicated_video_errors() {
 
 #[test]
 fn parses_audio_device_change_only_after_configuration_change() {
-    let inner = make_inner();
+    let mut sink = RecordingParseSink::default();
     let mut ctx = LogContext::new();
     let initial_line =
         "2026.06.21 22:21:00 Log        -  [Always] uSpeak: SetInputDevice 0 (UnityEngine.Microphone) 'Index Mic'";
@@ -411,49 +367,44 @@ fn parses_audio_device_change_only_after_configuration_change() {
         "2026.06.21 22:21:30 Log        -  [Always] uSpeak: SetInputDevice 0 (UnityEngine.Microphone) 'Quest Mic'";
 
     assert!(system::parse_audio_config(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         initial_line,
         content(initial_line),
         &mut ctx,
-        false,
     ));
     assert!(system::parse_audio_config(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         config_line,
         content(config_line),
         &mut ctx,
-        false,
     ));
     assert!(system::parse_audio_config(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         unchanged_line,
         content(unchanged_line),
         &mut ctx,
-        false,
     ));
-    clear_payloads(&inner);
+    sink.rows.clear();
     assert!(system::parse_audio_config(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         config_line,
         content(config_line),
         &mut ctx,
-        false,
     ));
     assert!(system::parse_audio_config(
-        &inner,
-        "output_log.txt",
+        &mut sink,
+        FILE,
         changed_line,
         content(changed_line),
         &mut ctx,
-        false,
     ));
 
     assert_eq!(
-        parsed_payloads(&inner),
+        sink.payloads(),
         vec![payload(&[
             "event",
             "Audio device changed, mic set to 'Quest Mic'",
@@ -465,25 +416,15 @@ fn parses_audio_device_change_only_after_configuration_change() {
 
 #[test]
 fn parses_udon_exception_lines_without_log_header_requirements() {
-    let inner = make_inner();
+    let mut sink = RecordingParseSink::default();
     let pypy_line = "[PyPyDance] Udon exception while loading media queue";
     let vm_line = "2026.06.21 22:22:00 Error      -  Exception details ---> VRC.Udon.VM.UdonVMException: program counter out of range";
 
-    assert!(system::parse_udon_exception(
-        &inner,
-        "output_log.txt",
-        pypy_line,
-        false,
-    ));
-    assert!(system::parse_udon_exception(
-        &inner,
-        "output_log.txt",
-        vm_line,
-        false,
-    ));
+    assert!(system::parse_udon_exception(&mut sink, FILE, pypy_line,));
+    assert!(system::parse_udon_exception(&mut sink, FILE, vm_line,));
 
     assert_eq!(
-        parsed_payloads(&inner),
+        sink.payloads(),
         vec![
             payload(&[
                 "udon-exception",
@@ -495,4 +436,174 @@ fn parses_udon_exception_lines_without_log_header_requirements() {
             ]),
         ]
     );
+}
+
+#[test]
+fn parses_avatar_api_join_blocked_pedestal_vrcx_and_screenshot_events() {
+    let mut sink = RecordingParseSink::default();
+    let api_line =
+        "2026.06.21 23:00:00 Log        -  [API] [123] Sending Get request to https://api.vrchat.cloud/api/1/users/usr_test";
+    let avatar_line =
+        "2026.06.21 23:00:10 Log        -  [Behaviour] Switching Maple to avatar Test Avatar";
+    let blocked_line = "2026.06.21 23:00:20 Log        -  [Behaviour] Master is not sending any events! Moving to a new instance.";
+    let pedestal_line =
+        "2026.06.21 23:00:30 Log        -  [Network Processing] RPC invoked SwitchAvatar on AvatarPedestal for Pedestal User";
+    let vrcx_line =
+        "2026.06.21 23:00:40 Log        -  [VRCX] VideoPlay(PyPyDance) \"https://example.test\",0,10,\"Song\"";
+    let screenshot_line =
+        "2026.06.21 23:00:50 Log        -  [VRC Camera] Took screenshot to: C:\\Users\\about\\Pictures\\VRChat\\shot.png";
+
+    assert!(media::parse_api_request(
+        &mut sink,
+        FILE,
+        api_line,
+        content(api_line),
+    ));
+    assert!(media::parse_avatar_change(
+        &mut sink,
+        FILE,
+        avatar_line,
+        content(avatar_line),
+    ));
+    assert!(media::parse_join_blocked(
+        &mut sink,
+        FILE,
+        blocked_line,
+        content(blocked_line),
+    ));
+    assert!(media::parse_avatar_pedestal_change(
+        &mut sink,
+        FILE,
+        pedestal_line,
+        content(pedestal_line),
+    ));
+    assert!(media::parse_world_vrcx(
+        &mut sink,
+        FILE,
+        vrcx_line,
+        content(vrcx_line),
+    ));
+    assert!(media::parse_screenshot(
+        &mut sink,
+        FILE,
+        screenshot_line,
+        content(screenshot_line),
+    ));
+
+    assert_eq!(
+        sink.payloads(),
+        vec![
+            payload(&[
+                "api-request",
+                "https://api.vrchat.cloud/api/1/users/usr_test",
+            ]),
+            payload(&["avatar-change", "Maple", "Test Avatar"]),
+            payload(&["event", "Joining instance blocked by master"]),
+            payload(&["event", "Pedestal User changed avatar pedestal"]),
+            payload(&[
+                "vrcx",
+                "VideoPlay(PyPyDance) \"https://example.test\",0,10,\"Song\"",
+            ]),
+            payload(&["screenshot", "C:\\Users\\about\\Pictures\\VRChat\\shot.png",]),
+        ]
+    );
+}
+
+#[test]
+fn parses_video_play_sources_and_sync_events() {
+    let mut sink = RecordingParseSink::default();
+    let video_line =
+        "2026.06.21 23:01:00 Log        -  [Video Playback] Attempting to resolve URL 'https://example.test/video.mp4'";
+    let avpro_line =
+        "2026.06.21 23:01:10 Log        -  [Video Playback] Resolving URL 'https://youtu.be/video'";
+    let sdk2_line =
+        "2026.06.21 23:01:20 Log        -  User Maple added URL https://example.test/sdk2";
+    let usharp_line =
+        "2026.06.21 23:01:30 Log        -  [USharpVideo] Started video load for URL: https://example.test/usharp, requested by Udon User";
+    let sync_line = "2026.06.21 23:01:40 Log        -  [USharpVideo] Syncing video to 12.34";
+
+    assert!(media::parse_video_change(
+        &mut sink,
+        FILE,
+        video_line,
+        content(video_line),
+    ));
+    assert!(media::parse_avpro_video_change(
+        &mut sink,
+        FILE,
+        avpro_line,
+        content(avpro_line),
+    ));
+    assert!(media::parse_sdk2_video_play(
+        &mut sink,
+        FILE,
+        sdk2_line,
+        content(sdk2_line),
+    ));
+    assert!(media::parse_usharp_video_play(
+        &mut sink,
+        FILE,
+        usharp_line,
+        content(usharp_line),
+    ));
+    assert!(media::parse_usharp_video_sync(
+        &mut sink,
+        FILE,
+        sync_line,
+        content(sync_line),
+    ));
+
+    assert_eq!(
+        sink.payloads(),
+        vec![
+            payload(&["video-play", "https://example.test/video.mp4", ""]),
+            payload(&["video-play", "https://youtu.be/video", ""]),
+            payload(&["video-play", "https://example.test/sdk2", "Maple"]),
+            payload(&["video-play", "https://example.test/usharp", "Udon User"]),
+            payload(&["video-sync", "12.34"]),
+        ]
+    );
+}
+
+#[test]
+fn deduplicates_video_errors_and_adds_youtube_bot_hint() {
+    let mut sink = RecordingParseSink::default();
+    let mut ctx = LogContext::new();
+    let playback_line =
+        "2026.06.21 23:02:00 Error      -  [Video Playback] ERROR: Sign in to confirm you are not a bot";
+    let avpro_line = "2026.06.21 23:02:10 Error      -  [AVProVideo] Error: HTTP 403 Forbidden";
+
+    assert!(media::parse_video_error(
+        &mut sink,
+        FILE,
+        playback_line,
+        content(playback_line),
+        &mut ctx,
+    ));
+    assert!(media::parse_video_error(
+        &mut sink,
+        FILE,
+        playback_line,
+        content(playback_line),
+        &mut ctx,
+    ));
+    assert!(media::parse_video_error(
+        &mut sink,
+        FILE,
+        avpro_line,
+        content(avpro_line),
+        &mut ctx,
+    ));
+
+    assert_eq!(
+        sink.payloads(),
+        vec![
+            payload(&[
+                "event",
+                "VideoError: [VRCX] Fix error with this: https://github.com/EllyVR/VRCVideoCacher\nSign in to confirm you are not a bot",
+            ]),
+            payload(&["event", "VideoError: HTTP 403 Forbidden"]),
+        ]
+    );
+    assert_eq!(ctx.video_errors.len(), 2);
 }

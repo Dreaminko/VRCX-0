@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use vrcx_0_core::log_watcher::GameLogEvent;
+use vrcx_0_core::game_log_parser::GameLogEvent;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};

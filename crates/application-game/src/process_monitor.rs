@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use crate::log_watcher::LogWatcher;
+use crate::game_log_watcher::LogWatcher;
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
 
 const GAME_STOP_CONFIRMATION_POLLS: u8 = 3;

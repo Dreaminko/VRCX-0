@@ -1,4 +1,7 @@
-use super::{append_event, clean_location, GameLogEventKind, Inner, LogContext};
+use vrcx_0_core::game_log_parser::{clean_location, GameLogEventKind};
+
+use super::context::LogContext;
+use super::sink::GameLogParseSink;
 
 pub(super) struct ParsedUserInfo {
     pub(super) display_name: String,
@@ -26,12 +29,11 @@ pub(super) fn parse_user_info(s: &str) -> ParsedUserInfo {
 }
 
 pub(super) fn parse_location(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
     ctx: &mut LogContext,
-    first_run: bool,
 ) -> bool {
     if content.contains("[Behaviour] Entering Room: ") {
         if let Some(pos) = line.rfind("] Entering Room: ") {
@@ -46,19 +48,17 @@ pub(super) fn parse_location(
     {
         if let Some(pos) = line.rfind("] Joining ") {
             let location = clean_location(&line[pos + 10..]);
-            append_event(
-                inner,
+            out.push_event(
                 fname,
                 line,
                 GameLogEventKind::Location {
                     location,
                     world_name: ctx.recent_world_name.clone(),
                 },
-                first_run,
             );
             ctx.last_audio_device.clear();
             ctx.video_errors.clear();
-            *inner.vrc_closed_gracefully.lock().unwrap() = false;
+            out.set_vrc_closed_gracefully(false);
         }
         return true;
     }
@@ -67,22 +67,19 @@ pub(super) fn parse_location(
 }
 
 pub(super) fn parse_location_destination(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
     ctx: &mut LogContext,
-    first_run: bool,
 ) -> bool {
     if content.contains("[Behaviour] OnLeftRoom") {
-        append_event(
-            inner,
+        out.push_event(
             fname,
             line,
             GameLogEventKind::LocationDestination {
                 location: ctx.location_destination.clone(),
             },
-            first_run,
         );
         ctx.location_destination.clear();
         return true;
@@ -99,11 +96,10 @@ pub(super) fn parse_location_destination(
 }
 
 pub(super) fn parse_player_joined_or_left(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if content.contains("[Behaviour] OnPlayerJoined") && !content.contains("] OnPlayerJoined:") {
         if let Some(pos) = line.rfind("] OnPlayerJoined") {
@@ -113,15 +109,13 @@ pub(super) fn parse_player_joined_or_left(
                 user_id,
             } = parse_user_info(user_info);
             if !display_name.is_empty() || !user_id.is_empty() {
-                append_event(
-                    inner,
+                out.push_event(
                     fname,
                     line,
                     GameLogEventKind::PlayerJoined {
                         display_name,
                         user_id,
                     },
-                    first_run,
                 );
             }
         }
@@ -139,15 +133,13 @@ pub(super) fn parse_player_joined_or_left(
                 user_id,
             } = parse_user_info(user_info);
             if !display_name.is_empty() || !user_id.is_empty() {
-                append_event(
-                    inner,
+                out.push_event(
                     fname,
                     line,
                     GameLogEventKind::PlayerLeft {
                         display_name,
                         user_id,
                     },
-                    first_run,
                 );
             }
         }
@@ -157,22 +149,21 @@ pub(super) fn parse_player_joined_or_left(
     false
 }
 
-pub(super) fn parse_portal_spawn(inner: &Inner, fname: &str, line: &str, first_run: bool) -> bool {
+pub(super) fn parse_portal_spawn(out: &mut dyn GameLogParseSink, fname: &str, line: &str) -> bool {
     if line.contains("[Behaviour] Instantiated a (Clone [")
         && line.contains("] Portals/PortalInternalDynamic)")
     {
-        append_event(inner, fname, line, GameLogEventKind::PortalSpawn, first_run);
+        out.push_event(fname, line, GameLogEventKind::PortalSpawn);
         return true;
     }
     false
 }
 
 pub(super) fn parse_notification(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.starts_with("[API] Received Notification: <") {
         return false;
@@ -180,12 +171,10 @@ pub(super) fn parse_notification(
     if let Some(pos) = line.rfind("> received at ") {
         if let Some(start) = line.find("[API] Received Notification: <") {
             let data = &line[start + 30..pos];
-            append_event(
-                inner,
+            out.push_event(
                 fname,
                 line,
                 GameLogEventKind::Notification { data: data.into() },
-                first_run,
             );
         }
     }

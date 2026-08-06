@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
-use vrcx_0_core::log_watcher::LogLocationSnapshot;
+use vrcx_0_core::game_log_parser::LogLocationSnapshot;
 use vrcx_0_persistence::config::{self as config_store, ConfigRepository};
 use vrcx_0_persistence::game_log::{write_batch, GameLogEventEntry, GameLogWriteBatch};
 use vrcx_0_persistence::DatabaseService;

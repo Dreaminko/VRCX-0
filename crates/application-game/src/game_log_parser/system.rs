@@ -1,5 +1,8 @@
+use vrcx_0_core::game_log_parser::GameLogEventKind;
+
+use super::context::LogContext;
 use super::presence::{parse_user_info, ParsedUserInfo};
-use super::{append_event, GameLogEventKind, Inner, LogContext};
+use super::sink::GameLogParseSink;
 
 const VRCHAT_LOCAL_RESOURCE_URL_PREFIXES: [&str; 2] =
     ["http://127.0.0.1:22500", "http://localhost:22500"];
@@ -11,12 +14,11 @@ fn is_vrchat_local_resource_url(url: &str) -> bool {
 }
 
 pub(super) fn parse_shader_keywords_limit(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
     ctx: &mut LogContext,
-    first_run: bool,
 ) -> bool {
     if !content.contains("Maximum number (384) of shader global keywords exceeded") {
         return false;
@@ -24,71 +26,64 @@ pub(super) fn parse_shader_keywords_limit(
     if ctx.shader_keywords_limit_reached {
         return true;
     }
-    append_event(
-        inner,
+    out.push_event(
         fname,
         line,
         GameLogEventKind::Event {
             data: "Shader Keyword Limit has been reached".into(),
         },
-        first_run,
     );
     ctx.shader_keywords_limit_reached = true;
     true
 }
 
 pub(super) fn parse_application_quit(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    _ctx: &mut LogContext,
-    first_run: bool,
 ) -> bool {
     if !content.starts_with("VRCApplication: OnApplicationQuit at ")
         && !content.starts_with("VRCApplication: HandleApplicationQuit at ")
     {
         return false;
     }
-    append_event(inner, fname, line, GameLogEventKind::VrcQuit, first_run);
-    *inner.vrc_closed_gracefully.lock().unwrap() = true;
+    out.push_event(fname, line, GameLogEventKind::VrcQuit);
+    out.set_vrc_closed_gracefully(true);
     true
 }
 
 pub(super) fn parse_openvr_init(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.starts_with("Initializing VRSDK.") && !content.starts_with("STEAMVR HMD Model: ") {
         return false;
     }
-    append_event(inner, fname, line, GameLogEventKind::OpenVrInit, first_run);
+    out.push_event(fname, line, GameLogEventKind::OpenVrInit);
     true
 }
 
 pub(super) fn parse_desktop_mode(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.starts_with("VR Disabled") {
         return false;
     }
-    append_event(inner, fname, line, GameLogEventKind::DesktopMode, first_run);
+    out.push_event(fname, line, GameLogEventKind::DesktopMode);
     true
 }
 
 pub(super) fn parse_string_download(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     let tag = "] Attempting to load String from URL '";
     if !content.contains(tag) {
@@ -101,15 +96,13 @@ pub(super) fn parse_string_download(
             if is_vrchat_local_resource_url(url) {
                 return true;
             }
-            append_event(
-                inner,
+            out.push_event(
                 fname,
                 line,
                 GameLogEventKind::ResourceLoad {
                     resource_type: "StringLoad".into(),
                     resource_url: url.into(),
                 },
-                first_run,
             );
         }
     }
@@ -117,11 +110,10 @@ pub(super) fn parse_string_download(
 }
 
 pub(super) fn parse_image_download(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     let tag = "] Attempting to load image from URL '";
     if !content.contains(tag) {
@@ -134,15 +126,13 @@ pub(super) fn parse_image_download(
             if is_vrchat_local_resource_url(url) {
                 return true;
             }
-            append_event(
-                inner,
+            out.push_event(
                 fname,
                 line,
                 GameLogEventKind::ResourceLoad {
                     resource_type: "ImageLoad".into(),
                     resource_url: url.into(),
                 },
-                first_run,
             );
         }
     }
@@ -150,80 +140,70 @@ pub(super) fn parse_image_download(
 }
 
 pub(super) fn parse_vote_kick(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     let tag = "[Behaviour] Received executive message: ";
     if !content.starts_with(tag) {
         return false;
     }
-    append_event(
-        inner,
+    out.push_event(
         fname,
         line,
         GameLogEventKind::Event {
             data: content[tag.len()..].into(),
         },
-        first_run,
     );
     true
 }
 
 pub(super) fn parse_failed_to_join(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     let tag = "[Behaviour] Failed to join instance ";
     if !content.starts_with(tag) {
         return false;
     }
-    append_event(
-        inner,
+    out.push_event(
         fname,
         line,
         GameLogEventKind::Event {
             data: content[12..].into(),
         },
-        first_run,
     );
     true
 }
 
 pub(super) fn parse_osc_failed(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.starts_with("Could not Start OSC: ") {
         return false;
     }
-    append_event(
-        inner,
+    out.push_event(
         fname,
         line,
         GameLogEventKind::Event {
             data: format!("VRChat couldn't start OSC server, \"{content}\""),
         },
-        first_run,
     );
     true
 }
 
 pub(super) fn parse_untrusted_url(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
     ctx: &mut LogContext,
-    first_run: bool,
 ) -> bool {
     if !content.contains("Attempted to play an untrusted URL") {
         return false;
@@ -231,96 +211,84 @@ pub(super) fn parse_untrusted_url(
     if !ctx.video_errors.insert(content.to_string()) {
         return true;
     }
-    append_event(
-        inner,
+    out.push_event(
         fname,
         line,
         GameLogEventKind::Event {
             data: format!("VideoError: {content}"),
         },
-        first_run,
     );
     true
 }
 
 pub(super) fn parse_instance_reset(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.contains("[ModerationManager] This instance will be reset in ") {
         return false;
     }
     if let Some(pos) = content.find("[ModerationManager] ") {
-        append_event(
-            inner,
+        out.push_event(
             fname,
             line,
             GameLogEventKind::Event {
                 data: content[pos + 20..].into(),
             },
-            first_run,
         );
     }
     true
 }
 
 pub(super) fn parse_vote_kick_init(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.contains("[ModerationManager] A vote kick has been initiated against ") {
         return false;
     }
     if let Some(pos) = content.find("[ModerationManager] ") {
-        append_event(
-            inner,
+        out.push_event(
             fname,
             line,
             GameLogEventKind::Event {
                 data: content[pos + 20..].into(),
             },
-            first_run,
         );
     }
     true
 }
 
 pub(super) fn parse_vote_kick_success(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.contains("[ModerationManager] Vote to kick ") {
         return false;
     }
     if let Some(pos) = content.find("[ModerationManager] ") {
-        append_event(
-            inner,
+        out.push_event(
             fname,
             line,
             GameLogEventKind::Event {
                 data: content[pos + 20..].into(),
             },
-            first_run,
         );
     }
     true
 }
 
 pub(super) fn parse_sticker_spawn(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
-    first_run: bool,
 ) -> bool {
     if !content.contains("[StickersManager] User ")
         || !content.contains("inv_")
@@ -350,8 +318,7 @@ pub(super) fn parse_sticker_spawn(
         } else {
             String::new()
         };
-        append_event(
-            inner,
+        out.push_event(
             fname,
             line,
             GameLogEventKind::StickerSpawn {
@@ -359,19 +326,17 @@ pub(super) fn parse_sticker_spawn(
                 display_name,
                 inventory_id: inv_id,
             },
-            first_run,
         );
     }
     true
 }
 
 pub(super) fn parse_audio_config(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
     content: &str,
     ctx: &mut LogContext,
-    first_run: bool,
 ) -> bool {
     if content.contains("[Always] uSpeak: OnAudioConfigurationChanged") {
         ctx.audio_device_changed = true;
@@ -394,14 +359,12 @@ pub(super) fn parse_audio_config(
             if !ctx.audio_device_changed || ctx.last_audio_device == audio_device {
                 return true;
             }
-            append_event(
-                inner,
+            out.push_event(
                 fname,
                 line,
                 GameLogEventKind::Event {
                     data: format!("Audio device changed, mic set to '{audio_device}'"),
                 },
-                first_run,
             );
             ctx.last_audio_device = audio_device.to_string();
             ctx.audio_device_changed = false;
@@ -413,30 +376,25 @@ pub(super) fn parse_audio_config(
 }
 
 pub(super) fn parse_udon_exception(
-    inner: &Inner,
+    out: &mut dyn GameLogParseSink,
     fname: &str,
     line: &str,
-    first_run: bool,
 ) -> bool {
     if line.contains("[PyPyDance]") {
-        append_event(
-            inner,
+        out.push_event(
             fname,
             line,
             GameLogEventKind::UdonException { data: line.into() },
-            first_run,
         );
         return true;
     }
     if let Some(pos) = line.find(" ---> VRC.Udon.VM.UdonVMException: ") {
-        append_event(
-            inner,
+        out.push_event(
             fname,
             line,
             GameLogEventKind::UdonException {
                 data: line[pos..].into(),
             },
-            first_run,
         );
         return true;
     }

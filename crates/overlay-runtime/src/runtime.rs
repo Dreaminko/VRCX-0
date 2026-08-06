@@ -21,7 +21,7 @@ use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
 use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 #[cfg(feature = "friends-panel")]
 use vrcx_0_core::friends::FriendRecord;
-use vrcx_0_core::log_watcher::GameLogEventKind;
+use vrcx_0_core::game_log_parser::GameLogEventKind;
 use vrcx_0_host_desktop::vr_overlay::{
     OverlayActivationButton, OverlayPlacement, OverlaySurfaceConfig, VrDeviceSnapshot,
 };
@@ -2534,7 +2534,7 @@ fn is_real_instance_location(location: &str) -> bool {
     location.starts_with("wrld_") && location.contains(':')
 }
 
-#[cfg(all(test, feature = "friends-panel"))]
-pub(crate) mod tests;
 #[cfg(test)]
 mod activity_sink_tests;
+#[cfg(all(test, feature = "friends-panel"))]
+pub(crate) mod tests;

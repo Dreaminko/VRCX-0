@@ -7,17 +7,17 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use chrono::{Local, NaiveDateTime, Utc};
-use vrcx_0_core::log_watcher::LogLocationSnapshot;
+use vrcx_0_core::game_log_parser::LogLocationSnapshot;
 
-use super::context::LogContext;
-use super::event::{GameLogEvent, GameLogEventSink};
-use super::parser;
+use crate::game_log_parser::{self, GameLogEvent, LogContext};
+
 use super::queue;
+use super::sink::GameLogEventSink;
 
 const INACTIVE_POLL_KEEPALIVE: Duration = Duration::from_secs(120);
 #[derive(Clone)]
 pub struct LogWatcher {
-    inner: Arc<Inner>,
+    pub(super) inner: Arc<Inner>,
 }
 
 pub trait LogLocationSnapshotScanner: Send + Sync {
@@ -262,7 +262,7 @@ fn thread_loop(inner: Arc<Inner>, log_dir: PathBuf, generation: u64) {
     }
 }
 
-fn update(
+pub(super) fn update(
     inner: &Inner,
     log_dir: &Path,
     contexts: &mut HashMap<String, LogContext>,
@@ -306,6 +306,10 @@ fn update(
         entries.sort_by_key(|entry| entry.metadata().and_then(|meta| meta.created()).ok());
     }
 
+    let mut sink = queue::WatcherParseSink {
+        inner,
+        first_run: *first_run,
+    };
     let mut saw_new_data = false;
     for entry in entries {
         let name = entry.file_name().to_string_lossy().to_string();
@@ -325,7 +329,7 @@ fn update(
 
         let ctx = contexts.entry(name.clone()).or_insert_with(LogContext::new);
 
-        saw_new_data |= parser::parse_log(inner, &entry.path(), &name, ctx, till_date, *first_run);
+        saw_new_data |= game_log_parser::parse_log(&mut sink, &entry.path(), &name, ctx, till_date);
     }
 
     for name in deleted {
@@ -336,6 +340,3 @@ fn update(
     *first_run = false;
     saw_new_data
 }
-
-#[cfg(test)]
-mod tests;

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use vrcx_0_core::log_watcher::{GameLogEvent, GameLogEventKind};
+use vrcx_0_core::game_log_parser::{GameLogEvent, GameLogEventKind};
 use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;

@@ -4,10 +4,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use vrcx_0_application_core::RuntimeOperationStatus;
 
+use vrcx_0_core::game_log_parser::GameLogEvent;
 use vrcx_0_core::location::{
     is_meaningful_world_name, world_id_from_location as world_id_from_location_or_id,
 };
-use vrcx_0_core::log_watcher::GameLogEvent;
 use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::game_log::{write_batch, GameLogWriteBatch};
 use vrcx_0_persistence::DatabaseService;

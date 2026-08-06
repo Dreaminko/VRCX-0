@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use chrono::{Local, NaiveDateTime};
-use vrcx_0_core::log_watcher::{
+use vrcx_0_core::game_log_parser::{
     clean_location, convert_log_time_to_iso8601, parse_log_line_header, LogLocationSnapshot,
 };
 

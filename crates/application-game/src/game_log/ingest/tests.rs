@@ -1,5 +1,5 @@
+use vrcx_0_core::game_log_parser::{GameLogEvent, GameLogEventKind};
 use vrcx_0_core::game_process::GameProcessEvent;
-use vrcx_0_core::log_watcher::{GameLogEvent, GameLogEventKind};
 
 use super::{
     GameLogIngestEngine, GameLogIngestOptions, GameLogJoinLeaveSnapshot, GameLogProcessEvent,

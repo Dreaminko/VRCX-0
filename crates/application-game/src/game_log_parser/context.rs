@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-pub(super) struct LogContext {
+pub(crate) struct LogContext {
     pub(super) position: u64,
     pub(super) recent_world_name: String,
     pub(super) location_destination: String,
@@ -11,7 +11,7 @@ pub(super) struct LogContext {
 }
 
 impl LogContext {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             position: 0,
             recent_world_name: String::new(),

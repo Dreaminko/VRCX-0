@@ -1,4 +1,4 @@
-pub use vrcx_0_core::log_watcher::{GameLogEvent, GameLogEventKind, ParsedLogEntry};
+use crate::game_log_parser::GameLogEvent;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GameLogEventOrigin {
