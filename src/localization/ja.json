@@ -29,6 +29,7 @@
         "retention": {
             "label": "閲覧履歴の保存期間",
             "description": "この期間を過ぎた履歴は自動的に削除されます。",
+            "off": "記録しない",
             "days": "{count} 日間",
             "forever": "無期限",
             "update_failed": "履歴の保存期間を更新できませんでした。"

@@ -29,6 +29,7 @@
         "retention": {
             "label": "Conservation de l’historique",
             "description": "Les entrées plus anciennes sont supprimées automatiquement.",
+            "off": "Désactivé",
             "days": "{count} jours",
             "forever": "Conserver indéfiniment",
             "update_failed": "Impossible de modifier la durée de conservation."

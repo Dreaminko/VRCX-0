@@ -9,7 +9,8 @@ use crate::Error;
 
 const RETENTION_CONFIG_KEY: &str = "browseHistoryRetentionDays";
 const DEFAULT_RETENTION_DAYS: i64 = 30;
-const ALLOWED_RETENTION_DAYS: [i64; 5] = [0, 7, 30, 90, 365];
+const OFF_RETENTION_DAYS: i64 = -1;
+const ALLOWED_RETENTION_DAYS: [i64; 6] = [OFF_RETENTION_DAYS, 0, 7, 30, 90, 365];
 const DEFAULT_PAGE_LIMIT: i64 = 120;
 const MAX_PAGE_LIMIT: i64 = 200;
 
@@ -162,7 +163,7 @@ pub fn browse_history_retention_days_set(
 ) -> Result<i64, Error> {
     if !ALLOWED_RETENTION_DAYS.contains(&retention_days) {
         return Err(Error::InvalidData(
-            "Browse history retention must be 0, 7, 30, 90, or 365 days.".into(),
+            "Browse history retention must be off, 0, 7, 30, 90, or 365 days.".into(),
         ));
     }
     ensure_browse_history_table(db)?;
@@ -190,6 +191,9 @@ pub fn browse_history_record(
 
     ensure_browse_history_table(db)?;
     let retention_days = browse_history_retention_days_get(db)?;
+    if retention_days == OFF_RETENTION_DAYS {
+        return Ok(());
+    }
     let viewed_at = now_iso();
     let title = normalize_text(input.title);
     let image_url = normalize_text(input.image_url);

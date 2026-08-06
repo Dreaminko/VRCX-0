@@ -29,6 +29,7 @@
         "retention": {
             "label": "浏览记录保留时间",
             "description": "超过该时间的记录会自动删除。",
+            "off": "关闭",
             "days": "{count} 天",
             "forever": "永久保留",
             "update_failed": "无法更新记录保留时间。"

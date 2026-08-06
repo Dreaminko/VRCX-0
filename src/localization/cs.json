@@ -29,6 +29,7 @@
         "retention": {
             "label": "Doba uchování historie",
             "description": "Starší položky se automaticky mažou.",
+            "off": "Vypnuto",
             "days": "{count} dní",
             "forever": "Uchovat navždy",
             "update_failed": "Dobu uchování historie se nepodařilo změnit."

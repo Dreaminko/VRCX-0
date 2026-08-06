@@ -29,6 +29,7 @@
         "retention": {
             "label": "瀏覽記錄保留時間",
             "description": "超過此時間的記錄會自動刪除。",
+            "off": "關閉",
             "days": "{count} 天",
             "forever": "永久保留",
             "update_failed": "無法更新記錄保留時間。"

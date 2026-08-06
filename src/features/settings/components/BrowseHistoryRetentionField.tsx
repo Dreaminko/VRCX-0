@@ -13,7 +13,7 @@ import {
 
 import { Field } from './SettingsField';
 
-const RETENTION_OPTIONS = [7, 30, 90, 365, 0] as const;
+const RETENTION_OPTIONS = [-1, 7, 30, 90, 365, 0] as const;
 
 function isRetentionOption(value: number) {
     return RETENTION_OPTIONS.some((option) => option === value);
@@ -22,6 +22,16 @@ function isRetentionOption(value: number) {
 export function BrowseHistoryRetentionField() {
     const { t } = useTranslation();
     const [retentionDays, setRetentionDays] = useState<number | null>(null);
+
+    function retentionLabel(days: number) {
+        if (days === -1) {
+            return t('browse_history.retention.off');
+        }
+        if (days === 0) {
+            return t('browse_history.retention.forever');
+        }
+        return t('browse_history.retention.days', { count: days });
+    }
 
     useEffect(() => {
         let active = true;
@@ -68,16 +78,14 @@ export function BrowseHistoryRetentionField() {
                     size="sm"
                     aria-label={t('browse_history.retention.label')}
                 >
-                    <SelectValue />
+                    <SelectValue>
+                        {(value: string) => retentionLabel(Number(value))}
+                    </SelectValue>
                 </SelectTrigger>
                 <SelectContent align="end">
                     {RETENTION_OPTIONS.map((days) => (
                         <SelectItem key={days} value={String(days)}>
-                            {days === 0
-                                ? t('browse_history.retention.forever')
-                                : t('browse_history.retention.days', {
-                                      count: days
-                                  })}
+                            {retentionLabel(days)}
                         </SelectItem>
                     ))}
                 </SelectContent>

@@ -29,6 +29,7 @@
         "retention": {
             "label": "View history retention",
             "description": "Entries older than this are deleted automatically.",
+            "off": "Off",
             "days": "{count} days",
             "forever": "Keep forever",
             "update_failed": "History retention could not be updated."

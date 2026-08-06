@@ -29,6 +29,7 @@
         "retention": {
             "label": "Aufbewahrungsdauer des Verlaufs",
             "description": "Ältere Einträge werden automatisch gelöscht.",
+            "off": "Aus",
             "days": "{count} Tage",
             "forever": "Dauerhaft behalten",
             "update_failed": "Die Aufbewahrungsdauer konnte nicht geändert werden."

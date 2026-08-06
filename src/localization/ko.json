@@ -29,6 +29,7 @@
         "retention": {
             "label": "조회 기록 보관 기간",
             "description": "이 기간이 지난 기록은 자동으로 삭제됩니다.",
+            "off": "끄기",
             "days": "{count}일",
             "forever": "계속 보관",
             "update_failed": "기록 보관 기간을 변경하지 못했습니다."

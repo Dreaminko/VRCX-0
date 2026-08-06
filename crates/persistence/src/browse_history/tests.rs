@@ -238,6 +238,37 @@ fn retention_setting_rejects_unsupported_values() {
 }
 
 #[test]
+fn off_retention_stops_recording_new_visits() {
+    let test = test_db("retention-off");
+    browse_history_retention_days_set(&test.db, -1).unwrap();
+    browse_history_record(&test.db, record_input("wrld_off")).unwrap();
+
+    assert!(query(&test.db, None, 10).items.is_empty());
+}
+
+#[test]
+fn switching_to_off_retention_keeps_existing_rows() {
+    let test = test_db("retention-off-keep");
+    ensure_browse_history_table(&test.db).unwrap();
+    test.db
+        .execute_non_query(
+            "INSERT INTO browse_history (
+                owner_user_id, entity_kind, entity_id, title, image_url,
+                first_viewed_at, last_viewed_at, view_count
+             ) VALUES (
+                'usr_owner', 'world', 'wrld_kept', '', '',
+                '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z', 1
+             )",
+            &Default::default(),
+        )
+        .unwrap();
+
+    browse_history_retention_days_set(&test.db, -1).unwrap();
+
+    assert_eq!(query(&test.db, None, 10).items.len(), 1);
+}
+
+#[test]
 fn shorter_retention_prunes_expired_rows_for_every_account() {
     let test = test_db("retention-prune");
     ensure_browse_history_table(&test.db).unwrap();
