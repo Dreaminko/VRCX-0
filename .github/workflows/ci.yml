@@ -156,6 +156,8 @@ jobs:
                   cache-key: ci-linux-x86_64
             - run: mkdir -p dist && printf '<!doctype html><html><body></body></html>' > dist/index.html
             - run: npm run rust:clippy
+            - uses: taiki-e/install-action@cargo-deny
+            - run: npm run rust:deny
 
     tauri-build:
         name: Tauri Build (${{ matrix.label }})
