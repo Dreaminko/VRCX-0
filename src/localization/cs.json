@@ -2443,7 +2443,6 @@
             "discord_presence": {
                 "discord_presence": {
                     "header": "Discord Presence",
-                    "description": "* Only active while VRChat is running.",
                     "enable": "Povolit",
                     "enable_tooltip": "Recommended to disable Rich Presence in VRChat config.json to stop it from conflicting",
                     "instance_type_player_count": "Instance type/player count",

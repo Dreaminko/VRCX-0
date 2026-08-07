@@ -2441,7 +2441,6 @@
             "discord_presence": {
                 "discord_presence": {
                     "header": "Discord 状态面板",
-                    "description": "* 仅在 VRChat 运行时生效",
                     "enable": "启用",
                     "enable_tooltip": "建议在 VRChat 的 “config.json” 中停用原生的 Discord 状态面板来防止冲突",
                     "instance_type_player_count": "显示房间类型和人数",

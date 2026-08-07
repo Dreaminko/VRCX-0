@@ -128,23 +128,16 @@ export function SettingsIntegrationsTab({
                         'view.settings.discord_presence.discord_presence.enable'
                     )}
                     description={
-                        <div className="flex flex-col gap-1">
-                            <div>
-                                {t(
-                                    'view.settings.discord_presence.discord_presence.description'
-                                )}
-                            </div>
-                            <Button
-                                type="button"
-                                variant="link"
-                                className="text-muted-foreground hover:text-primary h-auto justify-start p-0 text-left text-xs font-normal"
-                                onClick={openVrchatConfig}
-                            >
-                                {t(
-                                    'view.settings.discord_presence.discord_presence.enable_tooltip'
-                                )}
-                            </Button>
-                        </div>
+                        <Button
+                            type="button"
+                            variant="link"
+                            className="text-muted-foreground hover:text-primary h-auto justify-start p-0 text-left text-xs font-normal"
+                            onClick={openVrchatConfig}
+                        >
+                            {t(
+                                'view.settings.discord_presence.discord_presence.enable_tooltip'
+                            )}
+                        </Button>
                     }
                 >
                     <Switch

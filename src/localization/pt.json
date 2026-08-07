@@ -2441,7 +2441,6 @@
             "discord_presence": {
                 "discord_presence": {
                     "header": "Presença no Discord",
-                    "description": "* Ativo apenas enquanto em uma instância.",
                     "enable": "Ativar",
                     "enable_tooltip": "Recomendado desativar a Rich Presence no config.json do VRChat para evitar conflitos",
                     "instance_type_player_count": "Tipo de Instância e Contagem de Usuários",

@@ -2441,7 +2441,6 @@
             "discord_presence": {
                 "discord_presence": {
                     "header": "Discord 遊戲動態",
-                    "description": "* 當 VRChat 啟動時才會啟用",
                     "enable": "啟用",
                     "enable_tooltip": "建議在 VRChat config.json 中停用原生 Discord 遊戲動態來防止衝突",
                     "instance_type_player_count": "房間種類 / 用戶人數",

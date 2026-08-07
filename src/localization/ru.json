@@ -2443,7 +2443,6 @@
             "discord_presence": {
                 "discord_presence": {
                     "header": "Отображение в Discord",
-                    "description": "* Активно только во время работы VRChat.",
                     "enable": "Включить",
                     "enable_tooltip": "Рекомендуется отключить Rich Presence Discord в VRChat config.json, чтобы не конфликтовало",
                     "instance_type_player_count": "Тип инстанса / количество игроков",

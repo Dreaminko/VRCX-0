@@ -2393,7 +2393,6 @@
             "discord_presence": {
                 "discord_presence": {
                     "header": "디스코드 연동 (Rich Presence)",
-                    "description": "*인스턴스 상태에서만 활성화됩니다.",
                     "enable": "사용",
                     "enable_tooltip": "충돌을 막기 위해 VRChat 설정 파일(config.json)에서 Rich Presence를 비활성화하는 편이 좋습니다",
                     "instance_type_player_count": "인스턴스 유형/인원수 표시",

@@ -2437,7 +2437,6 @@
             "discord_presence": {
                 "discord_presence": {
                     "header": "Discord でのゲームステータス表示",
-                    "description": "VRChat が起動しているときのみ動作します。",
                     "enable": "有効化する",
                     "enable_tooltip": "競合を防ぐため、VRChat 側の Discord Rich Presence を無効化します。",
                     "instance_type_player_count": "インスタンス詳細/プレイヤー数",
