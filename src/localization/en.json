@@ -2445,7 +2445,8 @@
                     "enable": "Enable",
                     "enable_tooltip": "Disable VRChat's Rich Presence to avoid conflicts.",
                     "instance_type_player_count": "Instance Type & Player Count",
-                    "join_button": "Join Button (Public Only)",
+                    "join_button": "Join Button",
+                    "join_button_description": "Only shown in public instances.",
                     "show_details_in_private": "Show Details in Private Instances",
                     "show_images": "Show World Images",
                     "show_current_platform": "Show Current Platform",
@@ -2575,7 +2576,7 @@
                         "enable_tooltip": "Fetches video titles for the Game Log and video duration for the overlay progress bar"
                     },
                     "translation_api": {
-                        "header": "Enable Content Translation",
+                        "header": "Content Translation",
                         "enable": "Enable",
                         "translation_api_key": "Translate API Key",
                         "enable_tooltip": "Translate user bios and world descriptions on demand."

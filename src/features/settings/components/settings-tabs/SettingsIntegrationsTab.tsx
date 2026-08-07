@@ -211,6 +211,9 @@ export function SettingsIntegrationsTab({
                     label={t(
                         'view.settings.discord_presence.discord_presence.join_button'
                     )}
+                    description={t(
+                        'view.settings.discord_presence.discord_presence.join_button_description'
+                    )}
                 >
                     <Switch
                         checked={discordPrefs.discordJoinButton}
@@ -270,9 +273,6 @@ export function SettingsIntegrationsTab({
                     label={t(
                         'view.settings.advanced.advanced.translation_api.enable'
                     )}
-                    description={t(
-                        'view.settings.advanced.advanced.translation_api.enable_tooltip'
-                    )}
                 >
                     <Switch
                         checked={integrationPrefs.translationAPI}
@@ -290,9 +290,7 @@ export function SettingsIntegrationsTab({
                         size="sm"
                         onClick={onOpenTranslationApiDialog}
                     >
-                        {t(
-                            'view.settings.advanced.advanced.translation_api.translation_api_key'
-                        )}
+                        {t('common.configure')}
                     </Button>
                 </Field>
             </SettingsGroup>
@@ -306,9 +304,6 @@ export function SettingsIntegrationsTab({
                 <Field
                     label={t(
                         'view.settings.advanced.advanced.youtube_api.enable'
-                    )}
-                    description={t(
-                        'view.settings.advanced.advanced.youtube_api.enable_tooltip'
                     )}
                 >
                     <Switch
@@ -327,9 +322,7 @@ export function SettingsIntegrationsTab({
                         size="sm"
                         onClick={onOpenYoutubeApiDialog}
                     >
-                        {t(
-                            'view.settings.advanced.advanced.youtube_api.youtube_api_key'
-                        )}
+                        {t('common.configure')}
                     </Button>
                 </Field>
             </SettingsGroup>
@@ -345,9 +338,6 @@ export function SettingsIntegrationsTab({
                 <Field
                     label={t(
                         'view.settings.advanced.advanced.remote_database.enable'
-                    )}
-                    description={t(
-                        'view.settings.advanced.advanced.remote_database.enable_description'
                     )}
                 >
                     <Switch
@@ -367,9 +357,7 @@ export function SettingsIntegrationsTab({
                         size="sm"
                         onClick={onOpenAvatarProviderDialog}
                     >
-                        {t(
-                            'view.settings.advanced.advanced.remote_database.avatar_database_provider'
-                        )}
+                        {t('common.configure')}
                     </Button>
                 </Field>
             </SettingsGroup>
