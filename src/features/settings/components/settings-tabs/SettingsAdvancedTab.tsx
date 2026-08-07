@@ -133,6 +133,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         (state) => state.hostCapabilities.runtimeGameLogIngest.supported
     );
     const {
+        hostPlatform,
         prefs,
         avatarAutoCleanupOptions,
         sqliteTableSizes,
@@ -204,19 +205,21 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                     />
                 </Field>
 
-                <Field
-                    label={t(
-                        'view.settings.advanced.advanced_ui.behavior.focus_on_join_header'
-                    )}
-                    description={t(
-                        'view.settings.advanced.advanced_ui.behavior.focus_on_join_description'
-                    )}
-                >
-                    <Switch
-                        checked={prefs.focusVrchatOnJoin}
-                        onCheckedChange={onFocusVrchatOnJoinChange}
-                    />
-                </Field>
+                {hostPlatform === 'windows' ? (
+                    <Field
+                        label={t(
+                            'view.settings.advanced.advanced_ui.behavior.focus_on_join_header'
+                        )}
+                        description={t(
+                            'view.settings.advanced.advanced_ui.behavior.focus_on_join_description'
+                        )}
+                    >
+                        <Switch
+                            checked={prefs.focusVrchatOnJoin}
+                            onCheckedChange={onFocusVrchatOnJoinChange}
+                        />
+                    </Field>
+                ) : null}
                 <DeepLinkRegistrationField />
             </SettingsGroup>
 

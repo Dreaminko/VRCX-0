@@ -17,6 +17,7 @@ export type SettingsAdvancedAction = () => unknown | Promise<unknown>;
 
 export type SettingsAdvancedModel = {
     appDataDirState?: AppDataDirState | null;
+    hostPlatform?: string;
     avatarAutoCleanupOptions: string[];
     configTreeData: Record<string, unknown>;
     onAnonymousUsageTelemetryChange: (checked: boolean) => unknown;

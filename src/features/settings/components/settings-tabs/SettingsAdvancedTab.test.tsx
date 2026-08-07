@@ -73,6 +73,7 @@ function createModel(
 ): SettingsAdvancedModel {
     return {
         appDataDirState: appDataDirState(),
+        hostPlatform: 'windows',
         avatarAutoCleanupOptions: ['Off'],
         configTreeData: {},
         onAnonymousUsageTelemetryChange: vi.fn(),
@@ -251,5 +252,15 @@ describe('SettingsAdvancedTab data directory states', () => {
         fireEvent.click(toggle);
 
         expect(onFocusVrchatOnJoinChange.mock.calls[0]?.[0]).toBe(true);
+    });
+
+    it('hides the VRChat focus toggle on platforms without window focus', () => {
+        renderTab(createModel({ hostPlatform: 'linux' }));
+
+        expect(
+            screen.queryByRole('switch', {
+                name: 'Bring VRChat to the front'
+            })
+        ).toBeNull();
     });
 });

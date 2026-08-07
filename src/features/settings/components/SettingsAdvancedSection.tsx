@@ -1,3 +1,5 @@
+import { useRuntimeStore } from '@/state/runtimeStore';
+
 import type { SettingsPageStateSections } from '../settingsPageStateSections';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsAdvancedTab } from './settings-tabs/SettingsAdvancedTab';
@@ -9,6 +11,9 @@ type SettingsAdvancedSectionProps = {
 export function SettingsAdvancedSection({
     advanced
 }: SettingsAdvancedSectionProps) {
+    const hostPlatform = useRuntimeStore(
+        (state) => state.hostCapabilities.platform
+    );
     const {
         prefs,
         avatarAutoCleanupOptions,
@@ -34,6 +39,7 @@ export function SettingsAdvancedSection({
     } = advanced;
 
     const advancedTab = {
+        hostPlatform,
         prefs,
         avatarAutoCleanupOptions,
         sqliteTableSizes,
