@@ -522,3 +522,7 @@ pub(crate) fn current_friend_trust_level(entry: &FriendLogCurrentEntryInput) -> 
         .clone()
         .unwrap_or_else(|| "Visitor".to_string())
 }
+
+#[cfg(test)]
+#[path = "friends_tests.rs"]
+mod friends_tests;

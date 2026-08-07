@@ -180,4 +180,89 @@ mod tests {
         );
         Ok(())
     }
+
+    #[test]
+    fn build_ugc_image_path_neutralizes_path_traversal_attempts() -> Result<(), Error> {
+        let path = super::build_ugc_image_path(
+            r"C:\VRCX\UGC",
+            super::UgcCategory::Stickers,
+            "2026-04",
+            "../../secrets.png",
+        )?;
+
+        assert_eq!(
+            path,
+            PathBuf::from(r"C:\VRCX\UGC")
+                .join("Stickers")
+                .join("2026-04")
+                .join(".._.._secrets.png")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn build_ugc_image_path_rejects_an_empty_ugc_folder() {
+        let result =
+            super::build_ugc_image_path("   ", super::UgcCategory::Emoji, "2026-04", "sticker.png");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn normalize_image_save_file_name_guards_reserved_names_with_extensions() -> Result<(), Error> {
+        assert_eq!(
+            super::normalize_image_save_file_name("con.png")?,
+            "_con.png"
+        );
+        assert_eq!(
+            super::normalize_image_save_file_name("COM1.jpeg")?,
+            "_COM1.jpeg"
+        );
+        assert_eq!(super::normalize_image_save_file_name("lpt9")?, "_lpt9.png");
+        assert_eq!(
+            super::normalize_image_save_file_name("console.png")?,
+            "console.png"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn normalize_image_save_file_name_trims_trailing_dots_and_spaces() -> Result<(), Error> {
+        assert_eq!(
+            super::normalize_image_save_file_name("avatar. . .")?,
+            "avatar.png"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn normalize_image_save_file_name_falls_back_to_underscore_for_dot_only_names(
+    ) -> Result<(), Error> {
+        assert_eq!(super::normalize_image_save_file_name("..")?, "_.png");
+        assert_eq!(super::normalize_image_save_file_name(".")?, "_.png");
+        Ok(())
+    }
+
+    #[test]
+    fn default_image_extension_recognizes_known_formats_case_insensitively() {
+        assert_eq!(super::default_image_extension("photo.JPG"), "jpg");
+        assert_eq!(super::default_image_extension("photo.Jpeg"), "jpeg");
+        assert_eq!(super::default_image_extension("anim.GIF"), "gif");
+        assert_eq!(super::default_image_extension("modern.WebP"), "webp");
+        assert_eq!(super::default_image_extension("legacy.BMP"), "bmp");
+    }
+
+    #[test]
+    fn default_image_extension_falls_back_to_png_for_unknown_or_missing_extensions() {
+        assert_eq!(super::default_image_extension("archive.tar.gz"), "png");
+        assert_eq!(super::default_image_extension("no_extension"), "png");
+        assert_eq!(super::default_image_extension(""), "png");
+    }
+
+    #[test]
+    fn ugc_category_folder_names_match_expected_vrchat_categories() {
+        assert_eq!(super::UgcCategory::Prints.folder_name(), "Prints");
+        assert_eq!(super::UgcCategory::Stickers.folder_name(), "Stickers");
+        assert_eq!(super::UgcCategory::Emoji.folder_name(), "Emoji");
+    }
 }

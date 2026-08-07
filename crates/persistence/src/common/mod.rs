@@ -18,3 +18,6 @@ pub(crate) use value::{
     object_field_optional_string, object_field_string, parse_json_value, query_param_bool,
     query_param_i64, query_param_string, query_param_string_array, value_as_i64, value_as_string,
 };
+
+#[cfg(test)]
+mod row_tests;

@@ -46,6 +46,8 @@ pub use worlds::{favorite_local, search_worlds_visited};
 #[cfg(test)]
 mod activity_tests;
 #[cfg(test)]
+mod best_time_tests;
+#[cfg(test)]
 mod caveats_tests;
 #[cfg(test)]
 mod changes_tests;

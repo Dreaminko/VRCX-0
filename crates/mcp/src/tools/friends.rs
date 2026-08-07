@@ -814,25 +814,5 @@ fn fallback_friend_profile_current(
 }
 
 #[cfg(test)]
-mod friend_note_tests {
-    use super::*;
-
-    fn note(user_id: &str, edited_at: &str) -> FriendNoteRow {
-        FriendNoteRow {
-            user_id: user_id.into(),
-            display_name: String::new(),
-            memo: "memo".into(),
-            edited_at: edited_at.into(),
-        }
-    }
-
-    #[test]
-    fn friend_note_cursor_round_trips() {
-        let cursor = friend_note_cursor(&note("usr_a", "2026-06-01T10:00:00Z"));
-
-        assert_eq!(
-            parse_friend_note_cursor(&cursor).unwrap(),
-            ("2026-06-01T10:00:00Z".into(), "usr_a".into())
-        );
-    }
-}
+#[path = "friends_tests.rs"]
+mod friends_tests;
