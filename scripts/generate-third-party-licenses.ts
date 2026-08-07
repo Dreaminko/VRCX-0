@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const rootDir = path.join(__dirname, '..');
 const outputDir = path.join(rootDir, 'dist', 'licenses');
@@ -148,29 +149,95 @@ function createThirdPartyNoticeText(entries) {
         'VRCX-0 Third-Party Notices',
         '',
         `Generated: ${new Date().toISOString()}`,
-        '',
-        '========================================',
-        'Frontend bundled dependencies',
-        '========================================',
         ''
     ];
 
     if (!entries.length) {
-        lines.push('No frontend license manifest was available.', '');
+        lines.push('No license manifest was available.', '');
         return `${lines.join('\n').trimEnd()}\n`;
     }
 
+    const groups = new Map();
     for (const entry of entries) {
+        const label = entry.sourceLabel || 'Third-party dependency';
+        if (!groups.has(label)) {
+            groups.set(label, []);
+        }
+        groups.get(label).push(entry);
+    }
+
+    const sortedLabels = [...groups.keys()].sort((left, right) =>
+        left.localeCompare(right)
+    );
+    for (const label of sortedLabels) {
         lines.push(
-            `## ${entry.name}${entry.version ? ` - ${entry.version}` : ''}${entry.license ? ` (${entry.license})` : ''}`,
-            '',
-            entry.noticeText ||
-                'No local license text was generated for this entry.',
+            '========================================',
+            label,
+            '========================================',
             ''
         );
+        for (const entry of groups.get(label)) {
+            lines.push(
+                `## ${entry.name}${entry.version ? ` - ${entry.version}` : ''}${entry.license ? ` (${entry.license})` : ''}`,
+                '',
+                entry.noticeText ||
+                    'No local license text was generated for this entry.',
+                ''
+            );
+        }
     }
 
     return `${lines.join('\n').trimEnd()}\n`;
+}
+
+function readRustEntries() {
+    const cargoManifestPath = path.join(rootDir, 'Cargo.toml');
+    if (!fs.existsSync(cargoManifestPath)) {
+        return [];
+    }
+
+    let metadata;
+    try {
+        const output = execFileSync(
+            'cargo',
+            [
+                'metadata',
+                '--format-version',
+                '1',
+                '--manifest-path',
+                cargoManifestPath
+            ],
+            { encoding: 'utf8', maxBuffer: 1024 * 1024 * 64 }
+        );
+        metadata = JSON.parse(output);
+    } catch (error) {
+        console.warn(
+            `Skipping Rust dependency licenses (cargo unavailable): ${error.message}`
+        );
+        return [];
+    }
+
+    const workspaceMemberIds = new Set(metadata.workspace_members || []);
+    return metadata.packages
+        .filter((pkg) => !workspaceMemberIds.has(pkg.id))
+        .map((pkg) => {
+            const license = normalizeWhitespace(
+                pkg.license ||
+                    (pkg.license_file ? `See ${pkg.license_file}` : '')
+            );
+
+            return {
+                id: `rust-${sanitizeId(`${pkg.name}-${pkg.version}`)}`,
+                name: pkg.name,
+                version: normalizeWhitespace(pkg.version),
+                license,
+                sourceType: 'rust',
+                sourceLabel: 'Rust dependency (backend)',
+                projectUrl: normalizeWhitespace(pkg.repository || pkg.homepage),
+                noticeText: '',
+                needsReview: !license
+            };
+        });
 }
 
 function removeIntermediateFrontendManifest() {
@@ -187,9 +254,12 @@ function main() {
         .map(normalizeFrontendEntry)
         .sort((left, right) => left.name.localeCompare(right.name));
     const bundledFontEntries = readBundledFontEntries(frontendEntries);
-    const entries = [...frontendEntries, ...bundledFontEntries].sort(
-        (left, right) => left.name.localeCompare(right.name)
-    );
+    const rustEntries = readRustEntries();
+    const entries = [
+        ...frontendEntries,
+        ...bundledFontEntries,
+        ...rustEntries
+    ].sort((left, right) => left.name.localeCompare(right.name));
     const manifest = {
         generatedAt: new Date().toISOString(),
         noticePath: 'licenses/THIRD_PARTY_NOTICES.txt',
