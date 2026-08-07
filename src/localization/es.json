@@ -58,6 +58,8 @@
         "example_2": "¿De quién me estoy distanciando?",
         "example_3": "¿Cuál es el mejor momento para encontrar a mis amigos en línea?",
         "not_configured": "Selecciona un endpoint LLM y un modelo para empezar.",
+        "setup_title": "Conecta un modelo para empezar",
+        "open_settings": "Abrir ajustes de IA",
         "entities_title": "Mencionados",
         "entities_empty": "Las personas y mundos mencionados en las respuestas aparecen aquí.",
         "untitled": "Nueva conversación",
@@ -79,7 +81,6 @@
         },
         "runtime": {
             "title": "Runtime",
-            "connection": "Conexión",
             "connection_unset": "Sin endpoint",
             "model": "Modelo",
             "model_unset": "No hay modelos guardados para este endpoint",
@@ -87,7 +88,9 @@
             "allow_writes": "Permitir acciones de escritura",
             "manage_endpoints": "Gestionar endpoints LLM",
             "reasoning_effort": "Esfuerzo de razonamiento",
-            "reasoning_effort_provider_default": "Predeterminado del proveedor"
+            "reasoning_effort_provider_default": "Predeterminado del proveedor",
+            "scope_session": "Solo se aplica a esta conversación",
+            "scope_default": "Se aplica a las conversaciones nuevas"
         }
     },
     "user_hover_card": {
@@ -2021,6 +2024,14 @@
                 "cooldown": "Podrás enviar otro en {{seconds}} s",
                 "more_help": "¿Necesitas respuesta o quieres adjuntar registros?",
                 "error_generic": "No se pudieron enviar los comentarios. Inténtalo de nuevo más tarde."
+            },
+            "ai": {
+                "header": "IA social",
+                "description": "Valores predeterminados para las conversaciones nuevas. Cada conversación puede cambiarlos desde el panel de IA social.",
+                "default_model": "Modelo predeterminado",
+                "default_model_description": "Las conversaciones nuevas empiezan con este modelo.",
+                "default_model_unset": "No hay modelos disponibles",
+                "playbook_mode_description": "Cuánta libertad tiene el modelo al analizar tus datos."
             },
             "social": {
                 "interaction": {

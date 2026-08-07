@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { AppDataDirState, TtsVoice } from '@/platform/tauri/bindings';
@@ -41,6 +42,7 @@ import { useShellStore } from '@/state/shellStore';
 
 import { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import { buildFavoriteFriendGroupOptions } from './settingsFavoriteGroupOptions';
+import { settingsTabs } from './settingsOptions';
 import { buildSettingsPageStateSections } from './settingsPageStateSections';
 import {
     useAvatarProviderConfig,
@@ -120,7 +122,20 @@ export function useSettingsPageState() {
     const [customFontOptions, setCustomFontOptions] = useState<string[]>([]);
     const [customFontOptionsLoading, setCustomFontOptionsLoading] =
         useState(false);
-    const [activeSettingsTab, setActiveSettingsTab] = useState('system');
+    const [searchParams] = useSearchParams();
+    const requestedTab = searchParams.get('tab') ?? '';
+    const hasRequestedTab = settingsTabs.some(
+        ([value]) => value === requestedTab
+    );
+    const [activeSettingsTab, setActiveSettingsTab] = useState(
+        hasRequestedTab ? requestedTab : 'system'
+    );
+
+    useEffect(() => {
+        if (hasRequestedTab) {
+            setActiveSettingsTab(requestedTab);
+        }
+    }, [hasRequestedTab, requestedTab]);
     const [
         wristFeedNotificationsDialogOpen,
         setWristFeedNotificationsDialogOpen

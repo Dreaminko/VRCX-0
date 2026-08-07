@@ -1,6 +1,7 @@
 import { PanelRightIcon, Settings2Icon, XIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
 import {
@@ -17,10 +18,7 @@ import {
     type Session
 } from '@/platform/tauri/bindings';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
-import {
-    openLlmEndpointsManager,
-    useLlmEndpointsStore
-} from '@/state/llmEndpointsStore';
+import { useLlmEndpointsStore } from '@/state/llmEndpointsStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -53,7 +51,6 @@ import {
     SelectContent,
     SelectGroup,
     SelectItem,
-    SelectLabel,
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
@@ -68,6 +65,7 @@ import {
 import { AssistantTranscript } from './components/AssistantTranscript';
 import { Composer } from './components/Composer';
 import { EntityPanel } from './components/EntityPanel';
+import { RuntimeModelSelect } from './components/RuntimeModelSelect';
 import { SessionSidebar } from './components/SessionSidebar';
 import { useAssistantEvents } from './useAssistantEvents';
 import type { AssistantHealth } from './useAssistantHealth';
@@ -120,6 +118,7 @@ function isEndpointRemovedError(error: unknown): boolean {
 
 export function AssistantDialog() {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     useAssistantEvents();
     const runtimeStatus = useAssistantRuntimeStatus();
     const endpoints = useLlmEndpointsStore((state) => state.endpoints);
@@ -151,7 +150,6 @@ export function AssistantDialog() {
     const selectedEndpoint = endpoints.find(
         (endpoint) => endpoint.id === runtimeSelection.endpointId
     );
-    const modelOptions = selectedEndpoint?.models ?? [];
     const hasRuntime = Boolean(selectedEndpoint && runtimeSelection.model);
     const showReasoningEffort = shouldShowReasoningEffortSelector(
         selectedEndpoint ?? null,
@@ -245,16 +243,6 @@ export function AssistantDialog() {
         }
     }
 
-    function updateEndpoint(endpointId: string) {
-        const endpoint = endpoints.find((item) => item.id === endpointId);
-        const currentModel = runtimeSelection.model;
-        const nextModel =
-            endpoint?.models.find((model) => model === currentModel) ??
-            endpoint?.models[0] ??
-            null;
-        updateRuntimeSelection({ endpointId, model: nextModel });
-    }
-
     function refreshSelectedEndpointModels() {
         const endpointId = runtimeSelection.endpointId;
         if (!endpointId) {
@@ -279,9 +267,9 @@ export function AssistantDialog() {
         }
     }
 
-    function openEndpointManager() {
+    function openAssistantSettings() {
         setOpen(false);
-        openLlmEndpointsManager();
+        navigate('/settings?tab=ai');
     }
 
     async function handleSend(text: string) {
@@ -362,114 +350,22 @@ export function AssistantDialog() {
                                 </PopoverHeader>
                                 <div className="grid gap-3">
                                     <div className="grid gap-1.5">
-                                        <Label htmlFor="assistant-runtime-endpoint">
-                                            {t('assistant.runtime.connection')}
-                                        </Label>
-                                        <Select
-                                            value={
-                                                runtimeSelection.endpointId ||
-                                                undefined
-                                            }
-                                            items={endpoints.map(
-                                                (endpoint) => ({
-                                                    value: endpoint.id,
-                                                    label: endpoint.name
-                                                })
-                                            )}
-                                            disabled={!endpoints.length}
-                                            onValueChange={(value) =>
-                                                updateEndpoint(value ?? '')
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                id="assistant-runtime-endpoint"
-                                                className="w-full"
-                                            >
-                                                <SelectValue
-                                                    placeholder={t(
-                                                        'assistant.runtime.connection_unset'
-                                                    )}
-                                                />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {endpoints.map(
-                                                        (endpoint) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    endpoint.id
-                                                                }
-                                                                value={
-                                                                    endpoint.id
-                                                                }
-                                                            >
-                                                                {endpoint.name}
-                                                            </SelectItem>
-                                                        )
-                                                    )}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="grid gap-1.5">
                                         <Label htmlFor="assistant-runtime-model">
                                             {t('assistant.runtime.model')}
                                         </Label>
-                                        {modelOptions.length ? (
-                                            <Select
-                                                value={
-                                                    runtimeSelection.model ||
-                                                    undefined
-                                                }
-                                                items={modelOptions.map(
-                                                    (model) => ({
-                                                        value: model,
-                                                        label: model
-                                                    })
-                                                )}
-                                                onValueChange={(model) =>
-                                                    updateRuntimeSelection({
-                                                        model
-                                                    })
-                                                }
-                                            >
-                                                <SelectTrigger
-                                                    id="assistant-runtime-model"
-                                                    className="w-full"
-                                                >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {selectedEndpoint?.name ? (
-                                                            <SelectLabel>
-                                                                {
-                                                                    selectedEndpoint.name
-                                                                }
-                                                            </SelectLabel>
-                                                        ) : null}
-                                                        {modelOptions.map(
-                                                            (model) => (
-                                                                <SelectItem
-                                                                    key={model}
-                                                                    value={
-                                                                        model
-                                                                    }
-                                                                >
-                                                                    {model}
-                                                                </SelectItem>
-                                                            )
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        ) : (
-                                            <div className="text-muted-foreground rounded-md border px-3 py-2 text-xs">
-                                                {t(
-                                                    'assistant.runtime.model_unset'
-                                                )}
-                                            </div>
-                                        )}
+                                        <RuntimeModelSelect
+                                            triggerId="assistant-runtime-model"
+                                            endpointId={
+                                                runtimeSelection.endpointId
+                                            }
+                                            model={runtimeSelection.model}
+                                            placeholder={t(
+                                                'assistant.runtime.model_unset'
+                                            )}
+                                            onSelect={(ref) =>
+                                                updateRuntimeSelection(ref)
+                                            }
+                                        />
                                     </div>
                                     {showReasoningEffort ? (
                                         <div className="grid gap-1.5">
@@ -599,16 +495,26 @@ export function AssistantDialog() {
                                             }
                                         />
                                     </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={openEndpointManager}
-                                    >
-                                        {t(
-                                            'assistant.runtime.manage_endpoints'
-                                        )}
-                                    </Button>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-muted-foreground text-xs">
+                                            {activeSessionId
+                                                ? t(
+                                                      'assistant.runtime.scope_session'
+                                                  )
+                                                : t(
+                                                      'assistant.runtime.scope_default'
+                                                  )}
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-auto px-1.5 py-1 text-xs"
+                                            onClick={openAssistantSettings}
+                                        >
+                                            {t('assistant.open_settings')}
+                                        </Button>
+                                    </div>
                                 </div>
                             </PopoverContent>
                         </Popover>
@@ -681,35 +587,47 @@ export function AssistantDialog() {
                                     <Empty className="py-12">
                                         <EmptyHeader>
                                             <EmptyTitle>
-                                                {t('assistant.empty_title')}
+                                                {notConfigured
+                                                    ? t('assistant.setup_title')
+                                                    : t(
+                                                          'assistant.empty_title'
+                                                      )}
                                             </EmptyTitle>
                                         </EmptyHeader>
                                         <EmptyContent>
-                                            {examplePrompts.map((prompt) => (
+                                            {notConfigured ? (
                                                 <Button
-                                                    key={prompt}
                                                     type="button"
-                                                    size="xs"
-                                                    variant="outline"
-                                                    disabled={notConfigured}
-                                                    onClick={() =>
-                                                        sendMessage(prompt)
+                                                    size="sm"
+                                                    onClick={
+                                                        openAssistantSettings
                                                     }
-                                                    className="h-auto max-w-full whitespace-normal"
                                                 >
-                                                    {prompt}
+                                                    {t(
+                                                        'assistant.open_settings'
+                                                    )}
                                                 </Button>
-                                            ))}
+                                            ) : (
+                                                examplePrompts.map((prompt) => (
+                                                    <Button
+                                                        key={prompt}
+                                                        type="button"
+                                                        size="xs"
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            sendMessage(prompt)
+                                                        }
+                                                        className="h-auto max-w-full whitespace-normal"
+                                                    >
+                                                        {prompt}
+                                                    </Button>
+                                                ))
+                                            )}
                                         </EmptyContent>
                                     </Empty>
                                 }
                             />
 
-                            {notConfigured && (
-                                <div className="text-muted-foreground px-3 pt-2 text-center text-xs">
-                                    {t('assistant.not_configured')}
-                                </div>
-                            )}
                             <Composer
                                 busy={busy}
                                 disabled={notConfigured}

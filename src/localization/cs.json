@@ -58,6 +58,8 @@
         "example_2": "Od koho se postupně vzdaluji?",
         "example_3": "Kdy je nejlepší čas zastihnout přátele online?",
         "not_configured": "Pro začátek vyberte LLM endpoint a model.",
+        "setup_title": "Nejprve připojte model",
+        "open_settings": "Otevřít nastavení AI",
         "entities_title": "Zmíněno",
         "entities_empty": "Zde se zobrazí lidé a světy zmínění v odpovědích.",
         "untitled": "Nová konverzace",
@@ -79,7 +81,6 @@
         },
         "runtime": {
             "title": "Běhové prostředí",
-            "connection": "Připojení",
             "connection_unset": "Žádný endpoint",
             "model": "Model",
             "model_unset": "Pro tento endpoint nejsou uloženy žádné modely",
@@ -87,7 +88,9 @@
             "allow_writes": "Povolit zápisové akce",
             "manage_endpoints": "Spravovat LLM endpointy",
             "reasoning_effort": "Úroveň uvažování",
-            "reasoning_effort_provider_default": "Výchozí nastavení poskytovatele"
+            "reasoning_effort_provider_default": "Výchozí nastavení poskytovatele",
+            "scope_session": "Platí jen pro tuto konverzaci",
+            "scope_default": "Platí pro nové konverzace"
         }
     },
     "user_hover_card": {
@@ -2023,6 +2026,14 @@
                 "cooldown": "Znovu odeslat můžete za {{seconds}} s",
                 "more_help": "Potřebujete odpověď nebo chcete přiložit logy?",
                 "error_generic": "Zpětnou vazbu se nepodařilo odeslat. Zkuste to prosím později."
+            },
+            "ai": {
+                "header": "Sociální AI",
+                "description": "Výchozí nastavení pro nové konverzace. Jednotlivou konverzaci lze upravit v panelu Sociální AI.",
+                "default_model": "Výchozí model",
+                "default_model_description": "Nové konverzace začínají s tímto modelem.",
+                "default_model_unset": "Žádný dostupný model",
+                "playbook_mode_description": "Jak velkou volnost má model při analýze dat."
             },
             "social": {
                 "interaction": {

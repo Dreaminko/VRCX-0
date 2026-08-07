@@ -58,6 +58,8 @@
         "example_2": "Von wem entferne ich mich gerade?",
         "example_3": "Wann ist die beste Zeit, um meine Freunde online zu erreichen?",
         "not_configured": "Wähle einen LLM-Endpunkt und ein Modell, um zu starten.",
+        "setup_title": "Verbinde zuerst ein Modell",
+        "open_settings": "KI-Einstellungen öffnen",
         "entities_title": "Erwähnt",
         "entities_empty": "Personen und Welten, die in Antworten erwähnt werden, erscheinen hier.",
         "untitled": "Neue Unterhaltung",
@@ -79,7 +81,6 @@
         },
         "runtime": {
             "title": "Laufzeit",
-            "connection": "Verbindung",
             "connection_unset": "Kein Endpunkt",
             "model": "Modell",
             "model_unset": "Für diesen Endpunkt sind keine Modelle gespeichert",
@@ -87,7 +88,9 @@
             "allow_writes": "Schreibaktionen erlauben",
             "manage_endpoints": "LLM-Endpunkte verwalten",
             "reasoning_effort": "Reasoning-Aufwand",
-            "reasoning_effort_provider_default": "Standard des Anbieters"
+            "reasoning_effort_provider_default": "Standard des Anbieters",
+            "scope_session": "Gilt nur für diese Unterhaltung",
+            "scope_default": "Gilt für neue Unterhaltungen"
         }
     },
     "user_hover_card": {
@@ -2021,6 +2024,14 @@
                 "cooldown": "In {{seconds}} s kannst du erneut senden",
                 "more_help": "Du brauchst eine Antwort oder möchtest Logs anhängen?",
                 "error_generic": "Feedback konnte nicht gesendet werden. Bitte versuche es später erneut."
+            },
+            "ai": {
+                "header": "Social AI",
+                "description": "Vorgaben für neue Unterhaltungen. Einzelne Unterhaltungen lassen sich im Social-AI-Fenster anpassen.",
+                "default_model": "Standardmodell",
+                "default_model_description": "Neue Unterhaltungen starten mit diesem Modell.",
+                "default_model_unset": "Kein Modell verfügbar",
+                "playbook_mode_description": "Wie viel Spielraum das Modell bei der Analyse bekommt."
             },
             "social": {
                 "interaction": {

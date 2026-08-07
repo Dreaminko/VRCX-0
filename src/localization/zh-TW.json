@@ -58,6 +58,8 @@
         "example_2": "我正逐漸遠離誰呢？",
         "example_3": "什麼時候是拜訪線上好友的最佳時機？",
         "not_configured": "請選擇一個 LLM 端點和模型以開始操作。",
+        "setup_title": "先連接一個模型才能開始",
+        "open_settings": "前往 AI 設定",
         "entities_title": "提及",
         "entities_empty": "答案中提及的人物與世界會顯示在此處。",
         "untitled": "新對話",
@@ -79,7 +81,6 @@
         },
         "runtime": {
             "title": "執行環境",
-            "connection": "連線",
             "connection_unset": "未選擇端點",
             "model": "模型",
             "model_unset": "此端點尚未儲存任何模型。",
@@ -87,7 +88,9 @@
             "allow_writes": "允許寫入操作",
             "manage_endpoints": "管理 LLM 端點",
             "reasoning_effort": "推理強度",
-            "reasoning_effort_provider_default": "服務商預設"
+            "reasoning_effort_provider_default": "服務商預設",
+            "scope_session": "僅對本次對話生效",
+            "scope_default": "對新對話生效"
         }
     },
     "user_hover_card": {
@@ -2021,6 +2024,14 @@
                 "cooldown": "{{seconds}} 秒後可再次傳送",
                 "more_help": "需要回覆，或想附上日誌嗎？",
                 "error_generic": "傳送失敗，請稍後再試。"
+            },
+            "ai": {
+                "header": "社交 AI",
+                "description": "新對話的預設設定。每個對話都可以在社交 AI 面板裡單獨調整。",
+                "default_model": "預設模型",
+                "default_model_description": "新對話預設使用這個模型。",
+                "default_model_unset": "目前沒有可用的模型",
+                "playbook_mode_description": "模型分析資料時的自由度。"
             },
             "social": {
                 "interaction": {

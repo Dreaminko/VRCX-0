@@ -58,6 +58,8 @@
         "example_2": "De quem estou me distanciando?",
         "example_3": "Qual o melhor horário para encontrar meus amigos online?",
         "not_configured": "Select an LLM Endpoint and model to start.",
+        "setup_title": "Conecte um modelo para começar",
+        "open_settings": "Abrir configurações de IA",
         "entities_title": "Mencionados",
         "entities_empty": "Pessoas e mundos mencionados nas respostas aparecem aqui.",
         "untitled": "Nova conversa",
@@ -79,7 +81,6 @@
         },
         "runtime": {
             "title": "Runtime",
-            "connection": "Conexão",
             "connection_unset": "Sem endpoint",
             "model": "Modelo",
             "model_unset": "Nenhum modelo salvo para este endpoint",
@@ -87,7 +88,9 @@
             "allow_writes": "Permitir ações de escrita",
             "manage_endpoints": "Gerenciar endpoints LLM",
             "reasoning_effort": "Esforço de raciocínio",
-            "reasoning_effort_provider_default": "Padrão do provedor"
+            "reasoning_effort_provider_default": "Padrão do provedor",
+            "scope_session": "Aplica-se apenas a esta conversa",
+            "scope_default": "Aplica-se a novas conversas"
         }
     },
     "user_hover_card": {
@@ -2021,6 +2024,14 @@
                 "cooldown": "Pode enviar novamente dentro de {{seconds}} s",
                 "more_help": "Precisa de resposta ou quer anexar registos?",
                 "error_generic": "Não foi possível enviar o feedback. Tente novamente mais tarde."
+            },
+            "ai": {
+                "header": "IA Social",
+                "description": "Padrões para novas conversas. Cada conversa pode alterá-los no painel da IA Social.",
+                "default_model": "Modelo padrão",
+                "default_model_description": "Novas conversas começam com este modelo.",
+                "default_model_unset": "Nenhum modelo disponível",
+                "playbook_mode_description": "Quanta liberdade o modelo tem ao analisar seus dados."
             },
             "social": {
                 "interaction": {

@@ -1,10 +1,10 @@
 import { SettingsTabContent } from '../SettingsViewParts';
-import { McpServerSettingsGroup } from './McpServerSettingsGroup';
+import { AssistantSettingsGroup } from './AssistantSettingsGroup';
 
 export function SettingsAiTab() {
     return (
         <SettingsTabContent value="ai">
-            <McpServerSettingsGroup />
+            <AssistantSettingsGroup />
         </SettingsTabContent>
     );
 }

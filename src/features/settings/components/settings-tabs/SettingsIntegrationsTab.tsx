@@ -10,6 +10,7 @@ import type { SettingsPageStateSections } from '../../settingsPageStateSections'
 import { normalizeCheckedState } from '../../settingsValues';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
+import { McpServerSettingsGroup } from './McpServerSettingsGroup';
 import { WebhookSettingsGroup } from './WebhookSettingsGroup';
 
 type SettingsIntegrationsTabProps = {
@@ -372,6 +373,8 @@ export function SettingsIntegrationsTab({
                     </Button>
                 </Field>
             </SettingsGroup>
+
+            <McpServerSettingsGroup />
         </SettingsTabContent>
     );
 }

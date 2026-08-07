@@ -58,6 +58,8 @@
         "example_2": "最近疎遠になっている人は？",
         "example_3": "フレンドがオンラインになりやすい時間は？",
         "not_configured": "LLM エンドポイントとモデルを選択して開始してください。",
+        "setup_title": "まずはモデルをつないでください",
+        "open_settings": "AI 設定を開く",
         "entities_title": "言及",
         "entities_empty": "回答で言及された人やワールドがここに表示されます。",
         "untitled": "新しい会話",
@@ -79,7 +81,6 @@
         },
         "runtime": {
             "title": "ランタイム",
-            "connection": "接続",
             "connection_unset": "エンドポイントなし",
             "model": "モデル",
             "model_unset": "このエンドポイントに保存されたモデルはありません",
@@ -87,7 +88,9 @@
             "allow_writes": "書き込み操作を許可",
             "manage_endpoints": "LLM エンドポイントを管理",
             "reasoning_effort": "推論の深さ",
-            "reasoning_effort_provider_default": "プロバイダーのデフォルト"
+            "reasoning_effort_provider_default": "プロバイダーのデフォルト",
+            "scope_session": "このチャットにだけ反映されます",
+            "scope_default": "新しいチャットに反映されます"
         }
     },
     "user_hover_card": {
@@ -2017,6 +2020,14 @@
                 "cooldown": "{{seconds}} 秒後にもう一度送信できます",
                 "more_help": "返信が必要な場合や、ログを添えたい場合は",
                 "error_generic": "フィードバックを送信できませんでした。あとでもう一度お試しください。"
+            },
+            "ai": {
+                "header": "ソーシャル AI",
+                "description": "新しいチャットの初期設定です。チャットごとの変更はソーシャル AI パネルから行えます。",
+                "default_model": "既定のモデル",
+                "default_model_description": "新しいチャットはこのモデルで始まります。",
+                "default_model_unset": "利用できるモデルがありません",
+                "playbook_mode_description": "分析するときにモデルへどこまで任せるかを決めます。"
             },
             "social": {
                 "interaction": {

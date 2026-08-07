@@ -58,6 +58,8 @@
         "example_2": "我正在和谁疏远？",
         "example_3": "什么时候最容易碰到我的好友在线？",
         "not_configured": "请先选择 LLM 端点和模型。",
+        "setup_title": "先连接一个模型才能开始",
+        "open_settings": "去 AI 设置",
         "entities_title": "提及",
         "entities_empty": "回答中提到的人和世界会显示在这里。",
         "untitled": "新对话",
@@ -79,7 +81,6 @@
         },
         "runtime": {
             "title": "运行时",
-            "connection": "连接",
             "connection_unset": "无端点",
             "model": "模型",
             "model_unset": "此端点未保存任何模型",
@@ -87,7 +88,9 @@
             "allow_writes": "允许写入操作",
             "manage_endpoints": "管理 LLM 端点",
             "reasoning_effort": "推理强度",
-            "reasoning_effort_provider_default": "服务商默认"
+            "reasoning_effort_provider_default": "服务商默认",
+            "scope_session": "仅对本次对话生效",
+            "scope_default": "对新对话生效"
         }
     },
     "user_hover_card": {
@@ -2021,6 +2024,14 @@
                 "cooldown": "{{seconds}} 秒后可再次发送",
                 "more_help": "需要回复,或者想附上日志?",
                 "error_generic": "发送失败,请稍后重试。"
+            },
+            "ai": {
+                "header": "AI 助手",
+                "description": "新对话的默认设置。每个对话都可以在 AI 助手面板里单独调整。",
+                "default_model": "默认模型",
+                "default_model_description": "新对话默认使用这个模型。",
+                "default_model_unset": "暂无可用模型",
+                "playbook_mode_description": "模型分析数据时的自由度。"
             },
             "social": {
                 "interaction": {
