@@ -2007,7 +2007,20 @@
                 "ai": "IA",
                 "vr": "VR",
                 "media": "Multimedia",
-                "integrations": "Integraciones"
+                "integrations": "Integraciones",
+                "feedback": "Comentarios"
+            },
+            "feedback": {
+                "title": "Enviar comentarios",
+                "description": "Los comentarios se envían de forma anónima. Leemos todos los mensajes, pero no podemos responder directamente.",
+                "privacy_note": "No se adjuntan datos de la cuenta, solo un ID de instalación anónimo que evita el spam.",
+                "placeholder": "Cuéntanos qué funciona, qué no, o qué te gustaría ver…",
+                "submit": "Enviar",
+                "submitting": "Enviando…",
+                "thanks": "¡Gracias por tu opinión!",
+                "cooldown": "Podrás enviar otro en {{seconds}} s",
+                "more_help": "¿Necesitas respuesta o quieres adjuntar registros?",
+                "error_generic": "No se pudieron enviar los comentarios. Inténtalo de nuevo más tarde."
             },
             "social": {
                 "interaction": {

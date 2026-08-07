@@ -2007,7 +2007,20 @@
                 "ai": "KI",
                 "vr": "VR",
                 "media": "Medien",
-                "integrations": "Integrationen"
+                "integrations": "Integrationen",
+                "feedback": "Feedback"
+            },
+            "feedback": {
+                "title": "Feedback senden",
+                "description": "Feedback wird anonym gesendet. Wir lesen jede Nachricht, können aber nicht direkt antworten.",
+                "privacy_note": "Es werden keine Kontodaten übermittelt – nur eine anonyme Installations-ID, die Spam verhindert.",
+                "placeholder": "Erzähl uns, was gut läuft, was nicht, oder was du dir wünschst…",
+                "submit": "Senden",
+                "submitting": "Wird gesendet…",
+                "thanks": "Danke für dein Feedback!",
+                "cooldown": "In {{seconds}} s kannst du erneut senden",
+                "more_help": "Du brauchst eine Antwort oder möchtest Logs anhängen?",
+                "error_generic": "Feedback konnte nicht gesendet werden. Bitte versuche es später erneut."
             },
             "social": {
                 "interaction": {

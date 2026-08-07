@@ -2007,7 +2007,20 @@
                 "ai": "AI",
                 "vr": "VR",
                 "media": "Media",
-                "integrations": "Integrations"
+                "integrations": "Integrations",
+                "feedback": "Feedback"
+            },
+            "feedback": {
+                "title": "Send feedback",
+                "description": "Feedback is submitted anonymously. We read every message, but can't reply directly.",
+                "privacy_note": "No account info is attached — only an anonymous install ID that keeps the endpoint from being spammed.",
+                "placeholder": "Tell us what's working, what's not, or what you'd like to see...",
+                "submit": "Send",
+                "submitting": "Sending…",
+                "thanks": "Thanks for your feedback!",
+                "cooldown": "You can send again in {{seconds}}s",
+                "more_help": "Need a reply, or want to attach logs?",
+                "error_generic": "Couldn't send feedback. Please try again later."
             },
             "social": {
                 "interaction": {

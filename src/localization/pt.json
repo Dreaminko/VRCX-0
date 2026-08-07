@@ -2007,7 +2007,20 @@
                 "ai": "IA",
                 "vr": "VR",
                 "media": "Mídia",
-                "integrations": "Integrações"
+                "integrations": "Integrações",
+                "feedback": "Feedback"
+            },
+            "feedback": {
+                "title": "Enviar feedback",
+                "description": "O feedback é enviado de forma anónima. Lemos todas as mensagens, mas não podemos responder diretamente.",
+                "privacy_note": "Não é incluída nenhuma informação da conta, apenas um ID de instalação anónimo que evita spam.",
+                "placeholder": "Diga-nos o que funciona, o que não funciona ou o que gostaria de ver…",
+                "submit": "Enviar",
+                "submitting": "A enviar…",
+                "thanks": "Obrigado pelo seu feedback!",
+                "cooldown": "Pode enviar novamente dentro de {{seconds}} s",
+                "more_help": "Precisa de resposta ou quer anexar registos?",
+                "error_generic": "Não foi possível enviar o feedback. Tente novamente mais tarde."
             },
             "social": {
                 "interaction": {

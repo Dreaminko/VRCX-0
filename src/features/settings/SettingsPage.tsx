@@ -3,6 +3,7 @@ import {
     BotIcon,
     ImageIcon,
     type LucideIcon,
+    MessageSquareIcon,
     MonitorIcon,
     PaletteIcon,
     PlugIcon,
@@ -21,6 +22,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import { SettingsAiTab } from './components/settings-tabs/SettingsAiTab';
+import { SettingsFeedbackTab } from './components/settings-tabs/SettingsFeedbackTab';
 import { SettingsIntegrationsTab } from './components/settings-tabs/SettingsIntegrationsTab';
 import { SettingsInterfaceTab } from './components/settings-tabs/SettingsInterfaceTab';
 import { SettingsMediaTab } from './components/settings-tabs/SettingsMediaTab';
@@ -41,7 +43,8 @@ const SETTINGS_TAB_ICONS: Record<string, LucideIcon> = {
     vr: RectangleGogglesIcon,
     media: ImageIcon,
     integrations: PlugIcon,
-    advanced: TerminalIcon
+    advanced: TerminalIcon,
+    feedback: MessageSquareIcon
 };
 
 export function SettingsPage() {
@@ -101,6 +104,7 @@ export function SettingsPage() {
                     <SettingsAiTab />
                     <SettingsIntegrationsTab integrations={integrations} />
                     <SettingsAdvancedSection advanced={advanced} />
+                    <SettingsFeedbackTab />
                 </div>
             </Tabs>
             <SettingsDialogsSection dialogs={dialogs} />

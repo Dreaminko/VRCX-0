@@ -315,6 +315,11 @@ export const commands = {
     async appTelemetryRecordEvent(event: TelemetryClientEvent): Promise<null> {
         return await TAURI_INVOKE('app__telemetry_record_event', { event });
     },
+    async appTelemetrySubmitFeedback(content: string): Promise<null> {
+        return await TAURI_INVOKE('app__telemetry_submit_feedback', {
+            content
+        });
+    },
     async appProxySettingsTest(
         input: ProxySettingsTestInput
     ): Promise<ProxySettingsTestResult> {

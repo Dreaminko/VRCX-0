@@ -2007,7 +2007,20 @@
                 "ai": "AI",
                 "vr": "VR",
                 "media": "媒體",
-                "integrations": "整合"
+                "integrations": "整合",
+                "feedback": "意見回饋"
+            },
+            "feedback": {
+                "title": "傳送意見回饋",
+                "description": "意見回饋會匿名提交。我們會閱讀每一則訊息，但無法直接回覆。",
+                "privacy_note": "不會附帶任何帳號資訊，只帶一個用於防灌水的匿名安裝識別碼。",
+                "placeholder": "告訴我們哪裡好用、哪裡需要改進，或是你希望看到什麼新功能……",
+                "submit": "傳送",
+                "submitting": "傳送中…",
+                "thanks": "感謝你的回饋！",
+                "cooldown": "{{seconds}} 秒後可再次傳送",
+                "more_help": "需要回覆，或想附上日誌嗎？",
+                "error_generic": "傳送失敗，請稍後再試。"
             },
             "social": {
                 "interaction": {

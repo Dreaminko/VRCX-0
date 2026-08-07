@@ -2009,7 +2009,20 @@
                 "ai": "AI",
                 "vr": "VR",
                 "media": "Média",
-                "integrations": "Integrace"
+                "integrations": "Integrace",
+                "feedback": "Zpětná vazba"
+            },
+            "feedback": {
+                "title": "Odeslat zpětnou vazbu",
+                "description": "Zpětná vazba se odesílá anonymně. Každou zprávu čteme, ale nemůžeme přímo odpovědět.",
+                "privacy_note": "Nepřipojují se žádné údaje o účtu, jen anonymní ID instalace, které brání spamu.",
+                "placeholder": "Řekněte nám, co funguje, co ne, nebo co byste chtěli vidět…",
+                "submit": "Odeslat",
+                "submitting": "Odesílání…",
+                "thanks": "Děkujeme za zpětnou vazbu!",
+                "cooldown": "Znovu odeslat můžete za {{seconds}} s",
+                "more_help": "Potřebujete odpověď nebo chcete přiložit logy?",
+                "error_generic": "Zpětnou vazbu se nepodařilo odeslat. Zkuste to prosím později."
             },
             "social": {
                 "interaction": {

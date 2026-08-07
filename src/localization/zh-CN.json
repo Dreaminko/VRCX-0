@@ -2007,7 +2007,20 @@
                 "ai": "AI",
                 "vr": "VR",
                 "media": "媒体",
-                "integrations": "集成"
+                "integrations": "集成",
+                "feedback": "反馈"
+            },
+            "feedback": {
+                "title": "发送反馈",
+                "description": "反馈将匿名提交。我们会阅读每一条消息,但无法直接回复。",
+                "privacy_note": "不会附带任何账号信息,只带一个用于防刷的匿名安装标识。",
+                "placeholder": "告诉我们哪些好用、哪些不好用,或者你希望看到什么新功能……",
+                "submit": "发送",
+                "submitting": "发送中…",
+                "thanks": "感谢你的反馈！",
+                "cooldown": "{{seconds}} 秒后可再次发送",
+                "more_help": "需要回复,或者想附上日志?",
+                "error_generic": "发送失败,请稍后重试。"
             },
             "social": {
                 "interaction": {

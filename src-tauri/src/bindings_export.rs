@@ -179,6 +179,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::note_export::app__note_export_status,
             commands::application::note_export::app__note_export_cancel,
             commands::application::telemetry::app__telemetry_record_event,
+            commands::application::telemetry::app__telemetry_submit_feedback,
             commands::application::proxy::app__proxy_settings_test,
             commands::application::mcp_server::app__mcp_server_status,
             commands::application::mcp_server::app__mcp_server_set_enabled,

@@ -1984,7 +1984,20 @@
                 "ai": "AI",
                 "vr": "VR",
                 "media": "미디어",
-                "integrations": "통합"
+                "integrations": "통합",
+                "feedback": "피드백"
+            },
+            "feedback": {
+                "title": "피드백 보내기",
+                "description": "피드백은 익명으로 전송됩니다. 모든 메시지를 읽지만 직접 답변드리기는 어렵습니다.",
+                "privacy_note": "계정 정보는 포함되지 않으며, 도배를 막기 위한 익명 설치 ID만 함께 전송됩니다.",
+                "placeholder": "잘 되는 점, 불편한 점, 추가됐으면 하는 기능 등을 알려 주세요…",
+                "submit": "보내기",
+                "submitting": "전송 중…",
+                "thanks": "피드백 감사합니다!",
+                "cooldown": "{{seconds}}초 후에 다시 보낼 수 있습니다",
+                "more_help": "답변이 필요하거나 로그를 첨부하고 싶다면",
+                "error_generic": "피드백을 보내지 못했습니다. 잠시 후 다시 시도해 주세요."
             },
             "social": {
                 "interaction": {
