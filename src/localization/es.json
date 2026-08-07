@@ -521,6 +521,7 @@
         "qq_group": "Grupo de QQ (comunidad china)",
         "changelog": "Registro de cambios",
         "update": "Actualizar",
+        "update_downloading": "Descargando…",
         "update_downloaded": "Reiniciar",
         "mark_all_read": "Marcar todo como leído",
         "edit_dashboard": "Editar panel",

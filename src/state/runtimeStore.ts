@@ -184,6 +184,7 @@ type RuntimeStore = {
             | 'error';
         downloadedVersion: string | null;
         downloadProgress: number;
+        downloadedBytes: number;
     };
     mutualGraph: MutualGraphState;
     friendProfileLoad: FriendProfileLoadState;
@@ -478,7 +479,8 @@ const initialState: RuntimeStoreState = {
         latestUpdaterRelease: null,
         autoDownloadState: 'idle',
         downloadedVersion: null,
-        downloadProgress: 0
+        downloadProgress: 0,
+        downloadedBytes: 0
     },
     mutualGraph: createMutualGraphState(),
     friendProfileLoad: createFriendProfileLoadState(),

@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
     confirmInstall: vi.fn(),
     openExternalLink: vi.fn(),
     restartApplication: vi.fn(),
+    toastDismiss: vi.fn(),
     toastError: vi.fn(),
     toastLoading: vi.fn(),
     toastSuccess: vi.fn()
@@ -31,6 +32,7 @@ vi.mock('@/services/i18nService', () => ({
 
 vi.mock('sonner', () => ({
     toast: {
+        dismiss: mocks.toastDismiss,
         error: mocks.toastError,
         loading: mocks.toastLoading,
         success: mocks.toastSuccess
@@ -125,9 +127,8 @@ describe('openOrInstallLatestAvailableUpdate', () => {
 
         expect(installed).toBe(true);
         expect(mocks.confirmInstall).toHaveBeenCalledWith('2.7.0');
-        expect(mocks.toastLoading).toHaveBeenCalledWith(
-            expect.any(String),
-            expect.objectContaining({ duration: Infinity })
+        expect(mocks.toastDismiss).toHaveBeenCalledWith(
+            'vrcx-update-available'
         );
         expect(mocks.restartApplication).not.toHaveBeenCalled();
     });
@@ -198,9 +199,10 @@ describe('handleAppUpdateDownloadProgressEvent', () => {
         expect(updateLoop.autoDownloadState).toBe('downloading');
         expect(updateLoop.downloadedVersion).toBe('2.7.0');
         expect(updateLoop.downloadProgress).toBe(50);
+        expect(updateLoop.downloadedBytes).toBe(50);
     });
 
-    it('only renders the progress toast while a direct install is in flight', () => {
+    it('never shows a toast for the downloading phase, in or out of a direct install', async () => {
         handleAppUpdateDownloadProgressEvent({
             version: '2.7.0',
             phase: 'downloading',
@@ -210,25 +212,40 @@ describe('handleAppUpdateDownloadProgressEvent', () => {
         });
 
         expect(mocks.toastLoading).not.toHaveBeenCalled();
-    });
 
-    it('renders the progress toast for a direct install in flight', async () => {
         mocks.confirmInstall.mockImplementation(() => new Promise(() => {}));
-
         const installPromise = installUpdateRelease(tauriRelease());
         mocks.toastLoading.mockClear();
 
         handleAppUpdateDownloadProgressEvent({
             version: '2.7.0',
             phase: 'downloading',
-            downloadedBytes: 50,
+            downloadedBytes: 60,
             totalBytes: 100,
-            percent: 50
+            percent: 60
+        });
+
+        expect(mocks.toastLoading).not.toHaveBeenCalled();
+
+        void installPromise;
+    });
+
+    it('shows the installing toast once a direct install finishes downloading', () => {
+        mocks.confirmInstall.mockImplementation(() => new Promise(() => {}));
+        const installPromise = installUpdateRelease(tauriRelease());
+        mocks.toastLoading.mockClear();
+
+        handleAppUpdateDownloadProgressEvent({
+            version: '2.7.0',
+            phase: 'downloaded',
+            downloadedBytes: 100,
+            totalBytes: 100,
+            percent: 100
         });
 
         expect(mocks.toastLoading).toHaveBeenCalledWith(
             expect.any(String),
-            expect.objectContaining({ description: expect.anything() })
+            expect.objectContaining({ id: 'vrcx-update-available' })
         );
 
         void installPromise;

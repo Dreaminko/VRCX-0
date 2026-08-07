@@ -521,6 +521,7 @@
         "qq_group": "QQ-Gruppe",
         "changelog": "Änderungsprotokoll",
         "update": "Update",
+        "update_downloading": "Lädt herunter…",
         "update_downloaded": "Neu starten",
         "mark_all_read": "Alle als gelesen markieren",
         "edit_dashboard": "Dashboard bearbeiten",

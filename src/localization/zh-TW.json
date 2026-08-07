@@ -521,6 +521,7 @@
         "qq_group": "QQ 群組",
         "changelog": "最新更新",
         "update": "更新",
+        "update_downloading": "下載中…",
         "update_downloaded": "重新啟動",
         "mark_all_read": "全部標記為已讀",
         "edit_dashboard": "編輯儀錶板",

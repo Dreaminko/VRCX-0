@@ -521,6 +521,7 @@
         "qq_group": "QQ-группа",
         "changelog": "Изменить журнал",
         "update": "Обновление",
+        "update_downloading": "Загрузка…",
         "update_downloaded": "Перезапустить",
         "mark_all_read": "Отметить всё как прочитанное",
         "edit_dashboard": "Правка Dashboard",

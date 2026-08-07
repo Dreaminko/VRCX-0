@@ -521,6 +521,7 @@
         "qq_group": "QQグループ",
         "changelog": "新機能 (更新履歴)",
         "update": "更新",
+        "update_downloading": "ダウンロード中…",
         "update_downloaded": "再起動",
         "mark_all_read": "すべてを既読にする",
         "edit_dashboard": "ダッシュボードを編集",
