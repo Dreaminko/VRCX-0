@@ -53,8 +53,6 @@ import {
 
 const STATUS_JOINME_TINT =
     'color-mix(in srgb, var(--status-joinme) 14%, transparent)';
-const STATUS_JOINME_UNSEEN =
-    'color-mix(in srgb, var(--status-joinme) 8%, transparent)';
 const STATUS_ASKME_TINT =
     'color-mix(in srgb, var(--status-askme) 14%, transparent)';
 
@@ -138,10 +136,7 @@ export function NotificationDrawerRow({
     const countdownLabel =
         isQueueReady && countdownMs != null ? formatCountdown(countdownMs) : '';
 
-    const rowStyle =
-        isUnseen && !expired
-            ? { backgroundColor: STATUS_JOINME_UNSEEN }
-            : undefined;
+    const showUnreadDot = isUnseen && !expired;
 
     return (
         <HoverCard>
@@ -149,10 +144,7 @@ export function NotificationDrawerRow({
                 delay={400}
                 closeDelay={100}
                 render={
-                    <div
-                        className="bg-card text-card-foreground mb-1.5 flex gap-3 rounded-md border p-2"
-                        style={rowStyle}
-                    >
+                    <div className="group hover:bg-accent/50 relative mb-0.5 flex gap-3 rounded-lg px-2.5 py-2 transition-colors">
                         <button
                             type="button"
                             className="shrink-0"
@@ -180,6 +172,9 @@ export function NotificationDrawerRow({
                                 >
                                     {senderName}
                                 </button>
+                                {showUnreadDot ? (
+                                    <span className="bg-primary size-2 shrink-0 rounded-full" />
+                                ) : null}
                                 {relativeTime ? (
                                     <Tooltip>
                                         <TooltipTrigger
@@ -260,88 +255,94 @@ export function NotificationDrawerRow({
                                             ) : null}
                                         </Button>
                                     ) : null}
-                                    {inlineActions.map((action) => (
-                                        <NotificationActionButton
-                                            key={action.key}
-                                            label={action.label}
-                                            onClick={action.onClick}
-                                        >
-                                            <action.Icon data-icon="icon" />
-                                        </NotificationActionButton>
-                                    ))}
-                                    {hasMenu ? (
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger
-                                                render={
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon-xs"
-                                                        aria-label={t(
-                                                            'side_panel.notification_center.more_actions'
-                                                        )}
-                                                    >
-                                                        <MoreHorizontalIcon data-icon="icon" />
-                                                    </Button>
-                                                }
-                                            />
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuGroup>
-                                                    {showMenuMarkRead ? (
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                handlers.onMarkSeen(
-                                                                    notification
-                                                                )
-                                                            }
-                                                        >
-                                                            <CheckIcon data-icon="inline-start" />
-                                                            {t(
-                                                                'side_panel.notification_center.mark_as_read'
+                                    <div className="flex items-center gap-1 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100">
+                                        {inlineActions.map((action) => (
+                                            <NotificationActionButton
+                                                key={action.key}
+                                                label={action.label}
+                                                onClick={action.onClick}
+                                            >
+                                                <action.Icon data-icon="icon" />
+                                            </NotificationActionButton>
+                                        ))}
+                                        {hasMenu ? (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger
+                                                    render={
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon-xs"
+                                                            aria-label={t(
+                                                                'side_panel.notification_center.more_actions'
                                                             )}
-                                                        </DropdownMenuItem>
-                                                    ) : null}
-                                                    {overflowActions.map(
-                                                        (action) => (
+                                                        >
+                                                            <MoreHorizontalIcon data-icon="icon" />
+                                                        </Button>
+                                                    }
+                                                />
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuGroup>
+                                                        {showMenuMarkRead ? (
                                                             <DropdownMenuItem
-                                                                key={action.key}
-                                                                onClick={
-                                                                    action.onClick
-                                                                }
-                                                            >
-                                                                <action.Icon data-icon="inline-start" />
-                                                                {action.label}
-                                                            </DropdownMenuItem>
-                                                        )
-                                                    )}
-                                                </DropdownMenuGroup>
-                                                {showDelete ? (
-                                                    <>
-                                                        {showMenuMarkRead ||
-                                                        overflowActions.length >
-                                                            0 ? (
-                                                            <DropdownMenuSeparator />
-                                                        ) : null}
-                                                        <DropdownMenuGroup>
-                                                            <DropdownMenuItem
-                                                                variant="destructive"
                                                                 onClick={() =>
-                                                                    handlers.onDeleteNotification(
+                                                                    handlers.onMarkSeen(
                                                                         notification
                                                                     )
                                                                 }
                                                             >
-                                                                <Trash2Icon data-icon="inline-start" />
+                                                                <CheckIcon data-icon="inline-start" />
                                                                 {t(
-                                                                    'view.notification.actions.delete_log'
+                                                                    'side_panel.notification_center.mark_as_read'
                                                                 )}
                                                             </DropdownMenuItem>
-                                                        </DropdownMenuGroup>
-                                                    </>
-                                                ) : null}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    ) : null}
+                                                        ) : null}
+                                                        {overflowActions.map(
+                                                            (action) => (
+                                                                <DropdownMenuItem
+                                                                    key={
+                                                                        action.key
+                                                                    }
+                                                                    onClick={
+                                                                        action.onClick
+                                                                    }
+                                                                >
+                                                                    <action.Icon data-icon="inline-start" />
+                                                                    {
+                                                                        action.label
+                                                                    }
+                                                                </DropdownMenuItem>
+                                                            )
+                                                        )}
+                                                    </DropdownMenuGroup>
+                                                    {showDelete ? (
+                                                        <>
+                                                            {showMenuMarkRead ||
+                                                            overflowActions.length >
+                                                                0 ? (
+                                                                <DropdownMenuSeparator />
+                                                            ) : null}
+                                                            <DropdownMenuGroup>
+                                                                <DropdownMenuItem
+                                                                    variant="destructive"
+                                                                    onClick={() =>
+                                                                        handlers.onDeleteNotification(
+                                                                            notification
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash2Icon data-icon="inline-start" />
+                                                                    {t(
+                                                                        'view.notification.actions.delete_log'
+                                                                    )}
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuGroup>
+                                                        </>
+                                                    ) : null}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        ) : null}
+                                    </div>
                                 </div>
                             </div>
                         </div>

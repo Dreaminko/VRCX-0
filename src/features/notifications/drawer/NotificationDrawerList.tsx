@@ -1,3 +1,4 @@
+import { ChevronRightIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,7 +7,6 @@ import type {
     NotificationBucket,
     NotificationCategories
 } from '@/state/vrcNotificationStore';
-import { Button } from '@/ui/shadcn/button';
 
 import type { NotificationRowActionHandlers } from '../notificationRowActions';
 import {
@@ -107,16 +107,16 @@ export function NotificationDrawerList({
                         )}
                     </div>
                 )}
-            </div>
-            <div className="flex justify-center border-t p-3">
-                <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={onNavigateToTable}
-                >
-                    {t('side_panel.notification_center.view_more')}
-                </Button>
+                {hasAny ? (
+                    <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex w-full items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors"
+                        onClick={onNavigateToTable}
+                    >
+                        {t('side_panel.notification_center.view_more')}
+                        <ChevronRightIcon className="size-3.5" />
+                    </button>
+                ) : null}
             </div>
         </div>
     );
