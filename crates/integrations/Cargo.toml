@@ -2,6 +2,7 @@
 name = "vrcx-0-integrations"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 description = "External service clients"
 
 [dependencies]

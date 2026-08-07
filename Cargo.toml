@@ -48,6 +48,9 @@ default-members = [
 ]
 resolver = "2"
 
+[workspace.package]
+license = "GPL-3.0-only"
+
 [workspace.dependencies]
 async-trait = "0.1"
 base64 = "0.23"

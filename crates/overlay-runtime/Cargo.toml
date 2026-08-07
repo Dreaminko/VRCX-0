@@ -2,6 +2,7 @@
 name = "vrcx-0-overlay-runtime"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 description = "VR overlay runtime"
 
 [features]

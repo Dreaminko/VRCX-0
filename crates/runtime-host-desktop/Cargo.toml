@@ -2,6 +2,7 @@
 name = "vrcx-0-runtime-host-desktop"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 description = "Desktop runtime composition"
 
 [features]
