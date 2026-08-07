@@ -27,6 +27,9 @@ export function useFriendsSidebarRuntimeSnapshot() {
     const currentLocationPlayers = useRuntimeStore(
         (state) => state.gameState.currentLocationPlayers
     );
+    const currentLocationStartedAt = useRuntimeStore(
+        (state) => state.gameState.currentLocationStartedAt
+    );
     const domainCurrentInstancePresence = useCurrentInstancePresence();
     const isGameRunning = useRuntimeStore(
         (state) => state.gameState.isGameRunning
@@ -40,10 +43,12 @@ export function useFriendsSidebarRuntimeSnapshot() {
         () => ({
             currentLocation: runtimeCurrentLocation,
             currentDestination: runtimeCurrentDestination,
+            currentLocationStartedAt,
             currentLocationPlayerIds: effectiveCurrentLocationPlayerIds,
             isGameRunning
         }),
         [
+            currentLocationStartedAt,
             effectiveCurrentLocationPlayerIds,
             isGameRunning,
             runtimeCurrentDestination,

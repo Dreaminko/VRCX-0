@@ -157,6 +157,7 @@ export function FriendsSidebar({
     const currentLocationSnapshot = useMemo<LastLocationSnapshot>(
         () => ({
             location: currentInviteLocation,
+            locationStartedAt: gameState.currentLocationStartedAt,
             dwellEpochsByUserId: resolveObservedPlayerDwellEpochs(
                 currentLocationPlayers,
                 friendsById,
@@ -174,7 +175,8 @@ export function FriendsSidebar({
             currentInviteLocation,
             currentLocationPlayers,
             effectiveCurrentLocationPlayerIds,
-            friendsById
+            friendsById,
+            gameState.currentLocationStartedAt
         ]
     );
     const canInviteFromCurrentLocation = useMemo(

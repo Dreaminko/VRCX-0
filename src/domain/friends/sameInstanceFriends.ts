@@ -23,6 +23,7 @@ type SameInstanceLastLocation = {
         | readonly unknown[]
         | Record<string, unknown>;
     location?: unknown;
+    locationStartedAt?: unknown;
 };
 
 type SameInstanceFriendGroup<TFriend> = {

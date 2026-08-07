@@ -6,6 +6,7 @@ import {
     readFriendStatusSource,
     resolveCurrentUserStateBucket,
     resolveSidebarStatusDotClassName,
+    sameInstanceFallbackKey,
     toLegacyFriendSortRow
 } from './friendsSidebarModel';
 
@@ -124,6 +125,136 @@ describe('friendsSidebarModel same-instance groups', () => {
         );
 
         expect(groups[0]?.rows[0]?.$location_at).toBe(observedJoinTime);
+    });
+
+    it('keeps the earlier join time when the local user re-enters the instance', () => {
+        const location = 'wrld_current:123';
+        const friend = {
+            id: 'usr_friend',
+            displayName: 'Friend',
+            state: 'online',
+            location
+        };
+        const fallbackJoinTimes = new Map<string, number>();
+        const earlierJoinTime = 1_700_000_000_000;
+        buildSameInstanceGroups(
+            [friend],
+            { isShowCurrentUserInSameInstance: true },
+            {
+                location,
+                locationStartedAt: earlierJoinTime - 10_000,
+                dwellEpochsByUserId: new Map([['usr_friend', earlierJoinTime]])
+            },
+            fallbackJoinTimes
+        );
+        const laterObservedJoinTime = earlierJoinTime + 60_000;
+
+        const groups = buildSameInstanceGroups(
+            [friend],
+            { isShowCurrentUserInSameInstance: true },
+            {
+                location,
+                locationStartedAt: laterObservedJoinTime - 10_000,
+                dwellEpochsByUserId: new Map([
+                    ['usr_friend', laterObservedJoinTime]
+                ])
+            },
+            fallbackJoinTimes
+        );
+
+        expect(groups[0]?.rows[0]?.$location_at).toBe(earlierJoinTime);
+        expect(
+            fallbackJoinTimes.get(sameInstanceFallbackKey(location, friend))
+        ).toBe(earlierJoinTime);
+    });
+
+    it('resets the join time when the friend leaves and rejoins the same instance', () => {
+        const location = 'wrld_current:123';
+        const friend = {
+            id: 'usr_friend',
+            displayName: 'Friend',
+            state: 'online',
+            location
+        };
+        const fallbackJoinTimes = new Map<string, number>();
+        const locationStartedAt = 1_700_000_000_000;
+        const firstObservedJoinTime = locationStartedAt + 10_000;
+        const laterObservedJoinTime = firstObservedJoinTime + 60_000;
+
+        buildSameInstanceGroups(
+            [friend],
+            { isShowCurrentUserInSameInstance: true },
+            {
+                location,
+                locationStartedAt,
+                friendList: new Set(['usr_friend']),
+                dwellEpochsByUserId: new Map([
+                    ['usr_friend', firstObservedJoinTime]
+                ])
+            },
+            fallbackJoinTimes
+        );
+        buildSameInstanceGroups(
+            [friend],
+            { isShowCurrentUserInSameInstance: true },
+            {
+                location,
+                locationStartedAt,
+                friendList: new Set(),
+                dwellEpochsByUserId: new Map()
+            },
+            fallbackJoinTimes
+        );
+        const groups = buildSameInstanceGroups(
+            [friend],
+            { isShowCurrentUserInSameInstance: true },
+            {
+                location,
+                locationStartedAt,
+                friendList: new Set(['usr_friend']),
+                dwellEpochsByUserId: new Map([
+                    ['usr_friend', laterObservedJoinTime]
+                ])
+            },
+            fallbackJoinTimes
+        );
+
+        expect(groups[0]?.rows[0]?.$location_at).toBe(laterObservedJoinTime);
+        expect(
+            fallbackJoinTimes.get(sameInstanceFallbackKey(location, friend))
+        ).toBe(laterObservedJoinTime);
+    });
+
+    it('adopts an earlier observed join time than the cached fallback', () => {
+        const location = 'wrld_current:123';
+        const friend = {
+            id: 'usr_friend',
+            displayName: 'Friend',
+            state: 'online',
+            location
+        };
+        const fallbackJoinTimes = new Map<string, number>();
+        const laterJoinTime = 1_700_000_000_000;
+        fallbackJoinTimes.set(
+            sameInstanceFallbackKey(location, friend),
+            laterJoinTime
+        );
+        const earlierObservedJoinTime = laterJoinTime - 60_000;
+
+        const groups = buildSameInstanceGroups(
+            [friend],
+            { isShowCurrentUserInSameInstance: true },
+            {
+                location,
+                locationStartedAt: laterJoinTime - 10_000,
+                dwellEpochsByUserId: new Map([
+                    ['usr_friend', earlierObservedJoinTime]
+                ])
+            },
+            fallbackJoinTimes
+        );
+
+        expect(groups[0]?.rows[0]?.$location_at).toBe(earlierObservedJoinTime);
     });
 });
 
