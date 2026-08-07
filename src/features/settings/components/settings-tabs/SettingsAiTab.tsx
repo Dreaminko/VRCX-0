@@ -1,10 +1,14 @@
 import { SettingsTabContent } from '../SettingsViewParts';
 import { AssistantSettingsGroup } from './AssistantSettingsGroup';
 
-export function SettingsAiTab() {
+type SettingsAiTabProps = {
+    active: boolean;
+};
+
+export function SettingsAiTab({ active }: SettingsAiTabProps) {
     return (
         <SettingsTabContent value="ai">
-            <AssistantSettingsGroup />
+            <AssistantSettingsGroup active={active} />
         </SettingsTabContent>
     );
 }

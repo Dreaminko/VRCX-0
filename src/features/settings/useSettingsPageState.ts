@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -122,20 +122,23 @@ export function useSettingsPageState() {
     const [customFontOptions, setCustomFontOptions] = useState<string[]>([]);
     const [customFontOptionsLoading, setCustomFontOptionsLoading] =
         useState(false);
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const requestedTab = searchParams.get('tab') ?? '';
-    const hasRequestedTab = settingsTabs.some(
+    const activeSettingsTab = settingsTabs.some(
         ([value]) => value === requestedTab
-    );
-    const [activeSettingsTab, setActiveSettingsTab] = useState(
-        hasRequestedTab ? requestedTab : 'system'
-    );
+    )
+        ? requestedTab
+        : 'system';
 
-    useEffect(() => {
-        if (hasRequestedTab) {
-            setActiveSettingsTab(requestedTab);
-        }
-    }, [hasRequestedTab, requestedTab]);
+    function setActiveSettingsTab(tab: string) {
+        setSearchParams(
+            (current) => {
+                current.set('tab', tab);
+                return current;
+            },
+            { replace: true }
+        );
+    }
     const [
         wristFeedNotificationsDialogOpen,
         setWristFeedNotificationsDialogOpen

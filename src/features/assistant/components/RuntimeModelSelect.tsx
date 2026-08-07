@@ -35,7 +35,7 @@ type RuntimeModelSelectProps = {
     endpointId: string | null;
     model: string | null;
     placeholder: string;
-    triggerId?: string;
+    id?: string;
     onSelect: (ref: RuntimeModelRef) => void;
 };
 
@@ -43,18 +43,23 @@ export function RuntimeModelSelect({
     endpointId,
     model,
     placeholder,
-    triggerId,
+    id,
     onSelect
 }: RuntimeModelSelectProps) {
     const endpoints = useLlmEndpointsStore((state) => state.endpoints);
-    const items = endpoints.flatMap((endpoint) =>
+    const groups = endpoints.filter((endpoint) => endpoint.models.length);
+    const items = groups.flatMap((endpoint) =>
         endpoint.models.map((endpointModel) => ({
             value: runtimeModelValue(endpoint.id, endpointModel),
             label: endpointModel
         }))
     );
+    const selected =
+        endpointId && model ? runtimeModelValue(endpointId, model) : null;
     const value =
-        endpointId && model ? runtimeModelValue(endpointId, model) : undefined;
+        selected && items.some((item) => item.value === selected)
+            ? selected
+            : undefined;
 
     function handleValueChange(next: string | null) {
         const parsed = next ? parseRuntimeModelValue(next) : null;
@@ -70,11 +75,11 @@ export function RuntimeModelSelect({
             disabled={!items.length}
             onValueChange={handleValueChange}
         >
-            <SelectTrigger id={triggerId} className="w-full">
+            <SelectTrigger id={id} className="w-full">
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
-                {endpoints.map((endpoint) => (
+                {groups.map((endpoint) => (
                     <SelectGroup key={endpoint.id}>
                         <SelectLabel>{endpoint.name}</SelectLabel>
                         {endpoint.models.map((endpointModel) => (

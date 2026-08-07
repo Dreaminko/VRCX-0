@@ -83,7 +83,7 @@
             "title": "Среда выполнения",
             "connection_unset": "Нет эндпоинта",
             "model": "Модель",
-            "model_unset": "Для этого эндпоинта не сохранено ни одной модели",
+            "model_unset": "Нет доступных моделей",
             "playbook_mode": "Режим анализа",
             "allow_writes": "Разрешить действия записи",
             "manage_endpoints": "Управление LLM-эндпоинтами",
@@ -2033,7 +2033,9 @@
                 "default_model": "Модель по умолчанию",
                 "default_model_description": "Новые беседы начинаются с этой моделью.",
                 "default_model_unset": "Нет доступных моделей",
-                "playbook_mode_description": "Насколько свободно модель действует при анализе данных."
+                "playbook_mode_description": "Насколько свободно модель действует при анализе данных.",
+                "endpoints_manage": "Подключения",
+                "endpoints_description": "Используются и «Социальным AI», и переводом."
             },
             "social": {
                 "interaction": {

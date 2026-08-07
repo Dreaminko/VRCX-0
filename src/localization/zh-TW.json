@@ -83,7 +83,7 @@
             "title": "執行環境",
             "connection_unset": "未選擇端點",
             "model": "模型",
-            "model_unset": "此端點尚未儲存任何模型。",
+            "model_unset": "目前沒有可用的模型",
             "playbook_mode": "分析模式",
             "allow_writes": "允許寫入操作",
             "manage_endpoints": "管理 LLM 端點",
@@ -2031,7 +2031,9 @@
                 "default_model": "預設模型",
                 "default_model_description": "新對話預設使用這個模型。",
                 "default_model_unset": "目前沒有可用的模型",
-                "playbook_mode_description": "模型分析資料時的自由度。"
+                "playbook_mode_description": "模型分析資料時的自由度。",
+                "endpoints_manage": "連線",
+                "endpoints_description": "社交 AI 與翻譯共用。"
             },
             "social": {
                 "interaction": {

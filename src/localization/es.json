@@ -83,7 +83,7 @@
             "title": "Runtime",
             "connection_unset": "Sin endpoint",
             "model": "Modelo",
-            "model_unset": "No hay modelos guardados para este endpoint",
+            "model_unset": "No hay modelos disponibles",
             "playbook_mode": "Modo de análisis",
             "allow_writes": "Permitir acciones de escritura",
             "manage_endpoints": "Gestionar endpoints LLM",
@@ -2031,7 +2031,9 @@
                 "default_model": "Modelo predeterminado",
                 "default_model_description": "Las conversaciones nuevas empiezan con este modelo.",
                 "default_model_unset": "No hay modelos disponibles",
-                "playbook_mode_description": "Cuánta libertad tiene el modelo al analizar tus datos."
+                "playbook_mode_description": "Cuánta libertad tiene el modelo al analizar tus datos.",
+                "endpoints_manage": "Conexiones",
+                "endpoints_description": "Compartidas por la IA social y la traducción."
             },
             "social": {
                 "interaction": {

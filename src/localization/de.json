@@ -83,7 +83,7 @@
             "title": "Laufzeit",
             "connection_unset": "Kein Endpunkt",
             "model": "Modell",
-            "model_unset": "Für diesen Endpunkt sind keine Modelle gespeichert",
+            "model_unset": "Kein Modell verfügbar",
             "playbook_mode": "Analysemodus",
             "allow_writes": "Schreibaktionen erlauben",
             "manage_endpoints": "LLM-Endpunkte verwalten",
@@ -2031,7 +2031,9 @@
                 "default_model": "Standardmodell",
                 "default_model_description": "Neue Unterhaltungen starten mit diesem Modell.",
                 "default_model_unset": "Kein Modell verfügbar",
-                "playbook_mode_description": "Wie viel Spielraum das Modell bei der Analyse bekommt."
+                "playbook_mode_description": "Wie viel Spielraum das Modell bei der Analyse bekommt.",
+                "endpoints_manage": "Verbindungen",
+                "endpoints_description": "Gemeinsam von Social AI und Übersetzung genutzt."
             },
             "social": {
                 "interaction": {

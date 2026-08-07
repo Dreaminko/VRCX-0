@@ -83,7 +83,7 @@
             "title": "런타임",
             "connection_unset": "엔드포인트 없음",
             "model": "모델",
-            "model_unset": "이 엔드포인트에 저장된 모델이 없습니다",
+            "model_unset": "사용할 수 있는 모델 없음",
             "playbook_mode": "분석 모드",
             "allow_writes": "쓰기 작업 허용",
             "manage_endpoints": "LLM 엔드포인트 관리",
@@ -2008,7 +2008,9 @@
                 "default_model": "기본 모델",
                 "default_model_description": "새 대화는 이 모델로 시작합니다.",
                 "default_model_unset": "사용할 수 있는 모델 없음",
-                "playbook_mode_description": "분석할 때 모델에 얼마나 재량을 줄지 정합니다."
+                "playbook_mode_description": "분석할 때 모델에 얼마나 재량을 줄지 정합니다.",
+                "endpoints_manage": "연결",
+                "endpoints_description": "소셜 AI와 번역이 함께 사용합니다."
             },
             "social": {
                 "interaction": {

@@ -83,7 +83,7 @@
             "title": "ランタイム",
             "connection_unset": "エンドポイントなし",
             "model": "モデル",
-            "model_unset": "このエンドポイントに保存されたモデルはありません",
+            "model_unset": "利用できるモデルがありません",
             "playbook_mode": "分析モード",
             "allow_writes": "書き込み操作を許可",
             "manage_endpoints": "LLM エンドポイントを管理",
@@ -2027,7 +2027,9 @@
                 "default_model": "既定のモデル",
                 "default_model_description": "新しいチャットはこのモデルで始まります。",
                 "default_model_unset": "利用できるモデルがありません",
-                "playbook_mode_description": "分析するときにモデルへどこまで任せるかを決めます。"
+                "playbook_mode_description": "分析するときにモデルへどこまで任せるかを決めます。",
+                "endpoints_manage": "接続先",
+                "endpoints_description": "ソーシャル AI と翻訳で共通です。"
             },
             "social": {
                 "interaction": {

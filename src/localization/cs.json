@@ -83,7 +83,7 @@
             "title": "Běhové prostředí",
             "connection_unset": "Žádný endpoint",
             "model": "Model",
-            "model_unset": "Pro tento endpoint nejsou uloženy žádné modely",
+            "model_unset": "Žádný dostupný model",
             "playbook_mode": "Režim analýzy",
             "allow_writes": "Povolit zápisové akce",
             "manage_endpoints": "Spravovat LLM endpointy",
@@ -2033,7 +2033,9 @@
                 "default_model": "Výchozí model",
                 "default_model_description": "Nové konverzace začínají s tímto modelem.",
                 "default_model_unset": "Žádný dostupný model",
-                "playbook_mode_description": "Jak velkou volnost má model při analýze dat."
+                "playbook_mode_description": "Jak velkou volnost má model při analýze dat.",
+                "endpoints_manage": "Připojení",
+                "endpoints_description": "Sdílí je Sociální AI i překlad."
             },
             "social": {
                 "interaction": {

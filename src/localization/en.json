@@ -83,7 +83,7 @@
             "title": "Runtime",
             "connection_unset": "No endpoint",
             "model": "Model",
-            "model_unset": "No models saved for this endpoint",
+            "model_unset": "No model available",
             "playbook_mode": "Analysis mode",
             "allow_writes": "Allow write actions",
             "manage_endpoints": "Manage LLM Endpoints",
@@ -2031,7 +2031,9 @@
                 "default_model": "Default model",
                 "default_model_description": "New conversations start with this model.",
                 "default_model_unset": "No model available",
-                "playbook_mode_description": "How much freedom the model gets when analyzing your data."
+                "playbook_mode_description": "How much freedom the model gets when analyzing your data.",
+                "endpoints_manage": "Connections",
+                "endpoints_description": "Shared by Social AI and translation."
             },
             "social": {
                 "interaction": {

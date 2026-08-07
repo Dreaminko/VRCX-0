@@ -101,7 +101,7 @@ export function SettingsPage() {
                     />
                     <SettingsVrSection vr={vr} />
                     <SettingsMediaTab media={media} />
-                    <SettingsAiTab />
+                    <SettingsAiTab active={shell.activeSettingsTab === 'ai'} />
                     <SettingsIntegrationsTab integrations={integrations} />
                     <SettingsAdvancedSection advanced={advanced} />
                     <SettingsFeedbackTab />

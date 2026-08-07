@@ -27,6 +27,10 @@ import { Field, SettingsGroup } from '../SettingsField';
 
 const PLAYBOOK_MODES: PlaybookMode[] = ['auto', 'guided', 'open'];
 
+type AssistantSettingsGroupProps = {
+    active: boolean;
+};
+
 const EMPTY_SELECTION: AssistantRuntimeSelection = {
     endpointId: null,
     model: null,
@@ -38,7 +42,9 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
-export function AssistantSettingsGroup() {
+export function AssistantSettingsGroup({
+    active
+}: AssistantSettingsGroupProps) {
     const { t } = useTranslation();
     const loadEndpoints = useLlmEndpointsStore((state) => state.load);
     const [selection, setSelection] =
@@ -47,21 +53,37 @@ export function AssistantSettingsGroup() {
     const [proxyLoading, setProxyLoading] = useState(false);
 
     useEffect(() => {
+        if (!active) {
+            return;
+        }
+        let stale = false;
         loadEndpoints().catch(() => {});
         commands
             .appAssistantRuntimeStatus()
-            .then((status) => setSelection(status.lastSelection))
+            .then((status) => {
+                if (!stale) {
+                    setSelection(status.lastSelection);
+                }
+            })
             .catch(() => {});
         commands
             .appLlmEndpointFollowCustomProxy()
-            .then(setFollowCustomProxy)
+            .then((enabled) => {
+                if (!stale) {
+                    setFollowCustomProxy(enabled);
+                }
+            })
             .catch(() => {});
-    }, [loadEndpoints]);
+        return () => {
+            stale = true;
+        };
+    }, [active, loadEndpoints]);
 
     async function updateSelection(patch: Partial<AssistantRuntimeSelection>) {
-        const next = { ...selection, ...patch };
-        setSelection(next);
+        setSelection((current) => ({ ...current, ...patch }));
         try {
+            const status = await commands.appAssistantRuntimeStatus();
+            const next = { ...status.lastSelection, ...patch };
             setSelection(
                 await commands.appAssistantSetDefaultRuntime(
                     next.endpointId,
@@ -94,76 +116,90 @@ export function AssistantSettingsGroup() {
     }));
 
     return (
-        <SettingsGroup
-            title={t('view.settings.ai.header')}
-            description={t('view.settings.ai.description')}
-        >
-            <Field
-                label={t('view.settings.ai.default_model')}
-                description={t('view.settings.ai.default_model_description')}
+        <>
+            <SettingsGroup
+                title={t('view.settings.ai.header')}
+                description={t('view.settings.ai.description')}
             >
-                <RuntimeModelSelect
-                    endpointId={selection.endpointId}
-                    model={selection.model}
-                    placeholder={t('view.settings.ai.default_model_unset')}
-                    onSelect={(ref) => void updateSelection(ref)}
-                />
-            </Field>
-
-            <Field
-                label={t('assistant.runtime.playbook_mode')}
-                description={t('view.settings.ai.playbook_mode_description')}
-            >
-                <Select
-                    value={selection.playbookMode}
-                    items={playbookItems}
-                    onValueChange={(value) =>
-                        void updateSelection({
-                            playbookMode: value ?? 'auto'
-                        })
-                    }
+                <Field
+                    label={t('view.settings.ai.default_model')}
+                    description={t(
+                        'view.settings.ai.default_model_description'
+                    )}
                 >
-                    <SelectTrigger className="w-full">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            {playbookItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
-            </Field>
+                    <RuntimeModelSelect
+                        endpointId={selection.endpointId}
+                        model={selection.model}
+                        placeholder={t('view.settings.ai.default_model_unset')}
+                        onSelect={(ref) => void updateSelection(ref)}
+                    />
+                </Field>
 
-            <Field
-                label={t('view.tools.llm_endpoints.title')}
+                <Field
+                    label={t('assistant.runtime.playbook_mode')}
+                    description={t(
+                        'view.settings.ai.playbook_mode_description'
+                    )}
+                >
+                    <Select
+                        value={selection.playbookMode}
+                        items={playbookItems}
+                        onValueChange={(value) =>
+                            void updateSelection({
+                                playbookMode: value ?? 'auto'
+                            })
+                        }
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {playbookItems.map((item) => (
+                                    <SelectItem
+                                        key={item.value}
+                                        value={item.value}
+                                    >
+                                        {item.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                </Field>
+            </SettingsGroup>
+
+            <SettingsGroup
+                title={t('view.tools.llm_endpoints.title')}
                 description={t('view.tools.llm_endpoints.description')}
             >
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={openLlmEndpointsManager}
+                <Field
+                    label={t('view.settings.ai.endpoints_manage')}
+                    description={t('view.settings.ai.endpoints_description')}
                 >
-                    {t('assistant.runtime.manage_endpoints')}
-                </Button>
-            </Field>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={openLlmEndpointsManager}
+                    >
+                        {t('assistant.runtime.manage_endpoints')}
+                    </Button>
+                </Field>
 
-            <Field
-                label={t('view.tools.llm_endpoints.follow_custom_proxy')}
-                description={t(
-                    'view.tools.llm_endpoints.follow_custom_proxy_description'
-                )}
-            >
-                <Switch
-                    checked={followCustomProxy}
-                    disabled={proxyLoading}
-                    onCheckedChange={updateFollowCustomProxy}
-                />
-            </Field>
-        </SettingsGroup>
+                <Field
+                    label={t('view.tools.llm_endpoints.follow_custom_proxy')}
+                    description={t(
+                        'view.tools.llm_endpoints.follow_custom_proxy_description'
+                    )}
+                >
+                    <Switch
+                        checked={followCustomProxy}
+                        disabled={proxyLoading}
+                        onCheckedChange={updateFollowCustomProxy}
+                    />
+                </Field>
+            </SettingsGroup>
+        </>
     );
 }

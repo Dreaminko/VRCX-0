@@ -130,6 +130,7 @@ export function AssistantDialog() {
         useState<AssistantRuntimeSelection>(DEFAULT_RUNTIME_SELECTION);
     const [assistantReasoningEffort, setAssistantReasoningEffort] =
         useState('');
+    const [endpointsLoaded, setEndpointsLoaded] = useState(false);
 
     const open = useAssistantChatStore((state) => state.open);
     const setOpen = useAssistantChatStore((state) => state.setOpen);
@@ -179,7 +180,9 @@ export function AssistantDialog() {
     useEffect(() => {
         if (open) {
             refreshSessions();
-            loadEndpoints().catch(() => {});
+            loadEndpoints()
+                .catch(() => {})
+                .finally(() => setEndpointsLoaded(true));
             commands
                 .appAssistantReasoningEffort()
                 .then((effort) => setAssistantReasoningEffort(effort))
@@ -243,17 +246,20 @@ export function AssistantDialog() {
         }
     }
 
-    function refreshSelectedEndpointModels() {
-        const endpointId = runtimeSelection.endpointId;
-        if (!endpointId) {
-            return;
+    function refreshSelectableModels() {
+        const stale = endpoints.filter(
+            (endpoint) =>
+                !endpoint.models.length ||
+                endpoint.id === runtimeSelection.endpointId
+        );
+        for (const endpoint of stale) {
+            detectEndpointModels({
+                id: endpoint.id,
+                baseUrl: null,
+                apiKey: null,
+                persist: true
+            }).catch(() => {});
         }
-        detectEndpointModels({
-            id: endpointId,
-            baseUrl: null,
-            apiKey: null,
-            persist: true
-        }).catch(() => {});
     }
 
     async function updateReasoningEffort(effort: string) {
@@ -290,6 +296,7 @@ export function AssistantDialog() {
     }
 
     const notConfigured = !hasRuntime;
+    const showSetupGate = notConfigured && endpointsLoaded;
     const examplePrompts = useMemo(
         () => [
             t('assistant.example_1'),
@@ -317,7 +324,7 @@ export function AssistantDialog() {
                         <Popover
                             onOpenChange={(popoverOpen) => {
                                 if (popoverOpen) {
-                                    refreshSelectedEndpointModels();
+                                    refreshSelectableModels();
                                 }
                             }}
                         >
@@ -354,7 +361,7 @@ export function AssistantDialog() {
                                             {t('assistant.runtime.model')}
                                         </Label>
                                         <RuntimeModelSelect
-                                            triggerId="assistant-runtime-model"
+                                            id="assistant-runtime-model"
                                             endpointId={
                                                 runtimeSelection.endpointId
                                             }
@@ -587,7 +594,7 @@ export function AssistantDialog() {
                                     <Empty className="py-12">
                                         <EmptyHeader>
                                             <EmptyTitle>
-                                                {notConfigured
+                                                {showSetupGate
                                                     ? t('assistant.setup_title')
                                                     : t(
                                                           'assistant.empty_title'
@@ -595,7 +602,7 @@ export function AssistantDialog() {
                                             </EmptyTitle>
                                         </EmptyHeader>
                                         <EmptyContent>
-                                            {notConfigured ? (
+                                            {showSetupGate ? (
                                                 <Button
                                                     type="button"
                                                     size="sm"
@@ -614,6 +621,7 @@ export function AssistantDialog() {
                                                         type="button"
                                                         size="xs"
                                                         variant="outline"
+                                                        disabled={notConfigured}
                                                         onClick={() =>
                                                             sendMessage(prompt)
                                                         }
@@ -628,6 +636,19 @@ export function AssistantDialog() {
                                 }
                             />
 
+                            {showSetupGate && messages?.length ? (
+                                <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-2 px-3 pt-2 text-xs">
+                                    <span>{t('assistant.not_configured')}</span>
+                                    <Button
+                                        type="button"
+                                        size="xs"
+                                        variant="outline"
+                                        onClick={openAssistantSettings}
+                                    >
+                                        {t('assistant.open_settings')}
+                                    </Button>
+                                </div>
+                            ) : null}
                             <Composer
                                 busy={busy}
                                 disabled={notConfigured}
