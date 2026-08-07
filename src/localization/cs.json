@@ -2434,6 +2434,8 @@
                         "header": "Chování VRChatu",
                         "quit_header": "Ukončit zbývající procesy VRChatu",
                         "quit_description": "Po ukončení VRChatu zavře všechny procesy VRChatu, které stále běží.",
+                        "focus_on_join_header": "Přepnout na VRChat",
+                        "focus_on_join_description": "Po připojení k instanci z VRCX-0 přepne na okno VRChatu. Pouze v režimu desktop.",
                         "deep_link_registration": "Otevírání odkazů VRCX-0",
                         "deep_link_registered": "Odkazy VRCX-0 se pro tohoto uživatele otevírají v aplikaci VRCX-0.",
                         "deep_link_not_registered": "Nastavení systému pro otevírání odkazů VRCX-0 chybí nebo odkazuje na neplatnou instalaci.",

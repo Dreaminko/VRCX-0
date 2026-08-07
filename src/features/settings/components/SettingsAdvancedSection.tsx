@@ -56,6 +56,13 @@ export function SettingsAdvancedSection({
                 normalizeCheckedState(checked)
             );
         },
+        onFocusVrchatOnJoinChange: (checked: unknown) => {
+            saveBoolPreference(
+                'focusVrchatOnJoin',
+                'focusVrchatOnJoin',
+                normalizeCheckedState(checked)
+            );
+        },
         onAutoSweepVRChatCacheChange: (checked: unknown) => {
             const enabled = normalizeCheckedState(checked);
             saveBoolPreference(

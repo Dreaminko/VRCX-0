@@ -142,6 +142,7 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
         appDataDirState,
         onRelaunchVRChatAfterCrashChange,
         onVrcQuitFixChange,
+        onFocusVrchatOnJoinChange,
         onAutoSweepVRChatCacheChange,
         onUdonExceptionLoggingChange,
         onLogResourceLoadChange,
@@ -200,6 +201,20 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                     <Switch
                         checked={prefs.vrcQuitFix}
                         onCheckedChange={onVrcQuitFixChange}
+                    />
+                </Field>
+
+                <Field
+                    label={t(
+                        'view.settings.advanced.advanced_ui.behavior.focus_on_join_header'
+                    )}
+                    description={t(
+                        'view.settings.advanced.advanced_ui.behavior.focus_on_join_description'
+                    )}
+                >
+                    <Switch
+                        checked={prefs.focusVrchatOnJoin}
+                        onCheckedChange={onFocusVrchatOnJoinChange}
                     />
                 </Field>
                 <DeepLinkRegistrationField />

@@ -2432,6 +2432,8 @@
                         "header": "VRChat 的行為",
                         "quit_header": "關閉殘留的 VRChat 處理程序",
                         "quit_description": "VRChat 結束後，關閉所有仍在執行的 VRChat 處理程序。",
+                        "focus_on_join_header": "加入房間後切換到 VRChat",
+                        "focus_on_join_description": "從 VRCX-0 加入房間後，將 VRChat 視窗切到最前面。僅桌面模式有效。",
                         "deep_link_registration": "開啟 VRCX-0 連結",
                         "deep_link_registered": "這位使用者的 VRCX-0 連結已設定為在 VRCX-0 中開啟。",
                         "deep_link_not_registered": "此系統尚未設定為開啟 VRCX-0 連結，或設定指向無效的安裝位置。",

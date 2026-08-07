@@ -2432,6 +2432,8 @@
                         "header": "Comportamiento de VRChat",
                         "quit_header": "Cerrar procesos restantes de VRChat",
                         "quit_description": "Después de cerrar VRChat, cierra cualquier proceso de VRChat que siga en ejecución.",
+                        "focus_on_join_header": "Traer VRChat al frente",
+                        "focus_on_join_description": "Después de unirte a una instancia desde VRCX-0, cambia a la ventana de VRChat. Solo en modo escritorio.",
                         "deep_link_registration": "Abrir enlaces de VRCX-0",
                         "deep_link_registered": "Los enlaces de VRCX-0 se abren con VRCX-0 para este usuario.",
                         "deep_link_not_registered": "Falta la configuración del sistema para abrir los enlaces de VRCX-0 o apunta a una instalación no válida.",

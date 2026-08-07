@@ -2384,6 +2384,8 @@
                         "header": "VRChat 동작",
                         "quit_header": "남아 있는 VRChat 프로세스 종료",
                         "quit_description": "VRChat 종료 후에도 실행 중인 VRChat 프로세스를 닫습니다.",
+                        "focus_on_join_header": "참여 후 VRChat 창 띄우기",
+                        "focus_on_join_description": "VRCX-0에서 인스턴스에 참여한 뒤 VRChat 창으로 전환합니다. 데스크톱 모드에서만 작동합니다.",
                         "deep_link_registration": "VRCX-0으로 공유 링크 열기",
                         "deep_link_registered": "현재 사용자 계정에서는 VRCX-0 공유 링크가 VRCX-0으로 열립니다.",
                         "deep_link_not_registered": "현재 시스템에 VRCX-0 공유 링크를 여는 설정이 없거나, 설정이 올바르지 않습니다.",

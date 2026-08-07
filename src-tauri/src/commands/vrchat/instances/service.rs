@@ -15,6 +15,7 @@ use vrcx_0_application_core::vrchat_api::{execute_api_command, VrchatScope};
 use vrcx_0_application_core::{RuntimeDiagnostics, RuntimeSyncEngine, WebClient};
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapability};
+use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::DatabaseService;
 
 use crate::error::AppError;
@@ -110,7 +111,14 @@ impl InstanceLaunchHttpClient for TauriInstanceLaunchHttpClient {
     }
 }
 
-struct TauriInstanceLaunchPipe;
+struct TauriInstanceLaunchPipe {
+    db: Arc<DatabaseService>,
+}
+
+fn should_focus_game_window(db: &DatabaseService) -> bool {
+    config_store::get_bool(db, "focusVrchatOnJoin", false).unwrap_or(false)
+        && config_store::get_bool(db, "isGameNoVR", false).unwrap_or(false)
+}
 
 impl InstanceLaunchPipe for TauriInstanceLaunchPipe {
     fn try_open_vrchat_launch_url(
@@ -120,12 +128,8 @@ impl InstanceLaunchPipe for TauriInstanceLaunchPipe {
         require_host_capability(HostCapability::VrchatLaunchPipe)
             .map_err(|error| vrcx_0_application_core::Error::Custom(error.to_string()))?;
         let result = crate::adapters::ipc::vrcipc_send_with_result(launch_url);
-        if result.accepted {
-            if let Some(process_id) = result.server_process_id {
-                vrcx_0_host_desktop::game_window::focus_vrchat_window_for_process(process_id);
-            } else {
-                vrcx_0_host_desktop::game_window::focus_vrchat_window();
-            }
+        if result.accepted && should_focus_game_window(&self.db) {
+            vrcx_0_host_desktop::game_window::request_focus_vrchat_window(result.server_process_id);
         }
         Ok(result.accepted)
     }
@@ -221,7 +225,9 @@ pub async fn app__vrchat_instance_join(
         diagnostics: context.diagnostics.clone(),
         sync: context.sync.clone(),
     };
-    let launch_pipe = TauriInstanceLaunchPipe;
+    let launch_pipe = TauriInstanceLaunchPipe {
+        db: Arc::clone(&context.db),
+    };
     Ok(join_instance_launch(
         &InstanceLaunchDeps {
             api: &api,
@@ -250,4 +256,72 @@ pub async fn app__vrchat_instance_close(
         request,
     )
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use vrcx_0_persistence::config as config_store;
+    use vrcx_0_persistence::DatabaseService;
+
+    use super::should_focus_game_window;
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-instance-focus-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn database(dir: &TestDir) -> DatabaseService {
+        DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap()
+    }
+
+    #[test]
+    fn stays_off_until_the_user_enables_it() {
+        let dir = TestDir::new("default-off");
+        let db = database(&dir);
+        config_store::set_bool(&db, "isGameNoVR", true).unwrap();
+
+        assert!(!should_focus_game_window(&db));
+    }
+
+    #[test]
+    fn focuses_when_enabled_and_the_game_runs_in_desktop_mode() {
+        let dir = TestDir::new("desktop-mode");
+        let db = database(&dir);
+        config_store::set_bool(&db, "focusVrchatOnJoin", true).unwrap();
+        config_store::set_bool(&db, "isGameNoVR", true).unwrap();
+
+        assert!(should_focus_game_window(&db));
+    }
+
+    #[test]
+    fn never_steals_focus_while_the_game_runs_in_vr() {
+        let dir = TestDir::new("vr-mode");
+        let db = database(&dir);
+        config_store::set_bool(&db, "focusVrchatOnJoin", true).unwrap();
+        config_store::set_bool(&db, "isGameNoVR", false).unwrap();
+
+        assert!(!should_focus_game_window(&db));
+    }
 }

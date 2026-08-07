@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AppDataDirState } from '@/platform/tauri/bindings';
@@ -25,7 +25,9 @@ const labels: Record<string, string> = {
         'default directory',
     'view.settings.advanced.advanced.data_directory.source_persisted':
         'custom directory',
-    'view.settings.advanced.advanced_ui.behavior.deep_link_repair': 'Fix'
+    'view.settings.advanced.advanced_ui.behavior.deep_link_repair': 'Fix',
+    'view.settings.advanced.advanced_ui.behavior.focus_on_join_header':
+        'Bring VRChat to the front'
 };
 
 const commandMocks = vi.hoisted(() => ({
@@ -79,6 +81,7 @@ function createModel(
         onClearConfigTreeData: vi.fn(),
         onGameLogDisabledChange: vi.fn(),
         onFeedPersistenceDisabledChange: vi.fn(),
+        onFocusVrchatOnJoinChange: vi.fn(),
         onLogResourceLoadChange: vi.fn(),
         onMigrateLegacyVrcxData: vi.fn(),
         onOpenAppDataDirSelector: vi.fn(),
@@ -99,6 +102,7 @@ function createModel(
             avatarAutoCleanup: 'Off',
             gameLogDisabled: false,
             feedPersistenceDisabled: false,
+            focusVrchatOnJoin: false,
             logResourceLoad: false,
             relaunchVRChatAfterCrash: false,
             udonExceptionLogging: false,
@@ -233,5 +237,19 @@ describe('SettingsAdvancedTab data directory states', () => {
                 name: 'More data location actions'
             })
         ).toBeNull();
+    });
+
+    it('offers the VRChat focus toggle switched off and turns it on', () => {
+        const onFocusVrchatOnJoinChange = vi.fn();
+        renderTab(createModel({ onFocusVrchatOnJoinChange }));
+
+        const toggle = screen.getByRole('switch', {
+            name: 'Bring VRChat to the front'
+        });
+        expect(toggle.getAttribute('aria-checked')).toBe('false');
+
+        fireEvent.click(toggle);
+
+        expect(onFocusVrchatOnJoinChange.mock.calls[0]?.[0]).toBe(true);
     });
 });
