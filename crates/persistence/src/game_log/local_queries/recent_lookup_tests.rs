@@ -168,6 +168,84 @@ fn rows_by_location_filters_current_user_resource_kind_and_empty_filters(
 }
 
 #[test]
+fn rows_by_location_scopes_world_ids_by_prefix_and_group_ids_by_substring(
+) -> Result<(), crate::Error> {
+    let test_db = test_db("local-query-location-scope")?;
+    seed_fixture(&test_db.db)?;
+
+    let locations_for = |instance_id: &str| -> Result<Vec<String>, crate::Error> {
+        let result = query(
+            &test_db.db,
+            "rowsByLocation",
+            json!({
+                "instanceId": instance_id,
+                "filters": ["Location"],
+                "maxEntries": 20
+            }),
+        )?;
+        Ok(row_texts(&rows(result), "location"))
+    };
+
+    let alpha_locations = vec![
+        "wrld_alpha:inst-c~group(grp_alpha)".to_string(),
+        "wrld_alpha:inst-a~group(grp_alpha)".to_string(),
+    ];
+    assert_eq!(locations_for("wrld_alpha")?, alpha_locations);
+    assert_eq!(locations_for("wrld_alph")?, alpha_locations);
+    assert_eq!(locations_for("grp_alpha")?, alpha_locations);
+    assert_eq!(locations_for("WRLD_alpha")?, alpha_locations);
+    assert_eq!(locations_for("wrld_ALPHA")?, alpha_locations);
+    assert_eq!(
+        locations_for("wrld_alpha:inst-a~group(grp_alpha)")?,
+        vec!["wrld_alpha:inst-a~group(grp_alpha)"]
+    );
+    assert!(locations_for("wrld_gamma")?.is_empty());
+    Ok(())
+}
+
+#[test]
+fn rows_by_location_matches_every_event_family_through_both_filter_forms(
+) -> Result<(), crate::Error> {
+    let test_db = test_db("local-query-location-families")?;
+    seed_fixture(&test_db.db)?;
+
+    let types_for = |instance_id: &str| -> Result<Vec<String>, crate::Error> {
+        let result = query(
+            &test_db.db,
+            "rowsByLocation",
+            json!({
+                "instanceId": instance_id,
+                "currentUserId": "usr_self",
+                "filters": [
+                    "Location",
+                    "OnPlayerJoined",
+                    "OnPlayerLeft",
+                    "PortalSpawn",
+                    "VideoPlay",
+                    "StringLoad",
+                    "ImageLoad"
+                ],
+                "maxEntries": 50
+            }),
+        )?;
+        Ok(row_texts(&rows(result), "type"))
+    };
+
+    let by_prefix = types_for("wrld_alpha")?;
+    for family in ["Location", "OnPlayerJoined", "PortalSpawn"] {
+        assert!(
+            by_prefix.iter().any(|kind| kind == family),
+            "{family} missing from {by_prefix:?}"
+        );
+    }
+    assert!(by_prefix
+        .iter()
+        .any(|kind| kind == "StringLoad" || kind == "ImageLoad"));
+    assert_eq!(by_prefix, types_for("grp_alpha")?);
+    Ok(())
+}
+
+#[test]
 fn search_rows_matches_all_searchable_event_families() -> Result<(), crate::Error> {
     let test_db = test_db("local-query-search")?;
     seed_fixture(&test_db.db)?;

@@ -8,6 +8,43 @@ fn limit_usize(limit: i64) -> usize {
     usize::try_from(limit).unwrap_or(usize::MAX)
 }
 
+fn location_prefix_upper_bound(instance_id: &str) -> Option<String> {
+    if !instance_id.starts_with("wrld_")
+        || !instance_id.is_ascii()
+        || instance_id.bytes().any(|byte| byte.is_ascii_uppercase())
+    {
+        return None;
+    }
+    let mut upper_bound = instance_id.to_owned();
+    while let Some(last) = upper_bound.pop() {
+        if last < '\x7f' {
+            upper_bound.push(char::from(last as u8 + 1));
+            return Some(upper_bound);
+        }
+    }
+    None
+}
+
+fn location_filter_sql(instance_id: &str, db_params: &mut HashMap<String, Value>) -> &'static str {
+    match location_prefix_upper_bound(instance_id) {
+        Some(upper_bound) => {
+            db_params.insert(
+                "@location_lower".into(),
+                Value::String(instance_id.to_owned()),
+            );
+            db_params.insert("@location_upper".into(), Value::String(upper_bound));
+            "location >= @location_lower AND location < @location_upper"
+        }
+        None => {
+            db_params.insert(
+                "@location_like".into(),
+                Value::String(format!("%{instance_id}%")),
+            );
+            "location LIKE @location_like"
+        }
+    }
+}
+
 pub fn game_log_query(
     db: &DatabaseService,
     owner_user_id: &str,
@@ -89,17 +126,14 @@ pub fn game_log_query(
 
             if mode == "rowsByLocation" {
                 let instance_id = query_param_string(&params, "instanceId");
-                db_params.insert(
-                    "@location_like".into(),
-                    Value::String(format!("%{instance_id}%")),
-                );
+                let location_filter = location_filter_sql(&instance_id, &mut db_params);
                 db_params.insert(
                     "@current_user_id".into(),
                     Value::String(query_param_string(&params, "currentUserId")),
                 );
                 if flags.location {
                     selects.push(game_log_location_union_select(
-                        "location LIKE @location_like",
+                        location_filter,
                         include_extra,
                     ));
                 }
@@ -110,19 +144,19 @@ pub fn game_log_query(
                         _ => "",
                     };
                     selects.push(game_log_join_leave_union_select(
-                        &format!("(location LIKE @location_like AND user_id != @current_user_id) {vip_query} {query}"),
+                        &format!("({location_filter} AND user_id != @current_user_id) {vip_query} {query}"),
                         include_extra,
                     ));
                 }
                 if flags.portalspawn {
                     selects.push(game_log_portal_spawn_union_select(
-                        &format!("location LIKE @location_like {vip_query}"),
+                        &format!("{location_filter} {vip_query}"),
                         include_extra,
                     ));
                 }
                 if flags.videoplay {
                     selects.push(game_log_video_play_union_select(
-                        &format!("location LIKE @location_like {vip_query}"),
+                        &format!("{location_filter} {vip_query}"),
                         include_extra,
                     ));
                 }
@@ -138,7 +172,7 @@ pub fn game_log_query(
                         "AND resource_type != 'ImageLoad'"
                     };
                     selects.push(game_log_resource_load_union_select(
-                        &format!("location LIKE @location_like {check_string} {check_image}"),
+                        &format!("{location_filter} {check_string} {check_image}"),
                         include_extra,
                     ));
                 }
