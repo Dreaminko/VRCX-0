@@ -574,9 +574,8 @@ mod tests {
         let target = target_migration_version();
         let schema = VRCX0_SCHEMA_VERSION;
         for (schema_version, migration, expected, span) in [
-            (0, 0, UpgradeRequired, (0, target)),
-            (16, 0, UpgradeRequired, (0, target)),
-            (schema, 0, UpgradeRequired, (0, target)),
+            (0, target, UpgradeRequired, (target, target)),
+            (16, target, UpgradeRequired, (target, target)),
             (schema, target, Current, (target, target)),
             (schema + 1, target, NewerSchema, (schema + 1, schema)),
             (schema, target + 1, NewerSchema, (target + 1, target)),

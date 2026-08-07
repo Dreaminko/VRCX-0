@@ -35,17 +35,17 @@ fn pending_migrations(
         .filter(move |migration| migration.version > current_version)
 }
 
-fn target_version(migrations: &[Migration], current_version: i64) -> i64 {
+fn target_version(migrations: &[Migration]) -> i64 {
     migrations
         .last()
         .map(|migration| migration.version)
-        .unwrap_or(current_version)
+        .unwrap_or(0)
 }
 
 pub fn preview(db: &DatabaseService, migrations: &[Migration]) -> Result<Preview, Error> {
     validate(migrations)?;
     let current_version = migration_version(db)?;
-    let target_version = target_version(migrations, current_version);
+    let target_version = target_version(migrations);
     let pending: Vec<PendingMigration> = pending_migrations(migrations, current_version)
         .map(|migration| PendingMigration {
             version: migration.version,
@@ -74,7 +74,7 @@ pub fn run(
 ) -> Result<Report, Error> {
     validate(migrations)?;
     let from_version = migration_version(db)?;
-    let target_version = target_version(migrations, from_version);
+    let target_version = target_version(migrations);
     if from_version > target_version {
         return Err(Error::Database(format!(
             "Database migration version {from_version} is newer than this build supports ({target_version})."
