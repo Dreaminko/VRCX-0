@@ -29,9 +29,56 @@ type FailureRecoveryOptions = {
 
 const DATABASE_UPGRADE_ISSUE_URL = `${links.issues}/new?template=bug_report.yml`;
 const DATABASE_UPGRADE_PROGRESS_POLL_INTERVAL_MS = 100;
+const DATABASE_UPGRADE_DIALOG_OPEN_DELAY_MS = 400;
+const DATABASE_UPGRADE_DIALOG_MIN_VISIBLE_MS = 600;
+
+let dialogOpenTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+let dialogOpenedAt = 0;
 
 function setUpgradeState(patch: DatabaseUpgradePatch): void {
     useRuntimeStore.getState().setDatabaseUpgradeState(patch);
+}
+
+function cancelScheduledDialogOpen(): void {
+    if (dialogOpenTimer !== null) {
+        globalThis.clearTimeout(dialogOpenTimer);
+        dialogOpenTimer = null;
+    }
+}
+
+function scheduleDialogOpen(): void {
+    if (dialogOpenTimer !== null || dialogOpenedAt !== 0) {
+        return;
+    }
+    dialogOpenTimer = globalThis.setTimeout(() => {
+        dialogOpenTimer = null;
+        dialogOpenedAt = Date.now();
+        setUpgradeState({ open: true });
+    }, DATABASE_UPGRADE_DIALOG_OPEN_DELAY_MS);
+}
+
+function openDialogNow(): void {
+    cancelScheduledDialogOpen();
+    if (dialogOpenedAt === 0) {
+        dialogOpenedAt = Date.now();
+    }
+    setUpgradeState({ open: true });
+}
+
+async function closeDialogAfterMinimumVisibleTime(): Promise<void> {
+    cancelScheduledDialogOpen();
+    const openedAt = dialogOpenedAt;
+    dialogOpenedAt = 0;
+    if (openedAt !== 0) {
+        const remaining =
+            DATABASE_UPGRADE_DIALOG_MIN_VISIBLE_MS - (Date.now() - openedAt);
+        if (remaining > 0) {
+            await new Promise((resolve) => {
+                globalThis.setTimeout(resolve, remaining);
+            });
+        }
+    }
+    setUpgradeState({ open: false });
 }
 
 function applyDatabaseUpgradeProgress(progress: DatabaseUpgradeProgress): void {
@@ -76,24 +123,9 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
-function failedUpgradeDescription(
-    failedUpgrade: DatabaseUpgradeStatus | null | undefined
-): string {
-    const workDbPath =
-        failedUpgrade?.workDbPath ||
-        i18n.t('service.database_upgrade_service.label.unknown_path');
-    if (failedUpgrade?.reason) {
-        return i18n.t(
-            'service.database_upgrade_service.error.failed_upgrade_description_with_reason',
-            {
-                path: workDbPath,
-                reason: String(failedUpgrade.reason)
-            }
-        );
-    }
+function failedUpgradeDescription(): string {
     return i18n.t(
-        'service.database_upgrade_service.error.failed_upgrade_description',
-        { path: workDbPath }
+        'service.database_upgrade_service.error.failed_upgrade_description'
     );
 }
 
@@ -117,12 +149,12 @@ async function blockOnFailedUpgrade(
     const freshStartAvailable =
         options.freshStartAvailable ?? Boolean(failedUpgrade);
     const description = failedUpgrade
-        ? failedUpgradeDescription(failedUpgrade)
+        ? failedUpgradeDescription()
         : fallbackDescription ||
           i18n.t('service.database_upgrade_service.error.apply_upgrade_failed');
     const logPath = (await getFailureLogPath()) || current.failureLogPath;
+    openDialogNow();
     setUpgradeState({
-        open: true,
         phase: 'error',
         fromVersion: failedUpgrade?.fromVersion ?? versions?.fromVersion ?? 0,
         toVersion: failedUpgrade?.toVersion ?? versions?.toVersion ?? 0,
@@ -130,6 +162,9 @@ async function blockOnFailedUpgrade(
         progressCompleted: 0,
         progressTotal: 0,
         detail: description,
+        failureReason: failedUpgrade?.reason
+            ? String(failedUpgrade.reason)
+            : '',
         legacyMigrationAvailable: false,
         retryable,
         freshStartAvailable,
@@ -151,23 +186,30 @@ function setRunningState(
         preflight?.status === 'upgradeRequired' ||
         preflight?.status === 'running';
     setUpgradeState({
-        open: shouldShowProgress,
         phase: 'running',
         fromVersion,
         toVersion,
         stage: 'preflight',
         progressCompleted: 0,
         progressTotal: 0,
-        detail: i18n.t(
-            'service.database_upgrade_service.dynamic.updating_database_from_value_to_value',
-            { value: fromVersion, value2: toVersion }
-        ),
+        detail: '',
+        failureReason: '',
         legacyMigrationAvailable: false,
         retryable: false,
         freshStartAvailable: false,
         failureLogPath: '',
         failedWorkDbPath: ''
     });
+    if (!shouldShowProgress) {
+        cancelScheduledDialogOpen();
+        setUpgradeState({ open: false });
+        return;
+    }
+    if (forceOpen) {
+        openDialogNow();
+        return;
+    }
+    scheduleDialogOpen();
 }
 
 async function completeDatabaseUpgrade(
@@ -201,7 +243,6 @@ async function completeDatabaseUpgrade(
     }
 
     setUpgradeState({
-        open: false,
         phase: 'completed',
         fromVersion: result.fromVersion,
         toVersion: result.toVersion,
@@ -216,12 +257,14 @@ async function completeDatabaseUpgrade(
                 : i18n.t(
                       'service.database_upgrade_service.label.database_schema_is_current'
                   ),
+        failureReason: '',
         legacyMigrationAvailable: false,
         retryable: false,
         freshStartAvailable: false,
         failureLogPath: '',
         failedWorkDbPath: ''
     });
+    await closeDialogAfterMinimumVisibleTime();
     useSessionStore.getState().setSessionState({ databaseReady: true });
     return true;
 }

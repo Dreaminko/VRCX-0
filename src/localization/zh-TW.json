@@ -5154,8 +5154,6 @@
             "migration_restarting_title": "正在移轉資料",
             "migration_restarting": "VRCX-0 將重新啟動以完成移轉...",
             "upgrade_in_progress_title": "資料庫升級中",
-            "upgrade_in_progress_description": "正在將資料庫從版本 {from} 更新至 {to}，請勿關閉 VRCX-0。",
-            "upgrade_in_progress_initializing": "初始化資料庫升級。請勿關閉 VRCX-0。",
             "upgrade_stage": {
                 "preflight": "正在檢查資料庫",
                 "prepare_legacy_snapshot": "正在建立 VRCX 資料庫的一致性副本",
@@ -5183,7 +5181,10 @@
             "fresh_start_confirm_title": "要改用新的資料庫嗎？",
             "fresh_start_confirm_description": "VRCX-0 會將目前的資料庫與升級失敗檔案保留在復原資料夾中，然後使用新的空白資料庫重新啟動。新的資料庫不會保留設定、本機歷史記錄與已儲存的帳號資料。",
             "fresh_start_restarting": "正在封存目前的資料庫並重新啟動 VRCX-0...",
-            "fresh_start_failed": "無法建立新資料庫。"
+            "fresh_start_failed": "無法建立新資料庫。",
+            "upgrade_keep_open": "請保持 VRCX-0 開啟，直到更新完成。",
+            "failure_reason": "原因",
+            "restart_app": "重新啟動 VRCX-0"
         },
         "file": {
             "not_image": "檔案不是圖片",
@@ -5711,12 +5712,10 @@
         },
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "未知路徑",
                 "database_schema_is_current": "資料庫結構已是最新"
             },
             "error": {
-                "failed_upgrade_description": "上一次資料庫升級失敗。手動修復前，此資料庫無法使用。\n\n工作資料庫：{path}",
-                "failed_upgrade_description_with_reason": "上一次資料庫升級失敗。手動修復前，此資料庫無法使用。\n\n工作資料庫：{path}\n\n原因：{reason}",
+                "failed_upgrade_description": "上一次資料庫升級失敗。手動修復前，此資料庫無法使用。",
                 "apply_upgrade_failed": "VRCX-0 應用本機資料庫升級失敗",
                 "legacy_migration_restart_failed": "VRCX-0 無法重新啟動以移轉你現有的 VRCX 資料。你可以再試一次，或略過此步驟，繼續使用目前的資料庫。",
                 "newer_schema_requires_newer_app": "此資料庫使用架構版本 {value}，但此 VRCX-0 版本最高只支援到 {value2}。請安裝最新版本的 VRCX-0 才能開啟。"
@@ -5728,9 +5727,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0 已升級資料庫，但重新整理本機設定失敗。請重新啟動應用程式",
                 "requesting_legacy_migration": "正在準備遷移你現有的 VRCX 資料...",
                 "skipping_legacy_migration": "正在略過資料移轉並設定你的資料庫…"
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "正在將資料庫從 {value} 更新到 {value2}"
             }
         },
         "favorite_import_service": {

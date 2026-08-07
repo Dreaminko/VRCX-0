@@ -5158,8 +5158,6 @@
             "migration_restarting_title": "Migrace dat",
             "migration_restarting": "VRCX-0 se restartuje, aby dokončil migraci...",
             "upgrade_in_progress_title": "Probíhá aktualizace databáze",
-            "upgrade_in_progress_description": "Aktualizace databáze z verze {from} na {to}. Nezavírejte prosím VRCX-0",
-            "upgrade_in_progress_initializing": "Zahajuje se aktualizace databáze. Nezavírejte prosím VRCX-0",
             "upgrade_stage": {
                 "preflight": "Kontrola databáze",
                 "prepare_legacy_snapshot": "Vytváření konzistentní kopie databáze VRCX",
@@ -5187,7 +5185,10 @@
             "fresh_start_confirm_title": "Použít novou databázi?",
             "fresh_start_confirm_description": "VRCX-0 zachová současnou databázi a soubory neúspěšné aktualizace ve složce pro obnovení a poté se restartuje s novou prázdnou databází. Nastavení, místní historie a uložené údaje účtů se do nové databáze nepřenesou.",
             "fresh_start_restarting": "Současná databáze se archivuje a VRCX-0 se restartuje...",
-            "fresh_start_failed": "Novou databázi se nepodařilo vytvořit."
+            "fresh_start_failed": "Novou databázi se nepodařilo vytvořit.",
+            "upgrade_keep_open": "Nechte VRCX-0 otevřené, dokud se aktualizace nedokončí.",
+            "failure_reason": "Důvod",
+            "restart_app": "Restartovat VRCX-0"
         },
         "file": {
             "not_image": "Soubor není obrázek",
@@ -5711,12 +5712,10 @@
         },
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "Neznámá cesta",
                 "database_schema_is_current": "Schéma databáze je aktuální"
             },
             "error": {
-                "failed_upgrade_description": "Předchozí aktualizace databáze se nezdařila. Tuto databázi nelze použít, dokud nebude ručně opravena.\n\nPracovní databáze: {path}",
-                "failed_upgrade_description_with_reason": "Předchozí aktualizace databáze se nezdařila. Tuto databázi nelze použít, dokud nebude ručně opravena.\n\nPracovní databáze: {path}\n\nDůvod: {reason}",
+                "failed_upgrade_description": "Předchozí aktualizace databáze se nezdařila. Tuto databázi nelze použít, dokud nebude ručně opravena.",
                 "apply_upgrade_failed": "Aplikaci VRCX-0 se nepodařilo provést místní aktualizaci databáze",
                 "legacy_migration_restart_failed": "Aplikaci VRCX-0 se nepodařilo restartovat kvůli migraci stávajících dat VRCX. Můžete to zkusit znovu, nebo migraci přeskočit a pokračovat se stávající databází.",
                 "newer_schema_requires_newer_app": "Tato databáze používá verzi schématu {value}, ale tato verze VRCX-0 podporuje pouze verze do {value2}. Chcete-li ji otevřít, nainstalujte nejnovější verzi VRCX-0."
@@ -5728,9 +5727,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0 databázi aktualizoval, ale nepodařilo se obnovit místní konfiguraci. Restartujte prosím aplikaci",
                 "requesting_legacy_migration": "Připravuje se migrace stávajících dat VRCX…",
                 "skipping_legacy_migration": "Migrace se přeskakuje, databáze se nastavuje…"
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "Aktualizace databáze z verze {value} na {value2}"
             }
         },
         "favorite_import_service": {

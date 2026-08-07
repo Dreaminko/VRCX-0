@@ -5154,8 +5154,6 @@
             "migration_restarting_title": "Migrating data",
             "migration_restarting": "VRCX-0 will restart to complete the migration...",
             "upgrade_in_progress_title": "Database upgrade in progress",
-            "upgrade_in_progress_description": "Updating database from version {from} to {to}. Please do not close VRCX-0",
-            "upgrade_in_progress_initializing": "Initializing database upgrade. Please do not close VRCX-0",
             "upgrade_stage": {
                 "preflight": "Checking the database",
                 "prepare_legacy_snapshot": "Creating a consistent copy of the VRCX database",
@@ -5183,7 +5181,10 @@
             "fresh_start_confirm_title": "Start with a new database?",
             "fresh_start_confirm_description": "VRCX-0 will keep the current database and failed upgrade files in a recovery folder, then restart with a new empty database. Settings, local history, and saved account data will not appear in the new database.",
             "fresh_start_restarting": "Archiving the current database and restarting VRCX-0...",
-            "fresh_start_failed": "Could not create a new database."
+            "fresh_start_failed": "Could not create a new database.",
+            "upgrade_keep_open": "Please keep VRCX-0 open until this finishes.",
+            "failure_reason": "Reason",
+            "restart_app": "Restart VRCX-0"
         },
         "file": {
             "not_image": "File isn't an image",
@@ -5711,12 +5712,10 @@
         },
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "Unknown path",
                 "database_schema_is_current": "Database schema is current"
             },
             "error": {
-                "failed_upgrade_description": "The previous database upgrade failed. This database cannot be used until it is repaired manually.\n\nWork database: {path}",
-                "failed_upgrade_description_with_reason": "The previous database upgrade failed. This database cannot be used until it is repaired manually.\n\nWork database: {path}\n\nReason: {reason}",
+                "failed_upgrade_description": "The previous database upgrade failed. This database cannot be used until it is repaired manually.",
                 "apply_upgrade_failed": "VRCX-0 failed to apply a local database upgrade",
                 "legacy_migration_restart_failed": "VRCX-0 couldn't restart to migrate your existing VRCX data. You can try again, or skip to continue with the current database.",
                 "newer_schema_requires_newer_app": "This database uses schema version {value}, but this VRCX-0 version only supports up to {value2}. Install the latest VRCX-0 version to open it."
@@ -5728,9 +5727,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0 upgraded the database, but failed to refresh local configuration. Please restart the application",
                 "requesting_legacy_migration": "Preparing to migrate your existing VRCX data...",
                 "skipping_legacy_migration": "Skipping migration and setting up your database..."
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "Updating database from {value} to {value2}"
             }
         },
         "favorite_import_service": {

@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+    act,
+    cleanup,
+    fireEvent,
+    render,
+    screen
+} from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,7 +16,8 @@ const mocks = vi.hoisted(() => ({
     openDatabaseUpgradeFailureLogFolder: vi.fn(),
     retryDatabaseUpgrade: vi.fn(),
     startFreshDatabaseAfterUpgradeFailure: vi.fn(),
-    skipLegacyDatabaseMigration: vi.fn()
+    skipLegacyDatabaseMigration: vi.fn(),
+    restartApplication: vi.fn()
 }));
 
 vi.mock('react-i18next', () => ({
@@ -44,14 +51,8 @@ vi.mock('@/ui/shadcn/dialog', () => ({
     DialogTitle: ({ children }: React.PropsWithChildren) => <h1>{children}</h1>
 }));
 
-vi.mock('@/ui/shadcn/progress', () => ({
-    Progress: ({
-        value,
-        ...props
-    }: {
-        value: number;
-        'aria-label'?: string;
-    }) => <div role="progressbar" aria-valuenow={value} {...props} />
+vi.mock('@/services/shellIntegrationService', () => ({
+    restartApplication: mocks.restartApplication
 }));
 
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -68,43 +69,65 @@ describe('DatabaseUpgradeDialog', () => {
         useRuntimeStore.getState().resetRuntimeState();
     });
 
-    it('renders page-copy progress as a determinate progress bar', () => {
+    it('runs an indeterminate bar that never claims a completion amount', () => {
         useRuntimeStore.getState().setDatabaseUpgradeState({
             open: true,
             phase: 'running',
             stage: 'createWorkCopy',
-            progressCompleted: 25,
+            progressCompleted: 50,
             progressTotal: 100
-        });
-
-        render(<DatabaseUpgradeDialog open />);
-
-        expect(
-            screen.getByRole('progressbar').getAttribute('aria-valuenow')
-        ).toBe('25');
-        expect(
-            screen.getByText('message.database.upgrade_stage.create_work_copy')
-        ).not.toBeNull();
-    });
-
-    it('renders an animated status for an indeterminate index stage', () => {
-        useRuntimeStore.getState().setDatabaseUpgradeState({
-            open: true,
-            phase: 'running',
-            stage: 'notificationPerformanceIndexes',
-            progressCompleted: 0,
-            progressTotal: 0
         });
 
         const { container } = render(<DatabaseUpgradeDialog open />);
 
-        expect(screen.queryByRole('progressbar')).toBeNull();
+        expect(
+            screen.getByRole('progressbar').getAttribute('aria-valuenow')
+        ).toBeNull();
+        expect(
+            container.querySelector(
+                '.indeterminate-progress [data-slot="progress-indicator"]'
+            )
+        ).not.toBeNull();
+    });
+
+    it('holds back the stage detail until the upgrade has run long enough', () => {
+        vi.useFakeTimers();
+        useRuntimeStore.getState().setDatabaseUpgradeState({
+            open: true,
+            phase: 'running',
+            stage: 'notificationPerformanceIndexes'
+        });
+
+        const { container } = render(<DatabaseUpgradeDialog open />);
+        const detail = container.querySelector('[aria-hidden="true"]');
+
+        expect(detail).not.toBeNull();
+
+        act(() => {
+            vi.advanceTimersByTime(8000);
+        });
+
+        expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
         expect(
             screen.getByText(
                 'message.database.upgrade_stage.notification_performance_indexes'
             )
         ).not.toBeNull();
-        expect(container.querySelector('.animate-spin')).not.toBeNull();
+        vi.useRealTimers();
+    });
+
+    it('offers a restart when the failure is neither retryable nor recoverable', () => {
+        useRuntimeStore.getState().setDatabaseUpgradeState({
+            open: true,
+            phase: 'error',
+            retryable: false,
+            freshStartAvailable: false
+        });
+
+        render(<DatabaseUpgradeDialog open />);
+        fireEvent.click(screen.getByText('message.database.restart_app'));
+
+        expect(mocks.restartApplication).toHaveBeenCalledTimes(1);
     });
 
     it('shows the failure record without hiding migration retry and skip actions', () => {

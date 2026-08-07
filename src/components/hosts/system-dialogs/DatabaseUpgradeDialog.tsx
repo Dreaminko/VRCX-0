@@ -1,6 +1,8 @@
-import { LoaderCircleIcon } from 'lucide-react';
+import { TriangleAlertIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { IndeterminateProgress } from '@/components/IndeterminateProgress';
 import type { DatabaseUpgradeStage } from '@/platform/tauri/bindings';
 import {
     confirmLegacyDatabaseMigration,
@@ -10,6 +12,7 @@ import {
     startFreshDatabaseAfterUpgradeFailure,
     skipLegacyDatabaseMigration
 } from '@/services/databaseUpgradeService';
+import { restartApplication } from '@/services/shellIntegrationService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -20,7 +23,8 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
-import { Progress } from '@/ui/shadcn/progress';
+
+const STAGE_DETAIL_REVEAL_MS = 8000;
 
 const DATABASE_UPGRADE_STAGE_KEYS: Record<DatabaseUpgradeStage, string> = {
     preflight: 'message.database.upgrade_stage.preflight',
@@ -50,8 +54,6 @@ function getDatabaseUpgradeTitleKey(phase: string): string {
     switch (phase) {
         case 'confirm-legacy-migration':
             return 'message.database.migration_found_title';
-        case 'running':
-            return 'message.database.upgrade_in_progress_title';
         case 'restarting':
             return 'message.database.migration_restarting_title';
         case 'error':
@@ -61,50 +63,136 @@ function getDatabaseUpgradeTitleKey(phase: string): string {
     }
 }
 
+function useElapsedReveal(active: boolean, delayMs: number): boolean {
+    const [revealed, setRevealed] = useState(false);
+    useEffect(() => {
+        if (!active) {
+            setRevealed(false);
+            return;
+        }
+        const timer = globalThis.setTimeout(() => {
+            setRevealed(true);
+        }, delayMs);
+        return () => {
+            globalThis.clearTimeout(timer);
+        };
+    }, [active, delayMs]);
+    return revealed;
+}
+
 function DatabaseUpgradeProgressView({
     stage,
-    completed,
-    total
+    showStageDetail
 }: {
     stage: DatabaseUpgradeStage | '';
-    completed: number;
-    total: number;
+    showStageDetail: boolean;
 }) {
     const { t } = useTranslation();
-    const label = stage
-        ? t(DATABASE_UPGRADE_STAGE_KEYS[stage])
-        : t('message.database.upgrade_in_progress_initializing');
-    if (total <= 0) {
-        return (
-            <div
-                className="text-muted-foreground flex items-center gap-3 text-sm"
-                aria-live="polite"
-            >
-                <LoaderCircleIcon className="size-5 animate-spin motion-reduce:animate-none" />
-                <span>{label}</span>
-            </div>
-        );
-    }
 
-    const percent = Math.min(
-        100,
-        Math.max(0, Math.round((completed / total) * 100))
-    );
     return (
-        <div className="space-y-2.5" aria-live="polite">
-            <div className="flex items-center justify-between gap-4 text-sm">
-                <span>{label}</span>
-                <span className="text-muted-foreground tabular-nums">
-                    {percent}%
+        <div className="space-y-2.5">
+            <IndeterminateProgress
+                aria-label={t('message.database.upgrade_in_progress_title')}
+            />
+            <div
+                className={`grid transition-[grid-template-rows,opacity] duration-250 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${
+                    showStageDetail
+                        ? 'grid-rows-[1fr] opacity-100'
+                        : 'grid-rows-[0fr] opacity-0'
+                }`}
+                aria-hidden={!showStageDetail}
+            >
+                <span className="text-muted-foreground overflow-hidden text-xs">
+                    {stage ? t(DATABASE_UPGRADE_STAGE_KEYS[stage]) : ''}
                 </span>
             </div>
-            <Progress value={percent} aria-label={label} />
+        </div>
+    );
+}
+
+function DatabaseUpgradeFailureView({
+    isError,
+    reason,
+    failedWorkDbPath,
+    failureLogPath
+}: {
+    isError: boolean;
+    reason: string;
+    failedWorkDbPath: string;
+    failureLogPath: string;
+}) {
+    const { t } = useTranslation();
+
+    return (
+        <div
+            className="space-y-3 rounded-md border p-3 text-sm"
+            role={isError ? 'alert' : undefined}
+        >
+            {reason ? (
+                <div className="space-y-1">
+                    <div className="text-muted-foreground text-xs">
+                        {t('message.database.failure_reason')}
+                    </div>
+                    <div className="break-words">{reason}</div>
+                </div>
+            ) : null}
+            {failedWorkDbPath ? (
+                <div className="space-y-1">
+                    <div className="text-muted-foreground text-xs">
+                        {t('message.database.preserved_work_database')}
+                    </div>
+                    <code className="bg-muted block rounded px-2 py-1.5 font-mono text-xs break-all select-all">
+                        {failedWorkDbPath}
+                    </code>
+                    <div className="text-muted-foreground text-xs">
+                        {t('message.database.database_upload_warning')}
+                    </div>
+                </div>
+            ) : null}
+            <div className="space-y-2 border-t pt-3">
+                <div className="space-y-1">
+                    <div className="text-muted-foreground text-xs">
+                        {t('message.database.failure_record')}
+                    </div>
+                    {failureLogPath ? (
+                        <code className="bg-muted block rounded px-2 py-1.5 font-mono text-xs break-all select-all">
+                            {failureLogPath}
+                        </code>
+                    ) : null}
+                    <div className="text-muted-foreground text-xs">
+                        {t('message.database.failure_record_hint')}
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                            void openDatabaseUpgradeFailureLogFolder();
+                        }}
+                    >
+                        {t('message.database.open_failure_log_folder')}
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                            void createDatabaseUpgradeGitHubIssue();
+                        }}
+                    >
+                        {t('message.database.create_github_issue')}
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }
 
 export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
     const { t } = useTranslation();
+    const [legacyChoicePending, setLegacyChoicePending] = useState(false);
 
     const databaseUpgrade = useRuntimeStore((state) => state.databaseUpgrade);
     const setDatabaseUpgradeState = useRuntimeStore(
@@ -113,12 +201,14 @@ export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
     const isBusy =
         databaseUpgrade.phase === 'running' ||
         databaseUpgrade.phase === 'restarting';
+    const isError = databaseUpgrade.phase === 'error';
     const isBlockingFailure =
-        databaseUpgrade.phase === 'error' &&
+        isError &&
         (databaseUpgrade.retryable || databaseUpgrade.freshStartAvailable);
-    const showFailureRecord =
-        databaseUpgrade.phase === 'error' ||
-        Boolean(databaseUpgrade.failureLogPath);
+    const showStageDetail = useElapsedReveal(
+        open && isBusy,
+        STAGE_DETAIL_REVEAL_MS
+    );
 
     return (
         <Dialog
@@ -130,89 +220,40 @@ export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
                 setDatabaseUpgradeState({ open: nextOpen });
             }}
         >
-            <DialogContent showCloseButton={!isBusy && !isBlockingFailure}>
+            <DialogContent
+                showCloseButton={!isBusy && !isBlockingFailure}
+                className={isError ? 'sm:max-w-lg' : undefined}
+            >
                 <DialogHeader>
-                    <DialogTitle>
+                    <DialogTitle
+                        className={isError ? 'flex items-start gap-2' : ''}
+                    >
+                        {isError ? (
+                            <TriangleAlertIcon className="text-destructive mt-px size-[18px] shrink-0" />
+                        ) : null}
                         {t(getDatabaseUpgradeTitleKey(databaseUpgrade.phase))}
                     </DialogTitle>
-                    <DialogDescription>
-                        {databaseUpgrade.detail ||
-                            t(
-                                'message.database.upgrade_in_progress_initializing'
-                            )}
+                    <DialogDescription
+                        className={isError ? 'text-foreground' : undefined}
+                    >
+                        {isBusy
+                            ? t('message.database.upgrade_keep_open')
+                            : databaseUpgrade.detail}
                     </DialogDescription>
                 </DialogHeader>
                 {isBusy ? (
                     <DatabaseUpgradeProgressView
                         stage={databaseUpgrade.stage}
-                        completed={databaseUpgrade.progressCompleted}
-                        total={databaseUpgrade.progressTotal}
+                        showStageDetail={showStageDetail}
                     />
                 ) : null}
-                {databaseUpgrade.phase !== 'confirm-legacy-migration' &&
-                databaseUpgrade.phase !== 'error' &&
-                (databaseUpgrade.fromVersion || databaseUpgrade.toVersion) ? (
-                    <div className="bg-muted/30 text-muted-foreground rounded-md border p-3 text-sm">
-                        {t('message.database.upgrade_in_progress_description', {
-                            from: databaseUpgrade.fromVersion || 0,
-                            to: databaseUpgrade.toVersion || 0
-                        })}
-                    </div>
-                ) : null}
-                {showFailureRecord ? (
-                    <div className="space-y-3 rounded-md border p-3 text-sm">
-                        <div className="space-y-1">
-                            <div className="font-medium">
-                                {t('message.database.failure_record')}
-                            </div>
-                            <div className="text-muted-foreground">
-                                {t('message.database.failure_record_hint')}
-                            </div>
-                            <code className="bg-muted block overflow-x-auto rounded px-2 py-1.5 text-xs select-all">
-                                {databaseUpgrade.failureLogPath ||
-                                    'error-log.txt'}
-                            </code>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                    void openDatabaseUpgradeFailureLogFolder();
-                                }}
-                            >
-                                {t('message.database.open_failure_log_folder')}
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                    void createDatabaseUpgradeGitHubIssue();
-                                }}
-                            >
-                                {t('message.database.create_github_issue')}
-                            </Button>
-                        </div>
-                        {databaseUpgrade.failedWorkDbPath ? (
-                            <div className="space-y-1 border-t pt-3">
-                                <div className="font-medium">
-                                    {t(
-                                        'message.database.preserved_work_database'
-                                    )}
-                                </div>
-                                <code className="bg-muted block overflow-x-auto rounded px-2 py-1.5 text-xs select-all">
-                                    {databaseUpgrade.failedWorkDbPath}
-                                </code>
-                                <div className="text-muted-foreground text-xs">
-                                    {t(
-                                        'message.database.database_upload_warning'
-                                    )}
-                                </div>
-                            </div>
-                        ) : null}
-                    </div>
+                {isError || databaseUpgrade.failureLogPath ? (
+                    <DatabaseUpgradeFailureView
+                        isError={isError}
+                        reason={databaseUpgrade.failureReason}
+                        failedWorkDbPath={databaseUpgrade.failedWorkDbPath}
+                        failureLogPath={databaseUpgrade.failureLogPath}
+                    />
                 ) : null}
                 <DialogFooter>
                     {databaseUpgrade.phase === 'confirm-legacy-migration' ? (
@@ -220,22 +261,30 @@ export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
                             <Button
                                 type="button"
                                 variant="outline"
+                                disabled={legacyChoicePending}
                                 onClick={() => {
-                                    skipLegacyDatabaseMigration();
+                                    setLegacyChoicePending(true);
+                                    void skipLegacyDatabaseMigration();
                                 }}
                             >
                                 {t('message.database.migration_skip')}
                             </Button>
                             <Button
                                 type="button"
+                                disabled={legacyChoicePending}
                                 onClick={() => {
-                                    confirmLegacyDatabaseMigration();
+                                    setLegacyChoicePending(true);
+                                    void confirmLegacyDatabaseMigration().finally(
+                                        () => {
+                                            setLegacyChoicePending(false);
+                                        }
+                                    );
                                 }}
                             >
                                 {t('dialog.system.action.migrate_and_restart')}
                             </Button>
                         </>
-                    ) : databaseUpgrade.phase === 'error' ? (
+                    ) : isError ? (
                         <>
                             {databaseUpgrade.freshStartAvailable ? (
                                 <Button
@@ -256,6 +305,17 @@ export function DatabaseUpgradeDialog({ open }: { open: boolean }) {
                                     }}
                                 >
                                     {t('common.action.retry')}
+                                </Button>
+                            ) : null}
+                            {!databaseUpgrade.freshStartAvailable &&
+                            !databaseUpgrade.retryable ? (
+                                <Button
+                                    type="button"
+                                    onClick={() => {
+                                        void restartApplication();
+                                    }}
+                                >
+                                    {t('message.database.restart_app')}
                                 </Button>
                             ) : null}
                         </>

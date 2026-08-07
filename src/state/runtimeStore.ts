@@ -231,6 +231,7 @@ type RuntimeStore = {
         progressCompleted: number;
         progressTotal: number;
         detail: string;
+        failureReason: string;
         legacyMigrationAvailable: boolean;
         retryable: boolean;
         freshStartAvailable: boolean;
@@ -545,6 +546,7 @@ const initialState: RuntimeStoreState = {
         progressCompleted: 0,
         progressTotal: 0,
         detail: '',
+        failureReason: '',
         legacyMigrationAvailable: false,
         retryable: false,
         freshStartAvailable: false,

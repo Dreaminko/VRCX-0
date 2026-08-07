@@ -353,6 +353,27 @@ describe('databaseUpgradeService', () => {
         await expect(upgrade).resolves.toBe(true);
     });
 
+    it('never opens the dialog for an upgrade that finishes before the open delay', async () => {
+        mocks.appDatabaseUpgradePreflight.mockResolvedValueOnce(
+            preflight('upgradeRequired', 16, 18)
+        );
+        mocks.appDatabaseUpgradeRun.mockResolvedValueOnce({
+            status: 'upgraded',
+            fromVersion: 16,
+            toVersion: 18
+        });
+        const openStates: boolean[] = [];
+        const unsubscribe = useRuntimeStore.subscribe((state) => {
+            openStates.push(state.databaseUpgrade.open);
+        });
+
+        await expect(initializeDatabaseUpgradeFlow()).resolves.toBe(true);
+        unsubscribe();
+
+        expect(openStates).not.toContain(true);
+        expect(useRuntimeStore.getState().databaseUpgrade.open).toBe(false);
+    });
+
     it('shows the preserved work-copy details returned by a failed backend run', async () => {
         mocks.appDatabaseUpgradePreflight.mockResolvedValueOnce(
             preflight('upgradeRequired', 17, 18)

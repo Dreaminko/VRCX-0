@@ -5154,8 +5154,6 @@
             "migration_restarting_title": "Daten werden migriert",
             "migration_restarting": "VRCX-0 wird neu gestartet, um die Migration abzuschließen...",
             "upgrade_in_progress_title": "Datenbank-Upgrade läuft",
-            "upgrade_in_progress_description": "Datenbank wird von Version {from} auf {to} aktualisiert. Bitte VRCX-0 nicht schließen",
-            "upgrade_in_progress_initializing": "Datenbank-Upgrade wird initialisiert. Bitte VRCX-0 nicht schließen",
             "upgrade_stage": {
                 "preflight": "Datenbank wird geprüft",
                 "prepare_legacy_snapshot": "Eine konsistente Kopie der VRCX-Datenbank wird erstellt",
@@ -5183,7 +5181,10 @@
             "fresh_start_confirm_title": "Eine neue Datenbank verwenden?",
             "fresh_start_confirm_description": "VRCX-0 bewahrt die aktuelle Datenbank und die Dateien des fehlgeschlagenen Upgrades in einem Wiederherstellungsordner auf und startet dann mit einer neuen, leeren Datenbank neu. Einstellungen, lokaler Verlauf und gespeicherte Kontodaten werden nicht in die neue Datenbank übernommen.",
             "fresh_start_restarting": "Die aktuelle Datenbank wird archiviert und VRCX-0 neu gestartet...",
-            "fresh_start_failed": "Die neue Datenbank konnte nicht erstellt werden."
+            "fresh_start_failed": "Die neue Datenbank konnte nicht erstellt werden.",
+            "upgrade_keep_open": "Bitte VRCX-0 geöffnet lassen, bis der Vorgang abgeschlossen ist.",
+            "failure_reason": "Ursache",
+            "restart_app": "VRCX-0 neu starten"
         },
         "file": {
             "not_image": "Datei ist kein Bild",
@@ -5707,12 +5708,10 @@
         },
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "Unbekannter Pfad",
                 "database_schema_is_current": "Datenbankschema ist aktuell"
             },
             "error": {
-                "failed_upgrade_description": "Das vorherige Datenbank-Upgrade ist fehlgeschlagen. Diese Datenbank kann erst wieder verwendet werden, nachdem sie manuell repariert wurde.\n\nArbeitsdatenbank: {path}",
-                "failed_upgrade_description_with_reason": "Das vorherige Datenbank-Upgrade ist fehlgeschlagen. Diese Datenbank kann erst wieder verwendet werden, nachdem sie manuell repariert wurde.\n\nArbeitsdatenbank: {path}\n\nGrund: {reason}",
+                "failed_upgrade_description": "Das vorherige Datenbank-Upgrade ist fehlgeschlagen. Diese Datenbank kann erst wieder verwendet werden, nachdem sie manuell repariert wurde.",
                 "apply_upgrade_failed": "VRCX-0 konnte ein lokales Datenbank-Upgrade nicht anwenden",
                 "legacy_migration_restart_failed": "VRCX-0 konnte nicht neu starten, um deine vorhandenen VRCX-Daten zu migrieren. Du kannst es erneut versuchen oder überspringen, um mit der aktuellen Datenbank fortzufahren.",
                 "newer_schema_requires_newer_app": "Diese Datenbank verwendet Schemaversion {value}, aber diese VRCX-0-Version unterstützt nur bis Version {value2}. Installiere die neueste VRCX-0-Version, um sie zu öffnen."
@@ -5724,9 +5723,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0 hat die Datenbank aktualisiert, konnte aber die lokale Konfiguration nicht neu laden. Bitte starte die Anwendung neu",
                 "requesting_legacy_migration": "Migration deiner vorhandenen VRCX-Daten wird vorbereitet …",
                 "skipping_legacy_migration": "Migration wird übersprungen, Datenbank wird eingerichtet …"
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "Datenbank wird von {value} auf {value2} aktualisiert"
             }
         },
         "favorite_import_service": {

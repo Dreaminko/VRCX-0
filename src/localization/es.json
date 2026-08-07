@@ -5154,8 +5154,6 @@
             "migration_restarting_title": "Migrando datos",
             "migration_restarting": "VRCX-0 se reiniciará para completar la migración...",
             "upgrade_in_progress_title": "Actualización de la base de datos en curso",
-            "upgrade_in_progress_description": "Actualizando la base de datos de la versión {from} a la {to}. No cierres VRCX-0",
-            "upgrade_in_progress_initializing": "Inicializando la actualización de la base de datos. No cierres VRCX-0",
             "upgrade_stage": {
                 "preflight": "Comprobando la base de datos",
                 "prepare_legacy_snapshot": "Creando una copia coherente de la base de datos de VRCX",
@@ -5183,7 +5181,10 @@
             "fresh_start_confirm_title": "¿Usar una nueva base de datos?",
             "fresh_start_confirm_description": "VRCX-0 conservará la base actual y los archivos del fallo en una carpeta de recuperación y después se reiniciará con una base nueva y vacía. La configuración, el historial local y los datos de cuentas guardados no se transferirán a la nueva base.",
             "fresh_start_restarting": "Archivando la base actual y reiniciando VRCX-0...",
-            "fresh_start_failed": "No se pudo crear una nueva base de datos."
+            "fresh_start_failed": "No se pudo crear una nueva base de datos.",
+            "upgrade_keep_open": "Mantén VRCX-0 abierto hasta que termine.",
+            "failure_reason": "Motivo",
+            "restart_app": "Reiniciar VRCX-0"
         },
         "file": {
             "not_image": "El archivo no es una imagen",
@@ -5707,12 +5708,10 @@
         },
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "Ruta desconocida",
                 "database_schema_is_current": "El esquema de la base de datos está actualizado"
             },
             "error": {
-                "failed_upgrade_description": "La actualización anterior de la base de datos falló. Esta base de datos no puede usarse hasta que se repare manualmente.\n\nBase de datos de trabajo: {path}",
-                "failed_upgrade_description_with_reason": "La actualización anterior de la base de datos falló. Esta base de datos no puede usarse hasta que se repare manualmente.\n\nBase de datos de trabajo: {path}\n\nMotivo: {reason}",
+                "failed_upgrade_description": "La actualización anterior de la base de datos falló. Esta base de datos no puede usarse hasta que se repare manualmente.",
                 "apply_upgrade_failed": "VRCX-0 no pudo aplicar una actualización de la base de datos local",
                 "legacy_migration_restart_failed": "VRCX-0 no pudo reiniciarse para migrar tus datos existentes de VRCX. Puedes volver a intentarlo u omitir para continuar con la base de datos actual.",
                 "newer_schema_requires_newer_app": "Esta base de datos usa la versión de esquema {value}, pero esta versión de VRCX-0 solo admite hasta la {value2}. Instala la última versión de VRCX-0 para abrirla."
@@ -5724,9 +5723,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0 actualizó la base de datos, pero no pudo recargar la configuración local. Reinicia la aplicación",
                 "requesting_legacy_migration": "Preparando la migración de tus datos existentes de VRCX...",
                 "skipping_legacy_migration": "Omitiendo la migración y configurando tu base de datos..."
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "Actualizando la base de datos de {value} a {value2}"
             }
         },
         "favorite_import_service": {

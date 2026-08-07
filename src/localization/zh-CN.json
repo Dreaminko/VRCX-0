@@ -5154,8 +5154,6 @@
             "migration_restarting_title": "正在迁移数据",
             "migration_restarting": "VRCX-0 将重新启动以完成迁移工作",
             "upgrade_in_progress_title": "数据库升级进行中",
-            "upgrade_in_progress_description": "正在将数据库从版本 {from} 更新到 {to}，请不要关闭 VRCX-0。",
-            "upgrade_in_progress_initializing": "正在初始化数据库升级流程，请不要关闭 VRCX-0。",
             "upgrade_stage": {
                 "preflight": "正在检查数据库",
                 "prepare_legacy_snapshot": "正在创建 VRCX 数据库的一致性副本",
@@ -5183,7 +5181,10 @@
             "fresh_start_confirm_title": "要改用新的数据库吗？",
             "fresh_start_confirm_description": "VRCX-0 会将当前数据库和升级失败文件保留在恢复文件夹中，然后使用新的空数据库重启。新数据库中不会保留设置、本地历史和已保存的账号数据。",
             "fresh_start_restarting": "正在归档当前数据库并重启 VRCX-0...",
-            "fresh_start_failed": "无法创建新数据库。"
+            "fresh_start_failed": "无法创建新数据库。",
+            "upgrade_keep_open": "请保持 VRCX-0 打开，直到更新完成。",
+            "failure_reason": "原因",
+            "restart_app": "重启 VRCX-0"
         },
         "file": {
             "not_image": "文件不是有效的图片格式",
@@ -5711,12 +5712,10 @@
         },
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "未知路径",
                 "database_schema_is_current": "数据库结构已是最新"
             },
             "error": {
-                "failed_upgrade_description": "上一次数据库升级失败，在手动修复前，此数据库将无法使用。\n\n当前工作数据库：{path}",
-                "failed_upgrade_description_with_reason": "上一次数据库升级失败。手动修复前，此数据库无法使用。\n\n当前工作数据库：{path}\n\n原因：{reason}",
+                "failed_upgrade_description": "上一次数据库升级失败，在手动修复前，此数据库将无法使用。",
                 "apply_upgrade_failed": "VRCX-0 应用本地数据库升级失败",
                 "legacy_migration_restart_failed": "VRCX-0 未能重启以迁移已有的 VRCX 数据。你可以重试，或跳过并继续使用当前数据库。",
                 "newer_schema_requires_newer_app": "此数据库使用结构版本 {value}，但当前 VRCX-0 最高仅支持 {value2}。请安装最新版 VRCX-0 后再打开。"
@@ -5728,9 +5727,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0 已成功升级数据库，但刷新本地配置失败，请重启程序。",
                 "requesting_legacy_migration": "正在准备迁移已有的 VRCX 数据……",
                 "skipping_legacy_migration": "正在跳过迁移并初始化数据库……"
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "正在将数据库从 {value} 更新到 {value2}"
             }
         },
         "favorite_import_service": {

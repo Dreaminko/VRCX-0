@@ -654,6 +654,40 @@
     }
 }
 
+@keyframes indeterminate-progress {
+    0% {
+        left: -35%;
+        width: 35%;
+    }
+
+    55% {
+        left: 60%;
+        width: 45%;
+    }
+
+    100% {
+        left: 100%;
+        width: 35%;
+    }
+}
+
+.indeterminate-progress [data-slot='progress-indicator'] {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    animation: indeterminate-progress 1.15s cubic-bezier(0.23, 1, 0.32, 1)
+        infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .indeterminate-progress [data-slot='progress-indicator'] {
+        animation: none;
+        left: 0;
+        width: 100%;
+        opacity: 0.4;
+    }
+}
+
 .owner-badge {
     position: relative;
     display: inline-flex;

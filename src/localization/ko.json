@@ -5097,8 +5097,6 @@
             "legacy_vrcx_check_again": "다시 시도",
             "legacy_vrcx_force_migration": "강제 마이그레이션",
             "migration_restarting": "VRCX-0이(가) 다시 시작되어 마이그레이션을 완료합니다...",
-            "upgrade_in_progress_description": "버전 {from}에서 {to}로 데이터베이스를 업데이트하는 중입니다. VRCX-0을(를) 닫지 마세요.",
-            "upgrade_in_progress_initializing": "데이터베이스 업그레이드를 초기화하는 중입니다. VRCX-0을(를) 닫지 마세요.",
             "upgrade_stage": {
                 "preflight": "데이터베이스를 확인하는 중",
                 "prepare_legacy_snapshot": "VRCX 데이터베이스의 일관된 복사본을 만드는 중",
@@ -5114,7 +5112,10 @@
                 "optimize": "데이터베이스 복사본을 최적화하는 중",
                 "write_version": "데이터베이스 버전을 기록하는 중",
                 "commit": "업그레이드된 데이터베이스로 전환하는 중"
-            }
+            },
+            "upgrade_keep_open": "완료될 때까지 VRCX-0을 닫지 마세요.",
+            "failure_reason": "원인",
+            "restart_app": "VRCX-0 다시 시작"
         },
         "file": {
             "not_image": "파일이 이미지가 아닙니다",
@@ -5638,15 +5639,13 @@
     "service": {
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "알 수 없는 경로",
                 "database_schema_is_current": "데이터베이스 스키마가 최신입니다."
             },
             "success": {
                 "database_update_complete": "데이터베이스 업데이트 완료"
             },
             "error": {
-                "failed_upgrade_description": "이전 데이터베이스 업그레이드가 실패했습니다. 이 데이터베이스는 수동으로 복구할 때까지 사용할 수 없습니다.\n\n작업 데이터베이스: {path}",
-                "failed_upgrade_description_with_reason": "이전 데이터베이스 업그레이드가 실패했습니다. 이 데이터베이스는 수동으로 복구할 때까지 사용할 수 없습니다.\n\n작업 데이터베이스: {path}\n\n이유: {reason}",
+                "failed_upgrade_description": "이전 데이터베이스 업그레이드가 실패했습니다. 이 데이터베이스는 수동으로 복구할 때까지 사용할 수 없습니다.",
                 "apply_upgrade_failed": "VRCX-0이(가) 로컬 데이터베이스 업그레이드를 적용하지 못했습니다.",
                 "legacy_migration_restart_failed": "기존 VRCX 데이터를 마이그레이션하기 위한 VRCX-0 재시작에 실패했습니다. 다시 시도하거나 건너뛰고 현재 데이터베이스로 계속할 수 있습니다.",
                 "newer_schema_requires_newer_app": "이 데이터베이스의 스키마 버전은 {value}이지만 현재 VRCX-0은 {value2}까지만 지원합니다. 최신 버전의 VRCX-0을 설치한 후 다시 여세요."
@@ -5655,9 +5654,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0이(가) 데이터베이스를 업그레이드했지만 로컬 구성을 새로 고치지 못했습니다. 응용 프로그램을 다시 시작하십시오",
                 "requesting_legacy_migration": "기존 VRCX 데이터 마이그레이션을 준비하는 중입니다…",
                 "skipping_legacy_migration": "마이그레이션을 건너뛰고 데이터베이스를 초기화하는 중입니다…"
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "{value}에서 {value2}(으)로 데이터베이스 업데이트 중"
             }
         },
         "background_maintenance": {
