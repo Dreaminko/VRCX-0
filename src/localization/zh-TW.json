@@ -1201,7 +1201,7 @@
             "avatars": {
                 "search": "搜尋",
                 "vrchat_favorites": "VRChat 收藏",
-                "local_favorites": "本機收藏列表 (VRChat+)",
+                "local_favorites": "本機收藏列表 (VRC+)",
                 "new_group": "新群組",
                 "local_history": "本機歷史紀錄",
                 "styles": "樣式",
@@ -4153,7 +4153,7 @@
         "favorite": {
             "vrchat_favorites": "VRChat 收藏",
             "local_favorites": "本機收藏",
-            "local_avatar_favorites": "本機收藏 (VRChat+)"
+            "local_avatar_favorites": "本機收藏 (VRC+)"
         },
         "social_status": {
             "presets": "預設檔"

@@ -1197,7 +1197,7 @@
             "avatars": {
                 "search": "検索",
                 "vrchat_favorites": "VRChat のお気に入り",
-                "local_favorites": "ローカルのお気に入り (VRChat+)",
+                "local_favorites": "ローカルのお気に入り (VRC+)",
                 "new_group": "新規グループ",
                 "local_history": "ローカルの履歴",
                 "styles": "スタイル",
@@ -4148,7 +4148,7 @@
         "favorite": {
             "vrchat_favorites": "VRChat のお気に入り",
             "local_favorites": "ローカルのお気に入り",
-            "local_avatar_favorites": "ローカルのお気に入り (VRChat+)"
+            "local_avatar_favorites": "ローカルのお気に入り (VRC+)"
         },
         "social_status": {
             "presets": "プリセット"
@@ -5222,7 +5222,7 @@
             "url_copied": "ワールドURLがクリップボードにコピーされました"
         },
         "vrcplus": {
-            "required": "VRChat+"
+            "required": "VRC+"
         },
         "screenshot_metadata": {
             "deleted": "スクリーンショットのメタデータを削除しました",

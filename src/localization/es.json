@@ -1201,7 +1201,7 @@
             "avatars": {
                 "search": "Buscar",
                 "vrchat_favorites": "Favoritos de VRChat",
-                "local_favorites": "Favoritos locales (VRChat+)",
+                "local_favorites": "Favoritos locales (VRC+)",
                 "new_group": "Nuevo Grupo",
                 "local_history": "Historial local",
                 "styles": "Estilos",
@@ -1460,7 +1460,7 @@
                     "earned": "Insignia obtenida"
                 },
                 "vrcplus": {
-                    "gift": "Regalo de VRChat+"
+                    "gift": "Regalo de VRC+"
                 },
                 "economy": {
                     "received": {
@@ -4153,7 +4153,7 @@
         "favorite": {
             "vrchat_favorites": "Favoritos de VRChat",
             "local_favorites": "Favoritos Locales",
-            "local_avatar_favorites": "Favoritos locales (VRChat+)"
+            "local_avatar_favorites": "Favoritos locales (VRC+)"
         },
         "social_status": {
             "presets": "Preajustes"
@@ -5229,7 +5229,7 @@
             "url_copied": "URL del mundo copiada al portapapeles"
         },
         "vrcplus": {
-            "required": "VRChat+"
+            "required": "VRC+"
         },
         "screenshot_metadata": {
             "deleted": "Metadatos de la captura eliminados",

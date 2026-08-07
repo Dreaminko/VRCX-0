@@ -1183,7 +1183,7 @@
                 "local_history": "로컬 기록",
                 "styles": "스타일",
                 "almost_nuisance": "거의 귀찮은 사용자",
-                "local_favorites": "로컬 즐겨찾기(VRChat+)"
+                "local_favorites": "로컬 즐겨찾기(VRC+)"
             },
             "select_all": "모두 선택",
             "deselect_all": "모두 선택 취소",
@@ -1438,7 +1438,7 @@
                     "earned": "배지 획득"
                 },
                 "vrcplus": {
-                    "gift": "VRChat+ 선물"
+                    "gift": "VRC+ 선물"
                 },
                 "economy": {
                     "received": {
@@ -4101,7 +4101,7 @@
         "favorite": {
             "vrchat_favorites": "VRChat 즐겨찾기",
             "local_favorites": "VRCX-0 즐겨찾기",
-            "local_avatar_favorites": "로컬 즐겨찾기(VRChat+)"
+            "local_avatar_favorites": "로컬 즐겨찾기(VRC+)"
         },
         "social_status": {
             "presets": "사전 설정"
@@ -5201,7 +5201,7 @@
             "invalid_path": "잘못된 경로입니다. VRChat 폴더 또는 launch.exe를 입력해야 합니다."
         },
         "vrcplus": {
-            "required": "VRChat+"
+            "required": "VRC+"
         },
         "registry": {
             "restored": "VRChat 레지스트리 설정이 복원되었습니다.",

@@ -1201,7 +1201,7 @@
             "avatars": {
                 "search": "搜索",
                 "vrchat_favorites": "VRChat 收藏",
-                "local_favorites": "本地收藏夹（VRChat+）",
+                "local_favorites": "本地收藏夹（VRC+）",
                 "new_group": "创建新的收藏夹",
                 "local_history": "本地历史记录",
                 "styles": "样式",
@@ -4153,7 +4153,7 @@
         "favorite": {
             "vrchat_favorites": "在线收藏夹",
             "local_favorites": "本地收藏夹",
-            "local_avatar_favorites": "模型收藏夹（本地，VRChat+）"
+            "local_avatar_favorites": "模型收藏夹（本地，VRC+）"
         },
         "social_status": {
             "presets": "预设"
@@ -5229,7 +5229,7 @@
             "url_copied": "世界 URL 已复制到剪贴板"
         },
         "vrcplus": {
-            "required": "VRChat+"
+            "required": "VRC+"
         },
         "screenshot_metadata": {
             "deleted": "已删除图片元数据",

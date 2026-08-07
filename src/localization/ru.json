@@ -1462,7 +1462,7 @@
                     "earned": "Получен значёк"
                 },
                 "vrcplus": {
-                    "gift": "VRChat+ Подарок"
+                    "gift": "VRC+ Подарок"
                 },
                 "economy": {
                     "received": {
@@ -5233,7 +5233,7 @@
             "url_copied": "URL мира скопирован в буфер обмена"
         },
         "vrcplus": {
-            "required": "VRChat+"
+            "required": "VRC+"
         },
         "screenshot_metadata": {
             "deleted": "Метаданные скриншота удалены",
