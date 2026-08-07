@@ -2191,6 +2191,8 @@
                     "table_page_sizes_description": "테이블 컨트롤에 표시된 페이지 크기 옵션을 추가, 제거 및 선택합니다.",
                     "table_page_sizes_error": "페이지 크기는 1에서 1000 사이의 숫자여야 합니다.",
                     "show_notification_icon_dot": "트레이 알림 점",
+                    "show_taskbar_icon_dot": "작업 표시줄 알림 점",
+                    "show_taskbar_icon_dot_description": "읽지 않은 알림이 있으면 작업 표시줄의 VRCX-0 버튼에 빨간 점을 표시합니다.",
                     "striped_data_table_mode": "스트라이프 테이블",
                     "reduced_motion_and_blur": "효과 줄이기",
                     "reduced_motion_and_blur_description": "애니메이션, 전환, 배경 흐림 효과를 꺼서 저사양 기기의 성능을 개선합니다.",

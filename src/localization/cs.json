@@ -2263,6 +2263,8 @@
                     "table_page_sizes_description": "Přidávejte, odebírejte a vybírejte možnosti velikosti stránky zobrazené v ovládacích prvcích tabulek.",
                     "table_page_sizes_error": "Velikost stránky musí být číslo mezi 1 a 1000",
                     "show_notification_icon_dot": "Tečka oznámení v liště",
+                    "show_taskbar_icon_dot": "Tečka oznámení na hlavním panelu",
+                    "show_taskbar_icon_dot_description": "Zobrazí červenou tečku na tlačítku VRCX-0 na hlavním panelu, dokud jsou nepřečtená oznámení.",
                     "striped_data_table_mode": "Pruhované tabulky",
                     "reduced_motion_and_blur": "Omezit efekty",
                     "reduced_motion_and_blur_description": "Vypne animace, přechody a rozmazání pozadí pro lepší výkon na slabších zařízeních.",

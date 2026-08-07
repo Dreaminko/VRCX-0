@@ -22,7 +22,8 @@ vi.mock('@/repositories/notificationPersistenceRepository', () => ({
 }));
 
 vi.mock('@/services/shellIntegrationService', () => ({
-    setTrayIconNotification: vi.fn(() => Promise.resolve())
+    setTrayIconNotification: vi.fn(() => Promise.resolve()),
+    setTaskbarOverlayNotification: vi.fn(() => Promise.resolve())
 }));
 
 import { useRuntimeStore } from './runtimeStore';

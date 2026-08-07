@@ -555,6 +555,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::host::devkit::app__devkit_panic,
             commands::host::window::app__language_changed,
             commands::host::window::app__set_tray_icon_notification,
+            commands::host::window::app__set_taskbar_overlay_notification,
             commands::host::window::app__refresh_tray_menu,
             commands::host::window::app__open_devtools,
             commands::host::window::app__restart_application,

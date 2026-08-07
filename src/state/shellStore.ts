@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 
-import { setTrayIconNotification } from '@/services/shellIntegrationService';
+import {
+    setTaskbarOverlayNotification,
+    setTrayIconNotification
+} from '@/services/shellIntegrationService';
 import {
     DEFAULT_THEME_COLOR_KEY,
     THEME_COLOR_CONFIG
@@ -24,6 +27,7 @@ type ShellStore = {
     tableDensity: TableDensity;
     notificationLayout: NotificationLayout;
     notificationIconDot: boolean;
+    taskbarIconDot: boolean;
     displayVRCPlusIconsAsAvatar: boolean;
     hideNicknames: boolean;
     zoomLevel: unknown;
@@ -34,6 +38,7 @@ type ShellStore = {
     notifiedMenus: string[];
     vrcUnseenNotificationCount: number;
     trayIconNotify: boolean;
+    taskbarIconNotify: boolean;
     setSidebarOpen(sidebarOpen: unknown): void;
     setNavWidth(navWidth: unknown): void;
     toggleSidebar(): void;
@@ -45,6 +50,7 @@ type ShellStore = {
     setTableDensity(tableDensity: unknown): void;
     setNotificationLayout(notificationLayout: unknown): void;
     setNotificationIconDot(notificationIconDot: unknown): void;
+    setTaskbarIconDot(taskbarIconDot: unknown): void;
     setAppearancePreferences(options?: {
         displayVRCPlusIconsAsAvatar?: unknown;
         hideNicknames?: unknown;
@@ -76,6 +82,7 @@ type ShellStoreState = Omit<
     | 'setTableDensity'
     | 'setNotificationLayout'
     | 'setNotificationIconDot'
+    | 'setTaskbarIconDot'
     | 'setAppearancePreferences'
     | 'setZoomLevel'
     | 'setDatePreferences'
@@ -97,6 +104,7 @@ const initialState: ShellStoreState = {
     tableDensity: 'standard',
     notificationLayout: 'notification-center',
     notificationIconDot: true,
+    taskbarIconDot: true,
     displayVRCPlusIconsAsAvatar: true,
     hideNicknames: false,
     zoomLevel: null,
@@ -106,7 +114,8 @@ const initialState: ShellStoreState = {
     timeUnitLabels: DEFAULT_TIME_UNIT_LABELS,
     notifiedMenus: [],
     vrcUnseenNotificationCount: 0,
-    trayIconNotify: false
+    trayIconNotify: false,
+    taskbarIconNotify: false
 };
 
 const themeModeValues = new Set<unknown>(['system', 'light', 'dark']);
@@ -164,10 +173,7 @@ function isCurrentMenuRoute(index: string): boolean {
     return Boolean(path && getCurrentHashRoutePath() === path);
 }
 
-function resolveTrayIconNotify(state: ShellStore): boolean {
-    if (!state.notificationIconDot) {
-        return false;
-    }
+function notificationDotActive(state: ShellStore): boolean {
     const hasUnreadVrcNotifications = state.vrcUnseenNotificationCount > 0;
     if (state.notificationLayout === 'notification-center') {
         return Boolean(
@@ -222,6 +228,10 @@ export const useShellStore = create<ShellStore>((set, get) => ({
         set({ notificationIconDot: Boolean(notificationIconDot) });
         get().updateTrayIconNotification(true);
     },
+    setTaskbarIconDot(taskbarIconDot) {
+        set({ taskbarIconDot: Boolean(taskbarIconDot) });
+        get().updateTrayIconNotification(true);
+    },
     setAppearancePreferences({
         displayVRCPlusIconsAsAvatar,
         hideNicknames
@@ -265,12 +275,19 @@ export const useShellStore = create<ShellStore>((set, get) => ({
         get().updateTrayIconNotification();
     },
     updateTrayIconNotification(force = false) {
-        const nextTrayIconNotify = resolveTrayIconNotify(get());
-        if (!force && get().trayIconNotify === nextTrayIconNotify) {
-            return;
+        const active = notificationDotActive(get());
+        const nextTrayIconNotify = get().notificationIconDot && active;
+        const nextTaskbarIconNotify = get().taskbarIconDot && active;
+        if (force || get().trayIconNotify !== nextTrayIconNotify) {
+            set({ trayIconNotify: nextTrayIconNotify });
+            setTrayIconNotification(nextTrayIconNotify).catch(() => {});
         }
-        set({ trayIconNotify: nextTrayIconNotify });
-        setTrayIconNotification(nextTrayIconNotify).catch(() => {});
+        if (force || get().taskbarIconNotify !== nextTaskbarIconNotify) {
+            set({ taskbarIconNotify: nextTaskbarIconNotify });
+            setTaskbarOverlayNotification(nextTaskbarIconNotify).catch(
+                () => {}
+            );
+        }
     },
     notifyMenu(index) {
         if (!index) {

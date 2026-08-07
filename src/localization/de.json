@@ -2261,6 +2261,8 @@
                     "table_page_sizes_description": "Füge die in Tabellensteuerungen angezeigten Seitengrößen-Optionen hinzu, entferne sie oder wähle sie aus.",
                     "table_page_sizes_error": "Die Seitengröße muss eine Zahl zwischen 1 und 1000 sein",
                     "show_notification_icon_dot": "Tray-Benachrichtigungspunkt",
+                    "show_taskbar_icon_dot": "Taskleisten-Benachrichtigungspunkt",
+                    "show_taskbar_icon_dot_description": "Zeigt einen roten Punkt auf der VRCX-0-Schaltfläche in der Taskleiste, solange Benachrichtigungen ungelesen sind.",
                     "striped_data_table_mode": "Gestreifte Tabellen",
                     "reduced_motion_and_blur": "Effekte reduzieren",
                     "reduced_motion_and_blur_description": "Deaktiviert Animationen, Übergänge und Hintergrundunschärfe für eine bessere Leistung auf schwächeren Geräten.",

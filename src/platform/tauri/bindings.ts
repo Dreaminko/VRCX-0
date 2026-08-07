@@ -2411,6 +2411,11 @@ export const commands = {
     async appSetTrayIconNotification(notify: boolean | null): Promise<void> {
         await TAURI_INVOKE('app__set_tray_icon_notification', { notify });
     },
+    async appSetTaskbarOverlayNotification(
+        notify: boolean | null
+    ): Promise<void> {
+        await TAURI_INVOKE('app__set_taskbar_overlay_notification', { notify });
+    },
     async appRefreshTrayMenu(): Promise<null> {
         return await TAURI_INVOKE('app__refresh_tray_menu');
     },

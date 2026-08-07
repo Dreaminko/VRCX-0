@@ -153,6 +153,7 @@ export const ConfigKeys = defineConfigKeys({
     notificationTTSNameMode: { type: 'string', default: 'username' },
     notificationTTSNickName: { type: 'bool', default: false },
     notificationIconDot: { type: 'bool', default: true },
+    taskbarIconDot: { type: 'bool', default: true },
     showPostUpdateChangelogToast: { type: 'bool', default: true },
     xsNotifications: { type: 'bool', default: false },
     ovrtHudNotifications: { type: 'bool', default: false },

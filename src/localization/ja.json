@@ -2257,6 +2257,8 @@
                     "table_page_sizes_description": "テーブルコントロールに表示するページサイズ候補を追加、削除、選択します。",
                     "table_page_sizes_error": "1〜1000の数字を入力してください",
                     "show_notification_icon_dot": "トレイ通知ドットを表示",
+                    "show_taskbar_icon_dot": "タスクバー通知ドットを表示",
+                    "show_taskbar_icon_dot_description": "未読の通知があるあいだ、タスクバーの VRCX-0 ボタンに赤いドットを表示します。",
                     "striped_data_table_mode": "テーブルの行に交互に色を付ける",
                     "reduced_motion_and_blur": "エフェクトを減らす",
                     "reduced_motion_and_blur_description": "アニメーション、トランジション、背景のぼかしを無効にして、低スペック環境での動作を軽くします。",

@@ -198,6 +198,10 @@ fn present_main_window(app: &tauri::AppHandle) {
         let _ = window.unminimize();
         let _ = window.set_focus();
     }
+    #[cfg(windows)]
+    if let Some(handle) = crate::commands::host::window::main_window_handle(app) {
+        vrcx_0_host_desktop::taskbar_overlay::reapply_taskbar_overlay_notification(handle);
+    }
 }
 
 pub(super) fn create_main_window(

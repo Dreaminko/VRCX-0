@@ -2261,6 +2261,8 @@
                     "table_page_sizes_description": "Añade, elimina y selecciona las opciones de tamaño de página que se muestran en los controles de tabla.",
                     "table_page_sizes_error": "El tamaño de página debe ser un número entre 1 y 1000",
                     "show_notification_icon_dot": "Punto de notificación en la bandeja",
+                    "show_taskbar_icon_dot": "Punto de notificación en la barra de tareas",
+                    "show_taskbar_icon_dot_description": "Muestra un punto rojo en el botón de VRCX-0 de la barra de tareas mientras haya notificaciones sin leer.",
                     "striped_data_table_mode": "Tablas con franjas",
                     "reduced_motion_and_blur": "Reducir efectos",
                     "reduced_motion_and_blur_description": "Desactiva las animaciones, transiciones y el desenfoque de fondo para mejorar el rendimiento en equipos menos potentes.",

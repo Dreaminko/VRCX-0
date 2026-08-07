@@ -55,6 +55,7 @@ export function createDefaultSettingsPrefs() {
         hideUnfriends: false,
         randomUserColours: false,
         notificationIconDot: true,
+        taskbarIconDot: true,
         showPostUpdateChangelogToast: true,
         autoInstallUpdatesOnStartup: true,
         desktopToast: 'Never',
