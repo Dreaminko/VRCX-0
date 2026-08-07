@@ -25,15 +25,11 @@ type LlmEndpointsStoreState = {
     ) => Promise<LlmEndpointDetectModelsResult>;
 };
 
-export function mergeManualModels(
-    existingModels: string[],
-    manualInput: string
-): string[] {
-    const manualModels = manualInput
-        .split(/[\n,]/)
+export function mergeModels(...lists: string[][]): string[] {
+    const models = lists
+        .flat()
         .map((model) => model.trim())
         .filter(Boolean);
-    const models = [...existingModels, ...manualModels];
     models.sort();
     return [...new Set(models)];
 }

@@ -28,7 +28,7 @@ export type LlmEndpointProviderDraft = {
     baseUrl: string;
     apiKey: string;
     clearKey: boolean;
-    modelsText: string;
+    models: string[];
     detectedModelReasoning: LlmModelReasoning[] | null;
 };
 
@@ -128,7 +128,7 @@ export function applyLlmEndpointProviderPreset(
             baseUrl: '',
             apiKey: '',
             clearKey: false,
-            modelsText: '',
+            models: [],
             detectedModelReasoning: null
         };
     }
@@ -138,7 +138,7 @@ export function applyLlmEndpointProviderPreset(
         providerId: preset.id,
         name: preset.name,
         baseUrl: preset.baseUrl,
-        modelsText: '',
+        models: [],
         detectedModelReasoning: null
     };
 }
@@ -168,7 +168,7 @@ export function createEmptyLlmEndpointDraft(): LlmEndpointProviderDraft {
             baseUrl: '',
             apiKey: '',
             clearKey: false,
-            modelsText: '',
+            models: [],
             detectedModelReasoning: null
         },
         DEFAULT_LLM_ENDPOINT_PROVIDER_ID

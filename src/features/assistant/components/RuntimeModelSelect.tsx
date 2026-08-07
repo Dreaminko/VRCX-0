@@ -1,19 +1,26 @@
 import { useLlmEndpointsStore } from '@/state/llmEndpointsStore';
 import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
+    Combobox,
+    ComboboxCollection,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxGroup,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxLabel,
+    ComboboxList
+} from '@/ui/shadcn/combobox';
 
 const RUNTIME_SEPARATOR = '::';
 
 export type RuntimeModelRef = {
     endpointId: string;
     model: string;
+};
+
+type RuntimeModelGroup = {
+    value: string;
+    items: string[];
 };
 
 function runtimeModelValue(endpointId: string, model: string): string {
@@ -31,10 +38,15 @@ function parseRuntimeModelValue(value: string): RuntimeModelRef | null {
     };
 }
 
+function runtimeModelLabel(value: string): string {
+    return parseRuntimeModelValue(value)?.model ?? value;
+}
+
 type RuntimeModelSelectProps = {
     endpointId: string | null;
     model: string | null;
     placeholder: string;
+    emptyLabel: string;
     id?: string;
     onSelect: (ref: RuntimeModelRef) => void;
 };
@@ -43,23 +55,23 @@ export function RuntimeModelSelect({
     endpointId,
     model,
     placeholder,
+    emptyLabel,
     id,
     onSelect
 }: RuntimeModelSelectProps) {
     const endpoints = useLlmEndpointsStore((state) => state.endpoints);
-    const groups = endpoints.filter((endpoint) => endpoint.models.length);
-    const items = groups.flatMap((endpoint) =>
-        endpoint.models.map((endpointModel) => ({
-            value: runtimeModelValue(endpoint.id, endpointModel),
-            label: endpointModel
-        }))
-    );
+    const groups: RuntimeModelGroup[] = endpoints
+        .filter((endpoint) => endpoint.models.length)
+        .map((endpoint) => ({
+            value: endpoint.name,
+            items: endpoint.models.map((endpointModel) =>
+                runtimeModelValue(endpoint.id, endpointModel)
+            )
+        }));
+    const values = groups.flatMap((group) => group.items);
     const selected =
         endpointId && model ? runtimeModelValue(endpointId, model) : null;
-    const value =
-        selected && items.some((item) => item.value === selected)
-            ? selected
-            : undefined;
+    const value = selected && values.includes(selected) ? selected : null;
 
     function handleValueChange(next: string | null) {
         const parsed = next ? parseRuntimeModelValue(next) : null;
@@ -69,33 +81,35 @@ export function RuntimeModelSelect({
     }
 
     return (
-        <Select
+        <Combobox
+            items={groups}
             value={value}
-            items={items}
-            disabled={!items.length}
+            itemToStringLabel={runtimeModelLabel}
             onValueChange={handleValueChange}
         >
-            <SelectTrigger id={id} className="w-full">
-                <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
-            <SelectContent>
-                {groups.map((endpoint) => (
-                    <SelectGroup key={endpoint.id}>
-                        <SelectLabel>{endpoint.name}</SelectLabel>
-                        {endpoint.models.map((endpointModel) => (
-                            <SelectItem
-                                key={endpointModel}
-                                value={runtimeModelValue(
-                                    endpoint.id,
-                                    endpointModel
+            <ComboboxInput
+                id={id}
+                className="w-full"
+                disabled={!values.length}
+                placeholder={placeholder}
+            />
+            <ComboboxContent>
+                <ComboboxEmpty>{emptyLabel}</ComboboxEmpty>
+                <ComboboxList>
+                    {(group: RuntimeModelGroup) => (
+                        <ComboboxGroup key={group.value} items={group.items}>
+                            <ComboboxLabel>{group.value}</ComboboxLabel>
+                            <ComboboxCollection>
+                                {(item: string) => (
+                                    <ComboboxItem key={item} value={item}>
+                                        {runtimeModelLabel(item)}
+                                    </ComboboxItem>
                                 )}
-                            >
-                                {endpointModel}
-                            </SelectItem>
-                        ))}
-                    </SelectGroup>
-                ))}
-            </SelectContent>
-        </Select>
+                            </ComboboxCollection>
+                        </ComboboxGroup>
+                    )}
+                </ComboboxList>
+            </ComboboxContent>
+        </Combobox>
     );
 }

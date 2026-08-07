@@ -1,20 +1,31 @@
 import {
+    AlertTriangleIcon,
     PlusIcon,
     RefreshCwIcon,
     SquarePenIcon,
     Trash2Icon
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { cn } from '@/lib/utils';
 import { type LlmEndpointDto } from '@/platform/tauri/bindings';
-import {
-    mergeManualModels,
-    useLlmEndpointsStore
-} from '@/state/llmEndpointsStore';
+import { mergeModels, useLlmEndpointsStore } from '@/state/llmEndpointsStore';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
+import {
+    Combobox,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxItem,
+    ComboboxList,
+    ComboboxValue,
+    useComboboxAnchor
+} from '@/ui/shadcn/combobox';
 import {
     Dialog,
     DialogContent,
@@ -33,15 +44,7 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow
-} from '@/ui/shadcn/table';
-import { Textarea } from '@/ui/shadcn/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
@@ -65,19 +68,26 @@ function draftFromEndpoint(endpoint: LlmEndpointDto): EndpointDraft {
         baseUrl: endpoint.baseUrl,
         apiKey: '',
         clearKey: false,
-        modelsText: endpoint.models.join('\n'),
+        models: endpoint.models,
         detectedModelReasoning: null
     };
 }
 
-function formatModelSummary(models: string[], fallback: string): string {
-    if (!models.length) {
-        return fallback;
-    }
+function formatModelSummary(models: string[]): string {
     if (models.length <= 3) {
         return models.join(', ');
     }
     return `${models.slice(0, 3).join(', ')} +${models.length - 3}`;
+}
+
+function isValidBaseUrl(value: string): boolean {
+    let url: URL;
+    try {
+        url = new URL(value.trim());
+    } catch {
+        return false;
+    }
+    return url.protocol === 'http:' || url.protocol === 'https:';
 }
 
 function endpointApiKeyInput(draft: EndpointDraft): string | null {
@@ -113,14 +123,22 @@ export function LlmEndpointsDialog({
     const [draft, setDraft] = useState<EndpointDraft>(
         createEmptyLlmEndpointDraft
     );
-    const modelCount = useMemo(
-        () =>
-            endpoints.reduce(
-                (count, endpoint) => count + endpoint.models.length,
-                0
-            ),
-        [endpoints]
-    );
+    const [detectedModels, setDetectedModels] = useState<string[]>([]);
+    const [modelQuery, setModelQuery] = useState('');
+    const [saving, setSaving] = useState(false);
+    const modelsAnchor = useComboboxAnchor();
+    const baseUrlValid = isValidBaseUrl(draft.baseUrl);
+    const modelOptions = mergeModels(detectedModels, draft.models);
+    const providerOptions = [
+        {
+            value: CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
+            label: t('view.tools.llm_endpoints.preset_custom')
+        },
+        ...LLM_ENDPOINT_PROVIDER_PRESETS.map((preset) => ({
+            value: preset.id,
+            label: preset.labelKey ? t(preset.labelKey) : preset.label
+        }))
+    ];
 
     useEffect(() => {
         if (!open) {
@@ -136,13 +154,26 @@ export function LlmEndpointsDialog({
         });
     }, [open, load, t]);
 
+    function dialogTitle(): string {
+        if (view === 'list') {
+            return t('view.tools.llm_endpoints.title');
+        }
+        return draft.id
+            ? t('view.tools.llm_endpoints.edit')
+            : t('view.tools.llm_endpoints.add');
+    }
+
     function openAddView() {
         setDraft(createEmptyLlmEndpointDraft());
+        setDetectedModels([]);
+        setModelQuery('');
         setView('edit');
     }
 
     function openEditView(endpoint: LlmEndpointDto) {
         setDraft(draftFromEndpoint(endpoint));
+        setDetectedModels([]);
+        setModelQuery('');
         setView('edit');
     }
 
@@ -151,55 +182,36 @@ export function LlmEndpointsDialog({
             return;
         }
         setDraft((current) => applyLlmEndpointProviderPreset(current, value));
+        setDetectedModels([]);
     }
 
-    async function saveDraft() {
-        const baseUrl = draft.baseUrl.trim();
-        if (!baseUrl) {
-            toast.warning(t('view.tools.llm_endpoints.base_url_required'));
-            return;
-        }
-        try {
-            await upsert({
-                id: draft.id,
-                name: draft.name.trim(),
-                baseUrl,
-                apiKey: endpointApiKeyInput(draft),
-                models: mergeManualModels([], draft.modelsText),
-                modelReasoning: draft.detectedModelReasoning
-            });
-            toast.success(t('view.tools.llm_endpoints.saved'));
-            setView('list');
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('view.tools.llm_endpoints.save_failed')
-            );
-        }
+    async function detectInto(target: EndpointDraft): Promise<string[]> {
+        const useSavedEndpoint = shouldUseSavedLlmEndpointForDetect(target);
+        const result = await detectModels({
+            id: useSavedEndpoint ? target.id : null,
+            baseUrl: useSavedEndpoint ? null : target.baseUrl.trim() || null,
+            apiKey: useSavedEndpoint ? null : target.apiKey.trim() || null,
+            persist: useSavedEndpoint
+        });
+        setDetectedModels(result.models);
+        setDraft((current) => ({
+            ...current,
+            detectedModelReasoning: result.modelReasoning
+        }));
+        return result.models;
     }
 
     async function detectForDraft() {
         try {
-            const useSavedEndpoint = shouldUseSavedLlmEndpointForDetect(draft);
-            const result = await detectModels({
-                id: useSavedEndpoint ? draft.id : null,
-                baseUrl: useSavedEndpoint ? null : draft.baseUrl.trim() || null,
-                apiKey: useSavedEndpoint ? null : draft.apiKey.trim() || null,
-                persist: useSavedEndpoint
-            });
+            const models = await detectInto(draft);
             setDraft((current) => ({
                 ...current,
-                modelsText: mergeManualModels(
-                    result.models,
-                    current.modelsText
-                ).join('\n'),
-                detectedModelReasoning: result.modelReasoning
+                models: mergeModels(current.models, models)
             }));
             toast.success(
-                result.models.length
+                models.length
                     ? t('view.tools.llm_endpoints.models_detected', {
-                          count: result.models.length
+                          count: models.length
                       })
                     : t('view.tools.llm_endpoints.no_models_detected')
             );
@@ -210,6 +222,59 @@ export function LlmEndpointsDialog({
                     : t('view.tools.llm_endpoints.detect_failed')
             );
         }
+    }
+
+    async function resolveModelsForSave(): Promise<string[]> {
+        if (draft.models.length) {
+            return draft.models;
+        }
+        try {
+            return await detectInto(draft);
+        } catch {
+            return [];
+        }
+    }
+
+    async function saveDraft() {
+        setSaving(true);
+        try {
+            const models = await resolveModelsForSave();
+            await upsert({
+                id: draft.id,
+                name: draft.name.trim(),
+                baseUrl: draft.baseUrl.trim(),
+                apiKey: endpointApiKeyInput(draft),
+                models,
+                modelReasoning: draft.detectedModelReasoning
+            });
+            if (models.length) {
+                toast.success(t('view.tools.llm_endpoints.saved'));
+            } else {
+                toast.warning(t('view.tools.llm_endpoints.saved_unusable'));
+            }
+            setView('list');
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('view.tools.llm_endpoints.save_failed')
+            );
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    function addQueriedModel(event: React.KeyboardEvent<HTMLInputElement>) {
+        const model = modelQuery.trim();
+        if (event.key !== 'Enter' || !model || modelOptions.includes(model)) {
+            return;
+        }
+        event.preventDefault();
+        setDraft((current) => ({
+            ...current,
+            models: mergeModels(current.models, [model])
+        }));
+        setModelQuery('');
     }
 
     function detectForRow(endpoint: LlmEndpointDto) {
@@ -242,15 +307,14 @@ export function LlmEndpointsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-5xl">
+            <DialogContent
+                className={cn(
+                    'max-h-[85vh] overflow-y-auto',
+                    view === 'edit' ? 'sm:max-w-lg' : 'sm:max-w-3xl'
+                )}
+            >
                 <DialogHeader>
-                    <DialogTitle>
-                        {view === 'edit'
-                            ? draft.id
-                                ? t('view.tools.llm_endpoints.edit')
-                                : t('view.tools.llm_endpoints.add')
-                            : t('view.tools.llm_endpoints.title')}
-                    </DialogTitle>
+                    <DialogTitle>{dialogTitle()}</DialogTitle>
                     {view === 'list' ? (
                         <DialogDescription>
                             {t('view.tools.llm_endpoints.description')}
@@ -259,149 +323,46 @@ export function LlmEndpointsDialog({
                 </DialogHeader>
 
                 {view === 'list' ? (
-                    <div className="grid gap-3">
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 text-sm">
-                                <Badge variant="outline">
-                                    {t(
-                                        'view.tools.llm_endpoints.endpoint_count',
-                                        { count: endpoints.length }
-                                    )}
-                                </Badge>
-                                <Badge variant="outline">
-                                    {t('view.tools.llm_endpoints.model_count', {
-                                        count: modelCount
-                                    })}
-                                </Badge>
-                            </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                onClick={openAddView}
-                            >
-                                <PlusIcon data-icon="inline-start" />
-                                {t('view.tools.llm_endpoints.add')}
-                            </Button>
-                        </div>
+                    <div className="grid gap-2">
                         {endpoints.length ? (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>
-                                            {t('view.tools.llm_endpoints.name')}
-                                        </TableHead>
-                                        <TableHead>
-                                            {t(
-                                                'view.tools.llm_endpoints.base_url'
-                                            )}
-                                        </TableHead>
-                                        <TableHead>
-                                            {t(
-                                                'view.tools.llm_endpoints.models'
-                                            )}
-                                        </TableHead>
-                                        <TableHead>
-                                            {t('view.tools.llm_endpoints.key')}
-                                        </TableHead>
-                                        <TableHead className="w-32 text-right">
-                                            {t(
-                                                'view.tools.llm_endpoints.actions'
-                                            )}
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {endpoints.map((endpoint) => (
-                                        <TableRow key={endpoint.id}>
-                                            <TableCell className="font-medium">
-                                                {endpoint.name}
-                                            </TableCell>
-                                            <TableCell className="max-w-[340px] truncate">
-                                                {endpoint.baseUrl}
-                                            </TableCell>
-                                            <TableCell className="max-w-[400px] truncate">
-                                                {formatModelSummary(
-                                                    endpoint.models,
-                                                    t(
-                                                        'view.tools.llm_endpoints.no_models'
-                                                    )
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        endpoint.hasKey
-                                                            ? 'secondary'
-                                                            : 'outline'
-                                                    }
-                                                >
-                                                    {endpoint.hasKey
-                                                        ? t(
-                                                              'view.tools.llm_endpoints.key_saved'
-                                                          )
-                                                        : t(
-                                                              'view.tools.llm_endpoints.key_empty'
-                                                          )}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex justify-end gap-1">
-                                                    <Button
-                                                        type="button"
-                                                        size="icon-xs"
-                                                        variant="ghost"
-                                                        aria-label={t(
-                                                            'view.tools.llm_endpoints.detect_models'
-                                                        )}
-                                                        onClick={() =>
-                                                            detectForRow(
-                                                                endpoint
-                                                            )
-                                                        }
-                                                    >
-                                                        <RefreshCwIcon data-icon="inline-start" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        size="icon-xs"
-                                                        variant="ghost"
-                                                        aria-label={t(
-                                                            'view.tools.llm_endpoints.edit'
-                                                        )}
-                                                        onClick={() =>
-                                                            openEditView(
-                                                                endpoint
-                                                            )
-                                                        }
-                                                    >
-                                                        <SquarePenIcon data-icon="inline-start" />
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        size="icon-xs"
-                                                        variant="ghost"
-                                                        aria-label={t(
-                                                            'view.tools.llm_endpoints.delete'
-                                                        )}
-                                                        onClick={() =>
-                                                            deleteEndpointWithFeedback(
-                                                                endpoint
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2Icon data-icon="inline-start" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <>
+                                {endpoints.map((endpoint) => (
+                                    <EndpointRow
+                                        key={endpoint.id}
+                                        endpoint={endpoint}
+                                        onDetect={() => detectForRow(endpoint)}
+                                        onEdit={() => openEditView(endpoint)}
+                                        onDelete={() =>
+                                            deleteEndpointWithFeedback(endpoint)
+                                        }
+                                    />
+                                ))}
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="justify-self-start"
+                                    onClick={openAddView}
+                                >
+                                    <PlusIcon data-icon="inline-start" />
+                                    {t('view.tools.llm_endpoints.add')}
+                                </Button>
+                            </>
                         ) : (
-                            <div className="text-muted-foreground rounded-md border border-dashed px-3 py-6 text-center text-sm">
-                                {t(
-                                    'view.tools.llm_endpoints.empty_description'
-                                )}
+                            <div className="flex flex-col items-center gap-3 rounded-md border border-dashed px-3 py-8 text-center">
+                                <span className="text-muted-foreground text-sm">
+                                    {t(
+                                        'view.tools.llm_endpoints.empty_description'
+                                    )}
+                                </span>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={openAddView}
+                                >
+                                    <PlusIcon data-icon="inline-start" />
+                                    {t('view.tools.llm_endpoints.add')}
+                                </Button>
                             </div>
                         )}
                     </div>
@@ -413,22 +374,7 @@ export function LlmEndpointsDialog({
                             </Label>
                             <Select
                                 value={draft.providerId}
-                                items={[
-                                    {
-                                        value: CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
-                                        label: t(
-                                            'view.tools.llm_endpoints.preset_custom'
-                                        )
-                                    },
-                                    ...LLM_ENDPOINT_PROVIDER_PRESETS.map(
-                                        (preset) => ({
-                                            value: preset.id,
-                                            label: preset.labelKey
-                                                ? t(preset.labelKey)
-                                                : preset.label
-                                        })
-                                    )
-                                ]}
+                                items={providerOptions}
                                 onValueChange={updateDraftProvider}
                             >
                                 <SelectTrigger
@@ -439,27 +385,14 @@ export function LlmEndpointsDialog({
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        <SelectItem
-                                            value={
-                                                CUSTOM_LLM_ENDPOINT_PROVIDER_ID
-                                            }
-                                        >
-                                            {t(
-                                                'view.tools.llm_endpoints.preset_custom'
-                                            )}
-                                        </SelectItem>
-                                        {LLM_ENDPOINT_PROVIDER_PRESETS.map(
-                                            (preset) => (
-                                                <SelectItem
-                                                    key={preset.id}
-                                                    value={preset.id}
-                                                >
-                                                    {preset.labelKey
-                                                        ? t(preset.labelKey)
-                                                        : preset.label}
-                                                </SelectItem>
-                                            )
-                                        )}
+                                        {providerOptions.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>
@@ -482,6 +415,9 @@ export function LlmEndpointsDialog({
                                     }))
                                 }
                             />
+                            <span className="text-muted-foreground text-xs">
+                                {t('view.tools.llm_endpoints.name_description')}
+                            </span>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="llm-endpoint-dialog-base-url">
@@ -490,6 +426,9 @@ export function LlmEndpointsDialog({
                             <Input
                                 id="llm-endpoint-dialog-base-url"
                                 value={draft.baseUrl}
+                                aria-invalid={
+                                    Boolean(draft.baseUrl) && !baseUrlValid
+                                }
                                 placeholder="https://api.openai.com/v1"
                                 onChange={(event) =>
                                     setDraft((current) => ({
@@ -503,6 +442,13 @@ export function LlmEndpointsDialog({
                                     }))
                                 }
                             />
+                            {draft.baseUrl && !baseUrlValid ? (
+                                <span className="text-destructive text-xs">
+                                    {t(
+                                        'view.tools.llm_endpoints.base_url_invalid'
+                                    )}
+                                </span>
+                            ) : null}
                         </div>
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between gap-2">
@@ -553,14 +499,14 @@ export function LlmEndpointsDialog({
                         </div>
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between gap-2">
-                                <Label htmlFor="llm-endpoint-dialog-models">
+                                <Label>
                                     {t('view.tools.llm_endpoints.models')}
                                 </Label>
                                 <Button
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    disabled={loading}
+                                    disabled={loading || !baseUrlValid}
                                     onClick={detectForDraft}
                                 >
                                     <RefreshCwIcon data-icon="inline-start" />
@@ -569,19 +515,66 @@ export function LlmEndpointsDialog({
                                     )}
                                 </Button>
                             </div>
-                            <Textarea
-                                id="llm-endpoint-dialog-models"
-                                rows={5}
-                                value={draft.modelsText}
-                                placeholder="gpt-4o-mini"
-                                onChange={(event) =>
+                            <Combobox
+                                multiple
+                                autoHighlight
+                                items={modelOptions}
+                                value={draft.models}
+                                inputValue={modelQuery}
+                                onInputValueChange={setModelQuery}
+                                onValueChange={(models: string[]) =>
                                     setDraft((current) => ({
                                         ...current,
-                                        modelsText: event.target.value
+                                        models
                                     }))
                                 }
-                                className="resize-none"
-                            />
+                            >
+                                <ComboboxChips
+                                    ref={modelsAnchor}
+                                    className="w-full"
+                                >
+                                    <ComboboxValue>
+                                        {(models: string[]) => (
+                                            <>
+                                                {models.map((model) => (
+                                                    <ComboboxChip key={model}>
+                                                        <span className="max-w-48 truncate">
+                                                            {model}
+                                                        </span>
+                                                    </ComboboxChip>
+                                                ))}
+                                                <ComboboxChipsInput
+                                                    placeholder={
+                                                        models.length
+                                                            ? ''
+                                                            : t(
+                                                                  'view.tools.llm_endpoints.models_placeholder'
+                                                              )
+                                                    }
+                                                    onKeyDown={addQueriedModel}
+                                                />
+                                            </>
+                                        )}
+                                    </ComboboxValue>
+                                </ComboboxChips>
+                                <ComboboxContent anchor={modelsAnchor}>
+                                    <ComboboxEmpty>
+                                        {t(
+                                            'view.tools.llm_endpoints.models_empty'
+                                        )}
+                                    </ComboboxEmpty>
+                                    <ComboboxList>
+                                        {(model: string) => (
+                                            <ComboboxItem
+                                                key={model}
+                                                value={model}
+                                            >
+                                                {model}
+                                            </ComboboxItem>
+                                        )}
+                                    </ComboboxList>
+                                </ComboboxContent>
+                            </Combobox>
                         </div>
                     </div>
                 )}
@@ -597,7 +590,7 @@ export function LlmEndpointsDialog({
                         </Button>
                         <Button
                             type="button"
-                            disabled={loading}
+                            disabled={loading || saving || !baseUrlValid}
                             onClick={saveDraft}
                         >
                             {t('common.actions.save')}
@@ -606,5 +599,117 @@ export function LlmEndpointsDialog({
                 ) : null}
             </DialogContent>
         </Dialog>
+    );
+}
+
+type EndpointRowProps = {
+    endpoint: LlmEndpointDto;
+    onDetect: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
+};
+
+function EndpointRow({
+    endpoint,
+    onDetect,
+    onEdit,
+    onDelete
+}: EndpointRowProps) {
+    const { t } = useTranslation();
+    const unusable = !endpoint.models.length;
+
+    return (
+        <div
+            className={cn(
+                'grid gap-2 rounded-md border px-3 py-2.5',
+                unusable && 'border-destructive/40'
+            )}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div className="grid min-w-0 gap-0.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate font-medium">
+                            {endpoint.name}
+                        </span>
+                        <Badge
+                            variant={endpoint.hasKey ? 'secondary' : 'outline'}
+                        >
+                            {endpoint.hasKey
+                                ? t('view.tools.llm_endpoints.key_saved')
+                                : t('view.tools.llm_endpoints.key_empty')}
+                        </Badge>
+                    </div>
+                    <span className="text-muted-foreground truncate text-xs">
+                        {endpoint.baseUrl}
+                    </span>
+                    {unusable ? null : (
+                        <span className="text-muted-foreground truncate text-xs">
+                            {formatModelSummary(endpoint.models)}
+                        </span>
+                    )}
+                </div>
+                <div className="flex shrink-0 gap-1">
+                    <RowAction
+                        label={t('view.tools.llm_endpoints.detect_models')}
+                        onClick={onDetect}
+                    >
+                        <RefreshCwIcon data-icon="inline-start" />
+                    </RowAction>
+                    <RowAction
+                        label={t('view.tools.llm_endpoints.edit')}
+                        onClick={onEdit}
+                    >
+                        <SquarePenIcon data-icon="inline-start" />
+                    </RowAction>
+                    <RowAction
+                        label={t('view.tools.llm_endpoints.delete')}
+                        onClick={onDelete}
+                    >
+                        <Trash2Icon data-icon="inline-start" />
+                    </RowAction>
+                </div>
+            </div>
+            {unusable ? (
+                <div className="text-destructive flex flex-wrap items-center gap-2 text-xs">
+                    <AlertTriangleIcon className="size-3.5" />
+                    <span>{t('view.tools.llm_endpoints.unusable')}</span>
+                    <Button
+                        type="button"
+                        size="xs"
+                        variant="outline"
+                        onClick={onDetect}
+                    >
+                        {t('view.tools.llm_endpoints.detect_models')}
+                    </Button>
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+type RowActionProps = {
+    label: string;
+    onClick: () => void;
+    children: React.ReactNode;
+};
+
+function RowAction({ label, onClick, children }: RowActionProps) {
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        size="icon-xs"
+                        variant="ghost"
+                        aria-label={label}
+                        onClick={onClick}
+                    />
+                }
+            >
+                {children}
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
     );
 }

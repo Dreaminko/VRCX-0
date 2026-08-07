@@ -20,7 +20,7 @@ function draft(): LlmEndpointProviderDraft {
         baseUrl: 'https://example.test/v1',
         apiKey: 'sk-existing',
         clearKey: true,
-        modelsText: 'manual-model',
+        models: ['manual-model'],
         detectedModelReasoning: null
     };
 }
@@ -87,7 +87,7 @@ describe('LLM endpoint presets', () => {
             baseUrl: 'https://api.x.ai/v1',
             apiKey: 'sk-existing',
             clearKey: true,
-            modelsText: '',
+            models: [],
             detectedModelReasoning: null
         });
     });
@@ -101,7 +101,7 @@ describe('LLM endpoint presets', () => {
             baseUrl: 'https://openrouter.ai/api/v1',
             apiKey: 'sk-existing',
             clearKey: true,
-            modelsText: '',
+            models: [],
             detectedModelReasoning: null
         });
         expect(applyLlmEndpointProviderPreset(draft(), 'siliconflow')).toEqual({
@@ -112,7 +112,7 @@ describe('LLM endpoint presets', () => {
             baseUrl: 'https://api.siliconflow.cn/v1',
             apiKey: 'sk-existing',
             clearKey: true,
-            modelsText: '',
+            models: [],
             detectedModelReasoning: null
         });
     });
@@ -131,7 +131,7 @@ describe('LLM endpoint presets', () => {
             baseUrl: '',
             apiKey: '',
             clearKey: false,
-            modelsText: '',
+            models: [],
             detectedModelReasoning: null
         });
     });

@@ -46,18 +46,29 @@ export function AssistantSettingsGroup({
     active
 }: AssistantSettingsGroupProps) {
     const { t } = useTranslation();
+    const endpoints = useLlmEndpointsStore((state) => state.endpoints);
     const loadEndpoints = useLlmEndpointsStore((state) => state.load);
     const [selection, setSelection] =
         useState<AssistantRuntimeSelection>(EMPTY_SELECTION);
     const [followCustomProxy, setFollowCustomProxy] = useState(true);
     const [proxyLoading, setProxyLoading] = useState(false);
+    const [endpointsLoaded, setEndpointsLoaded] = useState(false);
+    const showSetupGate =
+        endpointsLoaded &&
+        !endpoints.some((endpoint) => endpoint.models.length);
 
     useEffect(() => {
         if (!active) {
             return;
         }
         let stale = false;
-        loadEndpoints().catch(() => {});
+        loadEndpoints()
+            .catch(() => {})
+            .finally(() => {
+                if (!stale) {
+                    setEndpointsLoaded(true);
+                }
+            });
         commands
             .appAssistantRuntimeStatus()
             .then((status) => {
@@ -121,62 +132,80 @@ export function AssistantSettingsGroup({
                 title={t('view.settings.ai.header')}
                 description={t('view.settings.ai.description')}
             >
-                <Field
-                    label={t('view.settings.ai.default_model')}
-                    description={t(
-                        'view.settings.ai.default_model_description'
-                    )}
-                >
-                    <RuntimeModelSelect
-                        endpointId={selection.endpointId}
-                        model={selection.model}
-                        placeholder={t('view.settings.ai.default_model_unset')}
-                        onSelect={(ref) => void updateSelection(ref)}
-                    />
-                </Field>
+                {showSetupGate ? (
+                    <div className="flex flex-col items-center gap-3 py-6 text-center">
+                        <span className="text-muted-foreground text-sm">
+                            {t('view.settings.ai.setup_hint')}
+                        </span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={openLlmEndpointsManager}
+                        >
+                            {t('view.tools.llm_endpoints.add')}
+                        </Button>
+                    </div>
+                ) : (
+                    <>
+                        <Field
+                            label={t('view.settings.ai.default_model')}
+                            description={t(
+                                'view.settings.ai.default_model_description'
+                            )}
+                        >
+                            <RuntimeModelSelect
+                                endpointId={selection.endpointId}
+                                model={selection.model}
+                                placeholder={t(
+                                    'view.settings.ai.default_model_unset'
+                                )}
+                                emptyLabel={t(
+                                    'view.settings.ai.default_model_unset'
+                                )}
+                                onSelect={(ref) => void updateSelection(ref)}
+                            />
+                        </Field>
 
-                <Field
-                    label={t('assistant.runtime.playbook_mode')}
-                    description={t(
-                        'view.settings.ai.playbook_mode_description'
-                    )}
-                >
-                    <Select
-                        value={selection.playbookMode}
-                        items={playbookItems}
-                        onValueChange={(value) =>
-                            void updateSelection({
-                                playbookMode: value ?? 'auto'
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-full">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {playbookItems.map((item) => (
-                                    <SelectItem
-                                        key={item.value}
-                                        value={item.value}
-                                    >
-                                        {item.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                </Field>
+                        <Field
+                            label={t('assistant.runtime.playbook_mode')}
+                            description={t(
+                                'view.settings.ai.playbook_mode_description'
+                            )}
+                        >
+                            <Select
+                                value={selection.playbookMode}
+                                items={playbookItems}
+                                onValueChange={(value) =>
+                                    void updateSelection({
+                                        playbookMode: value ?? 'auto'
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        {playbookItems.map((item) => (
+                                            <SelectItem
+                                                key={item.value}
+                                                value={item.value}
+                                            >
+                                                {item.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </Field>
+                    </>
+                )}
             </SettingsGroup>
 
             <SettingsGroup
                 title={t('view.tools.llm_endpoints.title')}
                 description={t('view.tools.llm_endpoints.description')}
-            >
-                <Field
-                    label={t('view.settings.ai.endpoints_manage')}
-                    description={t('view.settings.ai.endpoints_description')}
-                >
+                action={
                     <Button
                         type="button"
                         variant="outline"
@@ -185,8 +214,8 @@ export function AssistantSettingsGroup({
                     >
                         {t('assistant.runtime.manage_endpoints')}
                     </Button>
-                </Field>
-
+                }
+            >
                 <Field
                     label={t('view.tools.llm_endpoints.follow_custom_proxy')}
                     description={t(
