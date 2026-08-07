@@ -95,7 +95,7 @@ fn parses_player_join_leave_resource_vote_and_sticker_lines() {
         "2026.06.21 22:11:00 Log        -  [Behaviour] OnPlayerJoined Maple (usr_join)",
         "2026.06.21 22:12:00 Log        -  [Behaviour] OnPlayerLeft Guest (usr_left)",
         "2026.06.21 22:13:00 Log        -  [Behaviour] Received executive message: A vote kick has been started.",
-        "2026.06.21 22:14:00 Log        -  [StickersManager] User Sticker Fan (usr_sticker) spawned sticker inv_1234-abc~x:meta(extra)!",
+        "2026.06.21 22:14:00 Log        -  [StickersManager] User usr_sticker (Sticker Fan) spawned sticker inv_1234-abc~x:meta(extra)!",
     ];
 
     assert!(presence::parse_player_joined_or_left(

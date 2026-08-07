@@ -1,7 +1,6 @@
 use vrcx_0_core::game_log_parser::GameLogEventKind;
 
 use super::context::LogContext;
-use super::presence::{parse_user_info, ParsedUserInfo};
 use super::sink::GameLogParseSink;
 
 const VRCHAT_LOCAL_RESOURCE_URL_PREFIXES: [&str; 2] =
@@ -303,10 +302,20 @@ pub(super) fn parse_sticker_spawn(
             .split_once(" spawned sticker")
             .map(|(user_info, _)| user_info)
             .unwrap_or(info);
-        let ParsedUserInfo {
-            display_name,
-            user_id,
-        } = parse_user_info(user_info);
+        let (raw_user_id, display_name) = user_info
+            .split_once(" (")
+            .map(|(user_id, display_name)| {
+                (
+                    user_id,
+                    display_name.strip_suffix(')').unwrap_or(display_name),
+                )
+            })
+            .unwrap_or((user_info, ""));
+        let user_id = raw_user_id
+            .chars()
+            .filter(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '~' | ':' | '(' | ')'))
+            .collect::<String>();
+        let display_name = display_name.to_string();
         if display_name.is_empty() && user_id.is_empty() {
             return true;
         }
