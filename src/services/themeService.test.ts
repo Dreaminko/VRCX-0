@@ -4,7 +4,8 @@ const mocks = vi.hoisted(() => ({
     setWindowTheme: vi.fn()
 }));
 
-vi.mock('@/platform/tauri/webview', () => ({
+vi.mock(import('@/platform/tauri/webview'), async (importOriginal) => ({
+    ...(await importOriginal()),
     setWindowTheme: mocks.setWindowTheme
 }));
 
