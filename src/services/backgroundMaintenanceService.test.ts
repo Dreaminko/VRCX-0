@@ -168,6 +168,42 @@ describe('backgroundMaintenanceService update checks', () => {
         );
     });
 
+    it('coalesces overlapping maintenance runs into a single backend call', async () => {
+        mocks.isHostCapabilityAvailable.mockReturnValue(true);
+        let resolveRun: (value: {
+            restorePromptNeeded: boolean;
+        }) => void = () => {
+            throw new Error('Maintenance run was not started.');
+        };
+        mocks.appRegistryBackupMaintenanceRun.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveRun = resolve;
+                })
+        );
+
+        const startupRun = runStartupMaintenance();
+        const foregroundUpdateRun =
+            runForegroundUpdateRegistryBackupMaintenance();
+        resolveRun({ restorePromptNeeded: false });
+        await Promise.all([startupRun, foregroundUpdateRun]);
+
+        expect(mocks.appRegistryBackupMaintenanceRun).toHaveBeenCalledTimes(1);
+        expect(mocks.appRegistryBackupMaintenanceRun).toHaveBeenCalledWith(
+            'foreground-startup'
+        );
+
+        mocks.appRegistryBackupMaintenanceRun.mockResolvedValueOnce({
+            restorePromptNeeded: false
+        });
+        await runForegroundUpdateRegistryBackupMaintenance();
+
+        expect(mocks.appRegistryBackupMaintenanceRun).toHaveBeenCalledTimes(2);
+        expect(mocks.appRegistryBackupMaintenanceRun).toHaveBeenLastCalledWith(
+            'foreground-update'
+        );
+    });
+
     it('notifies when the backend marks the delivered release as should-notify', async () => {
         await handleAppUpdateStatusEvent(
             statusSnapshot(TAURI_RELEASE_SNAPSHOT, true)

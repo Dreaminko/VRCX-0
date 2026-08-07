@@ -14,6 +14,7 @@ pub mod paths;
 pub mod registry;
 pub mod screenshots;
 pub mod shell;
+pub mod startup_bootstrap;
 pub mod theme_debug;
 pub mod tts;
 pub mod updater;

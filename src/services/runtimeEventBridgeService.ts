@@ -1,4 +1,8 @@
 import { commands } from '@/platform/tauri/bindings';
+import type {
+    AncillaryRuntimeSnapshot,
+    BackendRuntimeCombinedSnapshot
+} from '@/platform/tauri/bindings';
 import { useDataDirMigrationStore } from '@/state/dataDirMigrationStore';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -21,17 +25,12 @@ import {
     applyCommunityThemeProjectionEvent,
     initializeCommunityThemes
 } from './community-theme/installedThemes';
-import { getCurrentDataDirMigrationStatus } from './dataDirMigrationService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { handleGroupBanImportStatusEvent } from './groupBanImportService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
-import {
-    handleMutualGraphFetchStatusEvent,
-    refreshMutualGraphFetchStatus
-} from './mutualGraphFetchService';
-import { getCurrentProfileBackupStatus } from './profileBackupService';
+import { handleMutualGraphFetchStatusEvent } from './mutualGraphFetchService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
 import {
@@ -263,18 +262,54 @@ async function hydrateRuntimeState(
     }
 }
 
+async function loadAncillaryRuntimeSnapshot(): Promise<AncillaryRuntimeSnapshot | null> {
+    try {
+        return await commands.appAncillaryRuntimeSnapshotGet();
+    } catch (error) {
+        console.warn('Failed to hydrate ancillary runtime snapshot:', error);
+        return null;
+    }
+}
+
+function gameRunningEventCount(): number {
+    return (
+        useRuntimeStore.getState().runtimeEvents.updateIsGameRunning?.count ?? 0
+    );
+}
+
 async function hydrateAncillaryRuntimeState(): Promise<void> {
+    const gameRunningEventCountBeforeSnapshot = gameRunningEventCount();
+    const snapshot = await loadAncillaryRuntimeSnapshot();
+    const gameProcessSnapshotIsStale =
+        gameRunningEventCount() !== gameRunningEventCountBeforeSnapshot;
+
+    const maintenance = hydrateRuntimeState(
+        'Failed to run registry backup maintenance during hydration:',
+        runForegroundUpdateRegistryBackupMaintenance
+    );
+    if (!snapshot) {
+        await maintenance;
+        return;
+    }
+
     await Promise.all([
+        maintenance,
         hydrateRuntimeState(
             'Failed to hydrate community theme projection:',
-            initializeCommunityThemes
+            async () => {
+                if (snapshot.communityThemeState) {
+                    await initializeCommunityThemes(
+                        snapshot.communityThemeState
+                    );
+                }
+            }
         ),
         hydrateRuntimeState(
             'Failed to hydrate profile backup status:',
             async () => {
                 useProfileBackupStore
                     .getState()
-                    .applyStatus(await getCurrentProfileBackupStatus());
+                    .applyStatus(snapshot.profileBackupCurrentStatus);
             }
         ),
         hydrateRuntimeState(
@@ -282,69 +317,52 @@ async function hydrateAncillaryRuntimeState(): Promise<void> {
             async () => {
                 useDataDirMigrationStore
                     .getState()
-                    .applyStatus(await getCurrentDataDirMigrationStatus());
+                    .applyStatus(snapshot.dataDirMigrationCurrentStatus);
             }
         ),
         hydrateRuntimeState(
             'Failed to hydrate mutual graph fetch status:',
-            refreshMutualGraphFetchStatus
-        ),
-        hydrateRuntimeState(
-            'Failed to hydrate app update status:',
             async () => {
-                await handleAppUpdateStatusEvent(
-                    await commands.appAppUpdateStatusGet()
+                handleMutualGraphFetchStatusEvent(
+                    snapshot.mutualGraphFetchStatus
                 );
             }
+        ),
+        hydrateRuntimeState('Failed to hydrate app update status:', () =>
+            handleAppUpdateStatusEvent(snapshot.appUpdateStatus)
         ),
         hydrateRuntimeState(
             'Failed to hydrate debug logging status:',
             async () => {
-                const debugLoggingOutcome =
-                    await commands.appGameClientDebugLoggingStatus();
-                if (debugLoggingOutcome) {
-                    handleDebugLoggingOutcome(debugLoggingOutcome);
+                if (snapshot.gameClientDebugLoggingStatus) {
+                    handleDebugLoggingOutcome(
+                        snapshot.gameClientDebugLoggingStatus
+                    );
                 }
             }
         ),
         hydrateRuntimeState(
             'Failed to hydrate game process state:',
             async () => {
-                if (!isHostCapabilityAvailable('gameProcessMonitor')) {
-                    return;
-                }
-                const processEventCountBeforeSnapshot =
-                    useRuntimeStore.getState().runtimeEvents.updateIsGameRunning
-                        ?.count ?? 0;
-                const projection = await commands.appGameProcessSnapshotGet();
-                const processEventCountAfterSnapshot =
-                    useRuntimeStore.getState().runtimeEvents.updateIsGameRunning
-                        ?.count ?? 0;
                 if (
-                    processEventCountAfterSnapshot ===
-                    processEventCountBeforeSnapshot
+                    snapshot.gameProcessSnapshot &&
+                    !gameProcessSnapshotIsStale &&
+                    isHostCapabilityAvailable('gameProcessMonitor')
                 ) {
-                    handleUpdateIsGameRunning(projection);
+                    handleUpdateIsGameRunning(snapshot.gameProcessSnapshot);
                 }
             }
         ),
-        hydrateRuntimeState(
-            'Failed to hydrate background image state:',
-            initializeBackgroundImage
-        ),
-        hydrateRuntimeState(
-            'Failed to run registry backup maintenance during hydration:',
-            runForegroundUpdateRegistryBackupMaintenance
+        hydrateRuntimeState('Failed to hydrate background image state:', () =>
+            initializeBackgroundImage(snapshot.backgroundImageState)
         ),
         hydrateRuntimeState(
             'Failed to hydrate app update download status:',
             async () => {
-                const downloadStatus =
-                    await commands.appAppUpdateDownloadStatusGet();
                 useRuntimeStore.getState().setUpdateLoopState({
-                    autoDownloadState: downloadStatus.phase,
-                    downloadedVersion: downloadStatus.version,
-                    downloadProgress: downloadStatus.percent
+                    autoDownloadState: snapshot.appUpdateDownloadStatus.phase,
+                    downloadedVersion: snapshot.appUpdateDownloadStatus.version,
+                    downloadProgress: snapshot.appUpdateDownloadStatus.percent
                 });
             }
         )
@@ -428,10 +446,24 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     }
 
     useSessionStore.getState().setTransportStatus('runtime-subscribed');
+    let combinedSnapshot: BackendRuntimeCombinedSnapshot | null = null;
     try {
-        const snapshot = await commands.appGetBackendRuntimeSnapshot();
+        combinedSnapshot =
+            await commands.appBackendRuntimeCombinedSnapshotGet();
+    } catch (error) {
+        console.warn(
+            'Failed to fetch backend runtime combined snapshot:',
+            error
+        );
+    }
+    try {
+        if (!combinedSnapshot) {
+            throw new Error(
+                'Backend runtime combined snapshot is unavailable.'
+            );
+        }
         await hydrateBackendRuntimeSnapshot(
-            snapshot,
+            combinedSnapshot.backendRuntime,
             flushPendingBackendRealtimeProjectionEvents
         );
     } catch (error) {
@@ -442,8 +474,13 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         console.warn('Failed to hydrate backend runtime snapshot:', error);
     }
     try {
+        if (!combinedSnapshot) {
+            throw new Error(
+                'Backend runtime combined snapshot is unavailable.'
+            );
+        }
         applyAuthenticatedRuntimePhaseSnapshot(
-            await commands.appAuthenticatedRuntimePhaseSnapshotGet()
+            combinedSnapshot.authenticatedRuntimePhase
         );
     } catch (error) {
         console.warn('Failed to hydrate authenticated runtime phase:', error);
@@ -459,7 +496,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         useSessionStore.getState().setTransportStatus('disconnected');
         throw error;
     }
-    requestGroupInstancesRefresh(
+    void requestGroupInstancesRefresh(
         'runtime event binding after backend snapshot hydration'
     );
 

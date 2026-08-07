@@ -28,6 +28,7 @@ mod background;
 mod background_auth;
 mod background_ticks;
 mod capabilities;
+mod combined_snapshot;
 mod frontend_session;
 mod profile_lock;
 mod runtime_host_state;
@@ -47,6 +48,7 @@ use background_ticks::{
     run_background_social_baseline_refresh, run_social_baseline_refresh_core,
     BackgroundTickContext,
 };
+pub use combined_snapshot::BackendRuntimeCombinedSnapshot;
 pub use frontend_session::{
     replace_backend_frontend_session_user_if_session_matches,
     update_backend_frontend_session_user_if_session_matches,

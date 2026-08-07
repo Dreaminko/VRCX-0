@@ -48,7 +48,6 @@ describe('ConfigRepository', () => {
                 ok: true
             }
         );
-        expect(commandMocks.appConfigSetValues).toHaveBeenCalledWith([]);
         expect(commandMocks.appConfigListValues).toHaveBeenCalledTimes(1);
     });
 
@@ -80,14 +79,13 @@ describe('ConfigRepository', () => {
             ['ThemeMode', 'dark']
         ]);
 
-        expect(commandMocks.appConfigSetValues).toHaveBeenNthCalledWith(1, []);
-        expect(commandMocks.appConfigSetValues).toHaveBeenNthCalledWith(2, [
+        expect(commandMocks.appConfigSetValues).toHaveBeenNthCalledWith(1, [
             {
                 key: 'config:vrcx_thememode',
                 value: 'dark'
             }
         ]);
-        expect(commandMocks.appConfigSetValues).toHaveBeenCalledTimes(2);
+        expect(commandMocks.appConfigSetValues).toHaveBeenCalledTimes(1);
         await expect(
             repository.getRawValue('vrOverlayPanelEnabled')
         ).resolves.toBeNull();
@@ -114,13 +112,13 @@ describe('ConfigRepository', () => {
         await repository.remove('ThemeMode');
         await expect(repository.getRawValue('ThemeMode')).resolves.toBeNull();
 
-        expect(commandMocks.appConfigSetValues).toHaveBeenNthCalledWith(2, [
+        expect(commandMocks.appConfigSetValues).toHaveBeenNthCalledWith(1, [
             {
                 key: 'config:vrcx_thememode',
                 value: 'light'
             }
         ]);
-        expect(commandMocks.appConfigSetValues).toHaveBeenNthCalledWith(3, [
+        expect(commandMocks.appConfigSetValues).toHaveBeenNthCalledWith(2, [
             {
                 key: 'config:vrcx_zoomlevel',
                 value: '125'

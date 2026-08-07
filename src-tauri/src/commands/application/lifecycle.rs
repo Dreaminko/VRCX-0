@@ -10,6 +10,7 @@ use vrcx_0_application::{
 };
 use vrcx_0_application_core::RuntimeOperationStatus;
 use vrcx_0_application_game::DebugLoggingOutcome;
+use vrcx_0_runtime_host_desktop::AncillaryRuntimeSnapshot;
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -34,6 +35,14 @@ pub fn app__game_client_debug_logging_status(
     state: State<'_, AppState>,
 ) -> Option<DebugLoggingOutcome> {
     state.game.game_client_runtime.debug_logging_outcome()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__ancillary_runtime_snapshot_get(
+    state: State<'_, AppState>,
+) -> Result<AncillaryRuntimeSnapshot, AppError> {
+    Ok(state.ancillary_runtime_snapshot().await)
 }
 
 #[tauri::command]

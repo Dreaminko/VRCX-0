@@ -13,6 +13,7 @@ import {
 } from '@/services/authExecutionService';
 import {
     deleteSavedAuthSnapshot,
+    getCachedAuthSnapshot,
     refreshSavedAuthSnapshot
 } from '@/services/authSnapshotService';
 import { openExternalLink } from '@/services/entityMediaService';
@@ -124,6 +125,13 @@ export function useLoginPageState() {
 
     useEffect(() => {
         let active = true;
+
+        const cachedSnapshot = getCachedAuthSnapshot();
+        if (cachedSnapshot) {
+            applySnapshot(cachedSnapshot);
+            setIsLoading(false);
+            return;
+        }
 
         refreshSavedAuthSnapshot()
             .then((nextSnapshot) => {

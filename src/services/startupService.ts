@@ -1,6 +1,8 @@
 import { normalizeLanguageCode } from '@/localization/locales';
 import { commands } from '@/platform/tauri/bindings';
+import type { StartupBootstrapSnapshot } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
+import storageRepository from '@/repositories/storageRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 import { useShellStore } from '@/state/shellStore';
@@ -11,6 +13,7 @@ import { initializeDatabaseUpgradeFlow } from './databaseUpgradeService';
 import { initializeHostCapabilities } from './hostCapabilityService';
 import { loadPreferenceSnapshot } from './preferencesService';
 import { showSQLiteErrorDialog } from './sqliteErrorDialogService';
+import { primeStartupBootstrapSystemCulture } from './startupBootstrapSnapshot';
 import {
     APP_CJK_FONT_PACK_DEFAULT_KEY,
     APP_FONT_DEFAULT_KEY,
@@ -33,6 +36,27 @@ async function runNonCriticalStartupSync(
     }
 }
 
+async function loadStartupBootstrapSnapshot(): Promise<StartupBootstrapSnapshot | null> {
+    try {
+        return await commands.appStartupBootstrapSnapshotGet();
+    } catch (error) {
+        console.warn(
+            'Startup bootstrap snapshot failed, falling back to individual host requests:',
+            error
+        );
+        return null;
+    }
+}
+
+async function resolveSystemLanguage(
+    bootstrapSnapshot: StartupBootstrapSnapshot | null
+): Promise<string | null> {
+    if (bootstrapSnapshot) {
+        return bootstrapSnapshot.systemLanguage || navigator.language || null;
+    }
+    return commands.appSystemLanguage().catch(() => navigator.language || null);
+}
+
 export async function initializeReactRuntime() {
     const sessionStore = useSessionStore.getState();
     const shellStore = useShellStore.getState();
@@ -40,13 +64,22 @@ export async function initializeReactRuntime() {
 
     try {
         sessionStore.setBootStatus('booting');
-        await initializeHostCapabilities();
+
+        const bootstrapSnapshot = await loadStartupBootstrapSnapshot();
+        if (bootstrapSnapshot) {
+            primeStartupBootstrapSystemCulture(bootstrapSnapshot.systemCulture);
+        }
+
+        await initializeHostCapabilities(bootstrapSnapshot?.hostCapabilities);
         runtimeStore.setStartupTask(
             'config',
             'running',
             'Loading config, locale, theme and zoom.'
         );
-        await configRepository.init();
+        await Promise.all([
+            configRepository.init(bootstrapSnapshot?.configEntries),
+            storageRepository.init()
+        ]);
 
         const [
             savedAppLanguage,
@@ -70,11 +103,9 @@ export async function initializeReactRuntime() {
         ]);
 
         const trimmedSavedAppLanguage = String(savedAppLanguage ?? '').trim();
-        const localeSource = trimmedSavedAppLanguage
-            ? trimmedSavedAppLanguage
-            : await commands
-                  .appSystemLanguage()
-                  .catch(() => navigator.language || null);
+        const localeSource =
+            trimmedSavedAppLanguage ||
+            (await resolveSystemLanguage(bootstrapSnapshot));
         const normalizedLocale = normalizeLanguageCode(localeSource);
         shellStore.setLocale(normalizedLocale);
         if (

@@ -145,11 +145,20 @@ export function handleRuntimeGroupInstancesProjection(
     runtimeStore.setGroupInstancesState(patch);
 }
 
-export function requestGroupInstancesRefresh(source: string): void {
-    commands.appRuntimeGroupInstancesRefresh().catch((error: unknown) => {
-        console.warn(
-            `Runtime group instances refresh failed during ${source}:`,
-            error
-        );
-    });
+let inFlightGroupInstancesRefresh: Promise<void> | null = null;
+
+export function requestGroupInstancesRefresh(source: string): Promise<void> {
+    inFlightGroupInstancesRefresh ??= commands
+        .appRuntimeGroupInstancesRefresh()
+        .then(() => undefined)
+        .catch((error: unknown) => {
+            console.warn(
+                `Runtime group instances refresh failed during ${source}:`,
+                error
+            );
+        })
+        .finally(() => {
+            inFlightGroupInstancesRefresh = null;
+        });
+    return inFlightGroupInstancesRefresh;
 }

@@ -181,6 +181,9 @@ export const commands = {
     async appGameClientDebugLoggingStatus(): Promise<DebugLoggingOutcome | null> {
         return await TAURI_INVOKE('app__game_client_debug_logging_status');
     },
+    async appAncillaryRuntimeSnapshotGet(): Promise<AncillaryRuntimeSnapshot> {
+        return await TAURI_INVOKE('app__ancillary_runtime_snapshot_get');
+    },
     async appAuthenticatedSessionMaintenanceRun(): Promise<AuthenticatedSessionMaintenanceOutcome> {
         return await TAURI_INVOKE('app__authenticated_session_maintenance_run');
     },
@@ -204,6 +207,9 @@ export const commands = {
         return await TAURI_INVOKE(
             'app__get_backend_runtime_frontend_session_snapshot'
         );
+    },
+    async appBackendRuntimeCombinedSnapshotGet(): Promise<BackendRuntimeCombinedSnapshot> {
+        return await TAURI_INVOKE('app__backend_runtime_combined_snapshot_get');
     },
     async appEnsureMainWindow(): Promise<null> {
         return await TAURI_INVOKE('app__ensure_main_window');
@@ -1373,6 +1379,9 @@ export const commands = {
     },
     async appGetHostCapabilities(): Promise<HostCapabilities> {
         return await TAURI_INVOKE('app__get_host_capabilities');
+    },
+    async appStartupBootstrapSnapshotGet(): Promise<StartupBootstrapSnapshot> {
+        return await TAURI_INVOKE('app__startup_bootstrap_snapshot_get');
     },
     async appListSystemFonts(): Promise<string[]> {
         return await TAURI_INVOKE('app__list_system_fonts');
@@ -3144,6 +3153,17 @@ export type ActivityViewOutput = {
     builtAt: string;
 };
 export type AddGameLogEventPayload = string | RuntimeGameLogEventPayload;
+export type AncillaryRuntimeSnapshot = {
+    communityThemeState: CommunityThemeProjection | null;
+    profileBackupCurrentStatus: ProfileBackupStatus;
+    dataDirMigrationCurrentStatus: DataDirMigrationStatus;
+    mutualGraphFetchStatus: MutualGraphFetchStatus;
+    appUpdateStatus: AppUpdateStatusSnapshot;
+    appUpdateDownloadStatus: AppUpdateDownloadStatusSnapshot;
+    gameClientDebugLoggingStatus: DebugLoggingOutcome | null;
+    gameProcessSnapshot: HostSessionProjection | null;
+    backgroundImageState: BackgroundImageProjection;
+};
 export type AppDataDirSource = 'cli' | 'persisted' | 'default';
 export type AppDataDirState = {
     currentDir: string;
@@ -3421,6 +3441,10 @@ export type BackendRuntimeAuthStatus =
     | 'interactionRequired'
     | 'error'
     | 'signedOut';
+export type BackendRuntimeCombinedSnapshot = {
+    backendRuntime: BackendRuntimeSnapshot;
+    authenticatedRuntimePhase: AuthenticatedRuntimePhaseSnapshot;
+};
 export type BackendRuntimeEventPayloadMap = {
     addGameLogEvent: AddGameLogEventPayload;
     authenticatedRuntimePhase: AuthenticatedRuntimePhaseSnapshot;
@@ -5916,6 +5940,12 @@ export type SqliteErrorCategory =
     | 'disk_full'
     | 'locked'
     | 'io_error';
+export type StartupBootstrapSnapshot = {
+    hostCapabilities: HostCapabilities;
+    configEntries: ConfigReadEntry[];
+    systemLanguage: string;
+    systemCulture: string;
+};
 export type TelemetryClientEvent =
     | { type: 'pageVisit'; route: string }
     | {

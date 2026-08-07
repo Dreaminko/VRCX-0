@@ -1,3 +1,4 @@
+mod ancillary_snapshot;
 mod app_launcher;
 mod autostart;
 mod background_image;
@@ -14,6 +15,7 @@ mod registry_backup;
 mod state;
 pub mod vr_overlay;
 
+pub use ancillary_snapshot::AncillaryRuntimeSnapshot;
 pub use app_launcher::AppLauncherSnapshotEvent;
 pub use autostart::{set_autostart_preference, AutostartPlatform};
 pub use background_image::{

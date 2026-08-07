@@ -131,7 +131,9 @@ function normalizeHostCapabilities(payload: unknown): HostCapabilities {
     return capabilities;
 }
 
-export async function initializeHostCapabilities(): Promise<HostCapabilities> {
+export async function initializeHostCapabilities(
+    prefetchedCapabilities?: unknown
+): Promise<HostCapabilities> {
     const runtimeStore = useRuntimeStore.getState();
     runtimeStore.setStartupTask(
         'capabilities',
@@ -141,7 +143,7 @@ export async function initializeHostCapabilities(): Promise<HostCapabilities> {
 
     try {
         const capabilities = normalizeHostCapabilities(
-            await commands.appGetHostCapabilities()
+            prefetchedCapabilities ?? (await commands.appGetHostCapabilities())
         );
         useRuntimeStore.getState().setHostCapabilities(capabilities);
         useRuntimeStore

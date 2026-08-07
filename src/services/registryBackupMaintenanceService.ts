@@ -8,11 +8,26 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { runRuntimeTelemetryJob } from './runtimeJobTelemetryService';
 
+let inFlightMaintenance: Promise<void> | null = null;
+
 export async function runRegistryBackupMaintenance(reason: string) {
     if (!isHostCapabilityAvailable('registryPrefs')) {
         return;
     }
 
+    if (inFlightMaintenance) {
+        return inFlightMaintenance;
+    }
+
+    inFlightMaintenance = performRegistryBackupMaintenance(reason).finally(
+        () => {
+            inFlightMaintenance = null;
+        }
+    );
+    return inFlightMaintenance;
+}
+
+async function performRegistryBackupMaintenance(reason: string) {
     let result: RegistryBackupMaintenanceResult;
     try {
         result = await commands.appRegistryBackupMaintenanceRun(reason);

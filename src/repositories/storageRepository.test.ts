@@ -28,7 +28,9 @@ describe('StorageRepository', () => {
         const repository = new StorageRepository('tool:').withPrefix(
             'gallery:'
         );
-        commandMocks.storageGet.mockResolvedValueOnce('{"columns":["name"]}');
+        commandMocks.storageGetAll.mockResolvedValueOnce({
+            'tool:gallery:state': '{"columns":["name"]}'
+        });
 
         await expect(
             repository.getJson('state', { columns: [] })
@@ -37,20 +39,19 @@ describe('StorageRepository', () => {
         });
         await repository.setJson('state', { columns: ['updated'] });
 
-        expect(commandMocks.storageGet).toHaveBeenCalledWith(
-            'tool:gallery:state'
-        );
+        expect(commandMocks.storageGetAll).toHaveBeenCalledTimes(1);
         expect(commandMocks.storageSet).toHaveBeenCalledWith(
             'tool:gallery:state',
             '{"columns":["updated"]}'
         );
     });
 
-    it('uses fallbacks for undefined sentinel values and invalid JSON', async () => {
+    it('hydrates once and serves subsequent reads from the cache', async () => {
         const repository = new StorageRepository();
-        commandMocks.storageGet
-            .mockResolvedValueOnce('undefined')
-            .mockResolvedValueOnce('{bad-json');
+        commandMocks.storageGetAll.mockResolvedValueOnce({
+            missing: 'undefined',
+            broken: '{bad-json'
+        });
 
         await expect(repository.getString('missing', 'fallback')).resolves.toBe(
             'fallback'
@@ -58,16 +59,24 @@ describe('StorageRepository', () => {
         await expect(
             repository.getJson('broken', ['fallback'])
         ).resolves.toEqual(['fallback']);
+        await expect(repository.getString('missing', 'fallback')).resolves.toBe(
+            'fallback'
+        );
+
+        expect(commandMocks.storageGetAll).toHaveBeenCalledTimes(1);
+        expect(commandMocks.storageGet).not.toHaveBeenCalled();
     });
 
     it('checks existence without treating the string undefined as present', async () => {
         const repository = new StorageRepository();
-        commandMocks.storageGet
-            .mockResolvedValueOnce('value')
-            .mockResolvedValueOnce('undefined');
+        commandMocks.storageGetAll.mockResolvedValueOnce({
+            present: 'value',
+            missing: 'undefined'
+        });
 
         await expect(repository.has('present')).resolves.toBe(true);
         await expect(repository.has('missing')).resolves.toBe(false);
+        expect(commandMocks.storageGetAll).toHaveBeenCalledTimes(1);
     });
 
     it('clears only keys under its prefix and flushes storage', async () => {
@@ -84,5 +93,18 @@ describe('StorageRepository', () => {
         expect(commandMocks.storageRemove).toHaveBeenCalledWith('tool:a');
         expect(commandMocks.storageRemove).toHaveBeenCalledWith('tool:b');
         expect(commandMocks.storageFlush).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps writes and cache in sync so later reads see the new value', async () => {
+        const repository = new StorageRepository();
+
+        await repository.setString('written', 'value');
+        await expect(repository.getString('written')).resolves.toBe('value');
+        await repository.remove('written');
+        await expect(repository.getString('written', 'gone')).resolves.toBe(
+            'gone'
+        );
+
+        expect(commandMocks.storageGetAll).toHaveBeenCalledTimes(1);
     });
 });

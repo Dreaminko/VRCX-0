@@ -31,6 +31,8 @@ function describeAuthStartupTask(snapshot: SavedAuthSnapshot): AuthStartupTask {
     }
 }
 
+let cachedAuthSnapshot: SavedAuthSnapshot | null = null;
+
 export function applySavedAuthSnapshot(
     snapshot: SavedAuthSnapshot
 ): SavedAuthSnapshot {
@@ -46,12 +48,17 @@ export function applySavedAuthSnapshot(
 
     const task = describeAuthStartupTask(snapshot);
     runtimeStore.setStartupTask('auth', task.status, task.detail);
+    cachedAuthSnapshot = snapshot;
     return snapshot;
 }
 
 export async function refreshSavedAuthSnapshot() {
     const snapshot = await authRepository.getSavedAuthSnapshot();
     return applySavedAuthSnapshot(snapshot);
+}
+
+export function getCachedAuthSnapshot(): SavedAuthSnapshot | null {
+    return cachedAuthSnapshot;
 }
 
 export async function deleteSavedAuthSnapshot(userId: string) {

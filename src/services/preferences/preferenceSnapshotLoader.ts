@@ -1,6 +1,7 @@
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import storageRepository from '@/repositories/storageRepository';
+import { getPrefetchedSystemCulture } from '@/services/startupBootstrapSnapshot';
 import {
     DEFAULT_TTS_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS,
@@ -286,7 +287,10 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('dtIsoFormat', false),
         configRepository.getBool('dtHour12', false),
         configRepository.getObject('VRCX_trustColor', null),
-        commands.appSystemCulture().catch(() => navigator.language || 'en-gb'),
+        getPrefetchedSystemCulture() ??
+            commands
+                .appSystemCulture()
+                .catch(() => navigator.language || 'en-gb'),
         storageRepository.getString('VRCX_ProxyEnabled', ''),
         storageRepository.getString('VRCX_ProxyServer', ''),
         configRepository.getInt('VRCX_tablePageSize', DEFAULT_TABLE_PAGE_SIZE),

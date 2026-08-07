@@ -1,4 +1,5 @@
 import { commands } from '@/platform/tauri/bindings';
+import type { ConfigReadEntry } from '@/platform/tauri/bindings';
 import { ConfigKeys, type ConfigDefaultValue } from '@/repositories/configKeys';
 
 import { asString, safeJsonParse, safeJsonStringify } from './baseRepository';
@@ -62,14 +63,12 @@ class ConfigRepository {
         );
     }
 
-    async init(): Promise<void> {
+    async init(prefetchedRows?: ConfigReadEntry[]): Promise<void> {
         if (this.#ready) {
             return;
         }
 
-        await commands.appConfigSetValues([]);
-
-        const rows = await commands.appConfigListValues();
+        const rows = prefetchedRows ?? (await commands.appConfigListValues());
         for (const row of rows) {
             const entry = normalizeConfigReadEntry(row);
             if (entry) {

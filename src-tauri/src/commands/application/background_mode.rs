@@ -6,7 +6,7 @@ use crate::bootstrap;
 use crate::error::AppError;
 use crate::state::AppState;
 use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimeSnapshot};
-use vrcx_0_runtime_host::BackendRuntimeFrontendSessionSnapshot;
+use vrcx_0_runtime_host::{BackendRuntimeCombinedSnapshot, BackendRuntimeFrontendSessionSnapshot};
 
 #[tauri::command]
 #[specta::specta]
@@ -51,6 +51,14 @@ pub fn app__get_backend_runtime_frontend_session_snapshot(
     state: State<'_, AppState>,
 ) -> Result<Option<BackendRuntimeFrontendSessionSnapshot>, AppError> {
     Ok(state.backend_runtime_frontend_session_snapshot())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__backend_runtime_combined_snapshot_get(
+    state: State<'_, AppState>,
+) -> Result<BackendRuntimeCombinedSnapshot, AppError> {
+    Ok(state.backend_runtime_combined_snapshot())
 }
 
 #[tauri::command]

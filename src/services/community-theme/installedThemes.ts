@@ -130,11 +130,17 @@ export async function reportCommunityThemeInstall(
     return commands.appCommunityThemeInstallReport(themeId);
 }
 
-export async function initializeCommunityThemes(): Promise<void> {
+export async function initializeCommunityThemes(
+    prefetchedProjection?: CommunityThemeProjection
+): Promise<void> {
     const store = useCommunityThemeStore.getState();
     store.setError(null);
     try {
-        await refreshCommunityThemeProjection();
+        if (prefetchedProjection) {
+            await applyCommunityThemeProjection(prefetchedProjection);
+        } else {
+            await refreshCommunityThemeProjection();
+        }
         await refreshCommunityThemeTrayMenu();
     } catch (error) {
         store.setError(

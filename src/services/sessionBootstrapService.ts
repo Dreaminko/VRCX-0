@@ -1,4 +1,3 @@
-import { commands } from '@/platform/tauri/bindings';
 import gameLogPersistenceRepository from '@/repositories/gameLogPersistenceRepository';
 import { useInstanceJoinHistoryStore } from '@/state/instanceJoinHistoryStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -10,6 +9,7 @@ import {
     type AuthAttempt
 } from './authAttempt';
 import { restoreRuntimeGameLogProjectionFromPersistence } from './gameLogIngestService';
+import { requestGroupInstancesRefresh } from './runtime-event-bridge/auxiliaryEventHandlers';
 import { syncStartupServicesTask } from './startupServicesStatus';
 
 type AuthenticatedUser = Record<string, unknown> & {
@@ -22,17 +22,6 @@ function getCurrentUserDisplayName(
     user: AuthenticatedUser | null | undefined
 ): string {
     return String(user?.displayName || user?.username || user?.id || '');
-}
-
-async function refreshGroupInstances(): Promise<void> {
-    try {
-        await commands.appRuntimeGroupInstancesRefresh();
-    } catch (error) {
-        console.warn(
-            'Group instances refresh failed after session bootstrap:',
-            error
-        );
-    }
 }
 
 async function loadInstanceJoinHistory(
@@ -59,7 +48,7 @@ async function hydratePostReadySession(
     userId: string,
     attempt: AuthAttempt
 ): Promise<void> {
-    await refreshGroupInstances();
+    await requestGroupInstancesRefresh('session bootstrap');
     ensureCurrentAuthAttempt(attempt);
     await loadInstanceJoinHistory(userId, attempt);
     await restoreRuntimeGameLogProjectionFromPersistence().catch(

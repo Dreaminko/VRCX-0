@@ -40,6 +40,7 @@ use vrcx_0_runtime_host::{
     RuntimeHostStateBuilder,
 };
 
+use crate::ancillary_snapshot::{ancillary_runtime_snapshot, AncillaryRuntimeSnapshot};
 use crate::app_launcher::start_app_launcher_snapshot_events;
 use crate::group_order::HostGroupOrderSource;
 use crate::vr_overlay::{DesktopVrOverlayRuntime, VrOverlayRuntimeSnapshot};
@@ -363,6 +364,10 @@ impl DesktopRuntimeHostState {
 
     pub fn overlay_activity_snapshot(&self) -> OverlayActivitySnapshot {
         self.desktop.services.overlay_activity().snapshot()
+    }
+
+    pub async fn ancillary_runtime_snapshot(&self) -> AncillaryRuntimeSnapshot {
+        ancillary_runtime_snapshot(self).await
     }
 
     pub fn reload_overlay_activity_filters(&self) {

@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
     AuthenticatedRuntimePhaseSnapshot,
     BackendRuntimeSnapshot,
-    HostSessionProjection
+    HostSessionProjection,
+    MutualGraphFetchStatus
 } from '@/platform/tauri/bindings';
 
 const mocks = vi.hoisted(() => ({
@@ -22,7 +23,6 @@ const mocks = vi.hoisted(() => ({
     applyVrcStatusSnapshot: vi.fn(),
     handleFavoriteImportStatusEvent: vi.fn(),
     handleMutualGraphFetchStatusEvent: vi.fn(),
-    refreshMutualGraphFetchStatus: vi.fn(),
     handleScreenshotLibraryScanStatusEvent: vi.fn(),
     handleGameRunningUpdate: vi.fn<() => Promise<void>>(),
     isHostCapabilityAvailable: vi.fn<(name: string) => boolean>(),
@@ -30,30 +30,9 @@ const mocks = vi.hoisted(() => ({
     pushSharedFeedNotification: vi.fn<() => Promise<void>>(),
     showSQLiteErrorDialog: vi.fn<() => Promise<void>>(),
     handleBrowserFocus: vi.fn<() => Promise<void>>(),
-    getBackendRuntimeSnapshot:
-        vi.fn<
-            () => Promise<
-                import('@/platform/tauri/bindings').BackendRuntimeSnapshot
-            >
-        >(),
-    getAuthenticatedRuntimePhaseSnapshot: vi.fn(),
-    getAppUpdateStatus:
-        vi.fn<
-            () => Promise<
-                import('@/platform/tauri/bindings').AppUpdateStatusSnapshot
-            >
-        >(),
-    getAppUpdateDownloadStatus:
-        vi.fn<
-            () => Promise<
-                import('@/platform/tauri/bindings').AppUpdateDownloadStatusSnapshot
-            >
-        >(),
+    getBackendRuntimeCombinedSnapshot: vi.fn(),
+    getAncillaryRuntimeSnapshot: vi.fn(),
     runtimeGroupInstancesRefresh: vi.fn<() => Promise<null>>(),
-    appGameClientDebugLoggingStatus: vi.fn<() => Promise<null>>(),
-    appGameProcessSnapshotGet: vi.fn(),
-    profileBackupCurrentStatus: vi.fn(),
-    dataDirMigrationCurrentStatus: vi.fn(),
     bindDeepLinkEvents: vi.fn<() => Promise<() => void>>(),
     drainPendingDeepLinks: vi.fn<() => Promise<void>>(),
     deepLinkUnsubscribe: vi.fn(),
@@ -64,17 +43,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
-        appProfileBackupCurrentStatus: mocks.profileBackupCurrentStatus,
-        appDataDirMigrationCurrentStatus: mocks.dataDirMigrationCurrentStatus,
-        appGetBackendRuntimeSnapshot: mocks.getBackendRuntimeSnapshot,
-        appAuthenticatedRuntimePhaseSnapshotGet:
-            mocks.getAuthenticatedRuntimePhaseSnapshot,
-        appAppUpdateStatusGet: mocks.getAppUpdateStatus,
-        appAppUpdateCheckRun: mocks.getAppUpdateStatus,
-        appAppUpdateDownloadStatusGet: mocks.getAppUpdateDownloadStatus,
-        appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh,
-        appGameClientDebugLoggingStatus: mocks.appGameClientDebugLoggingStatus,
-        appGameProcessSnapshotGet: mocks.appGameProcessSnapshotGet
+        appBackendRuntimeCombinedSnapshotGet:
+            mocks.getBackendRuntimeCombinedSnapshot,
+        appAncillaryRuntimeSnapshotGet: mocks.getAncillaryRuntimeSnapshot,
+        appRuntimeGroupInstancesRefresh: mocks.runtimeGroupInstancesRefresh
     }
 }));
 
@@ -107,8 +79,7 @@ vi.mock('./favoriteImportService', () => ({
 }));
 
 vi.mock('./mutualGraphFetchService', () => ({
-    handleMutualGraphFetchStatusEvent: mocks.handleMutualGraphFetchStatusEvent,
-    refreshMutualGraphFetchStatus: mocks.refreshMutualGraphFetchStatus
+    handleMutualGraphFetchStatusEvent: mocks.handleMutualGraphFetchStatusEvent
 }));
 
 vi.mock('./screenshotLibraryScanService', () => ({
@@ -249,6 +220,126 @@ function createAuthenticatedRuntimePhaseSnapshot(
     };
 }
 
+function createAncillaryRuntimeSnapshot(
+    patch: Partial<
+        import('@/platform/tauri/bindings').AncillaryRuntimeSnapshot
+    > = {}
+) {
+    return {
+        communityThemeState: {
+            revision: 0,
+            catalogUrl: '',
+            enabled: false,
+            installedTheme: null,
+            installedThemes: [],
+            installedCssSnapshot: '',
+            overrideCss: '',
+            overrideCssEnabled: false
+        },
+        profileBackupCurrentStatus: {
+            revision: 0,
+            state: 'idle',
+            kind: null,
+            phase: null,
+            percent: null,
+            error: null,
+            lastOutcome: null
+        },
+        dataDirMigrationCurrentStatus: {
+            revision: 0,
+            state: 'idle'
+        },
+        mutualGraphFetchStatus: {
+            runId: 0,
+            revision: 0,
+            status: 'idle',
+            ownerUserId: '',
+            totalFriends: 0,
+            processedFriends: 0,
+            currentFriendId: '',
+            fetchedFriends: 0,
+            optedOutFriends: 0,
+            failedFriends: 0,
+            cancelRequested: false,
+            startedAt: '',
+            updatedAt: '',
+            finishedAt: null,
+            lastError: null
+        },
+        appUpdateStatus: {
+            hasAvailableUpdate: false,
+            checkedAt: '',
+            detail: '',
+            error: null,
+            release: null,
+            shouldNotify: false
+        },
+        appUpdateDownloadStatus: {
+            phase: 'idle',
+            version: null,
+            downloadedBytes: 0,
+            totalBytes: 0,
+            percent: 0,
+            error: null
+        },
+        gameClientDebugLoggingStatus: null,
+        gameProcessSnapshot: createGameProcessProjection(),
+        backgroundImageState: {
+            revision: 0,
+            enabled: false,
+            mode: 'off',
+            providerId: 'nasa-epic',
+            customSource: null,
+            snapshot: null,
+            error: null
+        },
+        ...patch
+    };
+}
+
+function createBackendRuntimeCombinedSnapshot(
+    patch: Partial<
+        import('@/platform/tauri/bindings').BackendRuntimeCombinedSnapshot
+    > = {}
+) {
+    return {
+        backendRuntime: createBackendRuntimeSnapshot(),
+        authenticatedRuntimePhase: createAuthenticatedRuntimePhaseSnapshot({
+            runId: 0,
+            authScopeGeneration: 0,
+            userId: '',
+            endpoint: '',
+            websocket: '',
+            phase: 'idle',
+            friends: {
+                status: 'pending',
+                attempt: 0,
+                retryDelaySeconds: null,
+                detail: '',
+                lastError: null
+            },
+            favorites: {
+                status: 'pending',
+                attempt: 0,
+                retryDelaySeconds: null,
+                detail: '',
+                lastError: null
+            },
+            realtime: {
+                status: 'pending',
+                attempt: 0,
+                retryDelaySeconds: null,
+                detail: '',
+                lastError: null
+            },
+            friendBaselineRevision: 0,
+            realtimeTransport: null,
+            updatedAt: ''
+        }),
+        ...patch
+    };
+}
+
 async function bindCapturedRuntimeEvents(): Promise<{
     handlers: Map<string, (payload: unknown) => void>;
     cleanup: () => void;
@@ -319,82 +410,17 @@ describe('runtimeEventBridgeService', () => {
         vi.useRealTimers();
         mocks.isHostCapabilityAvailable.mockReturnValue(false);
         mocks.subscribe.mockResolvedValue(() => {});
-        mocks.getBackendRuntimeSnapshot.mockResolvedValue(
-            createBackendRuntimeSnapshot()
+        mocks.getBackendRuntimeCombinedSnapshot.mockResolvedValue(
+            createBackendRuntimeCombinedSnapshot()
         );
-        mocks.getAuthenticatedRuntimePhaseSnapshot.mockResolvedValue(
-            createAuthenticatedRuntimePhaseSnapshot({
-                runId: 0,
-                authScopeGeneration: 0,
-                userId: '',
-                endpoint: '',
-                websocket: '',
-                phase: 'idle',
-                friends: {
-                    status: 'pending',
-                    attempt: 0,
-                    retryDelaySeconds: null,
-                    detail: '',
-                    lastError: null
-                },
-                favorites: {
-                    status: 'pending',
-                    attempt: 0,
-                    retryDelaySeconds: null,
-                    detail: '',
-                    lastError: null
-                },
-                realtime: {
-                    status: 'pending',
-                    attempt: 0,
-                    retryDelaySeconds: null,
-                    detail: '',
-                    lastError: null
-                },
-                friendBaselineRevision: 0,
-                realtimeTransport: null,
-                updatedAt: ''
-            })
+        mocks.getAncillaryRuntimeSnapshot.mockResolvedValue(
+            createAncillaryRuntimeSnapshot()
         );
-        mocks.getAppUpdateStatus.mockResolvedValue({
-            hasAvailableUpdate: false,
-            checkedAt: '',
-            detail: '',
-            error: null,
-            release: null,
-            shouldNotify: false
-        });
-        mocks.getAppUpdateDownloadStatus.mockResolvedValue({
-            phase: 'idle',
-            version: null,
-            downloadedBytes: 0,
-            totalBytes: 0,
-            percent: 0,
-            error: null
-        });
         mocks.runtimeGroupInstancesRefresh.mockResolvedValue(null);
-        mocks.appGameClientDebugLoggingStatus.mockResolvedValue(null);
         mocks.handleGameRunningUpdate.mockResolvedValue(undefined);
-        mocks.appGameProcessSnapshotGet.mockResolvedValue(
-            createGameProcessProjection()
-        );
-        mocks.profileBackupCurrentStatus.mockResolvedValue({
-            revision: 0,
-            state: 'idle',
-            kind: null,
-            phase: null,
-            percent: null,
-            error: null,
-            lastOutcome: null
-        });
-        mocks.dataDirMigrationCurrentStatus.mockResolvedValue({
-            revision: 0,
-            state: 'idle'
-        });
         mocks.bindDeepLinkEvents.mockResolvedValue(mocks.deepLinkUnsubscribe);
         mocks.drainPendingDeepLinks.mockResolvedValue(undefined);
         mocks.resumeFrontendSessionFromBackendRuntime.mockResolvedValue(false);
-        mocks.refreshMutualGraphFetchStatus.mockResolvedValue(undefined);
         mocks.initializeBackgroundImage.mockResolvedValue(undefined);
         mocks.initializeCommunityThemes.mockResolvedValue(undefined);
     });
@@ -412,9 +438,9 @@ describe('runtimeEventBridgeService', () => {
         const binding = bindRuntimeEvents();
         try {
             await vi.waitFor(() => {
-                expect(mocks.getBackendRuntimeSnapshot).toHaveBeenCalledTimes(
-                    1
-                );
+                expect(
+                    mocks.getBackendRuntimeCombinedSnapshot
+                ).toHaveBeenCalledTimes(1);
             });
         } finally {
             finishAppearanceHydration();
@@ -614,9 +640,9 @@ describe('runtimeEventBridgeService', () => {
             calls.push('bind-deep-link-events');
             return mocks.deepLinkUnsubscribe;
         });
-        mocks.getBackendRuntimeSnapshot.mockImplementation(async () => {
+        mocks.getBackendRuntimeCombinedSnapshot.mockImplementation(async () => {
             calls.push('get-backend-snapshot');
-            return createBackendRuntimeSnapshot();
+            return createBackendRuntimeCombinedSnapshot();
         });
         mocks.resumeFrontendSessionFromBackendRuntime.mockImplementation(
             async () => {
@@ -657,14 +683,16 @@ describe('runtimeEventBridgeService', () => {
             isGameRunning: false,
             isSteamVRRunning: false
         });
-        mocks.appGameProcessSnapshotGet.mockResolvedValue(
-            createGameProcessProjection({
-                isGameRunning: true,
-                isSteamVRRunning: true,
-                lastGameStartedAt: '2026-08-05T00:00:00.000Z',
-                lastGameStateChangedAt: '2026-08-05T00:00:00.000Z',
-                generation: 1,
-                changedAt: '2026-08-05T00:00:00.000Z'
+        mocks.getAncillaryRuntimeSnapshot.mockResolvedValue(
+            createAncillaryRuntimeSnapshot({
+                gameProcessSnapshot: createGameProcessProjection({
+                    isGameRunning: true,
+                    isSteamVRRunning: true,
+                    lastGameStartedAt: '2026-08-05T00:00:00.000Z',
+                    lastGameStateChangedAt: '2026-08-05T00:00:00.000Z',
+                    generation: 1,
+                    changedAt: '2026-08-05T00:00:00.000Z'
+                })
             })
         );
 
@@ -675,7 +703,7 @@ describe('runtimeEventBridgeService', () => {
             expect.any(Function)
         );
         expect(mocks.subscribe.mock.invocationCallOrder.at(-1)).toBeLessThan(
-            mocks.appGameProcessSnapshotGet.mock.invocationCallOrder[0]
+            mocks.getAncillaryRuntimeSnapshot.mock.invocationCallOrder[0]
         );
         expect(mocks.handleGameRunningUpdate).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -696,20 +724,20 @@ describe('runtimeEventBridgeService', () => {
             }
             return () => {};
         });
-        let finishSnapshot: (
-            projection: HostSessionProjection
+        let finishAncillarySnapshot: (
+            snapshot: ReturnType<typeof createAncillaryRuntimeSnapshot>
         ) => void = () => {
-            throw new Error('Game process snapshot was not requested.');
+            throw new Error('Ancillary runtime snapshot was not requested.');
         };
-        mocks.appGameProcessSnapshotGet.mockImplementationOnce(
+        mocks.getAncillaryRuntimeSnapshot.mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
-                    finishSnapshot = resolve;
+                    finishAncillarySnapshot = resolve;
                 })
         );
         const binding = bindRuntimeEvents();
         await vi.waitFor(() => {
-            expect(mocks.appGameProcessSnapshotGet).toHaveBeenCalledTimes(1);
+            expect(mocks.getAncillaryRuntimeSnapshot).toHaveBeenCalledTimes(1);
         });
         const liveProjection = createGameProcessProjection({
             isGameRunning: true,
@@ -723,7 +751,11 @@ describe('runtimeEventBridgeService', () => {
         });
         updateGameProcess(liveProjection);
 
-        finishSnapshot(createGameProcessProjection());
+        finishAncillarySnapshot(
+            createAncillaryRuntimeSnapshot({
+                gameProcessSnapshot: createGameProcessProjection()
+            })
+        );
         await binding;
 
         expect(mocks.handleGameRunningUpdate).toHaveBeenCalledTimes(1);
@@ -783,15 +815,19 @@ describe('runtimeEventBridgeService', () => {
             handlers.set(name, handler);
             return () => {};
         });
-        mocks.profileBackupCurrentStatus.mockResolvedValueOnce({
-            revision: 3,
-            state: 'running',
-            kind: 'auto',
-            phase: 'snapshot',
-            percent: 15,
-            error: null,
-            lastOutcome: null
-        });
+        mocks.getAncillaryRuntimeSnapshot.mockResolvedValueOnce(
+            createAncillaryRuntimeSnapshot({
+                profileBackupCurrentStatus: {
+                    revision: 3,
+                    state: 'running',
+                    kind: 'auto',
+                    phase: 'snapshot',
+                    percent: 15,
+                    error: null,
+                    lastOutcome: null
+                }
+            })
+        );
 
         await bindRuntimeEvents();
         handlers.get('profileBackupStatus')?.({
@@ -817,6 +853,28 @@ describe('runtimeEventBridgeService', () => {
             handlers.set(name, handler);
             return () => {};
         });
+        const hydratedMutualStatus: MutualGraphFetchStatus = {
+            runId: 3,
+            revision: 1,
+            status: 'running',
+            ownerUserId: 'usr_hydrated',
+            totalFriends: 0,
+            processedFriends: 0,
+            currentFriendId: '',
+            fetchedFriends: 0,
+            optedOutFriends: 0,
+            failedFriends: 0,
+            cancelRequested: false,
+            startedAt: '',
+            updatedAt: '',
+            finishedAt: null,
+            lastError: null
+        };
+        mocks.getAncillaryRuntimeSnapshot.mockResolvedValueOnce(
+            createAncillaryRuntimeSnapshot({
+                mutualGraphFetchStatus: hydratedMutualStatus
+            })
+        );
 
         await bindRuntimeEvents();
         const mutualStatus = {
@@ -843,7 +901,9 @@ describe('runtimeEventBridgeService', () => {
         };
         handlers.get('vrcStatus')?.(vrcStatus);
 
-        expect(mocks.refreshMutualGraphFetchStatus).toHaveBeenCalledTimes(1);
+        expect(mocks.handleMutualGraphFetchStatusEvent).toHaveBeenCalledWith(
+            hydratedMutualStatus
+        );
         expect(mocks.handleMutualGraphFetchStatusEvent).toHaveBeenCalledWith(
             mutualStatus
         );
@@ -884,12 +944,16 @@ describe('runtimeEventBridgeService', () => {
             handlers.set(name, handler);
             return () => {};
         });
-        mocks.dataDirMigrationCurrentStatus.mockResolvedValueOnce({
-            revision: 2,
-            state: 'running',
-            phase: 'copying',
-            percent: 20
-        });
+        mocks.getAncillaryRuntimeSnapshot.mockResolvedValueOnce(
+            createAncillaryRuntimeSnapshot({
+                dataDirMigrationCurrentStatus: {
+                    revision: 2,
+                    state: 'running',
+                    phase: 'copying',
+                    percent: 20
+                }
+            })
+        );
 
         await bindRuntimeEvents();
         handlers.get('dataDirMigration')?.({

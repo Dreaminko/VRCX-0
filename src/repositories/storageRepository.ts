@@ -4,6 +4,8 @@ import { asString, safeJsonParse, safeJsonStringify } from './baseRepository';
 
 export class StorageRepository {
     #prefix = '';
+    #cache = new Map<string, string>();
+    #hydration: Promise<void> | null = null;
 
     constructor(prefix: string = '') {
         this.#prefix = prefix;
@@ -17,9 +19,21 @@ export class StorageRepository {
         return new StorageRepository(`${this.#prefix}${prefix}`);
     }
 
+    async init(): Promise<void> {
+        this.#hydration ??= commands.storageGetAll().then((entries) => {
+            for (const [key, value] of Object.entries(entries ?? {})) {
+                if (value !== null && value !== undefined) {
+                    this.#cache.set(key, value);
+                }
+            }
+        });
+        await this.#hydration;
+    }
+
     async getString(key: string, defaultValue: string | null = null) {
-        const value = await commands.storageGet(this.key(key));
-        if (value === null || value === undefined || value === 'undefined') {
+        await this.init();
+        const value = this.#cache.get(this.key(key));
+        if (value === undefined || value === 'undefined') {
             return defaultValue;
         }
         return asString(value, defaultValue ?? '');
@@ -35,7 +49,12 @@ export class StorageRepository {
     }
 
     async setString(key: string, value: unknown) {
-        return commands.storageSet(this.key(key), String(value));
+        await this.init();
+        const dbKey = this.key(key);
+        const stringValue = String(value);
+        const result = await commands.storageSet(dbKey, stringValue);
+        this.#cache.set(dbKey, stringValue);
+        return result;
     }
 
     async set(key: string, value: unknown) {
@@ -47,12 +66,17 @@ export class StorageRepository {
     }
 
     async remove(key: string) {
-        return commands.storageRemove(this.key(key));
+        await this.init();
+        const dbKey = this.key(key);
+        const result = await commands.storageRemove(dbKey);
+        this.#cache.delete(dbKey);
+        return result;
     }
 
     async has(key: string): Promise<boolean> {
-        const value = await commands.storageGet(this.key(key));
-        return value !== null && value !== undefined && value !== 'undefined';
+        await this.init();
+        const value = this.#cache.get(this.key(key));
+        return value !== undefined && value !== 'undefined';
     }
 
     async flush(): Promise<void> {
@@ -60,11 +84,14 @@ export class StorageRepository {
     }
 
     async clear(): Promise<void> {
-        const entries = await commands.storageGetAll();
-        const keys = Object.keys(entries || {}).filter((key) =>
-            this.#prefix ? key.startsWith(this.#prefix) : true
+        await this.init();
+        const keys = [...this.#cache.keys()].filter((key) =>
+            key.startsWith(this.#prefix)
         );
         await Promise.all(keys.map((key) => commands.storageRemove(key)));
+        for (const key of keys) {
+            this.#cache.delete(key);
+        }
         await commands.storageFlush();
     }
 }

@@ -120,8 +120,11 @@ function configureBackgroundImage(
     );
 }
 
-export async function initializeBackgroundImage(): Promise<void> {
-    const projection = await commands.appBackgroundImageStateGet();
+export async function initializeBackgroundImage(
+    prefetchedProjection?: BackgroundImageProjection
+): Promise<void> {
+    const projection =
+        prefetchedProjection ?? (await commands.appBackgroundImageStateGet());
     applyProjectionState(projection);
     await syncBackgroundImageAppearance(false);
 }
