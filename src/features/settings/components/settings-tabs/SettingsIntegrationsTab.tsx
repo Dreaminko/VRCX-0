@@ -122,30 +122,30 @@ export function SettingsIntegrationsTab({
                 title={t(
                     'view.settings.discord_presence.discord_presence.header'
                 )}
-                description={
-                    <div className="flex flex-col gap-2">
-                        <div>
-                            {t(
-                                'view.settings.discord_presence.discord_presence.description'
-                            )}
-                        </div>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="text-muted-foreground hover:text-primary h-auto justify-start p-0 text-left text-xs font-normal"
-                            onClick={openVrchatConfig}
-                        >
-                            {t(
-                                'view.settings.discord_presence.discord_presence.enable_tooltip'
-                            )}
-                        </Button>
-                    </div>
-                }
             >
                 <Field
                     label={t(
                         'view.settings.discord_presence.discord_presence.enable'
                     )}
+                    description={
+                        <div className="flex flex-col gap-1">
+                            <div>
+                                {t(
+                                    'view.settings.discord_presence.discord_presence.description'
+                                )}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="link"
+                                className="text-muted-foreground hover:text-primary h-auto justify-start p-0 text-left text-xs font-normal"
+                                onClick={openVrchatConfig}
+                            >
+                                {t(
+                                    'view.settings.discord_presence.discord_presence.enable_tooltip'
+                                )}
+                            </Button>
+                        </div>
+                    }
                 >
                     <Switch
                         checked={discordPrefs.discordActive}
