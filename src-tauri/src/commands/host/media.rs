@@ -42,30 +42,10 @@ pub async fn app__save_image_file(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__get_image(
-    state: State<'_, AppState>,
-    url: String,
-    file_id: String,
-    version: String,
-) -> Result<String, AppError> {
-    Ok(state
-        .image_cache
-        .get_image(&url, &file_id, &version)
-        .await?)
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn app__resize_image_to_fit_limits(base64data: String) -> Result<String, AppError> {
     Ok(image_processing::resize_image_to_fit_limits_base64(
         &base64data,
     )?)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__sign_file(blob: String) -> Result<String, AppError> {
-    Ok(media_files::sign_file_base64(&blob)?)
 }
 
 #[tauri::command]

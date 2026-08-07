@@ -2,8 +2,7 @@
 
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::favorites::{
-    favorite_avatars_get_input, favorite_groups_get_input, favorite_limits_get_input,
-    favorite_worlds_get_input, favorites_get_input,
+    favorite_avatars_get_input, favorite_groups_get_input, favorite_worlds_get_input,
 };
 use vrcx_0_application_core::vrchat_api::require_text;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
@@ -16,7 +15,7 @@ use super::types::{
     LocalFavoriteGroupInput, LocalFavoriteGroupRenameInput, LocalFavoriteInput,
     VrchatFavoriteAddInput, VrchatFavoriteAvatarsInput, VrchatFavoriteDeleteInput,
     VrchatFavoriteGroupClearInput, VrchatFavoriteGroupSaveInput, VrchatFavoriteGroupsInput,
-    VrchatFavoritePagedInput, VrchatFavoriteWorldsInput,
+    VrchatFavoriteWorldsInput,
 };
 
 async fn execute_favorite_api(
@@ -39,35 +38,6 @@ fn mutation_deps<'a>(
         sync: &state.runtime_context.sync,
         realtime: &state.realtime_runtime,
     }
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_favorite_limits_get(
-    state: State<'_, AppState>,
-) -> Result<VrchatApiResponse, AppError> {
-    execute_favorite_api(
-        state,
-        "app__vrchat_favorite_limits_get",
-        "Getting favorite limits.",
-        favorite_limits_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into()),
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_favorites_get(
-    state: State<'_, AppState>,
-    input: VrchatFavoritePagedInput,
-) -> Result<VrchatApiResponse, AppError> {
-    execute_favorite_api(
-        state,
-        "app__vrchat_favorites_get",
-        format!("Getting favorites offset {}.", input.offset),
-        favorites_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.n, input.offset),
-    )
-    .await
 }
 
 #[tauri::command]
@@ -213,7 +183,7 @@ pub fn app__local_favorite_add(
     let kind = input.kind;
     let entity_id = require_text(input.entity_id, "LocalFavoriteAdd requires entityId.")?;
     let group_name = require_text(input.group_name, "LocalFavoriteAdd requires groupName.")?;
-    crate::commands::local::favorites::app__favorite_add(state, kind, entity_id, group_name)
+    crate::commands::local::favorites::favorite_add(state, kind, entity_id, group_name)
 }
 
 #[tauri::command]
@@ -225,7 +195,7 @@ pub fn app__local_favorite_remove(
     let kind = input.kind;
     let entity_id = require_text(input.entity_id, "LocalFavoriteRemove requires entityId.")?;
     let group_name = require_text(input.group_name, "LocalFavoriteRemove requires groupName.")?;
-    crate::commands::local::favorites::app__favorite_remove(state, kind, entity_id, group_name)
+    crate::commands::local::favorites::favorite_remove(state, kind, entity_id, group_name)
 }
 
 #[tauri::command]

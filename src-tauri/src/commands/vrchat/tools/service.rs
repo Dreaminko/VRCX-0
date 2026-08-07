@@ -2,9 +2,9 @@
 
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::tools::{
-    calendars_get_input, featured_calendars_get_input, following_calendars_get_input,
-    group_calendar_get_input, group_calendar_ics_get_input, group_event_follow_input,
-    invite_message_edit_input, invite_messages_get_input, user_note_save_input, user_report_input,
+    following_calendars_get_input, group_calendar_get_input, group_calendar_ics_get_input,
+    group_event_follow_input, invite_message_edit_input, invite_messages_get_input,
+    user_note_save_input, user_report_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
@@ -26,21 +26,6 @@ async fn execute_tools_api(
 ) -> Result<VrchatApiResponse, AppError> {
     super::super::execute::execute_vrchat_api(state, command, detail, input, VrchatScope::Vrchat)
         .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_tools_calendars_get(
-    state: State<'_, AppState>,
-    input: VrchatToolsCalendarListInput,
-) -> Result<VrchatApiResponse, AppError> {
-    execute_tools_api(
-        state,
-        "app__vrchat_tools_calendars_get",
-        "Getting group calendars.",
-        calendars_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.params),
-    )
-    .await
 }
 
 #[tauri::command]
@@ -71,21 +56,6 @@ pub async fn app__vrchat_tools_following_calendars_get(
         "app__vrchat_tools_following_calendars_get",
         "Getting followed group calendars.",
         following_calendars_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.params),
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_tools_featured_calendars_get(
-    state: State<'_, AppState>,
-    input: VrchatToolsCalendarListInput,
-) -> Result<VrchatApiResponse, AppError> {
-    execute_tools_api(
-        state,
-        "app__vrchat_tools_featured_calendars_get",
-        "Getting featured group calendars.",
-        featured_calendars_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.params),
     )
     .await
 }

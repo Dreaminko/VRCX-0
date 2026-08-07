@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_application_core::HostSessionProjection;
 use vrcx_0_host_desktop::game_launch;
 use vrcx_0_host_desktop::host_capabilities::{
     require_host_capability, require_host_capability_supported, HostCapability,
@@ -20,34 +19,11 @@ pub fn app__is_game_running(state: State<'_, AppState>) -> Result<bool, AppError
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__game_process_snapshot_get(
-    state: State<'_, AppState>,
-) -> Result<HostSessionProjection, AppError> {
-    require_host_capability(HostCapability::GameProcessMonitor)?;
-    Ok(state.runtime_context.session.projection_snapshot())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__is_steamvr_running(state: State<'_, AppState>) -> Result<bool, AppError> {
-    require_host_capability(HostCapability::GameProcessMonitor)?;
-    Ok(state.game.process_monitor.is_steamvr_running())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn app__set_game_client_runtime_state(state: State<'_, AppState>, current_location: String) {
     state
         .game
         .game_client_runtime
         .set_runtime_state(&current_location);
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__quit_game() -> Result<i32, AppError> {
-    require_host_capability_supported(HostCapability::GameLaunch)?;
-    Ok(game_launch::quit_game())
 }
 
 #[tauri::command]

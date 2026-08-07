@@ -7,9 +7,7 @@ use crate::error::AppError;
 use crate::state::AppState;
 
 use vrcx_0_application_game::PlayerListSnapshotOutput;
-use vrcx_0_persistence::player_list::{
-    InstanceActivityRowOutput, PlayerJoinLeaveOutput, PlayerLocationOutput,
-};
+use vrcx_0_persistence::player_list::InstanceActivityRowOutput;
 use vrcx_0_persistence::worlds::WorldSummaryOutput;
 
 #[tauri::command]
@@ -59,51 +57,6 @@ pub fn app__instance_activity_rows_get(
         &owner_user_id,
         start_date,
         end_date,
-    )
-    .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__player_list_join_leave_rows(
-    state: State<'_, AppState>,
-    location: String,
-    started_at: String,
-) -> Result<Vec<PlayerJoinLeaveOutput>, AppError> {
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    vrcx_0_persistence::player_list::player_list_join_leave_rows(
-        state.db.as_ref(),
-        &owner_user_id,
-        location,
-        started_at,
-    )
-    .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__player_list_latest_location_get(
-    state: State<'_, AppState>,
-) -> Result<Option<PlayerLocationOutput>, AppError> {
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    vrcx_0_persistence::player_list::player_list_latest_location_get(
-        state.db.as_ref(),
-        &owner_user_id,
-    )
-    .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__player_list_location_get(
-    state: State<'_, AppState>,
-    location: String,
-) -> Result<Option<PlayerLocationOutput>, AppError> {
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    vrcx_0_persistence::player_list::player_list_location_get(
-        state.db.as_ref(),
-        &owner_user_id,
-        location,
     )
     .map_err(AppError::from)
 }

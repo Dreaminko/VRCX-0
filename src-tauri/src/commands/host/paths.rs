@@ -51,15 +51,6 @@ fn normalize_locale(locale: String) -> String {
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__get_vrchat_app_data_location() -> Result<String, AppError> {
-    require_host_capability(HostCapability::VrchatPathDiscovery)?;
-    Ok(vrchat_paths::vrchat_app_data()
-        .to_string_lossy()
-        .into_owned())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn app__get_vrchat_photos_location() -> Result<String, AppError> {
     require_host_capability(HostCapability::VrchatPathDiscovery)?;
     Ok(vrchat_paths::vrchat_photos_location())
@@ -72,20 +63,6 @@ pub fn app__get_ugc_photo_location(path: Option<String>) -> Result<String, AppEr
         require_host_capability(HostCapability::VrchatPathDiscovery)?;
     }
     Ok(vrchat_paths::ugc_photo_location(path))
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__get_vrchat_cache_location() -> Result<String, AppError> {
-    require_host_capability(HostCapability::VrchatPathDiscovery)?;
-    Ok(vrchat_paths::vrchat_cache_location())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__get_vrchat_screenshots_location() -> Result<String, AppError> {
-    require_host_capability(HostCapability::ScreenshotCache)?;
-    Ok(vrchat_paths::vrchat_screenshots_location())
 }
 
 #[tauri::command]

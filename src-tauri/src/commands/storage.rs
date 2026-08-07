@@ -9,12 +9,6 @@ use crate::state::AppState;
 
 #[tauri::command]
 #[specta::specta]
-pub fn storage__get(key: String, state: State<'_, AppState>) -> Result<Option<String>, AppError> {
-    Ok(state.storage.get(&key))
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn storage__set(
     key: String,
     value: String,

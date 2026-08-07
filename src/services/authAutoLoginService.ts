@@ -5,6 +5,7 @@ import {
     type AutoLoginOutcome,
     type LoginFailureKind
 } from '@/platform/tauri/bindings';
+import { flashWindow } from '@/platform/tauri/webview';
 import type { SavedAuthSnapshot } from '@/repositories/authRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -201,7 +202,7 @@ async function applyAutoLoginDelay(
 
 async function flashWindowSafely() {
     try {
-        await commands.appFlashWindow();
+        await flashWindow();
     } catch {
         // no-op
     }

@@ -3,13 +3,12 @@
 use tauri::State;
 use vrcx_0_application::{
     hydrate_favorite_details, mark_notifications_seen_batch, persist_favorite_cache_snapshot,
-    run_avatar_content_tags_batch, run_group_leave_batch, run_group_moderation_batch,
-    run_group_visibility_batch, send_instance_invites_batch, sync_notifications,
-    AvatarContentTagsBatchInput, BatchMutationResult, FavoriteCacheSnapshotInput,
-    FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput, FavoriteDetailsHydrateOutput,
-    FavoriteImportStartInput, FavoriteImportStatus, GroupBanImportStartInput, GroupBanImportStatus,
-    GroupLeaveBatchInput, GroupModerationBatchInput, GroupModerationBatchResult,
-    GroupVisibilityBatchInput, InstanceInviteBatchInput, InstanceInviteBatchResult,
+    run_avatar_content_tags_batch, run_group_moderation_batch, send_instance_invites_batch,
+    sync_notifications, AvatarContentTagsBatchInput, BatchMutationResult,
+    FavoriteCacheSnapshotInput, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
+    FavoriteDetailsHydrateOutput, FavoriteImportStartInput, FavoriteImportStatus,
+    GroupBanImportStartInput, GroupBanImportStatus, GroupModerationBatchInput,
+    GroupModerationBatchResult, InstanceInviteBatchInput, InstanceInviteBatchResult,
     NotificationMarkSeenBatchInput, NotificationMarkSeenBatchResult, NotificationSyncDeps,
     NotificationSyncOutcome, VrchatBatchMutationActions, VrchatGroupModerationBatchActions,
     VrchatInstanceInviteBatchActions, VrchatNotificationMarkSeenActions,
@@ -25,12 +24,6 @@ pub fn app__favorite_import_start(
     input: FavoriteImportStartInput,
 ) -> Result<FavoriteImportStatus, AppError> {
     Ok(state.favorite_import.start(input)?)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__favorite_import_status(state: State<'_, AppState>) -> FavoriteImportStatus {
-    state.favorite_import.status()
 }
 
 #[tauri::command]
@@ -99,38 +92,6 @@ pub async fn app__avatar_content_tags_batch(
         expected_scope,
     };
     Ok(run_avatar_content_tags_batch(&actions, input).await?)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__group_visibility_batch(
-    state: State<'_, AppState>,
-    input: GroupVisibilityBatchInput,
-) -> Result<BatchMutationResult, AppError> {
-    let expected_scope = active_scope(&state)?;
-    let actions = VrchatBatchMutationActions {
-        db: state.db.as_ref(),
-        web: state.web.as_ref(),
-        auth_scope: &state.runtime_context.auth_scope,
-        expected_scope,
-    };
-    Ok(run_group_visibility_batch(&actions, input).await?)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__group_leave_batch(
-    state: State<'_, AppState>,
-    input: GroupLeaveBatchInput,
-) -> Result<BatchMutationResult, AppError> {
-    let expected_scope = active_scope(&state)?;
-    let actions = VrchatBatchMutationActions {
-        db: state.db.as_ref(),
-        web: state.web.as_ref(),
-        auth_scope: &state.runtime_context.auth_scope,
-        expected_scope,
-    };
-    Ok(run_group_leave_batch(&actions, input).await?)
 }
 
 #[tauri::command]

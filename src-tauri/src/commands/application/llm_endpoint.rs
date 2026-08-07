@@ -3,7 +3,7 @@
 use tauri::State;
 use vrcx_0_assistant::{
     LlmEndpointDetectModelsInput, LlmEndpointDetectModelsResult, LlmEndpointDto,
-    LlmEndpointUpsertInput, LlmTranslateInput,
+    LlmEndpointUpsertInput,
 };
 
 use crate::error::AppError;
@@ -82,20 +82,6 @@ pub async fn app__llm_endpoint_detect_models(
         .assistant()
         .await?
         .endpoint_detect_models(input)
-        .await
-        .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__llm_translate(
-    state: State<'_, AppState>,
-    input: LlmTranslateInput,
-) -> Result<String, AppError> {
-    state
-        .assistant()
-        .await?
-        .translate(input)
         .await
         .map_err(AppError::from)
 }

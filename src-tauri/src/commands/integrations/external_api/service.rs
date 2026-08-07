@@ -10,8 +10,8 @@ use vrcx_0_integrations::external_api::{
 };
 
 use super::types::{
-    ExternalApiAvatarSearchInput, ExternalApiImageInput, ExternalApiTranslationInput,
-    ExternalApiUrlInput, ExternalApiYoutubeVideoInput,
+    ExternalApiAvatarSearchInput, ExternalApiImageInput, ExternalApiUrlInput,
+    ExternalApiYoutubeVideoInput,
 };
 
 fn normalize_text(value: impl AsRef<str>) -> String {
@@ -32,14 +32,6 @@ fn avatar_search_input(
     let url = require_text(input.url, "ExternalApiAvatarSearchGet requires url.")?;
     let vrcx_id = require_text(input.vrcx_id, "ExternalApiAvatarSearchGet requires vrcxId.")?;
     Ok(external_api::avatar_search_get_input(&url, &vrcx_id))
-}
-
-fn translation_input(
-    input: ExternalApiTranslationInput,
-) -> Result<ExternalHttpRequestInput, AppError> {
-    let url = require_text(input.url, "ExternalApiTranslationRequest requires url.")?;
-    external_api::translation_request_input(&url, &input.method, input.headers, input.body)
-        .map_err(|error| AppError::Custom(error.to_string()))
 }
 
 fn youtube_video_input(
@@ -160,14 +152,6 @@ external_command!(
     avatar_search_input,
     ExternalApiScope::AvatarSearch,
     "Searching external avatar provider."
-);
-
-external_command!(
-    app__external_api_translation_request,
-    ExternalApiTranslationInput,
-    translation_input,
-    ExternalApiScope::Translation,
-    "Dispatching external translation request."
 );
 
 external_command!(

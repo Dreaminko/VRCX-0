@@ -2,14 +2,11 @@
 
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::media::{
-    asset_upload_input, avatar_gallery_image_upload_input, avatar_image_set_input,
-    file_delete_input, file_put_input, file_upload_finish_input, file_upload_stage_path,
-    file_upload_start_input, file_version_create_input, files_get_input,
+    asset_upload_input, avatar_gallery_image_upload_input, file_delete_input, files_get_input,
     inventory_bundle_consume_input, inventory_item_equip_input, inventory_item_update_input,
     inventory_items_get_input, inventory_slot_unequip_input, inventory_template_get_input,
     print_delete_input, print_get_input, print_upload_input, prints_get_input, reward_redeem_input,
     sticker_upload_input, tagged_image_upload_input, user_inventory_item_get_input,
-    world_image_set_input,
 };
 use vrcx_0_application_core::RuntimeOperationStatus;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
@@ -27,9 +24,7 @@ use vrcx_0_application_core::{
 };
 
 use super::types::{
-    VrchatMediaAssetUploadInput, VrchatMediaAvatarGalleryImageUploadInput,
-    VrchatMediaEntityImageInput, VrchatMediaFileIdInput, VrchatMediaFilePutInput,
-    VrchatMediaFileUploadStageInput, VrchatMediaFileVersionCreateInput,
+    VrchatMediaAssetUploadInput, VrchatMediaAvatarGalleryImageUploadInput, VrchatMediaFileIdInput,
     VrchatMediaImageUploadInput, VrchatMediaInventoryItemInput, VrchatMediaInventoryTemplateInput,
     VrchatMediaLegacyImageUploadInput, VrchatMediaParamsInput, VrchatMediaPrintIdInput,
     VrchatMediaPrintUploadInput, VrchatMediaPrintsInput, VrchatMediaProfileDecorationEquipInput,
@@ -536,76 +531,6 @@ pub async fn app__vrchat_media_reward_redeem(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__vrchat_media_file_version_create(
-    state: State<'_, AppState>,
-    input: VrchatMediaFileVersionCreateInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let file_id = input.file_id.clone();
-    execute_media_api(
-        state,
-        "app__vrchat_media_file_version_create",
-        format!("Creating file version for {file_id}."),
-        file_version_create_input(
-            VRCHAT_API_DEFAULT_ENDPOINT.into(),
-            input.file_id,
-            input.file_md5,
-            input.file_size_in_bytes,
-            input.signature_md5,
-            input.signature_size_in_bytes,
-        )?,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_media_file_upload_start(
-    state: State<'_, AppState>,
-    input: VrchatMediaFileUploadStageInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let path = file_upload_stage_path(input.file_id, input.version, input.kind)?;
-    execute_media_api(
-        state,
-        "app__vrchat_media_file_upload_start",
-        format!("Starting upload stage {path}."),
-        file_upload_start_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), path),
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_media_file_upload_finish(
-    state: State<'_, AppState>,
-    input: VrchatMediaFileUploadStageInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let path = file_upload_stage_path(input.file_id, input.version, input.kind)?;
-    execute_media_api(
-        state,
-        "app__vrchat_media_file_upload_finish",
-        format!("Finishing upload stage {path}."),
-        file_upload_finish_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), path),
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_media_file_put(
-    state: State<'_, AppState>,
-    input: VrchatMediaFilePutInput,
-) -> Result<VrchatApiResponse, AppError> {
-    execute_media_api(
-        state,
-        "app__vrchat_media_file_put",
-        "Uploading file bytes.",
-        file_put_input(input.url, input.file_data, input.file_mime, input.file_md5),
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn app__vrchat_media_avatar_image_upload_legacy(
     state: State<'_, AppState>,
     input: VrchatMediaLegacyImageUploadInput,
@@ -630,46 +555,6 @@ pub async fn app__vrchat_media_world_image_upload_legacy(
         input,
         LegacyEntityImageKind::World,
         "app__vrchat_media_world_image_upload_legacy",
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_media_avatar_image_set(
-    state: State<'_, AppState>,
-    input: VrchatMediaEntityImageInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let avatar_id = input.entity_id.clone();
-    execute_media_api(
-        state,
-        "app__vrchat_media_avatar_image_set",
-        format!("Setting avatar image {avatar_id}."),
-        avatar_image_set_input(
-            VRCHAT_API_DEFAULT_ENDPOINT.into(),
-            input.entity_id,
-            input.image_url,
-        )?,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_media_world_image_set(
-    state: State<'_, AppState>,
-    input: VrchatMediaEntityImageInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let world_id = input.entity_id.clone();
-    execute_media_api(
-        state,
-        "app__vrchat_media_world_image_set",
-        format!("Setting world image {world_id}."),
-        world_image_set_input(
-            VRCHAT_API_DEFAULT_ENDPOINT.into(),
-            input.entity_id,
-            input.image_url,
-        )?,
     )
     .await
 }

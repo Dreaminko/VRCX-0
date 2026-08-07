@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
     toastError: vi.fn(),
     toastInfo: vi.fn(),
     toastDismiss: vi.fn(),
-    appFlashWindow: vi.fn(),
+    flashWindow: vi.fn(),
     appAuthFailureNotificationShow: vi.fn(),
     autoLoginStart: vi.fn(),
     cancelLoginSession: vi.fn(),
@@ -33,9 +33,12 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
-        appFlashWindow: mocks.appFlashWindow,
         appAuthFailureNotificationShow: mocks.appAuthFailureNotificationShow
     }
+}));
+
+vi.mock('@/platform/tauri/webview', () => ({
+    flashWindow: mocks.flashWindow
 }));
 
 vi.mock('@/repositories/vrchatAuthRepository', () => ({
@@ -248,7 +251,7 @@ describe('authAutoLoginService', () => {
         expect(mocks.applySavedAuthSnapshot).toHaveBeenCalledWith(
             expect.objectContaining({ lastUserLoggedIn: null })
         );
-        expect(mocks.appFlashWindow).toHaveBeenCalledTimes(1);
+        expect(mocks.flashWindow).toHaveBeenCalledTimes(1);
         expect(mocks.appAuthFailureNotificationShow).toHaveBeenCalledWith(
             'frontend-auto-login-throttled'
         );

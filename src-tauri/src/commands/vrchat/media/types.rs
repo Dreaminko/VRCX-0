@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 use serde_json::Value;
-use vrcx_0_application_core::vrchat_api::media::{FileUploadStageKind, MediaAssetKind};
+use vrcx_0_application_core::vrchat_api::media::MediaAssetKind;
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -133,53 +133,6 @@ pub struct VrchatMediaProfileDecorationUnequipInput {
 pub struct VrchatMediaRewardRedeemInput {
     #[serde(default)]
     pub(crate) code: String,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct VrchatMediaFileVersionCreateInput {
-    #[serde(default)]
-    pub(crate) file_id: String,
-    #[serde(default)]
-    pub(crate) file_md5: String,
-    #[serde(default)]
-    pub(crate) file_size_in_bytes: i64,
-    #[serde(default)]
-    pub(crate) signature_md5: String,
-    #[serde(default)]
-    pub(crate) signature_size_in_bytes: i64,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct VrchatMediaFileUploadStageInput {
-    #[serde(default)]
-    pub(crate) file_id: String,
-    #[serde(default)]
-    pub(crate) version: i64,
-    pub(crate) kind: FileUploadStageKind,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct VrchatMediaFilePutInput {
-    #[serde(default)]
-    pub(crate) url: String,
-    #[serde(default)]
-    pub(crate) file_data: String,
-    #[serde(default, rename = "fileMIME")]
-    pub(crate) file_mime: String,
-    #[serde(default, rename = "fileMD5")]
-    pub(crate) file_md5: String,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct VrchatMediaEntityImageInput {
-    #[serde(default)]
-    pub(crate) entity_id: String,
-    #[serde(default)]
-    pub(crate) image_url: String,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]

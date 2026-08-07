@@ -111,27 +111,6 @@ pub async fn app__social_unfriend(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__social_unfriend_batch(
-    state: State<'_, AppState>,
-    input: SocialUnfriendBatchInput,
-) -> Result<SocialUnfriendBatchResult, AppError> {
-    let command = "app__social_unfriend_batch";
-    let target_count = input.targets.len();
-    state.runtime_context.diagnostics.record_command(
-        command,
-        RuntimeOperationStatus::Running,
-        format!("Unfriending {target_count} user(s)."),
-    );
-
-    let result =
-        social_mutation::unfriend_batch(deps(&state), &state.remote_mutations, input).await;
-    record_batch_outcome(&state, command, &result);
-
-    Ok(result?)
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn app__social_unfriend_selection(
     state: State<'_, AppState>,
     input: SocialUnfriendBatchInput,

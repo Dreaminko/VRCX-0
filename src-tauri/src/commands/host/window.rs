@@ -90,45 +90,6 @@ fn flush_telemetry_before_task_shutdown(state: &AppState) {
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__set_user_agent() {}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__focus_window(app_handle: AppHandle) -> Result<(), AppError> {
-    use tauri::Manager;
-    if let Some(window) = app_handle.get_webview_window("main") {
-        let _ = window.set_focus();
-    }
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__flash_window(app_handle: AppHandle) -> Result<(), AppError> {
-    use tauri::Manager;
-    if let Some(window) = app_handle.get_webview_window("main") {
-        let _ = window.request_user_attention(Some(tauri::UserAttentionType::Informational));
-    }
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__change_theme(app_handle: AppHandle, value: i32) -> Result<(), AppError> {
-    use tauri::Manager;
-    if let Some(window) = app_handle.get_webview_window("main") {
-        let theme = match value {
-            0 => Some(tauri::Theme::Light),
-            1 => Some(tauri::Theme::Dark),
-            _ => None,
-        };
-        let _ = window.set_theme(theme);
-    }
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
 #[allow(unused_variables)]
 pub fn app__language_changed(app_handle: AppHandle, language: String) -> Result<(), AppError> {
     #[cfg(target_os = "macos")]
@@ -137,10 +98,6 @@ pub fn app__language_changed(app_handle: AppHandle, language: String) -> Result<
     drop(language);
     Ok(())
 }
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__do_funny() {}
 
 #[tauri::command]
 #[specta::specta]

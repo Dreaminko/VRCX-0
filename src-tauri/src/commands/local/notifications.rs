@@ -6,10 +6,7 @@ use crate::error::AppError;
 use crate::state::AppState;
 
 use serde_json::Value;
-use vrcx_0_persistence::notifications::{
-    NotificationListItemOutput, NotificationListQueryInput, NotificationRowsOutput,
-    NotificationRowsQueryInput,
-};
+use vrcx_0_persistence::notifications::{NotificationListItemOutput, NotificationListQueryInput};
 
 #[tauri::command]
 #[specta::specta]
@@ -78,16 +75,6 @@ pub fn app__notification_mark_seen_local_bulk(
         ids,
     )
     .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__notification_rows_query(
-    state: State<'_, AppState>,
-    query: NotificationRowsQueryInput,
-) -> Result<NotificationRowsOutput, AppError> {
-    vrcx_0_persistence::notifications::notification_rows_query(state.db.as_ref(), query)
-        .map_err(AppError::from)
 }
 
 #[tauri::command]

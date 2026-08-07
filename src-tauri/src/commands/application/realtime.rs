@@ -7,27 +7,6 @@ use vrcx_0_application_core::FriendProfileLoadStatusPayload;
 use crate::error::AppError;
 use crate::state::AppState;
 
-#[tauri::command]
-#[specta::specta]
-pub fn app__sync_realtime_current_user_snapshot(
-    state: State<'_, AppState>,
-    user_id: String,
-    endpoint: String,
-    websocket: String,
-    generation: Option<u64>,
-    snapshot: Value,
-    overlay_patch: Value,
-) -> Result<bool, AppError> {
-    Ok(state.realtime_runtime.sync_current_user_snapshot(
-        user_id,
-        endpoint,
-        websocket,
-        generation,
-        snapshot,
-        overlay_patch,
-    )?)
-}
-
 #[derive(serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CurrentUserRefreshOutcome {
@@ -44,18 +23,6 @@ pub async fn app__current_user_refresh(
         .refresh_current_user_now(Value::Null)
         .await?;
     Ok(CurrentUserRefreshOutcome { applied })
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__expire_realtime_notification(
-    state: State<'_, AppState>,
-    user_id: String,
-    notification_id: String,
-) -> Result<(), AppError> {
-    Ok(state
-        .realtime_runtime
-        .expire_notification(user_id, notification_id)?)
 }
 
 #[tauri::command]

@@ -6,7 +6,6 @@ pub mod error_log;
 pub mod fonts;
 pub mod game;
 pub mod host_capabilities;
-pub mod ipc_commands;
 pub mod legacy_migration;
 pub mod media;
 pub mod overlay_notifications;

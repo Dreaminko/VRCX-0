@@ -61,13 +61,6 @@ pub fn asset_bundle__delete_all_cache() -> Result<(), AppError> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn asset_bundle__sweep_cache() -> Result<Vec<String>, AppError> {
-    require_host_capability(HostCapability::VrchatPathDiscovery)?;
-    Ok(asset_bundle_cache::sweep_cache())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn asset_bundle__sweep_cache_to_size(max_size_bytes: i64) -> Result<Vec<String>, AppError> {
     require_host_capability(HostCapability::VrchatPathDiscovery)?;
     Ok(asset_bundle_cache::sweep_cache_to_size(max_size_bytes))

@@ -3,15 +3,6 @@ use vrcx_0_application_core::{FavoriteEntityKind, VrchatFavoriteType};
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct VrchatFavoritePagedInput {
-    #[serde(default)]
-    pub(crate) n: i64,
-    #[serde(default)]
-    pub(crate) offset: i64,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct VrchatFavoriteWorldsInput {
     #[serde(default)]
     pub(crate) n: i64,

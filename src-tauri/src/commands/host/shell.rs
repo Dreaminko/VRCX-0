@@ -48,13 +48,6 @@ pub fn app__get_file_base64(state: State<'_, AppState>, path: String) -> Result<
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__read_config_file() -> Result<String, AppError> {
-    require_host_capability(HostCapability::VrchatPathDiscovery)?;
-    Ok(shell_actions::read_config_file()?)
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn app__read_config_file_safe() -> Result<String, AppError> {
     require_host_capability(HostCapability::VrchatPathDiscovery)?;
     Ok(shell_actions::read_config_file_safe()?)

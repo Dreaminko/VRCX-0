@@ -2,7 +2,7 @@
 
 use tauri::State;
 use vrcx_0_application_activity::{
-    overlay_activity_type_definitions, OverlayActivitySnapshot, OverlayActivityTypeDefinition,
+    overlay_activity_type_definitions, OverlayActivityTypeDefinition,
 };
 use vrcx_0_runtime_host::notification::{
     NotificationActivityFiltersSetInput, OverlayActivityPreferenceFilters,
@@ -10,14 +10,6 @@ use vrcx_0_runtime_host::notification::{
 
 use crate::error::AppError;
 use crate::state::AppState;
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__overlay_activity_snapshot_get(
-    state: State<'_, AppState>,
-) -> Result<OverlayActivitySnapshot, AppError> {
-    Ok(state.overlay_activity_snapshot())
-}
 
 #[tauri::command]
 #[specta::specta]

@@ -15,6 +15,8 @@ export type WindowResizeDirection =
     | 'West'
     | 'NorthWest';
 
+export type WindowTheme = 'light' | 'dark';
+
 type WindowLike = {
     startDragging?: () => Promise<unknown> | unknown;
     startResizeDragging?: (
@@ -24,6 +26,11 @@ type WindowLike = {
     toggleMaximize?: () => Promise<unknown> | unknown;
     close?: () => Promise<unknown> | unknown;
     isMaximized?: () => Promise<boolean> | boolean;
+    setFocus?: () => Promise<unknown> | unknown;
+    requestUserAttention?: (
+        requestType: number | null
+    ) => Promise<unknown> | unknown;
+    setTheme?: (theme: WindowTheme | null) => Promise<unknown> | unknown;
 };
 
 async function loadCurrentWebviewWindow() {
@@ -38,13 +45,17 @@ async function loadCurrentWebviewWindow() {
     }
 }
 
-async function loadCurrentWindow() {
+async function loadWindowModule() {
     try {
-        const module = await import('@tauri-apps/api/window');
-        return module.getCurrentWindow;
+        return await import('@tauri-apps/api/window');
     } catch (error) {
         throw normalizePlatformError(error, 'Unable to load Tauri window API');
     }
+}
+
+async function loadCurrentWindow() {
+    const module = await loadWindowModule();
+    return module.getCurrentWindow;
 }
 
 export async function getCurrentWebviewWindow(): Promise<WebviewWindowLike> {
@@ -124,6 +135,35 @@ export async function closeWindow(): Promise<unknown> {
     return undefined;
 }
 
+export async function focusWindow(): Promise<unknown> {
+    const current = await getCurrentWindow();
+    if (current && typeof current.setFocus === 'function') {
+        return current.setFocus();
+    }
+    return undefined;
+}
+
+export async function flashWindow(): Promise<unknown> {
+    const module = await loadWindowModule();
+    const current: WindowLike = module.getCurrentWindow();
+    if (current && typeof current.requestUserAttention === 'function') {
+        return current.requestUserAttention(
+            module.UserAttentionType.Informational
+        );
+    }
+    return undefined;
+}
+
+export async function setWindowTheme(
+    theme: WindowTheme | null
+): Promise<unknown> {
+    const current = await getCurrentWindow();
+    if (current && typeof current.setTheme === 'function') {
+        return current.setTheme(theme);
+    }
+    return undefined;
+}
+
 export async function isWindowMaximized(): Promise<boolean> {
     const current = await getCurrentWindow();
     if (current && typeof current.isMaximized === 'function') {
@@ -142,5 +182,8 @@ export const webview = Object.freeze({
     minimizeWindow,
     toggleMaximizeWindow,
     closeWindow,
+    focusWindow,
+    flashWindow,
+    setWindowTheme,
     isWindowMaximized
 });

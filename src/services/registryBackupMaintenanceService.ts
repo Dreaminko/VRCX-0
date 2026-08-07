@@ -1,5 +1,6 @@
 import { commands } from '@/platform/tauri/bindings';
 import type { RegistryBackupMaintenanceResult } from '@/platform/tauri/bindings';
+import { focusWindow } from '@/platform/tauri/webview';
 import configRepository from '@/repositories/configRepository';
 import { isHostCapabilityAvailable } from '@/services/hostCapabilityService';
 import i18n from '@/services/i18nService';
@@ -45,7 +46,7 @@ async function performRegistryBackupMaintenance(reason: string) {
 
     await commands
         .appEnsureMainWindow()
-        .catch(() => commands.appFocusWindow().catch(() => {}));
+        .catch(() => focusWindow().catch(() => {}));
     await useModalStore.getState().alert({
         title: i18n.t(
             'service.background_maintenance.label.vrchat_registry_backup'
@@ -55,7 +56,7 @@ async function performRegistryBackupMaintenance(reason: string) {
         )
     });
     useRuntimeStore.getState().setSystemHostOpen('registryBackupOpen', true);
-    await commands.appFocusWindow().catch(() => {});
+    await focusWindow().catch(() => {});
     if (result.restorePromptBackupDate) {
         const acknowledgedDate =
             await commands.appRegistryBackupRestorePromptAcknowledge(

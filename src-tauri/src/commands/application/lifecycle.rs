@@ -5,11 +5,7 @@ use tauri::State;
 
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_application::{
-    AuthenticatedRuntimePhaseSnapshot, AuthenticatedSessionMaintenanceOutcome,
-};
 use vrcx_0_application_core::RuntimeOperationStatus;
-use vrcx_0_application_game::DebugLoggingOutcome;
 use vrcx_0_runtime_host_desktop::AncillaryRuntimeSnapshot;
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
@@ -31,34 +27,10 @@ fn default_frontend_owner() -> String {
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__game_client_debug_logging_status(
-    state: State<'_, AppState>,
-) -> Option<DebugLoggingOutcome> {
-    state.game.game_client_runtime.debug_logging_outcome()
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn app__ancillary_runtime_snapshot_get(
     state: State<'_, AppState>,
 ) -> Result<AncillaryRuntimeSnapshot, AppError> {
     Ok(state.ancillary_runtime_snapshot().await)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__authenticated_session_maintenance_run(
-    state: State<'_, AppState>,
-) -> Result<AuthenticatedSessionMaintenanceOutcome, AppError> {
-    Ok(state.authenticated_session_maintenance()?)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__authenticated_runtime_phase_snapshot_get(
-    state: State<'_, AppState>,
-) -> AuthenticatedRuntimePhaseSnapshot {
-    state.authenticated_runtime.snapshot()
 }
 
 #[tauri::command]

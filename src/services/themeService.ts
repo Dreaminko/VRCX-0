@@ -1,8 +1,8 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
 import { normalizeLanguageCode } from '@/localization/locales';
-import { commands } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
+import { setWindowTheme, type WindowTheme } from '@/platform/tauri/webview';
 import {
     DEFAULT_THEME_COLOR_KEY,
     THEME_COLOR_CONFIG,
@@ -20,11 +20,12 @@ type AppFontPreferenceInput = {
 };
 
 const VALID_THEME_MODES = new Set<ThemeMode>(['light', 'dark', 'system']);
-const NATIVE_THEME_VALUES: Readonly<Record<ThemeMode, number>> = Object.freeze({
-    system: -1,
-    light: 0,
-    dark: 1
-});
+const NATIVE_THEME_VALUES: Readonly<Record<ThemeMode, WindowTheme | null>> =
+    Object.freeze({
+        system: null,
+        light: 'light',
+        dark: 'dark'
+    });
 let nativeThemeSyncQueue: Promise<void> = Promise.resolve();
 let themeApplySequence = 0;
 const VALID_THEME_COLORS = new Set<string>(Object.keys(THEME_COLOR_CONFIG));
@@ -523,7 +524,7 @@ export function applyAppFontPreferences({
 export function syncNativeTheme(themeMode: unknown): Promise<void> {
     const normalized = resolveEffectiveThemeMode(themeMode);
     const sync = nativeThemeSyncQueue.then(async () => {
-        await commands.appChangeTheme(NATIVE_THEME_VALUES[normalized]);
+        await setWindowTheme(NATIVE_THEME_VALUES[normalized]);
     });
 
     nativeThemeSyncQueue = sync.catch(() => undefined);

@@ -9,7 +9,8 @@ async function loadWebviewApi({
 } = {}) {
     vi.resetModules();
     vi.doMock('@tauri-apps/api/window', () => ({
-        getCurrentWindow: vi.fn(() => currentWindow)
+        getCurrentWindow: vi.fn(() => currentWindow),
+        UserAttentionType: { Critical: 1, Informational: 2 }
     }));
     vi.doMock('@tauri-apps/api/webviewWindow', () => ({
         getCurrentWebviewWindow: vi.fn(() => currentWebviewWindow)
@@ -31,7 +32,10 @@ describe('tauri webview wrappers', () => {
             minimize: vi.fn(() => 'minimized'),
             toggleMaximize: vi.fn(() => 'toggled'),
             close: vi.fn(() => 'closed'),
-            isMaximized: vi.fn(() => true)
+            isMaximized: vi.fn(() => true),
+            setFocus: vi.fn(() => 'focused'),
+            requestUserAttention: vi.fn(() => 'flashed'),
+            setTheme: vi.fn(() => 'themed')
         };
         const api = await loadWebviewApi({ currentWindow });
 
@@ -40,12 +44,18 @@ describe('tauri webview wrappers', () => {
         await expect(api.toggleMaximizeWindow()).resolves.toBe('toggled');
         await expect(api.closeWindow()).resolves.toBe('closed');
         await expect(api.isWindowMaximized()).resolves.toBe(true);
+        await expect(api.focusWindow()).resolves.toBe('focused');
+        await expect(api.flashWindow()).resolves.toBe('flashed');
+        await expect(api.setWindowTheme('dark')).resolves.toBe('themed');
 
         expect(currentWindow.startDragging).toHaveBeenCalledOnce();
         expect(currentWindow.minimize).toHaveBeenCalledOnce();
         expect(currentWindow.toggleMaximize).toHaveBeenCalledOnce();
         expect(currentWindow.close).toHaveBeenCalledOnce();
         expect(currentWindow.isMaximized).toHaveBeenCalledOnce();
+        expect(currentWindow.setFocus).toHaveBeenCalledOnce();
+        expect(currentWindow.requestUserAttention).toHaveBeenCalledWith(2);
+        expect(currentWindow.setTheme).toHaveBeenCalledWith('dark');
     });
 
     it('uses safe fallbacks when optional window methods are unavailable', async () => {
@@ -56,6 +66,9 @@ describe('tauri webview wrappers', () => {
         await expect(api.toggleMaximizeWindow()).resolves.toBeUndefined();
         await expect(api.closeWindow()).resolves.toBeUndefined();
         await expect(api.isWindowMaximized()).resolves.toBe(false);
+        await expect(api.focusWindow()).resolves.toBeUndefined();
+        await expect(api.flashWindow()).resolves.toBeUndefined();
+        await expect(api.setWindowTheme(null)).resolves.toBeUndefined();
     });
 
     it('normalizes Tauri window import failures', async () => {

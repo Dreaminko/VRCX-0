@@ -8,17 +8,6 @@ use crate::state::AppState;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__vr_overlay_status_get(
-    app: AppHandle,
-) -> Result<VrOverlayRuntimeSnapshot, AppError> {
-    run_vr_overlay_task(app, "VR overlay status task", |state| {
-        Ok(state.vr_overlay_snapshot()?)
-    })
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn app__vr_overlay_enabled_set(
     app: AppHandle,
     enabled: bool,

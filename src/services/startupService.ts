@@ -136,15 +136,6 @@ export async function initializeReactRuntime() {
             'Config, locale, theme and zoom loaded.'
         );
 
-        try {
-            await commands.appSetUserAgent();
-        } catch (error) {
-            console.warn(
-                'SetUserAgent is unavailable during application bootstrap:',
-                error
-            );
-        }
-
         await refreshSavedAuthSnapshot();
         runStartupMaintenance().catch((error: unknown) => {
             console.warn('Startup maintenance failed:', error);

@@ -9,12 +9,6 @@ use crate::state::AppState;
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__app_update_status_get(state: State<'_, AppState>) -> AppUpdateStatusSnapshot {
-    state.desktop.app_update.hydration_snapshot()
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn app__app_update_check_run(
     state: State<'_, AppState>,
 ) -> Result<AppUpdateStatusSnapshot, AppError> {

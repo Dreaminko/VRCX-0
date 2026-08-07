@@ -10,7 +10,16 @@ use vrcx_0_application_core::{FavoriteEntityKind, FavoritesChangedPayload};
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__favorite_add(
+pub fn app__favorite_list(
+    state: State<'_, AppState>,
+    kind: FavoriteEntityKind,
+) -> Result<Vec<FavoriteRow>, AppError> {
+    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
+    vrcx_0_application::list_local_favorites(state.db.as_ref(), &owner_user_id, kind)
+        .map_err(AppError::from)
+}
+
+pub fn favorite_add(
     state: State<'_, AppState>,
     kind: FavoriteEntityKind,
     entity_id: String,
@@ -35,72 +44,7 @@ pub fn app__favorite_add(
     Ok(affected)
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn app__favorite_group_delete(
-    state: State<'_, AppState>,
-    kind: FavoriteEntityKind,
-    group_name: String,
-) -> Result<i64, AppError> {
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let affected = vrcx_0_application::delete_local_favorite_entries(
-        state.db.as_ref(),
-        &owner_user_id,
-        kind,
-        group_name,
-    )
-    .map_err(AppError::from)?;
-    state
-        .realtime_runtime
-        .notify_favorites_changed(FavoritesChangedPayload {
-            kind: kind.into(),
-            local: true,
-            remote: false,
-        });
-    Ok(affected)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__favorite_group_rename(
-    state: State<'_, AppState>,
-    kind: FavoriteEntityKind,
-    group_name: String,
-    new_group_name: String,
-) -> Result<i64, AppError> {
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let affected = vrcx_0_application::rename_local_favorite_entries(
-        state.db.as_ref(),
-        &owner_user_id,
-        kind,
-        group_name,
-        new_group_name,
-    )
-    .map_err(AppError::from)?;
-    state
-        .realtime_runtime
-        .notify_favorites_changed(FavoritesChangedPayload {
-            kind: kind.into(),
-            local: true,
-            remote: false,
-        });
-    Ok(affected)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__favorite_list(
-    state: State<'_, AppState>,
-    kind: FavoriteEntityKind,
-) -> Result<Vec<FavoriteRow>, AppError> {
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    vrcx_0_application::list_local_favorites(state.db.as_ref(), &owner_user_id, kind)
-        .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__favorite_remove(
+pub fn favorite_remove(
     state: State<'_, AppState>,
     kind: FavoriteEntityKind,
     entity_id: String,
