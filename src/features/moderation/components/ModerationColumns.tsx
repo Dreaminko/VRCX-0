@@ -1,8 +1,8 @@
-import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2Icon, XIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppColumnDef } from '@/components/data-table/appTable';
 import { formatDateFilter } from '@/lib/dateTime';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Badge } from '@/ui/shadcn/badge';
@@ -42,7 +42,7 @@ export function useModerationColumns({
     const getModerationTypeLabel = (type: unknown) =>
         resolveModerationTypeLabel(type, t);
 
-    return useMemo<ColumnDef<ModerationRow>[]>(
+    return useMemo<AppColumnDef<ModerationRow>[]>(
         () => [
             {
                 id: 'spacer',
@@ -67,7 +67,7 @@ export function useModerationColumns({
                         label={t('table.moderation.date')}
                     />
                 ),
-                sortingFn: (rowA, rowB) => {
+                sortFn: (rowA, rowB) => {
                     const leftTs = Date.parse(rowA.original?.created ?? '');
                     const rightTs = Date.parse(rowB.original?.created ?? '');
                     if (

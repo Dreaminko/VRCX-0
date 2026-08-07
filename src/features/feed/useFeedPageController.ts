@@ -1,11 +1,6 @@
-import {
-    getCoreRowModel,
-    getExpandedRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable
-} from '@tanstack/react-table';
 import { useEffect } from 'react';
+
+import { useAppTable } from '@/components/data-table/appTable';
 
 import { useFeedColumns } from './components/FeedColumns';
 import { canExpandFeedRow, getFeedRowId } from './feedRows';
@@ -68,7 +63,7 @@ export function useFeedPageController() {
         tableModel.setPagination
     ]);
 
-    const table = useReactTable({
+    const table = useAppTable({
         data: feedRows.rows,
         columns,
         state: {
@@ -88,10 +83,6 @@ export function useFeedPageController() {
         autoResetPageIndex: false,
         enableColumnResizing: true,
         columnResizeMode: 'onChange',
-        getCoreRowModel: getCoreRowModel(),
-        getExpandedRowModel: getExpandedRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => getFeedRowId(row),
         getRowCanExpand: (row) => canExpandFeedRow(row.original),
         meta: {

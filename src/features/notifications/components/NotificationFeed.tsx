@@ -1,7 +1,7 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import {
     DataTablePagination,
     DataTableSurface
@@ -73,7 +73,7 @@ export function NotificationFeed({
     pagination: { pageIndex: number; pageSize: number };
     rows: NotificationRecord[];
     rowsCount: number;
-    table: ReactTable<NotificationRecord>;
+    table: AppTable<NotificationRecord>;
 }) {
     const { t } = useTranslation();
     const days = useMemo(() => groupByDay(rows), [rows]);

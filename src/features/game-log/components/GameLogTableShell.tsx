@@ -1,6 +1,6 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import {
     DataTableColumnDndProvider,
     DataTableColumnSizeColGroup,
@@ -24,7 +24,7 @@ type GameLogTableShellProps = {
     rows: readonly GameLogRow[];
     setPagination: GameLogPaginationSetter;
     setSessionLimit(value: number): void;
-    table: ReactTable<GameLogRow>;
+    table: AppTable<GameLogRow>;
 };
 
 export function GameLogTableShell({
@@ -36,7 +36,7 @@ export function GameLogTableShell({
     table
 }: GameLogTableShellProps) {
     const { t } = useTranslation();
-    const pagination = table.getState().pagination;
+    const pagination = table.state.pagination;
 
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-3">

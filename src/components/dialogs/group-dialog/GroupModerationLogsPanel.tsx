@@ -1,8 +1,8 @@
-import type { ColumnDef } from '@tanstack/react-table';
 import { DownloadIcon, ListFilterIcon, RefreshCwIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppColumnDef } from '@/components/data-table/appTable';
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import {
     DataTableColumnDndProvider,
@@ -228,7 +228,7 @@ function auditLogHeaderLabel(label: string) {
 
 export function createGroupAuditLogColumns(
     t: (key: string) => string
-): ColumnDef<GroupAuditLogRow>[] {
+): AppColumnDef<GroupAuditLogRow>[] {
     const createdLabel = t('dialog.group_member_moderation.created_at');
     const typeLabel = t('dialog.group_member_moderation.type');
     const actorLabel = t('dialog.group_member_moderation.display_name');
@@ -242,7 +242,7 @@ export function createGroupAuditLogColumns(
             size: 180,
             minSize: 140,
             meta: { label: createdLabel },
-            sortingFn: (rowA, rowB) => {
+            sortFn: (rowA, rowB) => {
                 const leftTs = Date.parse(rowA.original.created_at || '');
                 const rightTs = Date.parse(rowB.original.created_at || '');
                 if (

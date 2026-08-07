@@ -1,10 +1,8 @@
-import type {
-    PaginationState,
-    Table as ReactTable
-} from '@tanstack/react-table';
+import type { PaginationState } from '@tanstack/react-table';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { useDataTableColumnDnd } from '@/components/data-table/dataTableColumnDndContext';
 import {
     DataTableColumnDndProvider,
@@ -34,7 +32,7 @@ import type { MyAvatarActionHandler, MyAvatarRow } from '../myAvatarsTypes';
 import { AvatarActionMenuItems, openAvatarDetails } from './MyAvatarsViewParts';
 
 type MyAvatarsTableViewProps = {
-    table: ReactTable<MyAvatarRow>;
+    table: AppTable<MyAvatarRow>;
     savingTagsAvatarId: string;
     updatingAvatarId: string;
     uploadingImageAvatarId: string;
@@ -58,7 +56,7 @@ function isInteractiveRowEvent(
     );
 }
 
-function MyAvatarsTableHeader({ table }: { table: ReactTable<MyAvatarRow> }) {
+function MyAvatarsTableHeader({ table }: { table: AppTable<MyAvatarRow> }) {
     const columnDnd = useDataTableColumnDnd();
 
     return (

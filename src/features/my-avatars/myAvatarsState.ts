@@ -1,7 +1,7 @@
 import type {
     ColumnSizingState,
     SortingState,
-    VisibilityState
+    ColumnVisibilityState
 } from '@tanstack/react-table';
 
 import {
@@ -232,8 +232,8 @@ export function resolveMyAvatarsGridDensity({
 
 export function sanitizeMyAvatarsColumnVisibility(
     value: unknown
-): VisibilityState {
-    const visibility: VisibilityState = {};
+): ColumnVisibilityState {
+    const visibility: ColumnVisibilityState = {};
     if (value && typeof value === 'object') {
         for (const [rawColumnId, rawVisible] of Object.entries(value)) {
             const columnId = normalizeMyAvatarsColumnId(rawColumnId);

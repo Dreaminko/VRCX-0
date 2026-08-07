@@ -1,9 +1,9 @@
-import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2Icon, XIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppColumnDef } from '@/components/data-table/appTable';
 import { formatDateFilter } from '@/lib/dateTime';
 import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
@@ -37,7 +37,7 @@ export function useFriendLogColumns({
 }) {
     const { t } = useTranslation();
 
-    return useMemo<ColumnDef<FriendLogRow>[]>(
+    return useMemo<AppColumnDef<FriendLogRow>[]>(
         () => [
             {
                 id: 'spacer',
@@ -59,7 +59,7 @@ export function useFriendLogColumns({
                         label={t('table.friendLog.date')}
                     />
                 ),
-                sortingFn: (rowA, rowB) => {
+                sortFn: (rowA, rowB) => {
                     const leftTs = Date.parse(rowA.original?.created_at ?? '');
                     const rightTs = Date.parse(rowB.original?.created_at ?? '');
                     if (

@@ -1,9 +1,7 @@
-import type {
-    PaginationState,
-    Table as TableModel
-} from '@tanstack/react-table';
+import type { PaginationState } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import {
     DataTableColumnDndProvider,
     DataTableColumnSizeColGroup,
@@ -27,7 +25,7 @@ export function FriendLogPageTable({
     pageSizes,
     onPageSizeChange
 }: {
-    table: TableModel<FriendLogRow>;
+    table: AppTable<FriendLogRow>;
     orderedRowsLength: number;
     pagination: PaginationState;
     pageSizes: number[];

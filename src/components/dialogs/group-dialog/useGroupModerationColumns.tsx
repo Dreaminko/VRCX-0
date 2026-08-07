@@ -1,7 +1,7 @@
-import type { Column, ColumnDef } from '@tanstack/react-table';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppColumn, AppColumnDef } from '@/components/data-table/appTable';
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import type {
     EntityRecord,
@@ -37,7 +37,7 @@ function columnHeaderLabel(label: string) {
 const DANGER_ACTION_KEYS = new Set(['ban', 'block-request']);
 
 function renderColumnHeader(
-    column: Column<EntityRecord>,
+    column: AppColumn<EntityRecord>,
     label: string,
     sortable: boolean
 ) {
@@ -84,11 +84,11 @@ export function useGroupModerationColumns({
     selectedIds: ReadonlySet<string> | null;
     sortable: boolean;
     tab: GroupModerationTabValue;
-}): ColumnDef<EntityRecord>[] {
+}): AppColumnDef<EntityRecord>[] {
     const { t } = useTranslation();
 
-    return useMemo<ColumnDef<EntityRecord>[]>(() => {
-        const columns: ColumnDef<EntityRecord>[] = [];
+    return useMemo<AppColumnDef<EntityRecord>[]>(() => {
+        const columns: AppColumnDef<EntityRecord>[] = [];
         const userLabel = t('dialog.group.label.user');
         const statusLabel = t('dialog.group.label.status');
         const dateLabel = t('dialog.group.label.date');
@@ -239,7 +239,7 @@ export function useGroupModerationColumns({
             minSize: 120,
             enableSorting: sortable,
             meta: { label: dateLabel },
-            sortingFn: (rowA, rowB) => {
+            sortFn: (rowA, rowB) => {
                 const leftTs = Date.parse(moderationRowDate(rowA.original));
                 const rightTs = Date.parse(moderationRowDate(rowB.original));
                 if (

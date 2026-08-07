@@ -1,7 +1,7 @@
 import type {
     ColumnSizingState,
     SortingState,
-    VisibilityState
+    ColumnVisibilityState
 } from '@tanstack/react-table';
 
 import {
@@ -63,8 +63,8 @@ export function sanitizePlayerListSorting(value: unknown): SortingState {
 
 export function sanitizePlayerListColumnVisibility(
     value: unknown
-): VisibilityState {
-    const visibility: VisibilityState = {};
+): ColumnVisibilityState {
+    const visibility: ColumnVisibilityState = {};
     if (value && typeof value === 'object') {
         const source = value as Record<string, unknown>;
         for (const columnId of PLAYER_LIST_COLUMN_IDS) {

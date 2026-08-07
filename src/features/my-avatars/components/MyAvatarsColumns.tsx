@@ -1,9 +1,9 @@
-import type { ColumnDef } from '@tanstack/react-table';
 import { CheckIcon, PersonStandingIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppColumnDef } from '@/components/data-table/appTable';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { formatDateFilter, timeToText } from '@/lib/dateTime';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -47,7 +47,7 @@ export function useMyAvatarsColumns({
     );
     const currentAvatarId = currentUserSnapshot?.currentAvatar || '';
 
-    return useMemo<ColumnDef<MyAvatarRow>[]>(
+    return useMemo<AppColumnDef<MyAvatarRow>[]>(
         () => [
             {
                 id: 'active',

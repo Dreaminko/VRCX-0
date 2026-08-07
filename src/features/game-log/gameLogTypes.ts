@@ -1,10 +1,7 @@
-import type {
-    ColumnDef,
-    PaginationState,
-    Table as ReactTable
-} from '@tanstack/react-table';
+import type { PaginationState } from '@tanstack/react-table';
 import type { Dispatch, SetStateAction } from 'react';
 
+import type { AppColumnDef, AppTable } from '@/components/data-table/appTable';
 import type {
     GameLogSessionDto as GeneratedGameLogSession,
     GameLogSessionEventDto as GeneratedGameLogSessionEvent,
@@ -64,9 +61,9 @@ export type GameLogDetailValue = {
 
 export type GameLogPreviousInstanceRow = GameLogPreviousInstanceWorldRow;
 
-export type GameLogColumns = ColumnDef<GameLogRow>[];
+export type GameLogColumns = AppColumnDef<GameLogRow>[];
 
-export type GameLogTableInstance = ReactTable<GameLogRow>;
+export type GameLogTableInstance = AppTable<GameLogRow>;
 
 export type GameLogPaginationSetter = Dispatch<SetStateAction<PaginationState>>;
 

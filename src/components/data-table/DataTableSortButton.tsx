@@ -1,7 +1,8 @@
-import type { Column, RowData } from '@tanstack/react-table';
+import type { RowData } from '@tanstack/react-table';
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import type { AppColumn } from '@/components/data-table/appTable';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
@@ -36,7 +37,7 @@ export function DataTableSortButton<TData extends RowData>({
 }: {
     active?: boolean;
     className?: string;
-    column?: Column<TData, unknown> | null;
+    column?: AppColumn<TData> | null;
     descFirst?: boolean;
     direction?: unknown;
     label: ReactNode;

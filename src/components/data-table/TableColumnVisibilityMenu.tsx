@@ -1,4 +1,4 @@
-import type { RowData, Table } from '@tanstack/react-table';
+import type { RowData } from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
 import type { ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,7 @@ import {
     DropdownMenuSeparator
 } from '@/ui/shadcn/dropdown-menu';
 
+import type { AppTable } from './appTable';
 import {
     getColumnOrderLocked,
     getToggleableColumns,
@@ -31,7 +32,7 @@ import {
 } from './tableColumnLayout';
 
 type ResetTableLayoutHandler<TData extends RowData> = (
-    table: Table<TData>
+    table: AppTable<TData>
 ) => void;
 
 function renderColumnLockLabel(locked: boolean, t: TFunction) {
@@ -44,7 +45,7 @@ export function TableColumnVisibilityMenu<TData extends RowData>({
     table,
     onResetLayout
 }: {
-    table: Table<TData>;
+    table: AppTable<TData>;
     onResetLayout?: ResetTableLayoutHandler<TData>;
 }) {
     const { t } = useTranslation();
@@ -119,7 +120,7 @@ export function TableColumnHeaderContextMenu<TData extends RowData>({
     children,
     className = 'w-56'
 }: {
-    table: Table<TData>;
+    table: AppTable<TData>;
     onResetLayout?: ResetTableLayoutHandler<TData>;
     children: ReactNode;
     className?: string;

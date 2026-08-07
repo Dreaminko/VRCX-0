@@ -1,6 +1,6 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import {
     DataTableColumnDndProvider,
     DataTableColumnSizeColGroup,
@@ -21,7 +21,7 @@ import type {
 } from '../moderationPageTypes';
 
 type ModerationPageTableProps = {
-    table: ReactTable<ModerationRow>;
+    table: AppTable<ModerationRow>;
     filteredRowsLength: number;
     pagination: ModerationPaginationState;
     pageSizes: number[];

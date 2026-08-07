@@ -1,7 +1,7 @@
-import type { Table } from '@tanstack/react-table';
 import { DownloadIcon, StarIcon, UserMinusIcon, UsersIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
@@ -45,7 +45,7 @@ export function FriendListToolbar({
         mutualProgress: { current: number; total: number };
         statusDetail: string;
     };
-    table: Table<FriendListRow>;
+    table: AppTable<FriendListRow>;
     toolbarCommands: {
         onBulkUnfriend: () => void;
         onBulkUnfriendModeChange: (value: boolean) => void;

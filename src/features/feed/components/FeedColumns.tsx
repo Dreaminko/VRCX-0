@@ -1,8 +1,8 @@
-import type { CellContext, Column, Row } from '@tanstack/react-table';
 import { ChevronRightIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppCellContext, AppRow } from '@/components/data-table/appTable';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
@@ -22,7 +22,7 @@ import {
 } from './FeedTableParts';
 import { FeedTypeIndicator } from './FeedTypeIndicator';
 
-function ExpanderCell({ row }: { row: Row<FeedRow> }) {
+function ExpanderCell({ row }: { row: AppRow<FeedRow> }) {
     if (!row.getCanExpand()) {
         return null;
     }
@@ -46,7 +46,7 @@ function ExpanderCell({ row }: { row: Row<FeedRow> }) {
     );
 }
 
-function DateCell({ row }: { row: Row<FeedRow> }) {
+function DateCell({ row }: { row: AppRow<FeedRow> }) {
     const { date, time } = formatTimestampParts(row.original.created_at);
     return (
         <Tooltip>
@@ -69,7 +69,7 @@ function DateCell({ row }: { row: Row<FeedRow> }) {
     );
 }
 
-function UserCell({ row, table }: CellContext<FeedRow, unknown>) {
+function UserCell({ row, table }: AppCellContext<FeedRow>) {
     const meta = table.options.meta?.feed;
     if (!meta) {
         return null;
@@ -86,7 +86,7 @@ function UserCell({ row, table }: CellContext<FeedRow, unknown>) {
     );
 }
 
-function DetailCell({ row, table }: CellContext<FeedRow, unknown>) {
+function DetailCell({ row, table }: AppCellContext<FeedRow>) {
     const meta = table.options.meta?.feed;
     if (!meta) {
         return null;
@@ -107,7 +107,7 @@ function DetailCell({ row, table }: CellContext<FeedRow, unknown>) {
 export function useFeedColumns(meta: FeedTableMeta): FeedColumns {
     const { t } = useTranslation();
 
-    return useMemo(
+    return useMemo<FeedColumns>(
         () => [
             {
                 id: 'expander',
@@ -116,27 +116,25 @@ export function useFeedColumns(meta: FeedTableMeta): FeedColumns {
                 enableHiding: false,
                 meta: { label: '' },
                 header: () => null,
-                cell: ({ row }: { row: Row<FeedRow> }) => (
-                    <ExpanderCell row={row} />
-                )
+                cell: ({ row }) => <ExpanderCell row={row} />
             },
             {
                 id: 'created_at',
                 accessorFn: getFeedRowCreatedAtMs,
                 meta: { label: t('table.feed.date') },
-                header: ({ column }: { column: Column<FeedRow, unknown> }) => (
+                header: ({ column }) => (
                     <SortButton column={column} label={t('table.feed.date')} />
                 ),
-                cell: ({ row }: { row: Row<FeedRow> }) => <DateCell row={row} />
+                cell: ({ row }) => <DateCell row={row} />
             },
             {
                 id: 'type',
                 accessorFn: (row: FeedRow) => String(row?.type || ''),
                 meta: { label: t('table.feed.type') },
-                header: ({ column }: { column: Column<FeedRow, unknown> }) => (
+                header: ({ column }) => (
                     <SortButton column={column} label={t('table.feed.type')} />
                 ),
-                cell: ({ row }: { row: Row<FeedRow> }) => {
+                cell: ({ row }) => {
                     const typeLabel = row.original.type
                         ? t(`view.feed.filters.${String(row.original.type)}`)
                         : '';
@@ -159,7 +157,7 @@ export function useFeedColumns(meta: FeedTableMeta): FeedColumns {
                     );
                 },
                 meta: { label: t('table.feed.user') },
-                header: ({ column }: { column: Column<FeedRow, unknown> }) => (
+                header: ({ column }) => (
                     <SortButton column={column} label={t('table.feed.user')} />
                 ),
                 cell: UserCell

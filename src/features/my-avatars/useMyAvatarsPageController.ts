@@ -1,9 +1,4 @@
-import {
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable
-} from '@tanstack/react-table';
+import { useAppTable } from '@/components/data-table/appTable';
 
 import { useMyAvatarsColumns } from './components/MyAvatarsColumns';
 import type { MyAvatarRow } from './myAvatarsTypes';
@@ -53,7 +48,7 @@ export function useMyAvatarsPageController() {
         updatingAvatarId: actions.updatingAvatarId,
         uploadingImageAvatarId: actions.uploadingImageAvatarId
     });
-    const table = useReactTable<MyAvatarRow>({
+    const table = useAppTable<MyAvatarRow>({
         data: viewData.filteredAvatars,
         columns,
         state: {
@@ -68,9 +63,6 @@ export function useMyAvatarsPageController() {
         onColumnVisibilityChange: tableState.setColumnVisibility,
         onColumnOrderChange: tableState.handleColumnOrderChange,
         onColumnSizingChange: tableState.setColumnSizing,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         initialState: {
             columnVisibility: tableState.initialColumnVisibility
         },

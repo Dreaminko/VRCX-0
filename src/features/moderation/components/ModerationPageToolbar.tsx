@@ -1,6 +1,6 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
@@ -30,7 +30,7 @@ type ModerationPageToolbarProps = {
     currentUserId: string | null;
     loadStatus: ModerationLoadStatus;
     onRefresh: () => void;
-    table: ReactTable<ModerationRow>;
+    table: AppTable<ModerationRow>;
 };
 
 export function ModerationPageToolbar({

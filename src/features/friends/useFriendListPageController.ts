@@ -1,11 +1,6 @@
-import {
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable
-} from '@tanstack/react-table';
 import { useState } from 'react';
 
+import { useAppTable } from '@/components/data-table/appTable';
 import { usePreferencesStore } from '@/state/preferencesStore';
 
 import { useFriendListColumns } from './components/FriendListColumns';
@@ -57,7 +52,7 @@ export function useFriendListPageController() {
         randomUserColours,
         selectedFriendIds: selection.selectedFriendIds
     });
-    const table = useReactTable({
+    const table = useAppTable({
         data: rows.filteredRows,
         columns,
         state: {
@@ -76,9 +71,6 @@ export function useFriendListPageController() {
         onColumnVisibilityChange: tableState.setColumnVisibility,
         onColumnOrderChange: tableState.setColumnOrder,
         onColumnSizingChange: tableState.setColumnSizing,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         autoResetPageIndex: false,
         enableColumnResizing: true,
         columnResizeMode: 'onChange',

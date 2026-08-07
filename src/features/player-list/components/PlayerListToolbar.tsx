@@ -1,6 +1,6 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
@@ -31,7 +31,7 @@ type PlayerListToolbarProps = {
     onScopeChange: (scope: PlayerListFilterScope) => void;
     query: string;
     scope: PlayerListFilterScope;
-    table: ReactTable<PlayerListRow>;
+    table: AppTable<PlayerListRow>;
 };
 
 export function PlayerListToolbar({

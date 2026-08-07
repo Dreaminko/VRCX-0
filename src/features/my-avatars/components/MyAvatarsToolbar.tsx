@@ -1,8 +1,8 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { LayoutGridIcon, ListIcon } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
@@ -33,7 +33,7 @@ type MyAvatarsToolbarProps = {
     loadStatus: MyAvatarsLoadStatus;
     searchQuery: string;
     gridDensity: MyAvatarsGridDensity;
-    table: ReactTable<MyAvatarRow>;
+    table: AppTable<MyAvatarRow>;
     onViewModeChange: (value: MyAvatarsViewMode) => void;
     onReleaseStatusChange: (value: string) => void;
     onPlatformChange: (value: string) => void;

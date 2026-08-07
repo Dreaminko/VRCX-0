@@ -1,8 +1,8 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { Clock3Icon, HeartIcon, HomeIcon, UsersIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
 import {
     DataTableColumnDndProvider,
@@ -45,7 +45,7 @@ import type {
 
 export { DataTableSortButton as SortButton };
 
-type PlayerListTable = ReactTable<PlayerListRow>;
+type PlayerListTable = AppTable<PlayerListRow>;
 
 type PlayerListWorld = PlayerListRecord & {
     id?: unknown;

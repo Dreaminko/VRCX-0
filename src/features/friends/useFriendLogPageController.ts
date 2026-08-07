@@ -1,11 +1,6 @@
-import {
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable
-} from '@tanstack/react-table';
 import { useEffect, useRef } from 'react';
 
+import { useAppTable } from '@/components/data-table/appTable';
 import { useFriendLogStore } from '@/state/friendLogStore';
 
 import { useFriendLogColumns } from './components/FriendLogColumns';
@@ -58,7 +53,7 @@ export function useFriendLogPageController() {
         rowsOwnerUserId: rows.rowsOwnerUserId,
         shiftHeld
     });
-    const table = useReactTable({
+    const table = useAppTable({
         data: rows.orderedRows,
         columns,
         state: {
@@ -73,9 +68,6 @@ export function useFriendLogPageController() {
         onColumnVisibilityChange: tableState.setColumnVisibility,
         onColumnOrderChange: tableState.setColumnOrder,
         onColumnSizingChange: tableState.setColumnSizing,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         autoResetPageIndex: false,
         enableColumnResizing: true,
         columnResizeMode: 'onChange',

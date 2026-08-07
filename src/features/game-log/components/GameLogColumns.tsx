@@ -1,4 +1,3 @@
-import type { Column, Row } from '@tanstack/react-table';
 import {
     CopyIcon,
     ExternalLinkIcon,
@@ -9,6 +8,7 @@ import {
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppRow } from '@/components/data-table/appTable';
 import { formatDateFilter } from '@/lib/dateTime';
 import { openWorldDialog } from '@/services/dialogService';
 import { openExternalLink } from '@/services/entityMediaService';
@@ -46,7 +46,7 @@ type UseGameLogColumnsOptions = {
     shiftHeld: boolean;
 };
 
-function DateCell({ row }: { row: Row<GameLogRow> }) {
+function DateCell({ row }: { row: AppRow<GameLogRow> }) {
     const createdAt = row.original?.created_at || '';
     return (
         <Tooltip>
@@ -74,7 +74,7 @@ export function useGameLogColumns({
 }: UseGameLogColumnsOptions): GameLogColumns {
     const { t } = useTranslation();
 
-    return useMemo(
+    return useMemo<GameLogColumns>(
         () => [
             {
                 id: 'spacer',
@@ -90,17 +90,13 @@ export function useGameLogColumns({
                 id: 'created_at',
                 size: 140,
                 accessorFn: (row: GameLogRow) => row?.created_at || '',
-                header: ({
-                    column
-                }: {
-                    column: Column<GameLogRow, unknown>;
-                }) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.gameLog.date')}
                     />
                 ),
-                sortingFn: (rowA: Row<GameLogRow>, rowB: Row<GameLogRow>) => {
+                sortFn: (rowA, rowB) => {
                     const leftTs = Date.parse(
                         String(rowA.original?.created_at ?? '')
                     );
@@ -126,25 +122,19 @@ export function useGameLogColumns({
                         ) || 0)
                     );
                 },
-                cell: ({ row }: { row: Row<GameLogRow> }) => (
-                    <DateCell row={row} />
-                )
+                cell: ({ row }) => <DateCell row={row} />
             },
             {
                 id: 'type',
                 size: 150,
                 accessorFn: (row: GameLogRow) => row?.type || '',
-                header: ({
-                    column
-                }: {
-                    column: Column<GameLogRow, unknown>;
-                }) => (
+                header: ({ column }) => (
                     <SortButton
                         column={column}
                         label={t('table.gameLog.type')}
                     />
                 ),
-                cell: ({ row }: { row: Row<GameLogRow> }) => {
+                cell: ({ row }) => {
                     const worldTarget = resolveWorldTarget(row.original);
                     const typeLabel = row.original?.type
                         ? t(
@@ -195,7 +185,7 @@ export function useGameLogColumns({
                     row?.displayName || row?.userId || '',
                 enableSorting: false,
                 header: () => t('table.gameLog.user'),
-                cell: ({ row }: { row: Row<GameLogRow> }) => {
+                cell: ({ row }) => {
                     const displayName = normalizeId(row.original?.displayName);
                     const canOpenUser = Boolean(
                         displayName &&
@@ -242,7 +232,7 @@ export function useGameLogColumns({
                 },
                 enableSorting: false,
                 header: () => t('table.gameLog.detail'),
-                cell: ({ row }: { row: Row<GameLogRow> }) => {
+                cell: ({ row }) => {
                     const detailValue = describeGameLogDetail(row.original);
                     const worldTarget = resolveWorldTarget(row.original);
                     if (
@@ -383,7 +373,7 @@ export function useGameLogColumns({
                 maxSize: 90,
                 header: () => t('table.gameLog.action'),
                 enableSorting: false,
-                cell: ({ row }: { row: Row<GameLogRow> }) => {
+                cell: ({ row }) => {
                     const rowKey = getGameLogRowKey(row.original);
                     const canDelete = canDeleteGameLogRow(row.original);
                     const canShowPrevious = Boolean(

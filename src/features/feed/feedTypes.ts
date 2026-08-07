@@ -1,11 +1,11 @@
 import type {
-    ColumnDef,
     PaginationState,
-    Table as ReactTable,
-    RowData
+    RowData,
+    TableFeatures
 } from '@tanstack/react-table';
 import type { Dispatch, SetStateAction } from 'react';
 
+import type { AppColumnDef, AppTable } from '@/components/data-table/appTable';
 import type { UserFact } from '@/domain/users/userFacts';
 import type { FeedRowOutput } from '@/platform/tauri/bindings';
 import type { FeedFilterType } from '@/repositories/feedRepository';
@@ -57,14 +57,17 @@ export type FeedTableMeta = {
 };
 
 declare module '@tanstack/react-table' {
-    interface TableMeta<TData extends RowData> {
+    interface TableMeta<
+        TFeatures extends TableFeatures,
+        TData extends RowData
+    > {
         feed?: FeedTableMeta;
     }
 }
 
-export type FeedColumns = ColumnDef<FeedRow>[];
+export type FeedColumns = AppColumnDef<FeedRow>[];
 
-export type FeedTableInstance = ReactTable<FeedRow>;
+export type FeedTableInstance = AppTable<FeedRow>;
 
 export type FeedPaginationSetter = Dispatch<SetStateAction<PaginationState>>;
 

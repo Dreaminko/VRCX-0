@@ -1,10 +1,6 @@
-import {
-    getCoreRowModel,
-    getPaginationRowModel,
-    useReactTable
-} from '@tanstack/react-table';
 import { useMemo } from 'react';
 
+import { useAppTable } from '@/components/data-table/appTable';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
 import type { NotificationFeedHandlers } from './components/NotificationRow';
@@ -45,11 +41,9 @@ export function useVrcNotificationPageController() {
         setInviteResponseRequest: dialogs.setInviteResponseRequest
     });
 
-    const table = useReactTable({
+    const table = useAppTable({
         columns: [],
         data: rowsState.rows,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         onPaginationChange: tableState.setPagination,
         state: {
             pagination: tableState.pagination

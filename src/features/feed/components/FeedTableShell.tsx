@@ -196,7 +196,7 @@ export function FeedTableShell({
                 </div>
                 <DataTablePagination
                     table={table}
-                    pageIndex={table.getState().pagination.pageIndex}
+                    pageIndex={table.state.pagination.pageIndex}
                     pageCount={table.getPageCount() || 1}
                     pageSize={pagination.pageSize}
                     pageSizes={pageSizes}

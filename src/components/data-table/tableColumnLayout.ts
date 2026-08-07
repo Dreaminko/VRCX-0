@@ -1,9 +1,9 @@
-import type { Column, RowData, Table } from '@tanstack/react-table';
+import type { RowData } from '@tanstack/react-table';
 
-type DataTableColumn<TData extends RowData> = Column<TData, unknown>;
+import type { AppColumn, AppTable } from './appTable';
 
 export function resolveColumnLabel<TData extends RowData>(
-    column: DataTableColumn<TData> | null | undefined
+    column: AppColumn<TData> | null | undefined
 ) {
     const metaLabel = column?.columnDef?.meta?.label;
     if (typeof metaLabel === 'function') {
@@ -20,7 +20,7 @@ export function resolveColumnLabel<TData extends RowData>(
 }
 
 function hasExplicitColumnLayoutLabel<TData extends RowData>(
-    column: DataTableColumn<TData> | null | undefined
+    column: AppColumn<TData> | null | undefined
 ) {
     const metaLabel = column?.columnDef?.meta?.label;
     if (typeof metaLabel === 'function') {
@@ -31,7 +31,7 @@ function hasExplicitColumnLayoutLabel<TData extends RowData>(
 }
 
 export function isSpacerColumn<TData extends RowData>(
-    column: DataTableColumn<TData> | null | undefined
+    column: AppColumn<TData> | null | undefined
 ) {
     if (!column) {
         return false;
@@ -43,12 +43,12 @@ export function isSpacerColumn<TData extends RowData>(
 }
 
 export function getColumnOrder<TData extends RowData>(
-    table: Table<TData>,
-    leafColumns: DataTableColumn<TData>[] = table.getAllLeafColumns()
+    table: AppTable<TData>,
+    leafColumns: AppColumn<TData>[] = table.getAllLeafColumns()
 ) {
     const leafColumnIds = leafColumns.map((column) => column.id);
     const leafColumnIdSet = new Set(leafColumnIds);
-    const currentOrder = table.getState().columnOrder || [];
+    const currentOrder = table.atoms.columnOrder.get() || [];
     const ordered = currentOrder.filter((columnId) =>
         leafColumnIdSet.has(columnId)
     );
@@ -65,7 +65,7 @@ export function getColumnOrder<TData extends RowData>(
 }
 
 export function getToggleableColumns<TData extends RowData>(
-    columns: DataTableColumn<TData>[] = []
+    columns: AppColumn<TData>[] = []
 ) {
     return columns.filter((column) => {
         if (!column?.getCanHide?.()) {
@@ -82,7 +82,7 @@ export function getToggleableColumns<TData extends RowData>(
 }
 
 export function getColumnOrderLocked<TData extends RowData>(
-    table: Table<TData>
+    table: AppTable<TData>
 ) {
     const value = table.options.meta?.columnOrderLocked;
     if (value == null) {
@@ -94,7 +94,9 @@ export function getColumnOrderLocked<TData extends RowData>(
     return value === true;
 }
 
-export function hasColumnOrderLock<TData extends RowData>(table: Table<TData>) {
+export function hasColumnOrderLock<TData extends RowData>(
+    table: AppTable<TData>
+) {
     const meta = table.options.meta;
     return Boolean(
         meta &&
@@ -105,7 +107,7 @@ export function hasColumnOrderLock<TData extends RowData>(table: Table<TData>) {
 }
 
 export function setColumnOrderLocked<TData extends RowData>(
-    table: Table<TData>,
+    table: AppTable<TData>,
     locked: boolean
 ) {
     const meta = table.options.meta;
@@ -127,7 +129,7 @@ export function setColumnOrderLocked<TData extends RowData>(
 }
 
 export function isColumnReorderable<TData extends RowData>(
-    column: DataTableColumn<TData> | null | undefined
+    column: AppColumn<TData> | null | undefined
 ) {
     if (!column) {
         return false;
@@ -141,18 +143,11 @@ export function isColumnReorderable<TData extends RowData>(
     if (!hasExplicitColumnLayoutLabel(column)) {
         return false;
     }
-    try {
-        if (column.getIsPinned?.()) {
-            return false;
-        }
-    } catch {
-        return false;
-    }
     return true;
 }
 
 export function getReorderableColumnIds<TData extends RowData>(
-    table: Table<TData>
+    table: AppTable<TData>
 ) {
     return table
         .getVisibleLeafColumns()
@@ -161,8 +156,8 @@ export function getReorderableColumnIds<TData extends RowData>(
 }
 
 export function resetTableLayout<TData extends RowData>(
-    table: Table<TData>,
-    onResetLayout?: ((table: Table<TData>) => void) | null
+    table: AppTable<TData>,
+    onResetLayout?: ((table: AppTable<TData>) => void) | null
 ) {
     if (typeof onResetLayout === 'function') {
         onResetLayout(table);

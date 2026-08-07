@@ -140,8 +140,7 @@ vi.mock('@/ui/shadcn/tabs', async () => {
     };
 });
 
-import type { CellContext } from '@tanstack/react-table';
-
+import type { AppCellContext } from '@/components/data-table/appTable';
 import { openUserDialog } from '@/services/dialogService';
 
 import {
@@ -229,7 +228,7 @@ describe('GroupModerationLogsPanel', () => {
                         null,
                         cell({
                             row: { original: row }
-                        } as unknown as CellContext<GroupAuditLogRow, unknown>)
+                        } as unknown as AppCellContext<GroupAuditLogRow>)
                     )
                 );
             })

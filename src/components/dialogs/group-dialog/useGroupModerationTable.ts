@@ -1,16 +1,12 @@
 import type {
-    ColumnDef,
     PaginationState,
+    RowData,
     SortingState
-} from '@tanstack/react-table';
-import {
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import type { AppColumnDef } from '@/components/data-table/appTable';
+import { useAppTable } from '@/components/data-table/appTable';
 import {
     sanitizeTableColumnOrder,
     sanitizeTableColumnSizing,
@@ -43,7 +39,7 @@ function sanitizeSorting(
     }, []);
 }
 
-export function useGroupModerationTable<TData>({
+export function useGroupModerationTable<TData extends RowData>({
     columnIds,
     columns,
     paged,
@@ -51,7 +47,7 @@ export function useGroupModerationTable<TData>({
     tableId
 }: {
     columnIds: string[];
-    columns: ColumnDef<TData>[];
+    columns: AppColumnDef<TData>[];
     paged: boolean;
     rows: TData[];
     tableId: string;
@@ -151,7 +147,7 @@ export function useGroupModerationTable<TData>({
         }
     }, [paged, pagination.pageIndex, pagination.pageSize, rows.length]);
 
-    const table = useReactTable<TData>({
+    const table = useAppTable<TData>({
         columns,
         data: rows,
         state: {
@@ -165,9 +161,8 @@ export function useGroupModerationTable<TData>({
         onColumnVisibilityChange: tableLayout.setColumnVisibility,
         onSortingChange: paged ? setSorting : undefined,
         onPaginationChange: paged ? setPagination : undefined,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: paged ? getSortedRowModel() : undefined,
-        getPaginationRowModel: paged ? getPaginationRowModel() : undefined,
+        manualSorting: !paged,
+        manualPagination: !paged,
         enableColumnResizing: true,
         columnResizeMode: 'onChange',
         meta: {

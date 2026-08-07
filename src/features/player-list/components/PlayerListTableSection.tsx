@@ -1,12 +1,8 @@
-import {
-    getCoreRowModel,
-    getSortedRowModel,
-    useReactTable
-} from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useAppTable } from '@/components/data-table/appTable';
 import { LoadingState } from '@/components/layout/PageScaffold';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 
@@ -132,7 +128,7 @@ export function PlayerListTableSection({
         () => filterPlayerListRows(filteredRows, query, filterScope),
         [filterScope, filteredRows, query]
     );
-    const table = useReactTable<PlayerListRow>({
+    const table = useAppTable<PlayerListRow>({
         data: visibleRows,
         columns: tableColumns,
         state: {
@@ -145,10 +141,9 @@ export function PlayerListTableSection({
         onColumnVisibilityChange: tableState.setColumnVisibility,
         onColumnOrderChange: tableState.setColumnOrder,
         onColumnSizingChange: tableState.setColumnSizing,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
         getRowId: (row) =>
             `${row.userId || String(row.id || '')}:${row.displayName || ''}`,
+        manualPagination: true,
         enableColumnResizing: true,
         columnResizeMode: 'onChange',
         meta: {

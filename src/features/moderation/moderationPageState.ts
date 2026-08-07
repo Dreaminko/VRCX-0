@@ -1,7 +1,7 @@
 import type {
     ColumnSizingState,
     SortingState,
-    VisibilityState
+    ColumnVisibilityState
 } from '@tanstack/react-table';
 
 import {
@@ -107,8 +107,8 @@ export function sanitizeModerationPageSizes(value: unknown): number[] {
 
 export function sanitizeModerationColumnVisibility(
     value: unknown
-): VisibilityState {
-    const visibility: VisibilityState = {};
+): ColumnVisibilityState {
+    const visibility: ColumnVisibilityState = {};
     if (!value || typeof value !== 'object') {
         return visibility;
     }

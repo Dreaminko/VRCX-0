@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Cell, Header, RowData } from '@tanstack/react-table';
+import type { RowData } from '@tanstack/react-table';
 import { flexRender } from '@tanstack/react-table';
 import { GripVerticalIcon } from 'lucide-react';
 import type {
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 import { TableCell, TableHead } from '@/ui/shadcn/table';
 
+import type { AppCell, AppHeader } from './appTable';
 import { useDataTableColumnDnd } from './dataTableColumnDndContext';
 import { isColumnReorderable } from './tableColumnLayout';
 
@@ -27,7 +28,7 @@ function resolveSize(value: unknown) {
 
 function resizeHeaderFromKeyboard<TData extends RowData>(
     event: KeyboardEvent<HTMLButtonElement>,
-    header: Header<TData, unknown>
+    header: AppHeader<TData>
 ) {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
         return;
@@ -57,7 +58,7 @@ function ResizableTableHeadContent<TData extends RowData>({
     header,
     dragHandleProps
 }: {
-    header: Header<TData, unknown>;
+    header: AppHeader<TData>;
     dragHandleProps?: DragHandleProps;
 }) {
     const { t } = useTranslation();
@@ -124,7 +125,7 @@ function ResizableTableHeadBase<TData extends RowData>({
     className = '',
     style
 }: {
-    header: Header<TData, unknown>;
+    header: AppHeader<TData>;
     className?: string;
     style?: CSSProperties;
 }) {
@@ -146,7 +147,7 @@ function SortableResizableTableHead<TData extends RowData>({
     className = '',
     style
 }: {
-    header: Header<TData, unknown>;
+    header: AppHeader<TData>;
     className?: string;
     style?: CSSProperties;
 }) {
@@ -197,7 +198,7 @@ export function ResizableTableHead<TData extends RowData>({
     style,
     enableColumnReorder = false
 }: {
-    header: Header<TData, unknown>;
+    header: AppHeader<TData>;
     className?: string;
     style?: CSSProperties;
     enableColumnReorder?: boolean;
@@ -226,7 +227,7 @@ export function ResizableTableCell<TData extends RowData>({
     className = '',
     style
 }: {
-    cell: Cell<TData, unknown>;
+    cell: AppCell<TData>;
     className?: string;
     style?: CSSProperties;
 }) {
@@ -260,7 +261,7 @@ function SortableResizableTableCell<TData extends RowData>({
     className = '',
     style
 }: {
-    cell: Cell<TData, unknown>;
+    cell: AppCell<TData>;
     className?: string;
     style?: CSSProperties;
 }) {

@@ -1,6 +1,6 @@
-import type { Table } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import { PageToolbar, PageToolbarRow } from '@/components/layout/PageScaffold';
 import {
@@ -33,7 +33,7 @@ export function FriendLogPageToolbar({
     currentUserId: string;
     loadStatus: string;
     onRefresh: () => void;
-    table: Table<FriendLogRow>;
+    table: AppTable<FriendLogRow>;
 }) {
     const { t } = useTranslation();
 

@@ -1,9 +1,9 @@
-import type { ColumnDef } from '@tanstack/react-table';
 import { EyeOffIcon, UserIcon, UserMinusIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppColumnDef } from '@/components/data-table/appTable';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { formatDateFilter, timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
@@ -69,7 +69,7 @@ export function useFriendListColumns({
         typeof document !== 'undefined' &&
         document.documentElement.classList.contains('dark');
 
-    return useMemo<ColumnDef<FriendListRow>[]>(
+    return useMemo<AppColumnDef<FriendListRow>[]>(
         () => [
             {
                 id: 'leftSpacer',
@@ -226,7 +226,7 @@ export function useFriendListColumns({
                         label={t('table.friendList.status')}
                     />
                 ),
-                sortingFn: (rowA, rowB) => {
+                sortFn: (rowA, rowB) => {
                     const left = resolveStatusMeta(rowA.original);
                     const right = resolveStatusMeta(rowB.original);
                     if (left.sortRank !== right.sortRank) {

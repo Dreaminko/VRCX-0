@@ -1,4 +1,3 @@
-import type { ColumnDef, Row } from '@tanstack/react-table';
 import {
     BanIcon,
     CrownIcon,
@@ -18,6 +17,7 @@ import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppColumnDef, AppRow } from '@/components/data-table/appTable';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
@@ -43,7 +43,7 @@ function HeaderLabel({ children }: { children: ReactNode }) {
     );
 }
 
-function AvatarCell({ row }: { row: Row<PlayerListRow> }) {
+function AvatarCell({ row }: { row: AppRow<PlayerListRow> }) {
     return row.original.avatarUrl ? (
         <FadeInImage
             src={row.original.avatarUrl}
@@ -70,7 +70,7 @@ function DisplayNameCell({
 }: {
     isDarkMode: boolean;
     randomUserColours: boolean;
-    row: Row<PlayerListRow>;
+    row: AppRow<PlayerListRow>;
 }) {
     const style =
         randomUserColours && row.original?.userId
@@ -86,7 +86,7 @@ function DisplayNameCell({
     );
 }
 
-function StatusCell({ row }: { row: Row<PlayerListRow> }) {
+function StatusCell({ row }: { row: AppRow<PlayerListRow> }) {
     const status = resolveStatusMeta(row.original);
 
     return (
@@ -143,7 +143,7 @@ function PlayerFlag({
     );
 }
 
-function PlayerIconCell({ row }: { row: Row<PlayerListRow> }) {
+function PlayerIconCell({ row }: { row: AppRow<PlayerListRow> }) {
     const { t } = useTranslation();
 
     return (
@@ -232,7 +232,7 @@ function PlayerIconCell({ row }: { row: Row<PlayerListRow> }) {
     );
 }
 
-function PlatformCell({ row }: { row: Row<PlayerListRow> }) {
+function PlatformCell({ row }: { row: AppRow<PlayerListRow> }) {
     const Icon = row.original.platformIcon;
     const mode = resolvePlatformMode(row.original);
 
@@ -268,7 +268,7 @@ export function languageTooltipLabel(
     return original || code;
 }
 
-function LanguageCell({ row }: { row: Row<PlayerListRow> }) {
+function LanguageCell({ row }: { row: AppRow<PlayerListRow> }) {
     return (
         <div className="flex flex-wrap items-center gap-1">
             {row.original.languages.length
@@ -297,7 +297,7 @@ function LanguageCell({ row }: { row: Row<PlayerListRow> }) {
     );
 }
 
-function BioLinksCell({ row }: { row: Row<PlayerListRow> }) {
+function BioLinksCell({ row }: { row: AppRow<PlayerListRow> }) {
     const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1">
@@ -345,7 +345,7 @@ function BioLinksCell({ row }: { row: Row<PlayerListRow> }) {
     );
 }
 
-export function usePlayerListColumns(): ColumnDef<PlayerListRow>[] {
+export function usePlayerListColumns(): AppColumnDef<PlayerListRow>[] {
     const { t } = useTranslation();
     const randomUserColours = usePreferencesStore(
         (state) => state.randomUserColours
@@ -354,7 +354,7 @@ export function usePlayerListColumns(): ColumnDef<PlayerListRow>[] {
         typeof document !== 'undefined' &&
         document.documentElement.classList.contains('dark');
 
-    return useMemo<ColumnDef<PlayerListRow>[]>(
+    return useMemo<AppColumnDef<PlayerListRow>[]>(
         () => [
             {
                 id: 'avatar',
@@ -397,7 +397,7 @@ export function usePlayerListColumns(): ColumnDef<PlayerListRow>[] {
                         label={t('table.playerList.displayName')}
                     />
                 ),
-                sortingFn: (rowA, rowB) =>
+                sortFn: (rowA, rowB) =>
                     String(rowA.original?.displayName || '').localeCompare(
                         String(rowB.original?.displayName || ''),
                         undefined,

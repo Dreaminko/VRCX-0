@@ -14,14 +14,7 @@ import {
     horizontalListSortingStrategy,
     sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
-import type {
-    Column,
-    ColumnDef,
-    Header,
-    RowData,
-    Table as ReactTable
-} from '@tanstack/react-table';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import type { RowData } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useMemo, useRef } from 'react';
@@ -50,6 +43,8 @@ import {
     TableRow
 } from '@/ui/shadcn/table';
 
+import type { AppColumn, AppColumnDef, AppHeader, AppTable } from './appTable';
+import { useAppTable } from './appTable';
 import {
     DataTableColumnDndContext,
     dataTableColumnDndDefaultState,
@@ -69,7 +64,7 @@ import {
 import { TableColumnHeaderContextMenu } from './TableColumnVisibilityMenu';
 
 function moveColumnByDrag<TData extends RowData>(
-    table: ReactTable<TData>,
+    table: AppTable<TData>,
     activeId: unknown,
     overId: unknown
 ) {
@@ -90,14 +85,14 @@ function moveColumnByDrag<TData extends RowData>(
     table.setColumnOrder(arrayMove(columnOrder, activeIndex, overIndex));
 }
 
-function getColumnId<TData extends RowData>(column: ColumnDef<TData, unknown>) {
+function getColumnId<TData extends RowData>(column: AppColumnDef<TData>) {
     const source = column as { id?: unknown; accessorKey?: unknown };
     const columnId = source.id ?? source.accessorKey ?? null;
     return typeof columnId === 'string' ? columnId : null;
 }
 
 export function getDataTableSizingStyle<TData extends RowData>(
-    table: ReactTable<TData>
+    table: AppTable<TData>
 ): CSSProperties | undefined {
     const totalSize = table.getTotalSize();
     return Number.isFinite(totalSize) && totalSize > 0
@@ -108,7 +103,7 @@ export function getDataTableSizingStyle<TData extends RowData>(
 export function DataTableColumnSizeColGroup<TData extends RowData>({
     table
 }: {
-    table: ReactTable<TData>;
+    table: AppTable<TData>;
 }) {
     return (
         <colgroup>
@@ -147,7 +142,7 @@ export function DataTableColumnDndProvider<TData extends RowData>({
     enableColumnReorder = true,
     children
 }: {
-    table: ReactTable<TData>;
+    table: AppTable<TData>;
     enableColumnReorder?: boolean;
     children: ReactNode;
 }) {
@@ -199,7 +194,7 @@ export function DataTableColumnSortableContext<TData extends RowData>({
     table,
     children
 }: {
-    table: ReactTable<TData>;
+    table: AppTable<TData>;
     children: ReactNode;
 }) {
     const columnDnd = useDataTableColumnDnd();
@@ -225,14 +220,14 @@ export function DataTableHeader<TData extends RowData>({
     getHeaderStyle,
     onResetLayout
 }: {
-    table: ReactTable<TData>;
+    table: AppTable<TData>;
     className?: string;
     enableColumnReorder?: boolean;
     getHeaderStyle?: (
-        column: Column<TData, unknown>,
-        header: Header<TData, unknown>
+        column: AppColumn<TData>,
+        header: AppHeader<TData>
     ) => CSSProperties | undefined;
-    onResetLayout?: (table: ReactTable<TData>) => void;
+    onResetLayout?: (table: AppTable<TData>) => void;
 }) {
     const columnDnd = useDataTableColumnDnd();
     const canReorder = enableColumnReorder && columnDnd.enabled;
@@ -350,7 +345,7 @@ export function DataTablePagination<TData extends RowData>({
     nextLabel,
     className = ''
 }: {
-    table: ReactTable<TData>;
+    table: AppTable<TData>;
     summary?: ReactNode;
     pageIndex?: number;
     pageCount?: number;
@@ -372,7 +367,7 @@ export function DataTablePagination<TData extends RowData>({
     const resolvedPageIndex =
         typeof pageIndex === 'number' && Number.isFinite(pageIndex)
             ? pageIndex
-            : (table.getState().pagination?.pageIndex ?? 0);
+            : (table.state.pagination?.pageIndex ?? 0);
     const resolvedPageCount = Math.max(
         1,
         typeof pageCount === 'number' && Number.isFinite(pageCount)
@@ -382,7 +377,7 @@ export function DataTablePagination<TData extends RowData>({
     const resolvedPageSize =
         typeof pageSize === 'number' && Number.isFinite(pageSize)
             ? pageSize
-            : table.getState().pagination?.pageSize;
+            : table.state.pagination?.pageSize;
     const pageSizeOptions = Array.isArray(pageSizes)
         ? pageSizes
               .map((value) => Number.parseInt(String(value), 10))
@@ -468,7 +463,7 @@ export function DataTableView<TData extends RowData>({
     emptyLabel,
     persistKey
 }: {
-    columns?: ColumnDef<TData, unknown>[];
+    columns?: AppColumnDef<TData>[];
     data?: TData[];
     emptyLabel?: string;
     persistKey?: string;
@@ -516,7 +511,7 @@ export function DataTableView<TData extends RowData>({
         tableLayout.writePersistedState
     ]);
 
-    const table = useReactTable<TData>({
+    const table = useAppTable<TData>({
         columns,
         data,
         state: persistTableLayout
@@ -532,8 +527,7 @@ export function DataTableView<TData extends RowData>({
             ? tableLayout.setColumnSizing
             : undefined,
         enableColumnResizing: persistTableLayout,
-        columnResizeMode: 'onChange',
-        getCoreRowModel: getCoreRowModel()
+        columnResizeMode: 'onChange'
     });
 
     return (

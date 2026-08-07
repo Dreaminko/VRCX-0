@@ -1,7 +1,7 @@
-import type { Table as ReactTable } from '@tanstack/react-table';
 import { LogsIcon, StarIcon, Table2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import type { AppTable } from '@/components/data-table/appTable';
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
 import {
     DateTimeRangePicker,
@@ -58,7 +58,7 @@ export function GameLogToolbar({
         loadStatus: GameLogLoadStatus;
         onRefresh(): void;
     };
-    table: ReactTable<GameLogRow>;
+    table: AppTable<GameLogRow>;
 }) {
     const { t } = useTranslation();
     const {

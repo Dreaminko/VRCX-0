@@ -1,11 +1,6 @@
-import {
-    getCoreRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable
-} from '@tanstack/react-table';
 import { useEffect } from 'react';
 
+import { useAppTable } from '@/components/data-table/appTable';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { useGameLogColumns } from './components/GameLogColumns';
@@ -63,7 +58,7 @@ export function useGameLogPageController() {
     const isGameRunning = useRuntimeStore((state) =>
         Boolean(state.gameState.isGameRunning)
     );
-    const table = useReactTable({
+    const table = useAppTable({
         data: annotations.annotatedRows,
         columns,
         state: {
@@ -78,9 +73,6 @@ export function useGameLogPageController() {
         onColumnVisibilityChange: tableState.setColumnVisibility,
         onColumnOrderChange: tableState.setColumnOrder,
         onColumnSizingChange: tableState.setColumnSizing,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         enableColumnResizing: true,
         columnResizeMode: 'onChange',
         meta: {
