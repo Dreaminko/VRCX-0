@@ -178,6 +178,14 @@
                     </div>
                 </div>
                 <div class="group">
+                    <div class="label">Backdrop</div>
+                    <select id="backdrop">
+                        <option value="#000000">Black world</option>
+                        <option value="#6e6e6e">Mid world</option>
+                        <option value="#ebebeb">Bright world</option>
+                    </select>
+                </div>
+                <div class="group">
                     <label class="check">
                         <input id="auto-refresh" type="checkbox" />
                         Auto refresh
@@ -203,6 +211,8 @@
             const surfaceSelect = document.getElementById('surface');
             const scenarioSelect = document.getElementById('scenario');
             const frame = document.getElementById('frame');
+            const backdropSelect = document.getElementById('backdrop');
+            const viewport = document.querySelector('.viewport');
             const autoRefresh = document.getElementById('auto-refresh');
             const statusLine = document.getElementById('status');
             const surfaceMeta = document.getElementById('surface-meta');
@@ -395,6 +405,13 @@
                     renderControls();
                     await refreshFrame();
                 });
+
+            function applyBackdrop() {
+                viewport.style.background = backdropSelect.value;
+            }
+
+            backdropSelect.addEventListener('change', applyBackdrop);
+            applyBackdrop();
 
             autoRefresh.addEventListener('change', restartAutoRefresh);
 

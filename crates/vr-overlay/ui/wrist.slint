@@ -21,12 +21,9 @@ export struct WristFeedItem {
 }
 
 export component WristPanel inherits Window {
-    width: 512px;
-    height: 512px;
     background: transparent;
 
     in property <bool> dark-background: true;
-    in property <color> accent-color: #5eead4;
     in property <[WristDeviceItem]> devices: [];
     in property <[WristFeedItem]> feed-lines: [];
     in property <string> footer-left;
@@ -34,225 +31,199 @@ export component WristPanel inherits Window {
     in property <string> footer-right;
 
     property <color> background-color: root.dark-background ? #0d1117f2 : #0d1117b8;
-    property <color> panel-color: root.dark-background ? #151a21eb : #151a21bd;
+    property <color> edge-color: #ffffff24;
     property <color> divider-color: #ffffff1f;
-    property <color> row-divider-color: #ffffff12;
-    property <color> text-color: #f4f6f8;
-    property <color> muted-color: #aeb6c2;
-    property <color> quiet-color: #7f8996;
-    property <color> row-marker-color: #566170;
+    property <color> muted-color: root.dark-background ? #aeb6c2 : #d5dbe4;
+    property <color> quiet-color: root.dark-background ? #7f8996 : #c3cad4;
     property <length> header-height: 44px;
     property <length> footer-height: 34px;
     property <length> row-height: 38px;
+    property <length> feed-top: 49px;
+    property <float> visible-rows: Math.min(
+        root.feed-lines.length,
+        Math.floor((root.height - root.feed-top - root.footer-height) / root.row-height));
 
     Rectangle {
         x: 0px;
         y: 0px;
         width: parent.width;
-        height: parent.height;
-        background: root.background-color;
-    }
-
-    Rectangle {
-        x: 0px;
-        y: 0px;
-        width: parent.width;
-        height: root.header-height;
-        background: root.panel-color;
-    }
-
-    Rectangle {
-        x: 0px;
-        y: parent.height - root.footer-height;
-        width: parent.width;
-        height: root.footer-height;
-        background: root.panel-color;
-    }
-
-    Rectangle {
-        x: 0px;
-        y: root.header-height;
-        width: parent.width;
-        height: 1px;
-        background: root.divider-color;
-    }
-
-    Rectangle {
-        x: 0px;
-        y: parent.height - root.footer-height;
-        width: parent.width;
-        height: 1px;
-        background: root.divider-color;
-    }
-
-    Rectangle {
-        x: 18px;
-        y: 0px;
-        width: 36px;
-        height: 2px;
-        border-radius: 1px;
-        background: root.accent-color;
-    }
-
-    Rectangle {
-        x: 18px;
-        y: 10px;
-        width: parent.width - 36px;
-        height: 24px;
+        height: (root.visible-rows > 0
+            ? root.feed-top + root.visible-rows * root.row-height
+            : root.header-height) + root.footer-height;
+        border-radius: 18px;
+        border-width: 1px;
+        border-color: root.edge-color;
         clip: true;
+        background: root.background-color;
 
-        HorizontalLayout {
+        Rectangle {
             x: 0px;
-            y: 0px;
+            y: root.header-height;
+            width: parent.width;
+            height: 1px;
+            background: root.divider-color;
+        }
+
+        Rectangle {
+            x: 0px;
+            y: parent.height - root.footer-height;
+            width: parent.width;
+            height: 1px;
+            background: root.divider-color;
+        }
+
+        Rectangle {
+            x: 18px;
+            y: 10px;
+            width: parent.width - 36px;
             height: 24px;
-            spacing: 10px;
-            alignment: start;
+            clip: true;
 
-            for device in root.devices : HorizontalLayout {
-                spacing: 4px;
+            HorizontalLayout {
+                x: 0px;
+                y: 0px;
+                height: 24px;
+                spacing: 10px;
+                alignment: start;
 
-                Text {
-                    text: device.label;
-                    font-size: 14px;
-                    font-weight: 600;
-                    vertical-alignment: center;
-                    color: device.label-color;
-                }
+                for device in root.devices : HorizontalLayout {
+                    spacing: 4px;
 
-                if device.show-percent: Text {
-                    text: device.percent;
-                    font-size: 12px;
-                    vertical-alignment: center;
-                    color: device.percent-color;
-                }
+                    Text {
+                        text: device.label;
+                        font-size: 14px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                        color: device.label-color;
+                    }
 
-                if device.show-battery: Rectangle {
-                    width: 23px;
+                    if device.show-percent: Text {
+                        text: device.percent;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        color: device.percent-color;
+                    }
 
-                    Rectangle {
-                        x: 0px;
-                        y: 7px;
-                        width: 18px;
-                        height: 10px;
-                        border-color: device.battery-color;
-                        border-width: 2px;
-                        border-radius: 2px;
-                        background: transparent;
+                    if device.show-battery: Rectangle {
+                        width: 23px;
 
                         Rectangle {
-                            x: 3px;
-                            y: 3px;
-                            width: 12px * device.battery-fill;
+                            x: 0px;
+                            y: 7px;
+                            width: 18px;
+                            height: 10px;
+                            border-color: device.battery-color;
+                            border-width: 2px;
+                            border-radius: 2px;
+                            background: transparent;
+
+                            Rectangle {
+                                x: 3px;
+                                y: 3px;
+                                width: 12px * device.battery-fill;
+                                height: 4px;
+                                border-radius: 1px;
+                                background: device.battery-color;
+                            }
+                        }
+
+                        Rectangle {
+                            x: 18px;
+                            y: 10px;
+                            width: 3px;
                             height: 4px;
                             border-radius: 1px;
                             background: device.battery-color;
                         }
                     }
-
-                    Rectangle {
-                        x: 18px;
-                        y: 10px;
-                        width: 3px;
-                        height: 4px;
-                        border-radius: 1px;
-                        background: device.battery-color;
-                    }
                 }
             }
         }
-    }
 
-    for line[index] in root.feed-lines : Rectangle {
-        x: 14px;
-        y: 49px + index * root.row-height;
-        width: parent.width - 28px;
-        height: root.row-height;
-        visible: self.y + self.height < root.height - root.footer-height;
+        for line[index] in root.feed-lines : Rectangle {
+            x: 14px;
+            y: root.feed-top + index * root.row-height;
+            width: parent.width - 28px;
+            height: root.row-height;
+            visible: index < root.visible-rows;
 
-        Rectangle {
-            x: 0px;
-            y: 8px;
-            width: 3px;
-            height: 22px;
-            border-radius: 2px;
-            background: line.show-severity ? line.severity-color : root.row-marker-color;
-        }
-
-        Text {
-            x: 11px;
-            y: 0px;
-            width: 42px;
-            height: 37px;
-            text: line.time;
-            font-size: 13px;
-            vertical-alignment: center;
-            color: root.quiet-color;
-        }
-
-        HorizontalLayout {
-            x: 62px;
-            y: 0px;
-            width: parent.width - 62px;
-            height: 37px;
-            spacing: 5px;
-
-            if line.has-actor: Text {
-                horizontal-stretch: 0;
-                text: line.actor;
-                font-size: 16px;
-                font-weight: 600;
-                vertical-alignment: center;
-                color: line.actor-color;
+            if line.show-severity : Rectangle {
+                x: 0px;
+                y: 8px;
+                width: 3px;
+                height: 22px;
+                border-radius: 2px;
+                background: line.severity-color;
             }
 
             Text {
-                horizontal-stretch: 1;
-                text: line.detail;
-                font-size: 16px;
+                x: 11px;
+                y: 0px;
+                width: 42px;
+                height: 37px;
+                text: line.time;
+                font-size: 13px;
                 vertical-alignment: center;
-                overflow: elide;
-                color: line.detail-color;
+                color: root.quiet-color;
+            }
+
+            HorizontalLayout {
+                x: 62px;
+                y: 0px;
+                width: parent.width - 62px;
+                height: 37px;
+                spacing: 5px;
+
+                if line.has-actor: Text {
+                    horizontal-stretch: 0;
+                    text: line.actor;
+                    font-size: 16px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                    color: line.actor-color;
+                }
+
+                Text {
+                    horizontal-stretch: 1;
+                    text: line.detail;
+                    font-size: 16px;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    color: line.detail-color;
+                }
             }
         }
 
-        Rectangle {
-            x: 11px;
-            y: 37px;
-            width: parent.width - 11px;
-            height: 1px;
-            background: root.row-divider-color;
+        Text {
+            x: 18px;
+            y: parent.height - 24px;
+            width: 128px;
+            height: 17px;
+            text: root.footer-left;
+            font-size: 12px;
+            color: root.muted-color;
         }
-    }
 
-    Text {
-        x: 18px;
-        y: parent.height - 24px;
-        width: 128px;
-        height: 17px;
-        text: root.footer-left;
-        font-size: 12px;
-        color: root.muted-color;
-    }
+        Text {
+            x: parent.width / 2 - 90px;
+            y: parent.height - 24px;
+            width: 180px;
+            height: 17px;
+            text: root.footer-center;
+            font-size: 12px;
+            horizontal-alignment: center;
+            color: root.muted-color;
+        }
 
-    Text {
-        x: parent.width / 2 - 90px;
-        y: parent.height - 24px;
-        width: 180px;
-        height: 17px;
-        text: root.footer-center;
-        font-size: 12px;
-        horizontal-alignment: center;
-        color: root.muted-color;
-    }
-
-    Text {
-        x: parent.width - 98px;
-        y: parent.height - 24px;
-        width: 80px;
-        height: 17px;
-        text: root.footer-right;
-        font-size: 12px;
-        horizontal-alignment: right;
-        color: root.muted-color;
+        Text {
+            x: parent.width - 98px;
+            y: parent.height - 24px;
+            width: 80px;
+            height: 17px;
+            text: root.footer-right;
+            font-size: 12px;
+            horizontal-alignment: right;
+            color: root.muted-color;
+        }
     }
 }

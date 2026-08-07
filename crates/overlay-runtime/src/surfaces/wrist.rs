@@ -8,7 +8,7 @@ use vrcx_0_core::text::first_non_empty_owned;
 use vrcx_0_host_desktop::vr_overlay::{VrDeviceSnapshot, VrDeviceStatus};
 use vrcx_0_i18n::OverlayMessage;
 use vrcx_0_vr_overlay::{
-    Color, DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity,
+    DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity,
     OverlayFooter, OverlaySize, WristSurfaceModel,
 };
 
@@ -140,7 +140,6 @@ pub fn build_wrist_surface_model(input: WristOverlayFrameInput) -> WristSurfaceM
             center: localized_instance_duration(&localizer, &input.footer.instance_duration),
             right: input.footer.local_time,
         },
-        accent: Color::rgba(94, 234, 212, 255),
     }
 }
 

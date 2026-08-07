@@ -1,7 +1,7 @@
 use super::*;
 use super::{
     platform::{ensure_platform, to_slint_color},
-    wrist::{wrist_device_item, wrist_device_tokens, wrist_feed_item, WRIST_MUTED_TEXT},
+    wrist::{wrist_device_item, wrist_device_tokens, wrist_feed_item, wrist_muted_text},
 };
 use crate::{
     AvatarBitmap, DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation,
@@ -131,6 +131,90 @@ fn slint_hmd_card_alpha_tracks_toast_opacity_from_an_opaque_baseline() {
 }
 
 #[test]
+fn wrist_panel_stops_painting_below_the_last_feed_row() {
+    let mut renderer = SlintWristRenderer::new();
+    let mut model = sample_wrist_model();
+    let alpha_at =
+        |frame: &RgbaFrame, y: u32| frame.data[((y * frame.size.width + 250) * 4 + 3) as usize];
+
+    model.feed_rows = Vec::new();
+    let empty = renderer.render(&model).unwrap();
+    model.feed_rows = (0..2).map(feed_row).collect();
+    let short = renderer.render(&model).unwrap();
+    model.feed_rows = (0..8).map(feed_row).collect();
+    let tall = renderer.render(&model).unwrap();
+
+    assert!(alpha_at(&empty, 40) > 200);
+    assert_eq!(alpha_at(&empty, 100), 0);
+    assert!(alpha_at(&short, 100) > 200);
+    assert_eq!(alpha_at(&short, 300), 0);
+    assert!(alpha_at(&tall, 300) > 200);
+}
+
+#[test]
+fn wrist_panel_fills_the_width_of_every_overlay_size_preset() {
+    for size in overlay_size_presets() {
+        let mut renderer = SlintWristRenderer::new();
+        let mut model = sample_wrist_model();
+        model.size = size;
+        model.feed_rows = (0..4).map(feed_row).collect();
+
+        let frame = renderer.render(&model).unwrap();
+
+        let right_edge = ((60 * size.width + size.width - 4) * 4 + 3) as usize;
+        assert!(
+            frame.data[right_edge] > 200,
+            "panel does not reach the right edge at {}x{}",
+            size.width,
+            size.height
+        );
+    }
+}
+
+#[test]
+fn wrist_panel_clamps_the_feed_to_the_rows_that_fit_each_preset() {
+    for size in overlay_size_presets() {
+        let capacity = (size.height - 49 - 34) / 38;
+        let panel_bottom = 49 + capacity * 38 + 34;
+        let mut renderer = SlintWristRenderer::new();
+        let mut model = sample_wrist_model();
+        model.size = size;
+        model.feed_rows = (0..capacity + 3).map(feed_row).collect();
+
+        let frame = renderer.render(&model).unwrap();
+        let alpha_at = |y: u32| frame.data[((y * size.width + 250) * 4 + 3) as usize];
+
+        assert!(
+            panel_bottom + 2 < size.height,
+            "clamped panel fills {}x{} with no transparent margin left to assert on",
+            size.width,
+            size.height
+        );
+        assert!(
+            alpha_at(panel_bottom - 2) > 200,
+            "panel ends before its clamped height at {}x{}",
+            size.width,
+            size.height
+        );
+        assert_eq!(
+            alpha_at(panel_bottom + 2),
+            0,
+            "panel paints past the rows that fit at {}x{}",
+            size.width,
+            size.height
+        );
+    }
+}
+
+fn overlay_size_presets() -> [OverlaySize; 3] {
+    [
+        OverlaySize::new(448, 448),
+        OverlaySize::new(512, 512),
+        OverlaySize::new(640, 640),
+    ]
+}
+
+#[test]
 fn wrist_device_tokens_prioritize_abnormal_trackers_and_filter_normal_other_devices() {
     let devices = vec![
         device("HMD", DeviceRole::Hmd, DeviceStatus::Normal, Some(90), 10),
@@ -204,11 +288,56 @@ fn wrist_device_without_a_battery_reading_does_not_draw_a_full_battery() {
         10,
     )];
     let tokens = wrist_device_tokens(&devices, 512.0);
-    let item = wrist_device_item(&tokens[0], true);
+    let item = wrist_device_item(&tokens[0], true, true);
 
     assert!(!item.show_battery);
     assert!(!item.show_percent);
     assert_eq!(item.battery_fill, 0.0);
+}
+
+#[test]
+fn wrist_battery_glyph_only_survives_when_it_still_carries_information() {
+    let healthy = [device(
+        "HMD",
+        DeviceRole::Hmd,
+        DeviceStatus::Normal,
+        Some(82),
+        20,
+    )];
+    let low = [device(
+        "L",
+        DeviceRole::LeftController,
+        DeviceStatus::LowBattery,
+        Some(18),
+        20,
+    )];
+    let healthy_token = &wrist_device_tokens(&healthy, 512.0)[0];
+
+    assert!(!wrist_device_item(healthy_token, true, true).show_battery);
+    assert!(wrist_device_item(healthy_token, false, true).show_battery);
+    assert!(wrist_device_item(&wrist_device_tokens(&low, 512.0)[0], true, true).show_battery);
+}
+
+#[test]
+fn wrist_secondary_text_lifts_when_the_background_stops_being_opaque() {
+    let devices = [device(
+        "HMD",
+        DeviceRole::Hmd,
+        DeviceStatus::Normal,
+        Some(82),
+        20,
+    )];
+    let token = &wrist_device_tokens(&devices, 512.0)[0];
+
+    let opaque = wrist_device_item(token, true, true);
+    let translucent = wrist_device_item(token, true, false);
+
+    assert_eq!(opaque.label_color, to_slint_color(wrist_muted_text(true)));
+    assert_eq!(
+        translucent.label_color,
+        to_slint_color(wrist_muted_text(false))
+    );
+    assert!(wrist_muted_text(false).r > wrist_muted_text(true).r);
 }
 
 #[test]
@@ -221,7 +350,7 @@ fn wrist_charging_device_shows_a_charging_marker() {
         20,
     )];
     let tokens = wrist_device_tokens(&devices, 512.0);
-    let item = wrist_device_item(&tokens[0], true);
+    let item = wrist_device_item(&tokens[0], true, true);
 
     assert_eq!(item.percent.as_str(), "82% ⚡");
 }
@@ -245,8 +374,8 @@ fn wrist_feed_item_preserves_actor_detail_and_muted_media_detail() {
         severity: FeedSeverity::Normal,
     };
 
-    let favorite_item = wrist_feed_item(&favorite);
-    let media_item = wrist_feed_item(&media);
+    let favorite_item = wrist_feed_item(&favorite, true);
+    let media_item = wrist_feed_item(&media, true);
 
     assert!(favorite_item.has_actor);
     assert_eq!(favorite_item.actor.to_string(), "Ada");
@@ -254,7 +383,10 @@ fn wrist_feed_item_preserves_actor_detail_and_muted_media_detail() {
     assert!(favorite_item.show_severity);
     assert!(!media_item.has_actor);
     assert_eq!(media_item.detail.to_string(), "Muted media row");
-    assert_eq!(media_item.detail_color, to_slint_color(WRIST_MUTED_TEXT));
+    assert_eq!(
+        media_item.detail_color,
+        to_slint_color(wrist_muted_text(true))
+    );
 }
 
 fn sample_wrist_model() -> WristSurfaceModel {
@@ -293,7 +425,6 @@ fn sample_wrist_model() -> WristSurfaceModel {
             center: "Instance 12m".to_string(),
             right: "12:34".to_string(),
         },
-        accent: crate::Color::rgba(94, 234, 212, 255),
     }
 }
 
@@ -352,6 +483,17 @@ fn sample_friends_model() -> FavoriteFriendsPanelModel {
             },
         }],
         ..FavoriteFriendsPanelModel::default()
+    }
+}
+
+fn feed_row(index: u32) -> FeedLine {
+    FeedLine {
+        time_text: format!("12:{index:02}"),
+        kind: FeedKind::System,
+        actor_text: String::new(),
+        detail: format!("row {index}"),
+        relation: FeedRelation::None,
+        severity: FeedSeverity::Normal,
     }
 }
 

@@ -3,7 +3,7 @@ use vrcx_0_vr_overlay::{
     OverlayFooter, OverlaySize, WristSurfaceModel,
 };
 
-use super::{accent, ScenarioInfo};
+use super::ScenarioInfo;
 
 const DEFAULT_SCENARIO: &str = "feed";
 const SCENARIOS: &[ScenarioInfo] = &[
@@ -66,7 +66,6 @@ pub fn build(scenario: &str) -> WristSurfaceModel {
                 "No VR".to_string()
             },
         },
-        accent: accent(),
     }
 }
 

@@ -19,7 +19,8 @@ use super::{WristDeviceItem, WristFeedItem, WristPanel};
 const WRIST_TEXT: Color = Color::rgba(238, 238, 238, 255);
 const WRIST_FRIEND_TEXT: Color = Color::rgba(246, 246, 246, 255);
 const WRIST_FAVORITE_TEXT: Color = Color::rgba(245, 205, 84, 255);
-pub(super) const WRIST_MUTED_TEXT: Color = Color::rgba(168, 168, 168, 255);
+const WRIST_MUTED_TEXT: Color = Color::rgba(168, 168, 168, 255);
+const WRIST_MUTED_TEXT_ON_TRANSPARENT: Color = Color::rgba(205, 205, 205, 255);
 const WRIST_LOW: Color = Color::rgba(245, 158, 11, 255);
 const WRIST_CRITICAL: Color = Color::rgba(239, 68, 68, 255);
 const WRIST_NORMAL: Color = Color::rgba(34, 197, 94, 255);
@@ -63,11 +64,9 @@ impl SlintSurfaceHost for SlintWristHost {
 
     fn write_model(&mut self, model: &WristSurfaceModel) {
         self.component.set_dark_background(model.dark_background);
-        self.component
-            .set_accent_color(to_slint_color(model.accent));
         self.component.set_devices(wrist_device_model(model));
         self.component
-            .set_feed_lines(wrist_feed_model(&model.feed_rows));
+            .set_feed_lines(wrist_feed_model(&model.feed_rows, model.dark_background));
         self.component
             .set_footer_left(SharedString::from(model.footer.left.as_str()));
         self.component
@@ -136,9 +135,19 @@ fn wrist_device_model(model: &WristSurfaceModel) -> ModelRc<WristDeviceItem> {
     ModelRc::new(VecModel::from(
         wrist_device_tokens(&model.devices, model.size.width as f32)
             .into_iter()
-            .map(|token| wrist_device_item(&token, model.show_battery_percent))
+            .map(|token| {
+                wrist_device_item(&token, model.show_battery_percent, model.dark_background)
+            })
             .collect::<Vec<_>>(),
     ))
+}
+
+pub(super) fn wrist_muted_text(dark_background: bool) -> Color {
+    if dark_background {
+        WRIST_MUTED_TEXT
+    } else {
+        WRIST_MUTED_TEXT_ON_TRANSPARENT
+    }
 }
 
 pub(super) fn wrist_device_tokens(devices: &[DeviceChip], width: f32) -> Vec<WristDeviceToken> {
@@ -208,17 +217,22 @@ fn push_wrist_role_token(
     }
 }
 
-pub(super) fn wrist_device_item(token: &WristDeviceToken, show_percent: bool) -> WristDeviceItem {
+pub(super) fn wrist_device_item(
+    token: &WristDeviceToken,
+    show_percent: bool,
+    dark_background: bool,
+) -> WristDeviceItem {
     let percent = token.percent_text(show_percent).unwrap_or_default();
+    let muted = wrist_muted_text(dark_background);
     let label_color = if token.aggregate_count.is_some() && token.abnormal {
         wrist_status_color(token.status)
     } else {
-        WRIST_MUTED_TEXT
+        muted
     };
     let percent_color = if is_abnormal_device_status(token.status) {
         wrist_status_color(token.status)
     } else {
-        WRIST_MUTED_TEXT
+        muted
     };
     WristDeviceItem {
         label: SharedString::from(token.label.as_str()),
@@ -228,7 +242,8 @@ pub(super) fn wrist_device_item(token: &WristDeviceToken, show_percent: bool) ->
         battery_color: to_slint_color(wrist_status_color(token.status)),
         battery_fill: battery_fill_ratio(token.battery_percent),
         show_percent: !percent.is_empty(),
-        show_battery: token.draw_battery,
+        show_battery: token.draw_battery
+            && (percent.is_empty() || is_abnormal_device_status(token.status)),
     }
 }
 
@@ -276,13 +291,15 @@ fn wrist_status_color(status: DeviceStatus) -> Color {
     }
 }
 
-fn wrist_feed_model(rows: &[FeedLine]) -> ModelRc<WristFeedItem> {
+fn wrist_feed_model(rows: &[FeedLine], dark_background: bool) -> ModelRc<WristFeedItem> {
     ModelRc::new(VecModel::from(
-        rows.iter().map(wrist_feed_item).collect::<Vec<_>>(),
+        rows.iter()
+            .map(|row| wrist_feed_item(row, dark_background))
+            .collect::<Vec<_>>(),
     ))
 }
 
-pub(super) fn wrist_feed_item(row: &FeedLine) -> WristFeedItem {
+pub(super) fn wrist_feed_item(row: &FeedLine, dark_background: bool) -> WristFeedItem {
     let actor = row.actor_text.trim();
     let (actor, detail, has_actor) = if actor.is_empty() || row.relation == FeedRelation::None {
         ("", row.detail.trim().to_string(), false)
@@ -294,7 +311,7 @@ pub(super) fn wrist_feed_item(row: &FeedLine) -> WristFeedItem {
         actor: SharedString::from(actor),
         detail: SharedString::from(detail.as_str()),
         actor_color: to_slint_color(wrist_relation_color(row.relation)),
-        detail_color: to_slint_color(wrist_detail_color(row)),
+        detail_color: to_slint_color(wrist_detail_color(row, dark_background)),
         severity_color: to_slint_color(wrist_severity_color(row.severity)),
         has_actor,
         show_severity: row.severity != FeedSeverity::Normal,
@@ -317,9 +334,9 @@ fn wrist_relation_color(relation: FeedRelation) -> Color {
     }
 }
 
-fn wrist_detail_color(row: &FeedLine) -> Color {
+fn wrist_detail_color(row: &FeedLine, dark_background: bool) -> Color {
     match row.kind {
-        FeedKind::Media => WRIST_MUTED_TEXT,
+        FeedKind::Media => wrist_muted_text(dark_background),
         _ => WRIST_TEXT,
     }
 }

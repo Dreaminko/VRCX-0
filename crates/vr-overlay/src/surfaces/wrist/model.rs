@@ -1,4 +1,4 @@
-use crate::model::{Color, DeviceChip, FeedLine, OverlayFooter, OverlaySize};
+use crate::model::{DeviceChip, FeedLine, OverlayFooter, OverlaySize};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WristSurfaceModel {
@@ -8,5 +8,4 @@ pub struct WristSurfaceModel {
     pub devices: Vec<DeviceChip>,
     pub feed_rows: Vec<FeedLine>,
     pub footer: OverlayFooter,
-    pub accent: Color,
 }

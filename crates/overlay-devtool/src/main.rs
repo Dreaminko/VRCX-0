@@ -15,7 +15,7 @@ use vrcx_0_vr_overlay::{
     WristSurfaceModel,
 };
 
-use crate::render::{DevtoolRenderer, RenderedPng};
+use crate::render::{backdrop_sheet_png, DevtoolRenderer, RenderedPng};
 
 const INDEX_HTML: &str = include_str!("../web/index.html");
 const DEFAULT_DUMP_DIR: &str = "target/overlay-devtool";
@@ -84,28 +84,35 @@ fn run_dump(out_dir: &Path) -> Result<(), Box<dyn std::error::Error + Send + Syn
     written.push(write_dump_png(
         out_dir,
         "wrist.png",
-        render_current_png(&app, &mut renderer)?.bytes,
+        backdrop_sheet_png(&render_current_png(&app, &mut renderer)?.bytes)?,
+    )?);
+
+    app.select(SurfaceKind::Wrist, "light");
+    written.push(write_dump_png(
+        out_dir,
+        "wrist-light.png",
+        backdrop_sheet_png(&render_current_png(&app, &mut renderer)?.bytes)?,
     )?);
 
     app.select(SurfaceKind::Wrist, "i18n");
     written.push(write_dump_png(
         out_dir,
         "wrist-i18n.png",
-        render_current_png(&app, &mut renderer)?.bytes,
+        backdrop_sheet_png(&render_current_png(&app, &mut renderer)?.bytes)?,
     )?);
 
     app.select(SurfaceKind::Toast, mock::toast::default_scenario_key());
     written.push(write_dump_png(
         out_dir,
         "hmd.png",
-        render_current_png(&app, &mut renderer)?.bytes,
+        backdrop_sheet_png(&render_current_png(&app, &mut renderer)?.bytes)?,
     )?);
 
     app.select(SurfaceKind::Toast, "i18n");
     written.push(write_dump_png(
         out_dir,
         "hmd-i18n.png",
-        render_current_png(&app, &mut renderer)?.bytes,
+        backdrop_sheet_png(&render_current_png(&app, &mut renderer)?.bytes)?,
     )?);
 
     app.select(SurfaceKind::Friends, mock::friends::default_scenario_key());
@@ -113,7 +120,7 @@ fn run_dump(out_dir: &Path) -> Result<(), Box<dyn std::error::Error + Send + Syn
     written.push(write_dump_png(
         out_dir,
         "panel.png",
-        render_current_png(&app, &mut renderer)?.bytes,
+        backdrop_sheet_png(&render_current_png(&app, &mut renderer)?.bytes)?,
     )?);
 
     for path in written {
