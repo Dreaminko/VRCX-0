@@ -10,7 +10,11 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { cn } from '@/lib/utils';
-import { type LlmEndpointDto } from '@/platform/tauri/bindings';
+import {
+    type LlmEndpointDetectModelsResult,
+    type LlmEndpointDto,
+    type LlmModelReasoning
+} from '@/platform/tauri/bindings';
 import { mergeModels, useLlmEndpointsStore } from '@/state/llmEndpointsStore';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -58,6 +62,10 @@ import {
 } from './llmEndpointPresets';
 
 type EndpointDraft = LlmEndpointProviderDraft;
+type ResolvedModelsForSave = {
+    models: string[];
+    modelReasoning: LlmModelReasoning[] | null;
+};
 
 function draftFromEndpoint(endpoint: LlmEndpointDto): EndpointDraft {
     return {
@@ -185,7 +193,9 @@ export function LlmEndpointsDialog({
         setDetectedModels([]);
     }
 
-    async function detectInto(target: EndpointDraft): Promise<string[]> {
+    async function detectInto(
+        target: EndpointDraft
+    ): Promise<LlmEndpointDetectModelsResult> {
         const useSavedEndpoint = shouldUseSavedLlmEndpointForDetect(target);
         const result = await detectModels({
             id: useSavedEndpoint ? target.id : null,
@@ -198,20 +208,20 @@ export function LlmEndpointsDialog({
             ...current,
             detectedModelReasoning: result.modelReasoning
         }));
-        return result.models;
+        return result;
     }
 
     async function detectForDraft() {
         try {
-            const models = await detectInto(draft);
+            const result = await detectInto(draft);
             setDraft((current) => ({
                 ...current,
-                models: mergeModels(current.models, models)
+                models: mergeModels(current.models, result.models)
             }));
             toast.success(
-                models.length
+                result.models.length
                     ? t('view.tools.llm_endpoints.models_detected', {
-                          count: models.length
+                          count: result.models.length
                       })
                     : t('view.tools.llm_endpoints.no_models_detected')
             );
@@ -224,28 +234,34 @@ export function LlmEndpointsDialog({
         }
     }
 
-    async function resolveModelsForSave(): Promise<string[]> {
+    async function resolveModelsForSave(): Promise<ResolvedModelsForSave> {
         if (draft.models.length) {
-            return draft.models;
+            return {
+                models: draft.models,
+                modelReasoning: draft.detectedModelReasoning
+            };
         }
         try {
             return await detectInto(draft);
         } catch {
-            return [];
+            return {
+                models: [],
+                modelReasoning: null
+            };
         }
     }
 
     async function saveDraft() {
         setSaving(true);
         try {
-            const models = await resolveModelsForSave();
+            const { models, modelReasoning } = await resolveModelsForSave();
             await upsert({
                 id: draft.id,
                 name: draft.name.trim(),
                 baseUrl: draft.baseUrl.trim(),
                 apiKey: endpointApiKeyInput(draft),
                 models,
-                modelReasoning: draft.detectedModelReasoning
+                modelReasoning
             });
             if (models.length) {
                 toast.success(t('view.tools.llm_endpoints.saved'));
