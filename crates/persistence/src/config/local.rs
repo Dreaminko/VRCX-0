@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use crate::common::{row_string, ParamsBuilder};
 use crate::database::DatabaseService;
 use crate::Error;

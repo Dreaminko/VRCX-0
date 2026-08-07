@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
