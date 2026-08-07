@@ -30,7 +30,3 @@ export function safeJsonStringify(
         return fallback;
     }
 }
-
-export function createKeyPrefixer(prefix: string): (key: string) => string {
-    return (key: string) => `${prefix}${key}`;
-}

@@ -190,9 +190,6 @@ async function getConfig(): Promise<AvatarSearchProviderConfig> {
         );
     }
 
-    if (selectedProviderValue) {
-        await configRepository.remove('avatarRemoteDatabaseProvider');
-    }
     const selectedProvider = providerList.includes(selectedProviderValue)
         ? selectedProviderValue
         : providerList[0] || '';

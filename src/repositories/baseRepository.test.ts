@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-    asString,
-    createKeyPrefixer,
-    safeJsonParse,
-    safeJsonStringify
-} from './baseRepository';
+import { asString, safeJsonParse, safeJsonStringify } from './baseRepository';
 
 describe('asString', () => {
     it('falls back to the caller-supplied default when a preference was never stored, instead of showing "undefined" in the UI', () => {
@@ -58,16 +53,5 @@ describe('safeJsonStringify', () => {
     it('round-trips through safeJsonParse without losing data', () => {
         const original = { providerList: ['a', 'b'], selected: 'a' };
         expect(safeJsonParse(safeJsonStringify(original))).toEqual(original);
-    });
-});
-
-describe('createKeyPrefixer', () => {
-    it('namespaces keys so two repositories sharing one key-value store cannot collide', () => {
-        const configKey = createKeyPrefixer('config:');
-        const storageKey = createKeyPrefixer('storage:');
-
-        expect(configKey('theme')).toBe('config:theme');
-        expect(storageKey('theme')).toBe('storage:theme');
-        expect(configKey('theme')).not.toBe(storageKey('theme'));
     });
 });

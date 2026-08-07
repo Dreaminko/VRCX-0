@@ -127,9 +127,28 @@ describe('AvatarSearchProviderRepository', () => {
             'VRCX_avatarRemoteDatabaseProviderList',
             JSON.stringify([DEFAULT_PROVIDER, customProvider, selectedProvider])
         );
-        expect(configRepository.remove).toHaveBeenCalledWith(
-            'avatarRemoteDatabaseProvider'
+    });
+
+    it('does not remove the stored selected-provider key while reading config, so the selection cannot be wiped back to the default on the next read', async () => {
+        const selectedProvider = 'https://selected.example.test/search';
+        vi.mocked(configRepository.getString).mockImplementation(
+            (key: string, fallback: ConfigFallback = '') => {
+                if (key === 'VRCX_avatarRemoteDatabaseProviderList') {
+                    return Promise.resolve(
+                        JSON.stringify([DEFAULT_PROVIDER, selectedProvider])
+                    );
+                }
+                if (key === 'VRCX_avatarRemoteDatabaseProvider') {
+                    return Promise.resolve(selectedProvider);
+                }
+                return Promise.resolve(String(fallback ?? ''));
+            }
         );
+
+        const config = await avatarSearchProviderRepository.getConfig();
+
+        expect(config.selectedProvider).toBe(selectedProvider);
+        expect(configRepository.remove).not.toHaveBeenCalled();
     });
 
     it('builds provider search requests and deduplicates normalized avatar ids', async () => {
