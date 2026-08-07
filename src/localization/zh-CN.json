@@ -5167,6 +5167,7 @@
                 "legacy_performance_indexes": "正在添加历史记录索引",
                 "global_performance_indexes": "正在添加数据库索引",
                 "notification_performance_indexes": "正在添加通知索引",
+                "schema_migrations": "正在应用数据库结构更新",
                 "optimize": "正在优化数据库副本",
                 "write_version": "正在记录数据库版本",
                 "commit": "正在切换到升级后的数据库"

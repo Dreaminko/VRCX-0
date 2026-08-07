@@ -5160,6 +5160,7 @@
                 "legacy_performance_indexes": "履歴用インデックスを追加しています",
                 "global_performance_indexes": "データベース用インデックスを追加しています",
                 "notification_performance_indexes": "通知用インデックスを追加しています",
+                "schema_migrations": "データベース構造の更新を適用しています",
                 "optimize": "データベースのコピーを最適化しています",
                 "write_version": "データベースのバージョンを記録しています",
                 "commit": "アップグレード済みデータベースに切り替えています"

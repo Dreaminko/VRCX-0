@@ -2,6 +2,11 @@ use serde::Serialize;
 use vrcx_0_persistence::maintenance::{
     database_maintenance_run, ensure_required_database_schema, DatabaseMaintenanceTask,
 };
+use vrcx_0_persistence::migration::{
+    preview as preview_migrations, run as run_schema_migrations, NoopProgress, Preview,
+    PreviewStatus,
+};
+use vrcx_0_persistence::migrations::migrations;
 use vrcx_0_persistence::{
     prepare_vrcx0_schema_version, write_database_schema_versions, DatabaseService,
     DatabaseUpgradeStatus, VRCX0_SCHEMA_VERSION,
@@ -76,6 +81,7 @@ pub enum DatabaseUpgradeStage {
     LegacyPerformanceIndexes,
     GlobalPerformanceIndexes,
     NotificationPerformanceIndexes,
+    SchemaMigrations,
     Optimize,
     WriteVersion,
     Commit,
@@ -176,21 +182,53 @@ pub fn database_upgrade_preflight(db: &DatabaseService) -> Result<DatabaseUpgrad
         });
     }
 
-    let from_version = prepare_vrcx0_schema_version(db)?;
-    let status = match from_version.cmp(&VRCX0_SCHEMA_VERSION) {
-        std::cmp::Ordering::Less => DatabaseUpgradePreflightStatus::UpgradeRequired,
-        std::cmp::Ordering::Equal => DatabaseUpgradePreflightStatus::Current,
-        std::cmp::Ordering::Greater => DatabaseUpgradePreflightStatus::NewerSchema,
+    let schema_version = prepare_vrcx0_schema_version(db)?;
+    let migrations = migration_preview(db)?;
+    let (status, from_version, to_version) = if schema_version > VRCX0_SCHEMA_VERSION {
+        (
+            DatabaseUpgradePreflightStatus::NewerSchema,
+            schema_version,
+            VRCX0_SCHEMA_VERSION,
+        )
+    } else if migrations.status == PreviewStatus::NewerSchema {
+        (
+            DatabaseUpgradePreflightStatus::NewerSchema,
+            migrations.current_version,
+            migrations.target_version,
+        )
+    } else if schema_version < VRCX0_SCHEMA_VERSION || migrations.status == PreviewStatus::Pending {
+        (
+            DatabaseUpgradePreflightStatus::UpgradeRequired,
+            migrations.current_version,
+            migrations.target_version,
+        )
+    } else {
+        (
+            DatabaseUpgradePreflightStatus::Current,
+            migrations.current_version,
+            migrations.target_version,
+        )
     };
 
     Ok(DatabaseUpgradePreflight {
         status,
         from_version,
-        to_version: VRCX0_SCHEMA_VERSION,
+        to_version,
         stage: None,
         result: None,
         failed_upgrade: None,
     })
+}
+
+fn migration_preview(db: &DatabaseService) -> Result<Preview, Error> {
+    Ok(preview_migrations(db, &migrations())?)
+}
+
+fn target_migration_version() -> i64 {
+    migrations()
+        .last()
+        .map(|migration| migration.version)
+        .unwrap_or(0)
 }
 
 pub fn run_database_upgrade(db: &DatabaseService) -> DatabaseUpgradeRunResult {
@@ -225,6 +263,10 @@ fn run_database_upgrade_inner(
         UpgradeFailure::before_upgrade(from_version, DatabaseUpgradeStage::Preflight, error)
     })?;
     let from_version = preflight.from_version;
+    let to_version = preflight.to_version;
+    let schema_version = prepare_vrcx0_schema_version(db).map_err(|error| {
+        UpgradeFailure::before_upgrade(from_version, DatabaseUpgradeStage::Preflight, error)
+    })?;
 
     match preflight.status {
         DatabaseUpgradePreflightStatus::Blocked => {
@@ -249,11 +291,10 @@ fn run_database_upgrade_inner(
             return Ok(DatabaseUpgradeRunResult {
                 status: DatabaseUpgradeRunStatus::NewerSchema,
                 from_version,
-                to_version: VRCX0_SCHEMA_VERSION,
+                to_version,
                 failed_stage: None,
                 error: Some(format!(
-                    "Database schema version {from_version} is newer than this application supports ({}).",
-                    VRCX0_SCHEMA_VERSION
+                    "Database version {from_version} is newer than this application supports ({to_version})."
                 )),
                 failed_upgrade: None,
                 repair_warning: None,
@@ -286,7 +327,7 @@ fn run_database_upgrade_inner(
     }
 
     report_stage(on_progress, DatabaseUpgradeStage::CreateWorkCopy);
-    db.begin_upgrade_with_progress(from_version, VRCX0_SCHEMA_VERSION, |completed, total| {
+    db.begin_upgrade_with_progress(schema_version, VRCX0_SCHEMA_VERSION, |completed, total| {
         on_progress(DatabaseUpgradeProgress::determinate(
             DatabaseUpgradeStage::CreateWorkCopy,
             completed,
@@ -302,7 +343,7 @@ fn run_database_upgrade_inner(
         UpgradeFailure::during_upgrade(from_version, DatabaseUpgradeStage::InitializeSchema, error)
     })?;
 
-    if from_version < LEGACY_SCHEMA_VERSION {
+    if schema_version < LEGACY_SCHEMA_VERSION {
         report_stage(on_progress, DatabaseUpgradeStage::LegacySchemaMigration);
         for &task in LEGACY_DATA_CLEANUP_TASKS {
             run_task(db, task).map_err(|error| {
@@ -345,6 +386,12 @@ fn run_database_upgrade_inner(
         DatabaseUpgradeStage::NotificationPerformanceIndexes,
         DatabaseMaintenanceTask::AddNotificationPerformanceIndexes,
     )?;
+
+    report_stage(on_progress, DatabaseUpgradeStage::SchemaMigrations);
+    run_schema_migrations(db, &migrations(), &NoopProgress).map_err(|error| {
+        UpgradeFailure::during_upgrade(from_version, DatabaseUpgradeStage::SchemaMigrations, error)
+    })?;
+
     run_optional_task(
         db,
         on_progress,
@@ -404,7 +451,7 @@ fn success_result(status: DatabaseUpgradeRunStatus, from_version: i64) -> Databa
     DatabaseUpgradeRunResult {
         status,
         from_version,
-        to_version: VRCX0_SCHEMA_VERSION,
+        to_version: target_migration_version(),
         failed_stage: None,
         error: None,
         failed_upgrade: None,
@@ -436,7 +483,7 @@ fn recover_failed_upgrade(
     DatabaseUpgradeRunResult {
         status: DatabaseUpgradeRunStatus::Failed,
         from_version: failure.from_version,
-        to_version: VRCX0_SCHEMA_VERSION,
+        to_version: target_migration_version(),
         failed_stage: Some(failure.stage),
         error: Some(error),
         failed_upgrade,
@@ -462,6 +509,7 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
+    use vrcx_0_persistence::migration::migration_version;
 
     struct TestDir {
         path: PathBuf,
@@ -494,6 +542,13 @@ mod tests {
         write_database_schema_versions(db, version).unwrap();
     }
 
+    fn set_migration_version(db: &DatabaseService, version: i64) {
+        rusqlite::Connection::open(db.db_path())
+            .unwrap()
+            .execute_batch(&format!("PRAGMA user_version = {version}"))
+            .unwrap();
+    }
+
     fn install_failing_repair_fixture(db: &DatabaseService) {
         database_maintenance_run(db, DatabaseMaintenanceTask::InitGlobalTables).unwrap();
         let conn = rusqlite::Connection::open(db.db_path()).unwrap();
@@ -514,24 +569,31 @@ mod tests {
 
     #[test]
     fn preflight_reports_current_upgrade_and_newer_spans() {
-        for (version, expected) in [
-            (0, DatabaseUpgradePreflightStatus::UpgradeRequired),
-            (16, DatabaseUpgradePreflightStatus::UpgradeRequired),
-            (17, DatabaseUpgradePreflightStatus::UpgradeRequired),
-            (18, DatabaseUpgradePreflightStatus::Current),
-            (19, DatabaseUpgradePreflightStatus::NewerSchema),
+        use DatabaseUpgradePreflightStatus::{Current, NewerSchema, UpgradeRequired};
+
+        let target = target_migration_version();
+        let schema = VRCX0_SCHEMA_VERSION;
+        for (schema_version, migration, expected, span) in [
+            (0, 0, UpgradeRequired, (0, target)),
+            (16, 0, UpgradeRequired, (0, target)),
+            (schema, 0, UpgradeRequired, (0, target)),
+            (schema, target, Current, (target, target)),
+            (schema + 1, target, NewerSchema, (schema + 1, schema)),
+            (schema, target + 1, NewerSchema, (target + 1, target)),
         ] {
-            let dir = TestDir::new(&format!("database-upgrade-preflight-{version}"));
+            let dir = TestDir::new(&format!(
+                "database-upgrade-preflight-{schema_version}-{migration}"
+            ));
             let db = dir.database();
-            if version > 0 {
-                set_version(&db, version);
+            if schema_version > 0 {
+                set_version(&db, schema_version);
             }
+            set_migration_version(&db, migration);
 
             let preflight = database_upgrade_preflight(&db).unwrap();
 
             assert_eq!(preflight.status, expected);
-            assert_eq!(preflight.from_version, version);
-            assert_eq!(preflight.to_version, VRCX0_SCHEMA_VERSION);
+            assert_eq!((preflight.from_version, preflight.to_version), span);
         }
     }
 
@@ -547,7 +609,9 @@ mod tests {
             let upgraded = run_database_upgrade(&db);
 
             assert_eq!(upgraded.status, DatabaseUpgradeRunStatus::Upgraded);
-            assert_eq!(upgraded.from_version, version);
+            assert_eq!(upgraded.from_version, 0);
+            assert_eq!(upgraded.to_version, target_migration_version());
+            assert_eq!(migration_version(&db).unwrap(), target_migration_version());
             assert_eq!(
                 prepare_vrcx0_schema_version(&db).unwrap(),
                 VRCX0_SCHEMA_VERSION
@@ -564,7 +628,7 @@ mod tests {
 
             let repeated = run_database_upgrade(&db);
             assert_eq!(repeated.status, DatabaseUpgradeRunStatus::Current);
-            assert_eq!(repeated.from_version, VRCX0_SCHEMA_VERSION);
+            assert_eq!(repeated.from_version, target_migration_version());
         }
     }
 
@@ -697,6 +761,7 @@ mod tests {
         let skipped_dir = TestDir::new("database-upgrade-repair-skipped");
         let skipped_db = skipped_dir.database();
         set_version(&skipped_db, VRCX0_SCHEMA_VERSION);
+        set_migration_version(&skipped_db, target_migration_version());
         install_failing_repair_fixture(&skipped_db);
         vrcx_0_persistence::config::set_string(&skipped_db, COPRESENCE_DURATION_REPAIR_KEY, "1")
             .unwrap();
@@ -709,6 +774,7 @@ mod tests {
         let retry_dir = TestDir::new("database-upgrade-repair-retry");
         let retry_db = retry_dir.database();
         set_version(&retry_db, VRCX0_SCHEMA_VERSION);
+        set_migration_version(&retry_db, target_migration_version());
         install_failing_repair_fixture(&retry_db);
 
         let retry = run_database_upgrade(&retry_db);

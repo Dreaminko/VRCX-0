@@ -3870,6 +3870,7 @@ export type DatabaseUpgradeStage =
     | 'legacyPerformanceIndexes'
     | 'globalPerformanceIndexes'
     | 'notificationPerformanceIndexes'
+    | 'schemaMigrations'
     | 'optimize'
     | 'writeVersion'
     | 'commit';

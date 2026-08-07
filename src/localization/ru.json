@@ -5171,6 +5171,7 @@
                 "legacy_performance_indexes": "Добавление индексов истории",
                 "global_performance_indexes": "Добавление индексов базы данных",
                 "notification_performance_indexes": "Добавление индексов уведомлений",
+                "schema_migrations": "Применение обновлений структуры",
                 "optimize": "Оптимизация копии базы данных",
                 "write_version": "Запись версии базы данных",
                 "commit": "Переключение на обновлённую базу данных"

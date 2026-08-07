@@ -5167,6 +5167,7 @@
                 "legacy_performance_indexes": "正在新增歷史記錄索引",
                 "global_performance_indexes": "正在新增資料庫索引",
                 "notification_performance_indexes": "正在新增通知索引",
+                "schema_migrations": "正在套用資料庫結構更新",
                 "optimize": "正在最佳化資料庫副本",
                 "write_version": "正在記錄資料庫版本",
                 "commit": "正在切換至升級後的資料庫"

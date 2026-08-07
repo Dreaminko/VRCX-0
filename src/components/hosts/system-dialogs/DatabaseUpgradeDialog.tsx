@@ -40,6 +40,7 @@ const DATABASE_UPGRADE_STAGE_KEYS: Record<DatabaseUpgradeStage, string> = {
         'message.database.upgrade_stage.global_performance_indexes',
     notificationPerformanceIndexes:
         'message.database.upgrade_stage.notification_performance_indexes',
+    schemaMigrations: 'message.database.upgrade_stage.schema_migrations',
     optimize: 'message.database.upgrade_stage.optimize',
     writeVersion: 'message.database.upgrade_stage.write_version',
     commit: 'message.database.upgrade_stage.commit'

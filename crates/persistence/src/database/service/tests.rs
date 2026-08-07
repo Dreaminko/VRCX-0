@@ -427,7 +427,9 @@ fn fresh_database_open_failure_restores_the_original_database() -> Result<(), Er
     let result = db.archive_main_database_with_open(|path| {
         open_attempts += 1;
         if open_attempts == 1 {
-            Err(Error::Database("injected fresh database open failure".into()))
+            Err(Error::Database(
+                "injected fresh database open failure".into(),
+            ))
         } else {
             open_main_database(path)
         }

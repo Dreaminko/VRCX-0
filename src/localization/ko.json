@@ -5110,6 +5110,7 @@
                 "legacy_performance_indexes": "기록 인덱스를 추가하는 중",
                 "global_performance_indexes": "데이터베이스 인덱스를 추가하는 중",
                 "notification_performance_indexes": "알림 인덱스를 추가하는 중",
+                "schema_migrations": "데이터베이스 구조 업데이트를 적용하는 중",
                 "optimize": "데이터베이스 복사본을 최적화하는 중",
                 "write_version": "데이터베이스 버전을 기록하는 중",
                 "commit": "업그레이드된 데이터베이스로 전환하는 중"

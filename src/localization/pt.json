@@ -5167,6 +5167,7 @@
                 "legacy_performance_indexes": "Adicionando índices do histórico",
                 "global_performance_indexes": "Adicionando índices do banco de dados",
                 "notification_performance_indexes": "Adicionando índices de notificações",
+                "schema_migrations": "Aplicando atualizações de estrutura",
                 "optimize": "Otimizando a cópia do banco de dados",
                 "write_version": "Registrando a versão do banco de dados",
                 "commit": "Alternando para o banco de dados atualizado"

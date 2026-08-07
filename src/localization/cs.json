@@ -5171,6 +5171,7 @@
                 "legacy_performance_indexes": "Přidávání indexů historie",
                 "global_performance_indexes": "Přidávání databázových indexů",
                 "notification_performance_indexes": "Přidávání indexů oznámení",
+                "schema_migrations": "Použití aktualizací struktury",
                 "optimize": "Optimalizace kopie databáze",
                 "write_version": "Ukládání verze databáze",
                 "commit": "Přepínání na aktualizovanou databázi"

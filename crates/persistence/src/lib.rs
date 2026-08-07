@@ -17,6 +17,8 @@ pub mod legacy_migration;
 pub mod legacy_vrcx;
 pub mod local_moderation;
 pub mod memos;
+pub mod migration;
+pub mod migrations;
 pub mod mutual_graph;
 pub mod notifications;
 pub(crate) mod ownership;

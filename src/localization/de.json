@@ -5167,6 +5167,7 @@
                 "legacy_performance_indexes": "Verlaufsindizes werden hinzugefügt",
                 "global_performance_indexes": "Datenbankindizes werden hinzugefügt",
                 "notification_performance_indexes": "Benachrichtigungsindizes werden hinzugefügt",
+                "schema_migrations": "Strukturaktualisierungen werden angewendet",
                 "optimize": "Datenbankkopie wird optimiert",
                 "write_version": "Datenbankversion wird gespeichert",
                 "commit": "Zur aktualisierten Datenbank wird gewechselt"
