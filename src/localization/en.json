@@ -840,6 +840,11 @@
         "feed": {
             "filter": "Filter",
             "feed_persistence_disabled_tooltip": "Feed history is not being saved",
+            "search_scope": {
+                "aria_label": "Search feed, filter by friend",
+                "no_friends": "No matching friends",
+                "search_all": "Search all feed for \"{query}\""
+            },
             "favorites_only_tooltip": "Filter favorites only",
             "search_placeholder": "Search",
             "date_range": "Date range",

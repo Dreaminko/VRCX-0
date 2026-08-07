@@ -54,13 +54,19 @@ fn query_feed_rows(
     } else {
         format!("AND user_id IN ({})", vip_placeholders.join(", "))
     };
+    let scoped_placeholders = add_list_params(&mut params, &query.scoped_user_ids, "scoped");
+    let scoped_query = if scoped_placeholders.is_empty() {
+        String::new()
+    } else {
+        format!("AND user_id IN ({})", scoped_placeholders.join(", "))
+    };
     let excluded_placeholders = add_list_params(&mut params, &query.excluded_user_ids, "excluded");
     let excluded_query = if excluded_placeholders.is_empty() {
         String::new()
     } else {
         format!("AND user_id NOT IN ({})", excluded_placeholders.join(", "))
     };
-    let user_scope_query = format!("{vip_query} {excluded_query}");
+    let user_scope_query = format!("{vip_query} {scoped_query} {excluded_query}");
 
     let search = normalize_text(&query.search);
     let instance_mode = query.mode == FeedQueryMode::Instance
@@ -309,6 +315,7 @@ fn query_feed_read_model(
         search: query.search.clone(),
         filters: query.filters.clone(),
         vip_list: query.vip_list.clone(),
+        scoped_user_ids: query.scoped_user_ids.clone(),
         excluded_user_ids: query.excluded_user_ids.clone(),
         max_entries: query.max_entries,
         date_from: query.date_from.clone(),
@@ -329,6 +336,7 @@ fn query_feed_read_model(
         date_to: &query.date_to,
         favorites_only: query.favorites_only,
         favorite_user_ids: &query.favorite_user_ids,
+        scoped_user_ids: &query.scoped_user_ids,
         excluded_user_ids: &query.excluded_user_ids,
         max_rows,
     };
@@ -679,6 +687,7 @@ fn feed_live_entry_matches(
     row: &Value,
     context: &FeedLiveRowsMergeContext<'_>,
     favorite_user_ids: &HashSet<String>,
+    scoped_user_ids: &HashSet<String>,
     excluded_user_ids: &HashSet<String>,
 ) -> bool {
     if !row.is_object() {
@@ -706,6 +715,9 @@ fn feed_live_entry_matches(
         }
     }
     let user_id = feed_entry_string(row, &["userId", "user_id"]);
+    if !scoped_user_ids.is_empty() && !scoped_user_ids.contains(&user_id) {
+        return false;
+    }
     if !user_id.is_empty() && excluded_user_ids.contains(&user_id) {
         return false;
     }
@@ -735,6 +747,7 @@ pub(crate) struct FeedLiveRowsMergeContext<'a> {
     pub(crate) date_to: &'a str,
     pub(crate) favorites_only: bool,
     pub(crate) favorite_user_ids: &'a [String],
+    pub(crate) scoped_user_ids: &'a [String],
     pub(crate) excluded_user_ids: &'a [String],
     pub(crate) max_rows: i64,
 }
@@ -747,6 +760,12 @@ fn merge_feed_rows_with_live(
 ) -> FeedReadModelOutput {
     let favorite_user_ids = context
         .favorite_user_ids
+        .iter()
+        .map(normalize_text)
+        .filter(|value| !value.is_empty())
+        .collect::<HashSet<_>>();
+    let scoped_user_ids = context
+        .scoped_user_ids
         .iter()
         .map(normalize_text)
         .filter(|value| !value.is_empty())
@@ -769,6 +788,7 @@ fn merge_feed_rows_with_live(
             live_entry.entry.as_value(),
             &context,
             &favorite_user_ids,
+            &scoped_user_ids,
             &excluded_user_ids,
         ) {
             matching_entries.push(feed_row_from_value(live_entry.entry.as_value()));
@@ -791,6 +811,9 @@ fn merge_feed_rows_with_live(
     }
     for row in rows {
         if let Some(user_id) = row.user_id.as_ref() {
+            if !scoped_user_ids.is_empty() && !scoped_user_ids.contains(user_id) {
+                continue;
+            }
             if !user_id.is_empty() && excluded_user_ids.contains(user_id) {
                 continue;
             }
@@ -817,6 +840,7 @@ fn merge_feed_live_rows(query: FeedLiveRowsMergeInput) -> FeedReadModelOutput {
         date_to: &query.date_to,
         favorites_only: query.favorites_only,
         favorite_user_ids: &query.favorite_user_ids,
+        scoped_user_ids: &query.scoped_user_ids,
         excluded_user_ids: &query.excluded_user_ids,
         max_rows: query.max_rows,
     };
@@ -880,6 +904,7 @@ mod tests {
             date_to: String::new(),
             favorites_only: false,
             favorite_user_ids: Vec::new(),
+            scoped_user_ids: Vec::new(),
             excluded_user_ids: Vec::new(),
             live_entries: vec![
                 FeedLiveEntryInput {
@@ -912,6 +937,69 @@ mod tests {
     }
 
     #[test]
+    fn user_scope_drops_live_entries_and_existing_rows_outside_the_scope() {
+        let output = feed_live_rows_merge(FeedLiveRowsMergeInput {
+            rows: vec![
+                RawJson::from(json!({
+                    "type": "GPS",
+                    "userId": "usr_scoped",
+                    "displayName": "Scoped",
+                    "location": "wrld_1:instance",
+                    "created_at": "2026-05-15T00:00:00Z",
+                })),
+                RawJson::from(json!({
+                    "type": "GPS",
+                    "userId": "usr_other",
+                    "displayName": "Other",
+                    "location": "wrld_2:instance",
+                    "created_at": "2026-05-15T00:00:01Z",
+                })),
+            ],
+            current_user_id: "usr_self".into(),
+            filters: Vec::new(),
+            search: String::new(),
+            date_from: String::new(),
+            date_to: String::new(),
+            favorites_only: false,
+            favorite_user_ids: Vec::new(),
+            scoped_user_ids: vec!["usr_scoped".into()],
+            excluded_user_ids: Vec::new(),
+            live_entries: vec![
+                FeedLiveEntryInput {
+                    sequence: 1,
+                    entry: RawJson::from(json!({
+                        "type": "GPS",
+                        "userId": "usr_other",
+                        "displayName": "Other",
+                        "location": "wrld_3:instance",
+                        "created_at": "2026-05-15T00:00:02Z",
+                    })),
+                },
+                FeedLiveEntryInput {
+                    sequence: 2,
+                    entry: RawJson::from(json!({
+                        "type": "GPS",
+                        "userId": "usr_scoped",
+                        "displayName": "Scoped",
+                        "location": "wrld_4:instance",
+                        "created_at": "2026-05-15T00:00:03Z",
+                    })),
+                },
+            ],
+            min_live_sequence: 0,
+            max_rows: 10,
+        });
+
+        assert_eq!(output.max_sequence, 2);
+        let user_ids = output
+            .rows
+            .iter()
+            .map(|row| row.user_id.as_deref().unwrap_or_default())
+            .collect::<Vec<_>>();
+        assert_eq!(user_ids, vec!["usr_scoped", "usr_scoped"]);
+    }
+
+    #[test]
     fn live_feed_rows_keep_avatar_fields_that_only_exist_on_live_entries() {
         let output = feed_live_rows_merge(FeedLiveRowsMergeInput {
             rows: Vec::new(),
@@ -922,6 +1010,7 @@ mod tests {
             date_to: String::new(),
             favorites_only: false,
             favorite_user_ids: Vec::new(),
+            scoped_user_ids: Vec::new(),
             excluded_user_ids: Vec::new(),
             live_entries: vec![FeedLiveEntryInput {
                 sequence: 1,
@@ -968,6 +1057,7 @@ mod tests {
             date_to: String::new(),
             favorites_only: false,
             favorite_user_ids: Vec::new(),
+            scoped_user_ids: Vec::new(),
             excluded_user_ids: Vec::new(),
             live_entries: vec![FeedLiveEntryInput {
                 sequence: 1,
@@ -1039,6 +1129,7 @@ mod tests {
                 search: String::new(),
                 filters: vec![FeedFilter::Gps],
                 vip_list: Vec::new(),
+                scoped_user_ids: Vec::new(),
                 excluded_user_ids: Vec::new(),
                 max_entries: 1,
                 date_from: String::new(),
@@ -1058,6 +1149,7 @@ mod tests {
                 search: String::new(),
                 filters: vec![FeedFilter::Gps],
                 vip_list: Vec::new(),
+                scoped_user_ids: Vec::new(),
                 excluded_user_ids: Vec::new(),
                 max_entries: 1,
                 date_from: String::new(),

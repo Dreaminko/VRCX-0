@@ -143,6 +143,7 @@ function FeedTableMode({
             dateTo: filters.dateTo,
             favoritesOnly: filters.favoritesOnly,
             feedFilterTypes: filters.feedFilterTypes,
+            scopedUserIds: filters.scopedUserIds,
             searchDraft: filters.searchDraft,
             todayDate: filters.todayDate
         }),
@@ -156,6 +157,7 @@ function FeedTableMode({
             filters.dateTo,
             filters.favoritesOnly,
             filters.feedFilterTypes,
+            filters.scopedUserIds,
             filters.searchDraft,
             filters.todayDate
         ]
@@ -169,6 +171,7 @@ function FeedTableMode({
             onCommitSearch: () => filters.commitSearch(),
             onDateFilterOpenChange: filters.setDateFilterOpen,
             onDateRangeSelect: filters.onDateRangeSelect,
+            onScopeChange: filters.setUserScope,
             onSearchDraftChange: filters.setSearchDraft,
             onToggleFavoritesOnly: () =>
                 filters.setFavoritesOnly((current) => !current),
@@ -184,6 +187,7 @@ function FeedTableMode({
             filters.setFavoritesOnly,
             filters.setFeedFilters,
             filters.setSearchDraft,
+            filters.setUserScope,
             filters.toggleFeedFilter
         ]
     );

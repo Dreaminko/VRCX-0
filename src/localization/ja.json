@@ -840,6 +840,11 @@
         "feed": {
             "filter": "フィルター",
             "feed_persistence_disabled_tooltip": "フィード履歴を保存しないモードです",
+            "search_scope": {
+                "aria_label": "フィード検索・フレンドで絞り込み",
+                "no_friends": "該当するフレンドがいません",
+                "search_all": "すべての履歴から「{query}」を検索"
+            },
             "favorites_only_tooltip": "お気に入りのみ",
             "search_placeholder": "検索...",
             "date_range": "期間",

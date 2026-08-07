@@ -3832,6 +3832,7 @@ export type FeedLiveRowsMergeInput = {
     dateTo?: string;
     favoritesOnly?: boolean;
     favoriteUserIds?: string[];
+    scopedUserIds?: string[];
     excludedUserIds?: string[];
     liveEntries?: FeedLiveEntryInput[];
     minLiveSequence?: number;
@@ -3848,6 +3849,7 @@ export type FeedReadModelQueryInput = {
     search?: string;
     filters?: FeedFilter[];
     vipList?: string[];
+    scopedUserIds?: string[];
     maxEntries?: number;
     dateFrom?: string;
     dateTo?: string;
@@ -3895,6 +3897,7 @@ export type FeedRowsQueryInput = {
     search?: string;
     filters?: FeedFilter[];
     vipList?: string[];
+    scopedUserIds?: string[];
     excludedUserIds?: string[];
     maxEntries: number;
     dateFrom?: string;

@@ -34,8 +34,27 @@ export function useFeedFilters() {
     const [dateFilterOpen, setDateFilterOpen] = useState(false);
     const [activeFilters, setActiveFilters] = useState<FeedFilterType[]>([]);
     const [favoritesOnly, setFavoritesOnly] = useState(false);
+    const [scopedUserIds, setScopedUserIds] = useState<string[]>([]);
     const deferredSearchQuery = useDeferredValue(searchQuery);
+    const deferredScopedUserIds = useDeferredValue(scopedUserIds);
     const todayDate = useTodayDate();
+
+    const setUserScope = useCallback((nextUserIds: readonly string[]) => {
+        const normalized = [
+            ...new Set(
+                nextUserIds.map((userId) => userId.trim()).filter(Boolean)
+            )
+        ];
+        setScopedUserIds((current) =>
+            current.length === normalized.length &&
+            current.every((userId, index) => userId === normalized[index])
+                ? current
+                : normalized
+        );
+        if (normalized.length) {
+            setFavoritesOnly(false);
+        }
+    }, []);
 
     const setFeedFilters = useCallback((nextFilters: readonly unknown[]) => {
         const nextUniqueFilters = normalizeFeedFilters(nextFilters);
@@ -63,13 +82,6 @@ export function useFeedFilters() {
         },
         [searchDraft]
     );
-
-    useEffect(() => {
-        const timeoutId = window.setTimeout(() => {
-            setSearchQuery(searchDraft);
-        }, 250);
-        return () => window.clearTimeout(timeoutId);
-    }, [searchDraft]);
 
     const clearSearch = useCallback(() => {
         setSearchDraft('');
@@ -116,6 +128,9 @@ export function useFeedFilters() {
 
     return {
         activeFilters,
+        deferredScopedUserIds,
+        scopedUserIds,
+        setUserScope,
         dateDraftFrom,
         dateDraftRange,
         dateDraftTo,

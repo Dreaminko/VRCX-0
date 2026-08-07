@@ -840,6 +840,11 @@
         "feed": {
             "filter": "筛选",
             "feed_persistence_disabled_tooltip": "Feed 历史未保存",
+            "search_scope": {
+                "aria_label": "搜索动态，可按好友筛选",
+                "no_friends": "没有匹配的好友",
+                "search_all": "搜索全部记录中的「{query}」"
+            },
             "favorites_only_tooltip": "仅显示被分组的好友",
             "search_placeholder": "搜索",
             "date_range": "日期范围",

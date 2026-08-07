@@ -25,6 +25,7 @@ export interface FeedQueryOptions {
     search?: unknown;
     filters?: unknown[];
     favoriteUserIds?: unknown[];
+    scopedUserIds?: readonly unknown[];
     excludedFavoriteUserIds?: unknown[];
     dateFrom?: string;
     dateTo?: string;
@@ -53,6 +54,16 @@ function normalizeUserId(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
+}
+
+function normalizeUserIdList(value: readonly unknown[] = []): string[] {
+    return Array.from(
+        new Set(
+            (Array.isArray(value) ? value : [])
+                .map((entry) => normalizeUserId(entry))
+                .filter(Boolean)
+        )
+    );
 }
 
 function normalizeFilterList(filters: unknown[] = []): FeedFilterType[] {
@@ -104,6 +115,7 @@ class FeedRepository {
         search = '',
         filters = [],
         favoriteUserIds = [],
+        scopedUserIds = [],
         excludedFavoriteUserIds = [],
         dateFrom = '',
         dateTo = '',
@@ -113,22 +125,10 @@ class FeedRepository {
         const { normalizedUserId, maxTableSize, searchLimit } =
             await this.#ensureReady(userId);
         const normalizedFilters = normalizeFilterList(filters);
-        const normalizedFavorites = Array.from(
-            new Set(
-                (Array.isArray(favoriteUserIds) ? favoriteUserIds : [])
-                    .map((value) => normalizeUserId(value))
-                    .filter(Boolean)
-            )
-        );
-        const normalizedExcludedFavorites = Array.from(
-            new Set(
-                (Array.isArray(excludedFavoriteUserIds)
-                    ? excludedFavoriteUserIds
-                    : []
-                )
-                    .map((value) => normalizeUserId(value))
-                    .filter(Boolean)
-            )
+        const normalizedFavorites = normalizeUserIdList(favoriteUserIds);
+        const normalizedScoped = normalizeUserIdList(scopedUserIds);
+        const normalizedExcludedFavorites = normalizeUserIdList(
+            excludedFavoriteUserIds
         );
         const normalizedSearch = String(search || '').trim();
 
@@ -141,7 +141,8 @@ class FeedRepository {
                 dateFrom,
                 dateTo,
                 normalizedUserId,
-                normalizedExcludedFavorites
+                normalizedExcludedFavorites,
+                normalizedScoped
             );
         }
 
@@ -151,7 +152,8 @@ class FeedRepository {
             normalizedFavorites,
             maxEntries ?? maxTableSize,
             cursor,
-            normalizedExcludedFavorites
+            normalizedExcludedFavorites,
+            normalizedScoped
         );
     }
 
@@ -164,6 +166,7 @@ class FeedRepository {
         search = '',
         filters = [],
         favoriteUserIds = [],
+        scopedUserIds = [],
         excludedFavoriteUserIds = [],
         dateFrom = '',
         dateTo = '',
@@ -177,22 +180,10 @@ class FeedRepository {
         const { normalizedUserId, maxTableSize, searchLimit } =
             await this.#ensureReady(userId);
         const normalizedFilters = normalizeFilterList(filters);
-        const normalizedFavorites = Array.from(
-            new Set(
-                (Array.isArray(favoriteUserIds) ? favoriteUserIds : [])
-                    .map((value) => normalizeUserId(value))
-                    .filter(Boolean)
-            )
-        );
-        const normalizedExcludedFavorites = Array.from(
-            new Set(
-                (Array.isArray(excludedFavoriteUserIds)
-                    ? excludedFavoriteUserIds
-                    : []
-                )
-                    .map((value) => normalizeUserId(value))
-                    .filter(Boolean)
-            )
+        const normalizedFavorites = normalizeUserIdList(favoriteUserIds);
+        const normalizedScoped = normalizeUserIdList(scopedUserIds);
+        const normalizedExcludedFavorites = normalizeUserIdList(
+            excludedFavoriteUserIds
         );
         const normalizedSearch = String(search || '').trim();
         const isSearchMode = Boolean(normalizedSearch || dateFrom || dateTo);
@@ -205,6 +196,7 @@ class FeedRepository {
             search: normalizedSearch,
             filters: normalizedFilters,
             vipList: favoritesOnly ? normalizedFavorites : [],
+            scopedUserIds: normalizedScoped,
             excludedUserIds: normalizedExcludedFavorites,
             maxEntries,
             dateFrom,
@@ -224,6 +216,7 @@ class FeedRepository {
         search = '',
         filters = [],
         favoriteUserIds = [],
+        scopedUserIds = [],
         excludedFavoriteUserIds = [],
         dateFrom = '',
         dateTo = '',
@@ -234,28 +227,17 @@ class FeedRepository {
     }: FeedLiveRowsMergeOptions): Promise<FeedReadModelResult<FeedRowOutput>> {
         const normalizedUserId = normalizeUserId(userId);
         const normalizedFilters = normalizeFilterList(filters);
-        const normalizedFavorites = Array.from(
-            new Set(
-                (Array.isArray(favoriteUserIds) ? favoriteUserIds : [])
-                    .map((value) => normalizeUserId(value))
-                    .filter(Boolean)
-            )
-        );
-        const normalizedExcludedFavorites = Array.from(
-            new Set(
-                (Array.isArray(excludedFavoriteUserIds)
-                    ? excludedFavoriteUserIds
-                    : []
-                )
-                    .map((value) => normalizeUserId(value))
-                    .filter(Boolean)
-            )
+        const normalizedFavorites = normalizeUserIdList(favoriteUserIds);
+        const normalizedScoped = normalizeUserIdList(scopedUserIds);
+        const normalizedExcludedFavorites = normalizeUserIdList(
+            excludedFavoriteUserIds
         );
 
         return feedPersistenceRepository.mergeFeedLiveRows({
             rows,
             currentUserId: normalizedUserId,
             filters: normalizedFilters,
+            scopedUserIds: normalizedScoped,
             excludedUserIds: normalizedExcludedFavorites,
             search: String(search || '').trim(),
             dateFrom,

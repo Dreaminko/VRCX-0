@@ -30,6 +30,7 @@ interface FeedRowsQueryOptions {
     search?: string;
     filters?: FeedFilter[];
     vipList?: string[];
+    scopedUserIds?: string[];
     excludedUserIds?: string[];
     maxEntries?: number;
     dateFrom?: string;
@@ -55,6 +56,7 @@ interface FeedLiveRowsMergeOptions {
     dateTo?: string;
     favoritesOnly?: boolean;
     favoriteUserIds?: string[];
+    scopedUserIds?: string[];
     excludedUserIds?: string[];
     liveEntries?: FeedLiveEntry[];
     minLiveSequence?: number;
@@ -121,6 +123,7 @@ async function queryFeedRows({
     search = '',
     filters = [],
     vipList = [],
+    scopedUserIds = [],
     excludedUserIds = [],
     maxEntries = DEFAULT_MAX_TABLE_SIZE,
     dateFrom = '',
@@ -134,6 +137,7 @@ async function queryFeedRows({
         search,
         filters: normalizeFeedFilters(filters),
         vipList: normalizeStringList(vipList),
+        scopedUserIds: normalizeStringList(scopedUserIds),
         excludedUserIds: normalizeStringList(excludedUserIds),
         maxEntries,
         dateFrom,
@@ -154,7 +158,8 @@ const feed = {
         dateFrom: string = '',
         dateTo: string = '',
         userId: unknown = '',
-        excludedUserIds: string[] = []
+        excludedUserIds: string[] = [],
+        scopedUserIds: string[] = []
     ) {
         return queryFeedRows({
             userId,
@@ -162,6 +167,7 @@ const feed = {
             search,
             filters,
             vipList,
+            scopedUserIds,
             excludedUserIds,
             maxEntries,
             dateFrom,
@@ -175,6 +181,7 @@ const feed = {
         search = '',
         filters = [],
         vipList = [],
+        scopedUserIds = [],
         maxEntries = DEFAULT_MAX_TABLE_SIZE,
         dateFrom = '',
         dateTo = '',
@@ -193,6 +200,7 @@ const feed = {
             search,
             filters: normalizeFeedFilters(filters),
             vipList: normalizeStringList(vipList),
+            scopedUserIds: normalizeStringList(scopedUserIds),
             maxEntries,
             dateFrom,
             dateTo,
@@ -218,6 +226,7 @@ const feed = {
         dateTo = '',
         favoritesOnly = false,
         favoriteUserIds = [],
+        scopedUserIds = [],
         excludedUserIds = [],
         liveEntries = [],
         minLiveSequence = 0,
@@ -234,6 +243,7 @@ const feed = {
             favoriteUserIds: Array.isArray(favoriteUserIds)
                 ? favoriteUserIds
                 : [],
+            scopedUserIds: normalizeStringList(scopedUserIds),
             excludedUserIds: normalizeStringList(excludedUserIds),
             liveEntries: Array.isArray(liveEntries) ? liveEntries : [],
             minLiveSequence,
@@ -248,13 +258,15 @@ const feed = {
         vipList: string[],
         maxEntries: number = DEFAULT_MAX_TABLE_SIZE,
         cursor: FeedCursor | null = null,
-        excludedUserIds: string[] = []
+        excludedUserIds: string[] = [],
+        scopedUserIds: string[] = []
     ) {
         return queryFeedRows({
             userId,
             mode: 'lookup',
             filters,
             vipList,
+            scopedUserIds,
             excludedUserIds,
             maxEntries,
             cursor

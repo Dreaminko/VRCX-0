@@ -835,6 +835,11 @@
         "feed": {
             "filter": "필터",
             "feed_persistence_disabled_tooltip": "Feed 기록을 저장하지 않는 상태입니다",
+            "search_scope": {
+                "aria_label": "피드 검색 및 친구 필터",
+                "no_friends": "일치하는 친구가 없습니다",
+                "search_all": "전체 기록에서 '{query}' 검색"
+            },
             "favorites_only_tooltip": "친한 친구만 보기",
             "search_placeholder": "검색",
             "date_range": "기간",

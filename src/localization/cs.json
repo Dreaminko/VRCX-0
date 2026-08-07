@@ -840,6 +840,11 @@
         "feed": {
             "filter": "Filtr",
             "feed_persistence_disabled_tooltip": "Historie Feedu se neukládá",
+            "search_scope": {
+                "aria_label": "Hledat ve feedu a filtrovat podle přítele",
+                "no_friends": "Žádní odpovídající přátelé",
+                "search_all": "Hledat „{query}“ v celé historii"
+            },
             "favorites_only_tooltip": "Zobrazit pouze oblíbené",
             "search_placeholder": "Vyhledat",
             "date_range": "Časové rozmezí",

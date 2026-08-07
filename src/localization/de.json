@@ -840,6 +840,11 @@
         "feed": {
             "filter": "Filter",
             "feed_persistence_disabled_tooltip": "Feed-Verlauf wird nicht gespeichert",
+            "search_scope": {
+                "aria_label": "Feed durchsuchen, nach Freund filtern",
+                "no_friends": "Keine passenden Freunde",
+                "search_all": "Gesamten Verlauf nach „{query}“ durchsuchen"
+            },
             "favorites_only_tooltip": "Nur Favoriten filtern",
             "search_placeholder": "Suchen",
             "date_range": "Zeitraum",

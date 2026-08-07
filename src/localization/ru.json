@@ -840,6 +840,11 @@
         "feed": {
             "filter": "Фильтр",
             "feed_persistence_disabled_tooltip": "История Feed не сохраняется",
+            "search_scope": {
+                "aria_label": "Поиск по ленте и фильтр по друзьям",
+                "no_friends": "Подходящих друзей нет",
+                "search_all": "Искать «{query}» во всей истории"
+            },
             "favorites_only_tooltip": "Фильтровать только избранных",
             "search_placeholder": "Поиск",
             "date_range": "Диапазон дат",

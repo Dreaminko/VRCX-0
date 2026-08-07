@@ -30,6 +30,7 @@ type UseFeedTableStateOptions = {
     dateTo: string;
     deferredSearchQuery: string;
     favoritesOnly: boolean;
+    scopedUserIds: readonly string[];
     setFavoritesOnly: Dispatch<SetStateAction<boolean>>;
     setFeedFilters(filters: readonly unknown[]): void;
 };
@@ -40,6 +41,7 @@ export function useFeedTableState({
     dateTo,
     deferredSearchQuery,
     favoritesOnly,
+    scopedUserIds,
     setFavoritesOnly,
     setFeedFilters
 }: UseFeedTableStateOptions) {
@@ -217,7 +219,14 @@ export function useFeedTableState({
             ...current,
             pageIndex: 0
         }));
-    }, [activeFilters, dateFrom, dateTo, deferredSearchQuery, favoritesOnly]);
+    }, [
+        activeFilters,
+        dateFrom,
+        dateTo,
+        deferredSearchQuery,
+        favoritesOnly,
+        scopedUserIds
+    ]);
 
     return {
         columnOrder,

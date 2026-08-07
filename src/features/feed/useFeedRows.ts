@@ -32,6 +32,7 @@ type UseFeedRowsOptions = {
     dateTo: string;
     deferredSearchQuery: string;
     favoritesOnly: boolean;
+    scopedUserIds: readonly string[];
     preferencesReady: boolean;
 };
 
@@ -41,6 +42,7 @@ export function useFeedRows({
     dateTo,
     deferredSearchQuery,
     favoritesOnly,
+    scopedUserIds,
     preferencesReady
 }: UseFeedRowsOptions) {
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
@@ -113,6 +115,7 @@ export function useFeedRows({
             filters: activeFilters,
             excludedFavoriteUserIds: excludedUserIds,
             favoriteUserIds,
+            scopedUserIds,
             dateFrom: toIsoRangeStart(dateFrom),
             dateTo: toIsoRangeEnd(dateTo),
             liveEntries,
@@ -307,6 +310,7 @@ export function useFeedRows({
                 filters: activeFilters,
                 excludedFavoriteUserIds: hiddenUserIds,
                 favoriteUserIds,
+                scopedUserIds,
                 dateFrom: toIsoRangeStart(dateFrom),
                 dateTo: toIsoRangeEnd(dateTo),
                 liveEntries: [],
@@ -373,7 +377,8 @@ export function useFeedRows({
         hiddenUserIds,
         isFavoritesLoaded,
         maxFeedRows,
-        preferencesReady
+        preferencesReady,
+        scopedUserIds
     ]);
 
     useEffect(() => {
@@ -424,7 +429,8 @@ export function useFeedRows({
         favoritesOnly,
         hiddenUserIds,
         maxFeedRows,
-        preferencesReady
+        preferencesReady,
+        scopedUserIds
     ]);
 
     return {

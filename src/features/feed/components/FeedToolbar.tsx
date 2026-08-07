@@ -7,7 +7,6 @@ import {
     toolbarDateRangeTrigger,
     ToolbarActions,
     ToolbarFilterChips,
-    ToolbarSearch,
     ToolbarToggleButton,
     ToolbarViews
 } from '@/components/layout/ToolbarControls';
@@ -18,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 
 import type { FeedDateRange } from '../feedTypes';
 import { FeedPersistenceDisabledIndicator } from './FeedPersistenceDisabledIndicator';
+import { FeedSearchBox } from './FeedSearchBox';
 
 type FeedToolbarProps = {
     columnsMenu: ReactNode;
@@ -29,6 +29,7 @@ type FeedToolbarProps = {
         onCommitSearch(): void;
         onDateFilterOpenChange(open: boolean): void;
         onDateRangeSelect(range?: FeedDateRange): void;
+        onScopeChange(userIds: readonly string[]): void;
         onSearchDraftChange(value: string): void;
         onToggleFavoritesOnly(): void;
         onToggleFeedFilter(filter: FeedFilterType): void;
@@ -43,6 +44,7 @@ type FeedToolbarProps = {
         dateTo: string;
         favoritesOnly: boolean;
         feedFilterTypes: readonly FeedFilterType[];
+        scopedUserIds: string[];
         searchDraft: string;
         todayDate: Date;
     };
@@ -179,6 +181,7 @@ export const FeedToolbar = memo(function FeedToolbar({
         dateTo,
         favoritesOnly,
         feedFilterTypes,
+        scopedUserIds,
         searchDraft,
         todayDate
     } = filterModel;
@@ -190,6 +193,7 @@ export const FeedToolbar = memo(function FeedToolbar({
         onCommitSearch,
         onDateFilterOpenChange,
         onDateRangeSelect,
+        onScopeChange,
         onSearchDraftChange,
         onToggleFavoritesOnly,
         onToggleFeedFilter
@@ -204,6 +208,7 @@ export const FeedToolbar = memo(function FeedToolbar({
                         icon={StarIcon}
                         fillWhenActive
                         active={favoritesOnly}
+                        disabled={scopedUserIds.length > 0}
                         label={t('view.feed.favorites_only_tooltip')}
                         onClick={onToggleFavoritesOnly}
                     />
@@ -228,12 +233,13 @@ export const FeedToolbar = memo(function FeedToolbar({
                     />
                 </ToolbarViews>
 
-                <ToolbarSearch
-                    value={searchDraft}
-                    onValueChange={onSearchDraftChange}
-                    onCommit={onCommitSearch}
-                    onClear={onClearSearch}
-                    placeholder={t('view.feed.search_placeholder')}
+                <FeedSearchBox
+                    scopedUserIds={scopedUserIds}
+                    searchDraft={searchDraft}
+                    onClearSearch={onClearSearch}
+                    onCommitSearch={onCommitSearch}
+                    onScopeChange={onScopeChange}
+                    onSearchDraftChange={onSearchDraftChange}
                 />
 
                 <ToolbarActions>

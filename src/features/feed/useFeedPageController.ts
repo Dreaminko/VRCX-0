@@ -25,6 +25,7 @@ export function useFeedPageController() {
         dateTo: filters.dateTo,
         deferredSearchQuery: filters.deferredSearchQuery,
         favoritesOnly: filters.favoritesOnly,
+        scopedUserIds: filters.deferredScopedUserIds,
         setFavoritesOnly: filters.setFavoritesOnly,
         setFeedFilters: filters.setFeedFilters
     });
@@ -34,6 +35,7 @@ export function useFeedPageController() {
         dateTo: filters.dateTo,
         deferredSearchQuery: filters.deferredSearchQuery,
         favoritesOnly: filters.favoritesOnly,
+        scopedUserIds: filters.deferredScopedUserIds,
         preferencesReady: tableModel.preferencesReady
     });
     const previousInstancesDialog = useFeedPreviousInstancesDialog();

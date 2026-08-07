@@ -87,10 +87,12 @@ type FeedRowsProps = {
     dateTo: string;
     deferredSearchQuery: string;
     favoritesOnly: boolean;
+    scopedUserIds: readonly string[];
     preferencesReady: boolean;
 };
 
 const ACTIVE_FILTERS: FeedFilterType[] = [];
+const SCOPED_USER_IDS: readonly string[] = [];
 
 const BASE_PROPS: FeedRowsProps = {
     activeFilters: ACTIVE_FILTERS,
@@ -98,6 +100,7 @@ const BASE_PROPS: FeedRowsProps = {
     dateTo: '',
     deferredSearchQuery: '',
     favoritesOnly: false,
+    scopedUserIds: SCOPED_USER_IDS,
     preferencesReady: true
 };
 

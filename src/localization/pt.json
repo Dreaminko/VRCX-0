@@ -840,6 +840,11 @@
         "feed": {
             "filter": "Filtrar",
             "feed_persistence_disabled_tooltip": "O histórico do Feed não está sendo salvo",
+            "search_scope": {
+                "aria_label": "Pesquisar no feed e filtrar por amigo",
+                "no_friends": "Nenhum amigo correspondente",
+                "search_all": "Pesquisar «{query}» em todo o histórico"
+            },
             "favorites_only_tooltip": "Filtrar apenas favoritos",
             "search_placeholder": "Pesquisar",
             "date_range": "Intervalo de datas",
