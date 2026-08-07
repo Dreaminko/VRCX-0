@@ -207,8 +207,8 @@ fn overlay_icon_size(raw_small_icon_metric: i32) -> u32 {
 fn render_dot_premultiplied_bgra(size: u32) -> Vec<u32> {
     const SAMPLES: u32 = 4;
 
-    let radius = size as f32 / 2.0;
-    let center = radius;
+    let radius = size as f32 / 4.0;
+    let center = size as f32 / 2.0;
     let mut pixels = Vec::with_capacity((size * size) as usize);
 
     for y in 0..size {
@@ -291,6 +291,7 @@ mod tests {
         for corner in [0, last, last * stride, last * stride + last] {
             assert_eq!(pixels[corner], 0);
         }
+        assert_eq!(pixels[size as usize / 2], 0);
     }
 
     #[test]
