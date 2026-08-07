@@ -85,6 +85,7 @@ impl DatabaseService {
             to_version,
             work_db_path: work_db_path.to_string_lossy().into_owned(),
             started_at: Utc::now().to_rfc3339(),
+            stage: None,
             failed_at: None,
             reason: None,
         };
@@ -96,6 +97,21 @@ impl DatabaseService {
             ensured: EnsuredSchemas::default(),
         });
         Ok(())
+    }
+
+    pub fn set_upgrade_stage(&self, stage: &str) -> Result<(), Error> {
+        let status = {
+            let mut inner = self
+                .inner
+                .write()
+                .map_err(|e| Error::Database(e.to_string()))?;
+            let DatabaseMode::Upgrade(session) = &mut *inner else {
+                return Err(Error::Database("No database upgrade is running.".into()));
+            };
+            session.status.stage = Some(stage.to_string());
+            session.status.clone()
+        };
+        self.write_status(&self.active_status_path(), &status)
     }
 
     pub fn commit_upgrade(&self) -> Result<(), Error> {
@@ -277,7 +293,7 @@ impl DatabaseService {
 
         if let Some(mut status) = self.read_status_if_exists(&self.active_status_path())? {
             if Path::new(&status.work_db_path).exists() {
-                status.reason = Some("A previous database upgrade did not finish.".into());
+                status.reason = Some(unfinished_upgrade_reason(&status));
                 return Ok(Some(status));
             }
         }
@@ -552,6 +568,17 @@ impl DatabaseService {
         }
         Ok(())
     }
+}
+
+fn unfinished_upgrade_reason(status: &DatabaseUpgradeStatus) -> String {
+    let stopped_at = match status.stage.as_deref() {
+        Some(stage) => format!("during '{stage}'"),
+        None => "before its first stage finished".to_owned(),
+    };
+    format!(
+        "Upgrade stopped {stopped_at} (started {}); the app likely crashed, lost power, or was force-closed before it could finish.",
+        status.started_at
+    )
 }
 
 pub(super) fn status_temporary_path(path: &Path) -> Result<PathBuf, Error> {

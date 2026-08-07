@@ -31,6 +31,8 @@ pub struct DatabaseUpgradeStatus {
     pub work_db_path: String,
     pub started_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub stage: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub failed_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,

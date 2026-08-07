@@ -3879,6 +3879,7 @@ export type DatabaseUpgradeStatus = {
     toVersion: number;
     workDbPath: string;
     startedAt: string;
+    stage?: string | null;
     failedAt?: string | null;
     reason?: string | null;
 };

@@ -99,18 +99,33 @@ pub fn run(
 
 fn apply(db: &DatabaseService, migration: &Migration) -> Result<(), Error> {
     db.write_transaction(|tx| {
-        for step in &migration.steps {
-            apply_step(tx, step)?;
+        for (index, step) in migration.steps.iter().enumerate() {
+            apply_step(tx, step).map_err(|error| {
+                migration_failure(migration, &format!("failed at step {}", index + 1), error)
+            })?;
         }
         if let Some(verify) = &migration.verify {
-            verify.run(tx, &Target::global())?;
+            verify.run(tx, &Target::global()).map_err(|error| {
+                migration_failure(migration, "failed its verification step", error)
+            })?;
         }
-        MigrationTx::execute_non_query(
-            tx,
-            &format!("PRAGMA user_version = {}", migration.version),
-        )?;
+        let version_sql = format!("PRAGMA user_version = {}", migration.version);
+        MigrationTx::execute_non_query(tx, &version_sql).map_err(|error| {
+            migration_failure(
+                migration,
+                "applied but failed to record its schema version",
+                error,
+            )
+        })?;
         Ok(())
     })
+}
+
+fn migration_failure(migration: &Migration, detail: &str, error: Error) -> Error {
+    Error::Database(format!(
+        "Migration {} ({}) {detail}: {error}",
+        migration.version, migration.label
+    ))
 }
 
 fn apply_step(tx: &dyn MigrationTx, step: &Step) -> Result<(), Error> {

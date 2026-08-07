@@ -372,6 +372,54 @@ fn discarding_failed_upgrade_preserves_main_database_and_allows_retry() -> Resul
 }
 
 #[test]
+fn set_upgrade_stage_persists_the_in_flight_stage_for_diagnosing_a_crash() -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-stage-crash");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    db.begin_upgrade(17, 18)?;
+
+    db.set_upgrade_stage("legacySchemaMigration")?;
+
+    let blocked = db.get_failed_upgrade()?.expect("unfinished upgrade status");
+    assert_eq!(blocked.stage.as_deref(), Some("legacySchemaMigration"));
+    let reason = blocked.reason.expect("reason for the unfinished upgrade");
+    assert!(
+        reason.contains("during 'legacySchemaMigration'"),
+        "{reason}"
+    );
+
+    db.fail_upgrade("test cleanup".into())?;
+    Ok(())
+}
+
+#[test]
+fn get_failed_upgrade_reports_no_stage_when_the_process_died_before_the_first_stage(
+) -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-stage-missing");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    db.begin_upgrade(17, 18)?;
+
+    let blocked = db.get_failed_upgrade()?.expect("unfinished upgrade status");
+    assert_eq!(blocked.stage, None);
+    let reason = blocked.reason.expect("reason for the unfinished upgrade");
+    assert!(
+        reason.contains("before its first stage finished"),
+        "{reason}"
+    );
+
+    db.fail_upgrade("test cleanup".into())?;
+    Ok(())
+}
+
+#[test]
+fn set_upgrade_stage_fails_when_no_upgrade_is_running() -> Result<(), Error> {
+    let dir = TestDir::new("database-upgrade-stage-no-session");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+
+    assert!(db.set_upgrade_stage("preflight").is_err());
+    Ok(())
+}
+
+#[test]
 fn fresh_database_archives_the_main_database_and_failed_work_copy() -> Result<(), Error> {
     let dir = TestDir::new("database-upgrade-fresh-start");
     let db_path = dir.path.join("VRCX-0.sqlite3");

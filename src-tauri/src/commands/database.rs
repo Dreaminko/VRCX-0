@@ -41,15 +41,15 @@ pub async fn app__database_upgrade_preflight(
         })?
         .map_err(AppError::from)?;
     if preflight.status == DatabaseUpgradePreflightStatus::Blocked {
+        let reason = preflight
+            .failed_upgrade
+            .as_ref()
+            .and_then(|failure| failure.reason.as_deref())
+            .unwrap_or("previous database upgrade did not finish");
         tracing::error!(
             from_version = preflight.from_version,
             to_version = preflight.to_version,
-            error = %preflight
-                .failed_upgrade
-                .as_ref()
-                .and_then(|failure| failure.reason.as_deref())
-                .unwrap_or("previous database upgrade did not finish"),
-            "database upgrade remains blocked by a previous failure"
+            "database upgrade blocked: {reason}"
         );
         flush_pending_upgrade_failure_telemetry(&state).await;
     }
