@@ -147,6 +147,7 @@ function renderDialog(onOpenChange = vi.fn(), onOpenManage = vi.fn()) {
             open
             onOpenChange={onOpenChange}
             onOpenManage={onOpenManage}
+            remoteWorldDetailsStatus="ready"
             group={{
                 key: 'group_1',
                 source: 'local',
@@ -300,5 +301,75 @@ describe('FavoriteShareCollectionDialog', () => {
             expect(mocks.createShareCollection).toHaveBeenCalledTimes(2);
         });
         await screen.findByDisplayValue('https://example.test/c/share_2');
+    });
+
+    it('waits for remote world details before sharing the collection', async () => {
+        mocks.createShareCollection.mockResolvedValue({
+            id: 'share_remote',
+            url: 'https://example.test/c/share_remote',
+            worldCount: 1,
+            skippedWorlds: []
+        });
+        const props = {
+            open: true,
+            onOpenChange: vi.fn(),
+            onOpenManage: vi.fn(),
+            group: {
+                key: 'group_1',
+                source: 'remote' as const,
+                label: 'VRChat favorites'
+            },
+            items: [
+                {
+                    key: 'world-a',
+                    id: WORLD_A,
+                    kind: 'world' as const,
+                    source: 'remote' as const,
+                    title: 'World A'
+                }
+            ]
+        };
+        const { rerender } = render(
+            <FavoriteShareCollectionDialog
+                {...props}
+                remoteWorldDetailsStatus="idle"
+            />
+        );
+
+        const shareButton = screen.getByRole('button', {
+            name: 'view.favorite.share_collection.action.share'
+        }) as HTMLButtonElement;
+        expect(shareButton.disabled).toBe(true);
+        fireEvent.click(shareButton);
+        expect(mocks.createShareCollection).not.toHaveBeenCalled();
+
+        rerender(
+            <FavoriteShareCollectionDialog
+                {...props}
+                remoteWorldDetailsStatus="running"
+            />
+        );
+        expect(shareButton.disabled).toBe(true);
+
+        rerender(
+            <FavoriteShareCollectionDialog
+                {...props}
+                group={{ ...props.group, source: 'local' }}
+                remoteWorldDetailsStatus="running"
+            />
+        );
+        expect(shareButton.disabled).toBe(false);
+
+        rerender(
+            <FavoriteShareCollectionDialog
+                {...props}
+                remoteWorldDetailsStatus="ready"
+            />
+        );
+        expect(shareButton.disabled).toBe(false);
+        fireEvent.click(shareButton);
+        await waitFor(() => {
+            expect(mocks.createShareCollection).toHaveBeenCalledOnce();
+        });
     });
 });

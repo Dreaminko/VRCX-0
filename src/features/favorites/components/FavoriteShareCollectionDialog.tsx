@@ -49,6 +49,7 @@ type FavoriteShareCollectionDialogProps = {
     onOpenManage(): void;
     group: FavoriteGroup | null;
     items: FavoriteItem[];
+    remoteWorldDetailsStatus: string;
 };
 
 type ShareCollectionSuccessProps = {
@@ -74,6 +75,7 @@ type ShareCollectionFormProps = {
     listed: boolean;
     includeNotes: boolean;
     sharing: boolean;
+    worldDetailsLoading: boolean;
     worldCount: number;
     totalWorldCount: number;
     truncated: boolean;
@@ -206,6 +208,7 @@ function ShareCollectionForm({
     listed,
     includeNotes,
     sharing,
+    worldDetailsLoading,
     worldCount,
     totalWorldCount,
     truncated,
@@ -282,10 +285,15 @@ function ShareCollectionForm({
                 </div>
                 <Button
                     type="button"
-                    disabled={sharing || !title.trim() || !worldCount}
+                    disabled={
+                        sharing ||
+                        worldDetailsLoading ||
+                        !title.trim() ||
+                        !worldCount
+                    }
                     onClick={onCreate}
                 >
-                    {sharing ? (
+                    {sharing || worldDetailsLoading ? (
                         <Spinner data-icon="inline-start" />
                     ) : (
                         <Share2Icon data-icon="inline-start" />
@@ -304,7 +312,8 @@ export function FavoriteShareCollectionDialog({
     onOpenChange,
     onOpenManage,
     group,
-    items
+    items,
+    remoteWorldDetailsStatus
 }: FavoriteShareCollectionDialogProps) {
     const { t } = useTranslation();
     const [title, setTitle] = useState('');
@@ -319,6 +328,10 @@ export function FavoriteShareCollectionDialog({
         () => buildShareCollectionWorldIds(items),
         [items]
     );
+    const worldDetailsLoading =
+        group?.source === 'remote' &&
+        (remoteWorldDetailsStatus === 'idle' ||
+            remoteWorldDetailsStatus === 'running');
     useEffect(() => {
         if (!open) {
             return;
@@ -344,6 +357,9 @@ export function FavoriteShareCollectionDialog({
     }
 
     async function createShare(): Promise<void> {
+        if (worldDetailsLoading) {
+            return;
+        }
         if (!shareWorlds.worldIds.length) {
             toast.error(t('view.favorite.share_collection.toast.no_worlds'));
             return;
@@ -428,6 +444,7 @@ export function FavoriteShareCollectionDialog({
                         listed={listed}
                         includeNotes={includeNotes}
                         sharing={sharing}
+                        worldDetailsLoading={worldDetailsLoading}
                         worldCount={shareWorlds.worldIds.length}
                         totalWorldCount={shareWorlds.totalWorldIds}
                         truncated={shareWorlds.truncated}

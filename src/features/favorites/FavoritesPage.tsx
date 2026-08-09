@@ -199,6 +199,9 @@ function FavoritesPage({
                 }}
                 group={shareCollectionGroup}
                 items={shareCollectionItems}
+                remoteWorldDetailsStatus={
+                    collections.remoteEntityDetails.status
+                }
                 onOpenManage={handleOpenManageShares}
             />
 
