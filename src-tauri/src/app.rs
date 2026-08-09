@@ -25,11 +25,11 @@ fn stop_background_mode_and_show_window(app: &tauri::AppHandle, state: &AppState
 }
 
 fn restore_or_ensure_main_window(app: &tauri::AppHandle, failure_message: &'static str) {
-    if let Some(state) = app.try_state::<AppState>() {
-        if let Err(error) = bootstrap::restore_foreground_window_from_background_mode(app, &state) {
-            tracing::warn!(error = %error, "{failure_message}");
-        }
-    } else if let Err(error) = bootstrap::ensure_main_window(app) {
+    let Some(state) = app.try_state::<AppState>() else {
+        bootstrap::request_startup_foreground();
+        return;
+    };
+    if let Err(error) = bootstrap::restore_foreground_window_from_background_mode(app, &state) {
         tracing::warn!(error = %error, "{failure_message}");
     }
 }

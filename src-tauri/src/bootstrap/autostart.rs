@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use vrcx_0_application_core::RuntimeOperationStatus;
 
@@ -8,6 +9,8 @@ use crate::state::AppState;
 
 use super::shared::db_config_bool;
 use super::{arm_background_delay, start_background_mode_for_current_session};
+
+static STARTUP_FOREGROUND_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum AutostartWindowAction {
@@ -21,8 +24,9 @@ fn autostart_window_action(
     start_minimized: bool,
     close_to_tray: bool,
     background_mode_enabled: bool,
+    foreground_requested: bool,
 ) -> AutostartWindowAction {
-    if !launched_from_autostart || !start_minimized {
+    if foreground_requested || !launched_from_autostart || !start_minimized {
         return AutostartWindowAction::None;
     }
     if close_to_tray {
@@ -31,6 +35,10 @@ fn autostart_window_action(
         };
     }
     AutostartWindowAction::Minimize
+}
+
+pub(crate) fn request_startup_foreground() {
+    STARTUP_FOREGROUND_REQUESTED.store(true, Ordering::Release);
 }
 
 pub(super) fn sync_autostart_from_db(app: &tauri::App, state: &AppState) {
@@ -65,6 +73,7 @@ pub(super) fn apply_autostart_window_state_if_needed(app: &tauri::App, state: &A
         state.storage.get("VRCX_StartAsMinimizedState").as_deref() == Some("true"),
         state.storage.get("VRCX_CloseToTray").as_deref() == Some("true"),
         db_config_bool(state, "backgroundModeEnabled") == Some(true),
+        STARTUP_FOREGROUND_REQUESTED.load(Ordering::Acquire),
     );
     if action == AutostartWindowAction::None {
         return;
@@ -112,7 +121,7 @@ mod tests {
     #[test]
     fn autostart_minimized_to_tray_starts_background_when_enabled() {
         assert_eq!(
-            autostart_window_action(true, true, true, true),
+            autostart_window_action(true, true, true, true, false),
             AutostartWindowAction::HideToTray {
                 start_background: true
             }
@@ -122,10 +131,18 @@ mod tests {
     #[test]
     fn autostart_minimized_to_tray_does_not_start_background_when_disabled() {
         assert_eq!(
-            autostart_window_action(true, true, true, false),
+            autostart_window_action(true, true, true, false, false),
             AutostartWindowAction::HideToTray {
                 start_background: false
             }
+        );
+    }
+
+    #[test]
+    fn startup_foreground_request_overrides_autostart_window_action() {
+        assert_eq!(
+            autostart_window_action(true, true, true, true, true),
+            AutostartWindowAction::None
         );
     }
 }
