@@ -203,6 +203,7 @@ fn hmd_avatar_update_wakes_static_rendering_only() {
         now - HMD_TOAST_FADE_IN,
         Duration::from_secs(5),
     );
+    runtime.hmd_toast_views(now);
 
     let before_static_update = runtime.refresh_wake_sequence();
     runtime.update_hmd_avatar("static-avatar", test_avatar_bitmap());

@@ -36,7 +36,7 @@ pub(crate) struct HmdToastState {
     merge_count: u32,
     appeared_at: Instant,
     visual_pos: f32,
-    anim_at: Instant,
+    last_frame_at: Instant,
 }
 
 impl VrOverlayRuntime {
@@ -121,7 +121,7 @@ impl VrOverlayRuntime {
             merge_count: 1,
             appeared_at: now,
             visual_pos,
-            anim_at: now,
+            last_frame_at: now,
         });
         true
     }
@@ -206,10 +206,12 @@ impl VrOverlayRuntime {
         let queue = self.hmd_toasts.lock().ok()?;
         let mut next_deadline: Option<Duration> = None;
         for (index, toast) in queue.iter().enumerate() {
-            if now >= toast.expires_at + HMD_TOAST_FADE_OUT {
+            let fade_in_ends_at = toast.appeared_at + HMD_TOAST_FADE_IN;
+            let fade_out_ends_at = toast.expires_at + HMD_TOAST_FADE_OUT;
+            if now >= fade_out_ends_at && toast.last_frame_at >= fade_out_ends_at {
                 continue;
             }
-            let fading_in = now < toast.appeared_at + HMD_TOAST_FADE_IN;
+            let fading_in = now < fade_in_ends_at || toast.last_frame_at < fade_in_ends_at;
             let fading_out = now >= toast.expires_at;
             let sliding = toast.visual_pos != index as f32;
             if fading_in || fading_out || sliding {
@@ -402,9 +404,11 @@ fn hmd_toast_alpha(toast: &HmdToastState, now: Instant) -> f32 {
 }
 
 fn advance_hmd_toast_slide(toast: &mut HmdToastState, index: usize, now: Instant) {
-    let step =
-        now.saturating_duration_since(toast.anim_at).as_secs_f32() / HMD_TOAST_SLIDE_STEP_SECONDS;
-    toast.anim_at = now;
+    let step = now
+        .saturating_duration_since(toast.last_frame_at)
+        .as_secs_f32()
+        / HMD_TOAST_SLIDE_STEP_SECONDS;
+    toast.last_frame_at = now;
     toast.visual_pos += (index as f32 - toast.visual_pos).clamp(-step, step);
 }
 
@@ -480,5 +484,7 @@ pub(crate) fn refresh_cached_world_name(
     }
 }
 
+#[cfg(test)]
+mod animation_tests;
 #[cfg(all(test, feature = "friends-panel"))]
 mod tests;
