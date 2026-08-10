@@ -159,8 +159,12 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
             .display_name,
         "Friend Fresh Name"
     );
-    assert!(events.iter().any(|event| {
-        event.name == "backendRuntimeTelemetry" && event.payload["kind"] == "wsPersisted"
+    assert!(events.iter().all(|event| {
+        event.name != "backendRuntimeTelemetry"
+            || !matches!(
+                event.payload["kind"].as_str(),
+                Some("wsMessage" | "wsPersisted" | "gameLogPersisted")
+            )
     }));
 
     let repeated_watermark = runtime.runtime().capture_friend_baseline_watermark()?;

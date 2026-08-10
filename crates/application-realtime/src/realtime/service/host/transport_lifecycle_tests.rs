@@ -380,15 +380,13 @@ fn friend_ws_dispatch_fans_out_one_canonical_output() -> Result<()> {
             .count(),
         1
     );
-    assert_eq!(
-        events
-            .iter()
-            .filter(|event| {
-                event.name == "backendRuntimeTelemetry" && event.payload["kind"] == "wsPersisted"
-            })
-            .count(),
-        1
-    );
+    assert!(events.iter().all(|event| {
+        event.name != "backendRuntimeTelemetry"
+            || !matches!(
+                event.payload["kind"].as_str(),
+                Some("wsMessage" | "wsPersisted" | "gameLogPersisted")
+            )
+    }));
     assert_eq!(
         frontend_projections[0].payload,
         serde_json::to_value(&activity_projections[0]).expect("serialize activity projection")

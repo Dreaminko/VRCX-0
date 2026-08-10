@@ -348,6 +348,10 @@ impl RealtimeHostRuntime {
         self.friends.snapshot()
     }
 
+    pub fn friend_session_context(&self) -> Option<RealtimeSessionContext> {
+        self.friends.session_context()
+    }
+
     pub fn current_user_snapshot(&self) -> Option<serde_json::Value> {
         self.current_user.snapshot_value()
     }
@@ -370,18 +374,16 @@ impl RealtimeHostRuntime {
             }],
             ..RealtimePersistenceBatch::default()
         };
-        let persistence_attempted = !batch.is_empty();
         let result = write_realtime_batch(&self.deps.db, &user_id, &batch)
             .map_err(|error| Error::Custom(format!("expire realtime notification: {error}")));
         match &result {
-            Ok(counts) => {
+            Ok(_) => {
                 self.deps.sync.record(
                     "realtimeNotifications",
                     RuntimeOperationStatus::Persisted,
                     "Realtime notification expiration persisted by Rust.",
                     0,
                 );
-                self.emit_realtime_persisted(*counts, persistence_attempted);
             }
             Err(error) => self
                 .deps

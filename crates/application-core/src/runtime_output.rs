@@ -81,21 +81,6 @@ fn format_backend_runtime_telemetry(
             ),
         ),
         BackendRuntimeTelemetryKind::WsStatus => None,
-        BackendRuntimeTelemetryKind::WsMessage => {
-            let total = snapshot
-                .ws_message_counts
-                .get(detail)
-                .copied()
-                .unwrap_or_default();
-            info(mode, format!("ws message: type={detail}, count={total}"))
-        }
-        BackendRuntimeTelemetryKind::WsPersisted => {
-            let total = snapshot.ws_persisted_count;
-            info(
-                mode,
-                format!("ws persisted to db: count={detail}, total={total}"),
-            )
-        }
         BackendRuntimeTelemetryKind::ProcessStatus => match snapshot.process_status {
             BackendRuntimeProcessStatus::VrchatRunning => info(mode, "vrchat started"),
             BackendRuntimeProcessStatus::VrchatStopped => info(mode, "vrchat stopped"),

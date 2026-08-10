@@ -1,14 +1,11 @@
 use std::any::Any;
-use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use vrcx_0_core::realtime::{RealtimeWsStatus, RealtimeWsStatusPayload};
 use vrcx_0_core::time::now_iso;
 
-use crate::event_bus::{
-    BackendRuntimeCountKind, BackendRuntimeCountTelemetry, BackendRuntimeMessageTelemetry,
-};
+use crate::event_bus::BackendRuntimeGameLogPersisted;
 use crate::events::FriendProfileLoadStatusPayload;
 use crate::ports::HostSessionProjection;
 
@@ -90,8 +87,6 @@ impl BackendRuntimeProcessStatus {
 pub enum BackendRuntimeTelemetryKind {
     WsStatus,
     ProcessStatus,
-    WsMessage,
-    WsPersisted,
     GameLogPersisted,
     RuntimeStarted,
     RuntimeStopped,
@@ -117,8 +112,6 @@ pub struct BackendRuntimeSnapshot {
     pub ws_status: RealtimeWsStatus,
     pub game_log_status: BackendRuntimeGameLogStatus,
     pub process_status: BackendRuntimeProcessStatus,
-    pub ws_message_counts: BTreeMap<String, u64>,
-    pub ws_persisted_count: u64,
     pub game_log_persisted_count: u64,
     pub last_error: Option<String>,
     pub updated_at: String,
@@ -149,8 +142,6 @@ struct BackendRuntimeState {
     ws_status: RealtimeWsStatus,
     game_log_status: BackendRuntimeGameLogStatus,
     process_status: BackendRuntimeProcessStatus,
-    ws_message_counts: BTreeMap<String, u64>,
-    ws_persisted_count: u64,
     game_log_persisted_count: u64,
     last_error: Option<String>,
     updated_at: String,
@@ -168,8 +159,6 @@ impl Default for BackendRuntimeState {
             ws_status: RealtimeWsStatus::Idle,
             game_log_status: BackendRuntimeGameLogStatus::Idle,
             process_status: BackendRuntimeProcessStatus::Unknown,
-            ws_message_counts: BTreeMap::new(),
-            ws_persisted_count: 0,
             game_log_persisted_count: 0,
             last_error: None,
             updated_at: now_iso(),
@@ -270,19 +259,6 @@ impl BackendRuntime {
         })
     }
 
-    pub fn record_ws_message(&self, message_type: impl Into<String>) -> BackendRuntimeSnapshot {
-        let message_type = message_type.into();
-        self.update(|state| {
-            *state.ws_message_counts.entry(message_type).or_insert(0) += 1;
-        })
-    }
-
-    pub fn add_ws_persisted(&self, count: u64) -> BackendRuntimeSnapshot {
-        self.update(|state| {
-            state.ws_persisted_count = state.ws_persisted_count.saturating_add(count);
-        })
-    }
-
     pub fn set_game_log_status(
         &self,
         status: BackendRuntimeGameLogStatus,
@@ -343,28 +319,10 @@ impl BackendRuntime {
                 snapshot,
             });
         }
-        if let Some(telemetry) = payload.downcast_ref::<BackendRuntimeMessageTelemetry>() {
-            let message_type = telemetry.message_type.clone();
-            let snapshot = self.record_ws_message(message_type.clone());
+        if let Some(telemetry) = payload.downcast_ref::<BackendRuntimeGameLogPersisted>() {
+            let snapshot = self.add_game_log_persisted(telemetry.count);
             return Some(BackendRuntimeTelemetry {
-                kind: BackendRuntimeTelemetryKind::WsMessage,
-                detail: message_type,
-                snapshot,
-            });
-        }
-        if let Some(telemetry) = payload.downcast_ref::<BackendRuntimeCountTelemetry>() {
-            let (kind, snapshot) = match telemetry.kind {
-                BackendRuntimeCountKind::WsPersisted => (
-                    BackendRuntimeTelemetryKind::WsPersisted,
-                    self.add_ws_persisted(telemetry.count),
-                ),
-                BackendRuntimeCountKind::GameLogPersisted => (
-                    BackendRuntimeTelemetryKind::GameLogPersisted,
-                    self.add_game_log_persisted(telemetry.count),
-                ),
-            };
-            return Some(BackendRuntimeTelemetry {
-                kind,
+                kind: BackendRuntimeTelemetryKind::GameLogPersisted,
                 detail: telemetry.count.to_string(),
                 snapshot,
             });
@@ -393,8 +351,6 @@ impl BackendRuntime {
             ws_status: state.ws_status,
             game_log_status: state.game_log_status,
             process_status: state.process_status,
-            ws_message_counts: state.ws_message_counts.clone(),
-            ws_persisted_count: state.ws_persisted_count,
             game_log_persisted_count: state.game_log_persisted_count,
             last_error: state.last_error.clone(),
             updated_at: state.updated_at.clone(),

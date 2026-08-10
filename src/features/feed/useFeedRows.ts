@@ -5,7 +5,7 @@ import friendLogRepository from '@/repositories/friendLogRepository';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFeedLiveStore } from '@/state/feedLiveStore';
-import { useFriendRosterStore } from '@/state/friendRosterStore';
+import { useFriendLogStore } from '@/state/friendLogStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -67,9 +67,7 @@ export function useFeedRows({
     const feedPersistenceDisabled = usePreferencesStore(
         (state) => state.feedPersistenceDisabled
     );
-    const friendRosterLastLoadedAt = useFriendRosterStore(
-        (state) => state.lastLoadedAt
-    );
+    const friendLogRevision = useFriendLogStore((state) => state.revision);
     const [rows, setRows] = useState<FeedRow[]>([]);
     const [friendLogNamesById, setFriendLogNamesById] = useState<
         Record<string, string>
@@ -166,7 +164,7 @@ export function useFeedRows({
         return () => {
             active = false;
         };
-    }, [currentUserId, friendRosterLastLoadedAt]);
+    }, [currentUserId, friendLogRevision]);
 
     useEffect(() => {
         const missingUserIds: string[] = [];

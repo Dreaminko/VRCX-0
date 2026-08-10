@@ -142,8 +142,6 @@ function createBackendRuntimeSnapshot(): BackendRuntimeSnapshot {
         wsStatus: 'idle',
         gameLogStatus: 'idle',
         processStatus: 'unknown',
-        wsMessageCounts: {},
-        wsPersistedCount: 0,
         gameLogPersistedCount: 0,
         lastError: null,
         updatedAt: '2026-07-09T00:00:00.000Z',
@@ -1152,8 +1150,8 @@ describe('runtimeEventBridgeService', () => {
         useSessionStore.getState().setSessionPhase('ready');
 
         handlers.get('backendRuntimeTelemetry')?.({
-            kind: 'wsMessage',
-            detail: 'friend-location',
+            kind: 'gameLogPersisted',
+            detail: '1',
             snapshot: runningSnapshot
         });
         await Promise.resolve();

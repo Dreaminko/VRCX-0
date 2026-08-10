@@ -21,8 +21,9 @@ pub async fn app__start_background_mode(
 #[specta::specta]
 pub fn app__get_backend_runtime_frontend_session_snapshot(
     state: State<'_, AppState>,
+    include_current_user_snapshot: bool,
 ) -> Result<Option<BackendRuntimeFrontendSessionSnapshot>, AppError> {
-    Ok(state.backend_runtime_frontend_session_snapshot())
+    Ok(state.backend_runtime_frontend_session_snapshot(include_current_user_snapshot))
 }
 
 #[tauri::command]

@@ -7,7 +7,7 @@ use serde_json::Value;
 use vrcx_0_application_core::LocalGameContextSnapshot;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 use vrcx_0_persistence::config as config_store;
-use vrcx_0_persistence::realtime::{write_realtime_batch, RealtimeWriteCounts};
+use vrcx_0_persistence::realtime::write_realtime_batch;
 
 use crate::realtime::{
     FriendProjection, PendingOfflineTimerAction, RealtimeCurrentUserOutput, RealtimeFriendOutput,
@@ -99,17 +99,15 @@ impl RealtimeHostRuntime {
         let mut world_name_fetch_ids =
             self.enrich_projection_world_names(&mut projection.feed_entries);
         world_name_fetch_ids.extend(self.enrich_persistence_world_names(&mut output.persistence));
-        let persistence_attempted = !output.persistence.is_empty();
         let persisted =
             match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
-                Ok(counts) => {
+                Ok(_) => {
                     self.deps.sync.record(
                         "realtimeFriends",
                         RuntimeOperationStatus::Persisted,
                         "Realtime friend projection persisted by Rust.",
                         0,
                     );
-                    self.emit_realtime_persisted(counts, persistence_attempted);
                     true
                 }
                 Err(error) => {
@@ -239,16 +237,14 @@ impl RealtimeHostRuntime {
         output.projection = projection;
         self.finalize_notification_output_for_delivery(&mut output);
         let projection = self.visible_notification_projection(output.projection.clone());
-        let persistence_attempted = !output.persistence.is_empty();
         match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
-            Ok(counts) => {
+            Ok(_) => {
                 self.deps.sync.record(
                     "realtimeNotifications",
                     RuntimeOperationStatus::Persisted,
                     "Realtime notification projection persisted by Rust.",
                     0,
                 );
-                self.emit_realtime_persisted(counts, persistence_attempted);
             }
             Err(error) => {
                 tracing::warn!("Realtime notification persistence failed: {error}");
@@ -300,16 +296,14 @@ impl RealtimeHostRuntime {
     pub(super) fn apply_current_user_output(&self, mut output: RealtimeCurrentUserOutput) {
         self.enrich_current_user_location_output(&mut output);
         let projection = output.projection;
-        let persistence_attempted = !output.persistence.is_empty();
         match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
-            Ok(counts) => {
+            Ok(_) => {
                 self.deps.sync.record(
                     "realtimeCurrentUser",
                     RuntimeOperationStatus::Persisted,
                     "Realtime current-user projection persisted by Rust.",
                     0,
                 );
-                self.emit_realtime_persisted(counts, persistence_attempted);
             }
             Err(error) => {
                 tracing::warn!("Realtime current user persistence failed: {error}");
@@ -339,16 +333,14 @@ impl RealtimeHostRuntime {
                 state.automation.invite.record_closed_location(location);
             }
         }
-        let persistence_attempted = !output.persistence.is_empty();
         match write_realtime_batch(&self.deps.db, owner_user_id, &output.persistence) {
-            Ok(counts) => {
+            Ok(_) => {
                 self.deps.sync.record(
                     "realtimeInstanceClosed",
                     RuntimeOperationStatus::Persisted,
                     "Realtime instance-closed projection persisted by Rust.",
                     0,
                 );
-                self.emit_realtime_persisted(counts, persistence_attempted);
             }
             Err(error) => {
                 tracing::warn!("Realtime instance-closed persistence failed: {error}");
@@ -365,20 +357,6 @@ impl RealtimeHostRuntime {
             .emit_realtime_instance_closed_projection(projection);
     }
 
-    pub(super) fn emit_realtime_persisted(
-        &self,
-        counts: RealtimeWriteCounts,
-        persistence_attempted: bool,
-    ) {
-        if persistence_attempted {
-            self.deps.event_bus.emit_ws_persisted(counts.affected_count);
-        }
-        if counts.game_log_affected_count > 0 {
-            self.deps
-                .event_bus
-                .emit_game_log_persisted(counts.game_log_affected_count);
-        }
-    }
 }
 
 fn is_player_joining_entry(entry: &Value) -> bool {

@@ -127,7 +127,7 @@ fn typed_backend_runtime_telemetry_passes_through_without_observation() {
 }
 
 #[test]
-fn typed_runtime_observation_is_normalized_into_snapshot_telemetry() {
+fn game_log_persistence_is_normalized_into_snapshot_telemetry() {
     let bus = RuntimeEventBus::new();
     let recording = RecordingSink::default();
     bus.set_sink(RuntimeHostEventSink::new(
@@ -136,19 +136,15 @@ fn typed_runtime_observation_is_normalized_into_snapshot_telemetry() {
         recording.clone(),
     ));
 
-    bus.emit_ws_message_observed("notification");
+    bus.emit_game_log_persisted(2);
 
     let events = recording.events();
-    assert_eq!(events.len(), 2);
-    assert_eq!(events[0].name, "realtimeProjectionSync");
-    let event = &events[1];
+    assert_eq!(events.len(), 1);
+    let event = &events[0];
     assert_eq!(event.name, "backendRuntimeTelemetry");
-    assert_eq!(event.payload["kind"], "wsMessage");
-    assert_eq!(event.payload["detail"], "notification");
-    assert_eq!(
-        event.payload["snapshot"]["wsMessageCounts"]["notification"],
-        1
-    );
+    assert_eq!(event.payload["kind"], "gameLogPersisted");
+    assert_eq!(event.payload["detail"], "2");
+    assert_eq!(event.payload["snapshot"]["gameLogPersistedCount"], 2);
 }
 
 #[test]

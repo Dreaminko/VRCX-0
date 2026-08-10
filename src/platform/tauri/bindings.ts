@@ -131,9 +131,12 @@ export const commands = {
     async appStartBackgroundMode(): Promise<BackendRuntimeSnapshot> {
         return await TAURI_INVOKE('app__start_background_mode');
     },
-    async appGetBackendRuntimeFrontendSessionSnapshot(): Promise<BackendRuntimeFrontendSessionSnapshot | null> {
+    async appGetBackendRuntimeFrontendSessionSnapshot(
+        includeCurrentUserSnapshot: boolean
+    ): Promise<BackendRuntimeFrontendSessionSnapshot | null> {
         return await TAURI_INVOKE(
-            'app__get_backend_runtime_frontend_session_snapshot'
+            'app__get_backend_runtime_frontend_session_snapshot',
+            { includeCurrentUserSnapshot }
         );
     },
     async appBackendRuntimeCombinedSnapshotGet(): Promise<BackendRuntimeCombinedSnapshot> {
@@ -3177,8 +3180,6 @@ export type BackendRuntimeSnapshot = {
     wsStatus: RealtimeWsStatus;
     gameLogStatus: BackendRuntimeGameLogStatus;
     processStatus: BackendRuntimeProcessStatus;
-    wsMessageCounts: Partial<{ [key in string]: number }>;
-    wsPersistedCount: number;
     gameLogPersistedCount: number;
     lastError: string | null;
     updatedAt: string;
@@ -3192,8 +3193,6 @@ export type BackendRuntimeTelemetry = {
 export type BackendRuntimeTelemetryKind =
     | 'wsStatus'
     | 'processStatus'
-    | 'wsMessage'
-    | 'wsPersisted'
     | 'gameLogPersisted'
     | 'runtimeStarted'
     | 'runtimeStopped'

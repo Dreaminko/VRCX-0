@@ -67,29 +67,9 @@ pub struct RuntimeVrchatAuthFailurePayload {
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct BackendRuntimeCountTelemetry {
-    pub(crate) kind: BackendRuntimeCountKind,
+pub(crate) struct BackendRuntimeGameLogPersisted {
+    pub(crate) kind: &'static str,
     pub(crate) count: u64,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum BackendRuntimeCountKind {
-    WsPersisted,
-    GameLogPersisted,
-}
-
-#[derive(Clone, Debug, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct BackendRuntimeMessageTelemetry {
-    pub(crate) kind: BackendRuntimeMessageKind,
-    pub(crate) message_type: String,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum BackendRuntimeMessageKind {
-    WsMessage,
 }
 
 macro_rules! runtime_event_payload {
@@ -103,8 +83,7 @@ macro_rules! runtime_event_payload {
 runtime_event_payload!(FavoritesChangedPayload, "favoritesChanged");
 runtime_event_payload!(VrcStatusSnapshot, "vrcStatus");
 runtime_event_payload!(RuntimeVrchatAuthFailurePayload, "runtimeVrchatAuthFailure");
-runtime_event_payload!(BackendRuntimeCountTelemetry, "backendRuntimeTelemetry");
-runtime_event_payload!(BackendRuntimeMessageTelemetry, "backendRuntimeTelemetry");
+runtime_event_payload!(BackendRuntimeGameLogPersisted, "backendRuntimeTelemetry");
 runtime_event_payload!(BackendRuntimeTelemetry, "backendRuntimeTelemetry");
 runtime_event_payload!(RealtimeProjectionSync, "realtimeProjectionSync");
 runtime_event_payload!(RealtimeWsStatusPayload, "realtimeWsStatus");
@@ -188,24 +167,10 @@ impl RuntimeEventBus {
         std::mem::take(&mut *self.events.lock().unwrap())
     }
 
-    pub fn emit_ws_persisted(&self, count: u64) {
-        self.emit(BackendRuntimeCountTelemetry {
-            kind: BackendRuntimeCountKind::WsPersisted,
-            count,
-        });
-    }
-
     pub fn emit_game_log_persisted(&self, count: u64) {
-        self.emit(BackendRuntimeCountTelemetry {
-            kind: BackendRuntimeCountKind::GameLogPersisted,
+        self.emit(BackendRuntimeGameLogPersisted {
+            kind: "gameLogPersisted",
             count,
-        });
-    }
-
-    pub fn emit_ws_message_observed(&self, message_type: impl Into<String>) {
-        self.emit(BackendRuntimeMessageTelemetry {
-            kind: BackendRuntimeMessageKind::WsMessage,
-            message_type: message_type.into(),
         });
     }
 
@@ -275,29 +240,17 @@ mod tests {
     use super::RuntimeEventBus;
 
     #[test]
-    fn backend_runtime_observations_preserve_event_name_and_wire_shape() {
+    fn game_log_persistence_preserves_event_name_and_wire_shape() {
         let bus = RuntimeEventBus::new();
 
-        bus.emit_ws_persisted(2);
         bus.emit_game_log_persisted(3);
-        bus.emit_ws_message_observed("friend-location");
 
         let events = bus.take_events_for_test();
-        assert_eq!(events.len(), 3);
+        assert_eq!(events.len(), 1);
         assert_eq!(events[0].name, "backendRuntimeTelemetry");
         assert_eq!(
             events[0].payload,
-            json!({ "kind": "wsPersisted", "count": 2 })
-        );
-        assert_eq!(events[1].name, "backendRuntimeTelemetry");
-        assert_eq!(
-            events[1].payload,
             json!({ "kind": "gameLogPersisted", "count": 3 })
-        );
-        assert_eq!(events[2].name, "backendRuntimeTelemetry");
-        assert_eq!(
-            events[2].payload,
-            json!({ "kind": "wsMessage", "messageType": "friend-location" })
         );
     }
 }

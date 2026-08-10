@@ -86,9 +86,13 @@ function buildMinimalCurrentUserSnapshot(
     };
 }
 
-async function getBackendFrontendSessionSnapshot() {
+async function getBackendFrontendSessionSnapshot(
+    includeCurrentUserSnapshot: boolean
+) {
     return commands
-        .appGetBackendRuntimeFrontendSessionSnapshot()
+        .appGetBackendRuntimeFrontendSessionSnapshot(
+            includeCurrentUserSnapshot
+        )
         .catch((): null => null);
 }
 
@@ -140,9 +144,10 @@ export async function resumeFrontendSessionFromBackendRuntime(
     }
 
     const userId = normalizeString(snapshot.authUserId);
-    const [scope, frontendSessionSnapshot] = await Promise.all([
+    const includeCurrentUserSnapshot = sessionState.sessionPhase !== 'ready';
+    const [scope, initialFrontendSessionSnapshot] = await Promise.all([
         commands.appRuntimeAuthScopeGet().catch((): null => null),
-        getBackendFrontendSessionSnapshot()
+        getBackendFrontendSessionSnapshot(includeCurrentUserSnapshot)
     ]);
     const latestSessionState = useSessionStore.getState();
     if (
@@ -154,26 +159,25 @@ export async function resumeFrontendSessionFromBackendRuntime(
     if (
         !authScopeMatchesUser(scope, userId) ||
         !isCurrentAuthenticatedBackendRuntimeUser(userId) ||
-        !frontendSessionMatchesUser(frontendSessionSnapshot, userId)
+        !frontendSessionMatchesUser(initialFrontendSessionSnapshot, userId)
     ) {
         return false;
     }
 
     const currentRuntimeState = useRuntimeStore.getState();
-    const endpoint =
+    let frontendSessionSnapshot = initialFrontendSessionSnapshot;
+    let endpoint =
         normalizeString(frontendSessionSnapshot?.endpoint) ||
         normalizeString(scope?.endpoint) ||
         normalizeString(currentRuntimeState.auth.currentUserEndpoint);
-    const websocket =
+    let websocket =
         normalizeString(frontendSessionSnapshot?.websocket) ||
         normalizeString(currentRuntimeState.auth.currentUserWebsocket);
-    const currentUserSnapshot = buildCurrentUserSnapshotForResume({
-        runtimeSnapshot: snapshot,
-        frontendSessionSnapshot,
-        previousSnapshot: isRecord(currentRuntimeState.auth.currentUserSnapshot)
-            ? currentRuntimeState.auth.currentUserSnapshot
-            : null
-    });
+    const previousCurrentUserSnapshot = isRecord(
+        currentRuntimeState.auth.currentUserSnapshot
+    )
+        ? currentRuntimeState.auth.currentUserSnapshot
+        : null;
     if (latestSessionState.sessionPhase === 'ready') {
         if (
             normalizeString(currentRuntimeState.auth.currentUserId) !== userId
@@ -188,6 +192,28 @@ export async function resumeFrontendSessionFromBackendRuntime(
         ) {
             return false;
         }
+        frontendSessionSnapshot =
+            await getBackendFrontendSessionSnapshot(true);
+        if (
+            useSessionStore.getState().sessionPhase !== 'ready' ||
+            !frontendSessionSnapshot ||
+            !isCurrentAuthenticatedBackendRuntimeUser(userId) ||
+            !frontendSessionMatchesUser(frontendSessionSnapshot, userId)
+        ) {
+            return false;
+        }
+        endpoint =
+            normalizeString(frontendSessionSnapshot.endpoint) ||
+            normalizeString(scope?.endpoint) ||
+            normalizeString(currentRuntimeState.auth.currentUserEndpoint);
+        websocket =
+            normalizeString(frontendSessionSnapshot.websocket) ||
+            normalizeString(currentRuntimeState.auth.currentUserWebsocket);
+        const currentUserSnapshot = buildCurrentUserSnapshotForResume({
+            runtimeSnapshot: snapshot,
+            frontendSessionSnapshot,
+            previousSnapshot: previousCurrentUserSnapshot
+        });
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserId: userId,
             currentUserDisplayName:
@@ -202,6 +228,11 @@ export async function resumeFrontendSessionFromBackendRuntime(
         return true;
     }
 
+    const currentUserSnapshot = buildCurrentUserSnapshotForResume({
+        runtimeSnapshot: snapshot,
+        frontendSessionSnapshot,
+        previousSnapshot: previousCurrentUserSnapshot
+    });
     const attempt = beginAuthAttempt();
     useRuntimeStore.getState().setAuthBootstrap({
         currentUserId: userId,

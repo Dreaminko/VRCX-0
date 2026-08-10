@@ -492,7 +492,6 @@ async fn connect_once(
                             if message_type == "<missing>" {
                                 log_untyped_message_summary(attempt.generation, &payload.json);
                             }
-                            deps.event_bus.emit_ws_message_observed(message_type);
                             message_sink.handle_realtime_ws_message(
                                 attempt.generation,
                                 attempt.session_generation,

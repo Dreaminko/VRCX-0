@@ -235,8 +235,6 @@ pub(super) fn tray_labels(state: &AppState) -> TrayLabels {
 mod tests {
     use super::*;
 
-    use std::collections::BTreeMap;
-
     fn backend_snapshot(
         phase: BackendRuntimePhase,
         auth_status: BackendRuntimeAuthStatus,
@@ -252,8 +250,6 @@ mod tests {
             ws_status,
             game_log_status: BackendRuntimeGameLogStatus::Idle,
             process_status: BackendRuntimeProcessStatus::Unknown,
-            ws_message_counts: BTreeMap::new(),
-            ws_persisted_count: 0,
             game_log_persisted_count: 0,
             last_error: None,
             updated_at: String::new(),

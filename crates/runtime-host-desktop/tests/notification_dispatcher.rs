@@ -168,8 +168,6 @@ fn backend_snapshot(
         ws_status: vrcx_0_core::realtime::RealtimeWsStatus::AuthFailure,
         game_log_status: BackendRuntimeGameLogStatus::Idle,
         process_status: BackendRuntimeProcessStatus::Unknown,
-        ws_message_counts: Default::default(),
-        ws_persisted_count: 0,
         game_log_persisted_count: 0,
         last_error: None,
         updated_at: "2026-07-03T08:30:00.000Z".into(),

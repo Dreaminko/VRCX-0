@@ -22,7 +22,8 @@ const mocks = vi.hoisted(() => ({
         feedPersistenceDisabled: false,
         tableLimits: { maxTableSize: 100 }
     },
-    friendRoster: { lastLoadedAt: 0 }
+    friendRoster: { lastLoadedAt: 0 },
+    friendLog: { revision: 0 }
 }));
 
 vi.mock('@/repositories/feedRepository', () => ({
@@ -67,6 +68,11 @@ vi.mock('@/state/friendRosterStore', () => ({
     useFriendRosterStore: <T>(
         selector: (state: typeof mocks.friendRoster) => T
     ): T => selector(mocks.friendRoster)
+}));
+
+vi.mock('@/state/friendLogStore', () => ({
+    useFriendLogStore: <T>(selector: (state: typeof mocks.friendLog) => T): T =>
+        selector(mocks.friendLog)
 }));
 
 import { useFeedLiveStore } from '@/state/feedLiveStore';
@@ -117,6 +123,8 @@ describe('useFeedRows', () => {
         vi.useFakeTimers();
         vi.clearAllMocks();
         mocks.preferences.feedPersistenceDisabled = false;
+        mocks.friendRoster.lastLoadedAt = 0;
+        mocks.friendLog.revision = 0;
         useFeedLiveStore.getState().resetFeedLive();
         mocks.getFriendLogCurrent.mockResolvedValue([]);
         mocks.getAllUserStats.mockResolvedValue([]);
@@ -130,6 +138,25 @@ describe('useFeedRows', () => {
                 maxSequence: minLiveSequence
             })
         );
+    });
+
+    it('reloads friend log names only when the friend log revision changes', async () => {
+        const { rerender } = renderFeedRows();
+        await flush();
+
+        expect(mocks.getFriendLogCurrent).toHaveBeenCalledTimes(1);
+
+        mocks.friendRoster.lastLoadedAt += 1;
+        rerender(BASE_PROPS);
+        await flush();
+
+        expect(mocks.getFriendLogCurrent).toHaveBeenCalledTimes(1);
+
+        mocks.friendLog.revision += 1;
+        rerender(BASE_PROPS);
+        await flush();
+
+        expect(mocks.getFriendLogCurrent).toHaveBeenCalledTimes(2);
     });
 
     it('starts from session live entries without querying history when persistence is disabled', async () => {

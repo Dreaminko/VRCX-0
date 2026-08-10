@@ -9,7 +9,11 @@ import type {
 const mocks = vi.hoisted(() => ({
     appRuntimeAuthScopeGet: vi.fn<() => Promise<RuntimeAuthScopeSnapshot>>(),
     appGetBackendRuntimeFrontendSessionSnapshot:
-        vi.fn<() => Promise<BackendRuntimeFrontendSessionSnapshot | null>>(),
+        vi.fn<
+            (
+                includeCurrentUserSnapshot: boolean
+            ) => Promise<BackendRuntimeFrontendSessionSnapshot | null>
+        >(),
     recordCurrentUserSnapshot: vi.fn(),
     bootstrapAuthenticatedSession: vi.fn()
 }));
@@ -52,8 +56,6 @@ function backendSnapshot(
         wsStatus: 'connected',
         gameLogStatus: 'running',
         processStatus: 'unknown',
-        wsMessageCounts: {},
-        wsPersistedCount: 0,
         gameLogPersistedCount: 0,
         lastError: null,
         updatedAt: '2026-08-04T00:00:00.000Z',
@@ -121,8 +123,14 @@ describe('backendRuntimeSessionResumeService', () => {
         useRuntimeStore.getState().resetRuntimeState();
         useSessionStore.getState().resetSessionState();
         mocks.appRuntimeAuthScopeGet.mockResolvedValue(authScope());
-        mocks.appGetBackendRuntimeFrontendSessionSnapshot.mockResolvedValue(
-            frontendSession()
+        mocks.appGetBackendRuntimeFrontendSessionSnapshot.mockReset();
+        mocks.appGetBackendRuntimeFrontendSessionSnapshot.mockImplementation(
+            async (includeCurrentUserSnapshot) =>
+                frontendSession({
+                    currentUserSnapshot: includeCurrentUserSnapshot
+                        ? frontendSession().currentUserSnapshot
+                        : null
+                })
         );
         mocks.bootstrapAuthenticatedSession.mockResolvedValue(undefined);
         setCurrentBackendRuntime();
@@ -202,6 +210,9 @@ describe('backendRuntimeSessionResumeService', () => {
         expect(useRuntimeStore.getState().auth.currentUserDisplayName).toBe(
             'Current User'
         );
+        expect(
+            mocks.appGetBackendRuntimeFrontendSessionSnapshot
+        ).toHaveBeenCalledWith(false);
         expect(mocks.recordCurrentUserSnapshot).not.toHaveBeenCalled();
         expect(mocks.bootstrapAuthenticatedSession).not.toHaveBeenCalled();
     });
@@ -213,9 +224,15 @@ describe('backendRuntimeSessionResumeService', () => {
             endpoint: nextEndpoint,
             websocket: nextWebsocket
         });
-        mocks.appGetBackendRuntimeFrontendSessionSnapshot.mockResolvedValueOnce(
-            nextFrontendSession
-        );
+        mocks.appGetBackendRuntimeFrontendSessionSnapshot
+            .mockResolvedValueOnce(
+                frontendSession({
+                    endpoint: nextEndpoint,
+                    websocket: nextWebsocket,
+                    currentUserSnapshot: null
+                })
+            )
+            .mockResolvedValueOnce(nextFrontendSession);
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserId: USER_ID,
             currentUserDisplayName: 'Current User',
@@ -243,6 +260,9 @@ describe('backendRuntimeSessionResumeService', () => {
             { endpoint: nextEndpoint }
         );
         expect(mocks.bootstrapAuthenticatedSession).not.toHaveBeenCalled();
+        expect(
+            mocks.appGetBackendRuntimeFrontendSessionSnapshot.mock.calls
+        ).toEqual([[false], [true]]);
     });
 
     it('bootstraps a matching backend session when the frontend is not ready', async () => {
@@ -267,6 +287,9 @@ describe('backendRuntimeSessionResumeService', () => {
             frontendSession().currentUserSnapshot,
             expect.any(Number)
         );
+        expect(
+            mocks.appGetBackendRuntimeFrontendSessionSnapshot
+        ).toHaveBeenCalledWith(true);
     });
 
     it('returns false when bootstrap is superseded by a newer auth attempt', async () => {

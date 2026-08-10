@@ -142,7 +142,7 @@ impl RuntimeHostState {
         if auth_scope.active && auth_scope.current_user_id == user_id {
             return auth_scope.endpoint;
         }
-        self.backend_runtime_frontend_session_snapshot()
+        self.backend_runtime_frontend_session_snapshot(true)
             .filter(|session| session.user_id.trim() == user_id)
             .map(|session| session.endpoint)
             .unwrap_or_default()
@@ -191,7 +191,6 @@ fn normalize_recovery_reason(reason: String) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
-    use std::collections::BTreeMap;
 
     #[test]
     fn recovery_context_matches_only_dropped_user_and_endpoint() {
@@ -216,8 +215,6 @@ mod tests {
             ws_status: vrcx_0_core::realtime::RealtimeWsStatus::AuthFailure,
             game_log_status: vrcx_0_application_core::BackendRuntimeGameLogStatus::Idle,
             process_status: vrcx_0_application_core::BackendRuntimeProcessStatus::Unknown,
-            ws_message_counts: BTreeMap::new(),
-            ws_persisted_count: 0,
             game_log_persisted_count: 0,
             last_error: None,
             updated_at: "2026-07-03T08:30:00.000Z".into(),

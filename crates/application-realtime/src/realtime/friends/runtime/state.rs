@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use chrono::Utc;
 use serde_json::{json, Value};
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline, StateBucket};
-use vrcx_0_core::realtime::RealtimeWsMessagePayload;
+use vrcx_0_core::realtime::{RealtimeSessionContext, RealtimeWsMessagePayload};
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
 use crate::realtime::{
@@ -360,6 +360,17 @@ impl RealtimeFriendsRuntime {
 
     pub fn snapshot(&self) -> Option<RealtimeFriendSnapshot> {
         self.lock_state().baseline.clone()
+    }
+
+    pub fn session_context(&self) -> Option<RealtimeSessionContext> {
+        self.lock_state()
+            .baseline
+            .as_ref()
+            .map(|baseline| RealtimeSessionContext {
+                user_id: baseline.current_user_id.clone(),
+                endpoint: baseline.endpoint.clone(),
+                websocket: baseline.websocket.clone(),
+            })
     }
 
     pub fn has_friend(&self, generation: u64, user_id: &str) -> bool {

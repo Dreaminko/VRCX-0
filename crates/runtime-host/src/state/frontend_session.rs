@@ -12,6 +12,7 @@ use super::{
 impl RuntimeHostState {
     pub fn backend_runtime_frontend_session_snapshot(
         &self,
+        include_current_user_snapshot: bool,
     ) -> Option<BackendRuntimeFrontendSessionSnapshot> {
         let runtime = self.backend_runtime.snapshot();
         if runtime.phase != BackendRuntimePhase::Running
@@ -22,27 +23,36 @@ impl RuntimeHostState {
             return None;
         }
 
-        let cached = self
+        let (cached_endpoint, cached_websocket, cached_current_user_snapshot) = self
             .backend_frontend_session
             .lock()
             .ok()
-            .and_then(|snapshot| snapshot.clone());
-        let auth_scope = self.runtime_context.auth_scope.snapshot();
-        let current_user_snapshot = self
-            .realtime_runtime
-            .current_user_snapshot()
-            .or_else(|| {
-                cached
-                    .as_ref()
-                    .map(|snapshot| snapshot.current_user_snapshot.clone())
-            })
-            .unwrap_or_else(|| {
-                json!({
-                    "id": runtime.auth_user_id,
-                    "displayName": runtime.auth_display_name,
+            .and_then(|snapshot| {
+                snapshot.as_ref().map(|snapshot| {
+                    (
+                        snapshot.endpoint.clone(),
+                        snapshot.websocket.clone(),
+                        include_current_user_snapshot
+                            .then(|| snapshot.current_user_snapshot.clone()),
+                    )
                 })
-            });
-        let friend_snapshot = self.realtime_runtime.friend_snapshot();
+            })
+            .unwrap_or_default();
+        let auth_scope = self.runtime_context.auth_scope.snapshot();
+        let current_user_snapshot = if include_current_user_snapshot {
+            self.realtime_runtime
+                .current_user_snapshot()
+                .or(cached_current_user_snapshot)
+                .unwrap_or_else(|| {
+                    json!({
+                        "id": runtime.auth_user_id,
+                        "displayName": runtime.auth_display_name,
+                    })
+                })
+        } else {
+            Value::Null
+        };
+        let friend_session = self.realtime_runtime.friend_session_context();
         let auth_scope_endpoint = if auth_scope.active {
             Some(auth_scope.endpoint)
         } else {
@@ -53,18 +63,18 @@ impl RuntimeHostState {
             authenticated: true,
             user_id: runtime.auth_user_id,
             display_name: runtime.auth_display_name,
-            endpoint: friend_snapshot
+            endpoint: friend_session
                 .as_ref()
                 .map(|snapshot| snapshot.endpoint.clone())
                 .filter(|endpoint| !endpoint.trim().is_empty())
                 .or(auth_scope_endpoint)
-                .or_else(|| cached.as_ref().map(|snapshot| snapshot.endpoint.clone()))
+                .or_else(|| (!cached_endpoint.is_empty()).then_some(cached_endpoint))
                 .unwrap_or_default(),
-            websocket: friend_snapshot
+            websocket: friend_session
                 .as_ref()
                 .map(|snapshot| snapshot.websocket.clone())
                 .filter(|websocket| !websocket.trim().is_empty())
-                .or_else(|| cached.as_ref().map(|snapshot| snapshot.websocket.clone()))
+                .or_else(|| (!cached_websocket.is_empty()).then_some(cached_websocket))
                 .unwrap_or_default(),
             current_user_snapshot,
         })
