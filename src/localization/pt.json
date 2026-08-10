@@ -2017,7 +2017,7 @@
             "feedback": {
                 "title": "Enviar feedback",
                 "description": "O feedback é enviado de forma anónima. Lemos todas as mensagens, mas não podemos responder diretamente.",
-                "privacy_note": "Não é incluída nenhuma informação da conta, apenas um ID de instalação anónimo que evita spam.",
+                "privacy_note": "Não é incluída nenhuma informação da conta.",
                 "placeholder": "Diga-nos o que funciona, o que não funciona ou o que gostaria de ver…",
                 "submit": "Enviar",
                 "submitting": "A enviar…",

@@ -2019,7 +2019,7 @@
             "feedback": {
                 "title": "Odeslat zpětnou vazbu",
                 "description": "Zpětná vazba se odesílá anonymně. Každou zprávu čteme, ale nemůžeme přímo odpovědět.",
-                "privacy_note": "Nepřipojují se žádné údaje o účtu, jen anonymní ID instalace, které brání spamu.",
+                "privacy_note": "Nepřipojují se žádné údaje o účtu.",
                 "placeholder": "Řekněte nám, co funguje, co ne, nebo co byste chtěli vidět…",
                 "submit": "Odeslat",
                 "submitting": "Odesílání…",

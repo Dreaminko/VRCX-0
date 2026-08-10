@@ -2017,7 +2017,7 @@
             "feedback": {
                 "title": "Send feedback",
                 "description": "Feedback is submitted anonymously. We read every message, but can't reply directly.",
-                "privacy_note": "No account info is attached — only an anonymous install ID that keeps the endpoint from being spammed.",
+                "privacy_note": "No account info is attached.",
                 "placeholder": "Tell us what's working, what's not, or what you'd like to see...",
                 "submit": "Send",
                 "submitting": "Sending…",
