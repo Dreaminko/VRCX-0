@@ -159,27 +159,6 @@ pub fn avatar_cache_remove(db: &DatabaseService, avatar_id: String) -> Result<()
     Ok(())
 }
 
-pub fn avatar_history_add(
-    db: &DatabaseService,
-    user_id: String,
-    avatar_id: String,
-) -> Result<(), Error> {
-    let user_prefix = normalize_user_table_prefix(&user_id)?;
-    ensure_user_store_tables(db, &user_prefix)?;
-    let avatar_id = normalize_text(avatar_id);
-    if avatar_id.is_empty() {
-        return Ok(());
-    }
-    db.execute_non_query(
-        &format!("INSERT INTO {user_prefix}_avatar_history (avatar_id, created_at, time) VALUES (@avatar_id, @created_at, 0) ON CONFLICT(avatar_id) DO UPDATE SET created_at = @created_at"),
-        &ParamsBuilder::new()
-            .set("avatar_id", avatar_id)
-            .set("created_at", now_iso())
-            .build(),
-    )?;
-    Ok(())
-}
-
 pub fn avatar_time_spent_add(
     db: &DatabaseService,
     user_id: String,

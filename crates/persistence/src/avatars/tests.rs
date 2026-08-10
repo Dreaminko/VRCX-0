@@ -53,8 +53,7 @@ fn clearing_one_accounts_history_preserves_other_accounts_history_and_global_cac
     let avatar_id = "avtr_shared";
 
     avatar_cache_upsert(&db, avatar_entry(avatar_id))?;
-    avatar_history_add(&db, "usr_a".into(), avatar_id.into())?;
-    avatar_history_add(&db, "usr_b".into(), avatar_id.into())?;
+    avatar_time_spent_add(&db, "usr_a".into(), avatar_id.into(), 0)?;
     avatar_time_spent_add(&db, "usr_b".into(), avatar_id.into(), 42)?;
 
     assert_eq!(avatar_history_list(&db, "usr_a".into(), 100)?.len(), 1);

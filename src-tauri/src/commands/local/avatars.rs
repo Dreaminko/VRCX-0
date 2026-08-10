@@ -72,17 +72,6 @@ pub fn app__avatar_find_by_image_url(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__avatar_history_add(
-    state: State<'_, AppState>,
-    user_id: String,
-    avatar_id: String,
-) -> Result<(), AppError> {
-    vrcx_0_persistence::avatars::avatar_history_add(state.db.as_ref(), user_id, avatar_id)
-        .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn app__avatar_history_clear(
     state: State<'_, AppState>,
     user_id: String,

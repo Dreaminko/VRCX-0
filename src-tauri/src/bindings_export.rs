@@ -253,7 +253,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::database_maintenance::app__database_maintenance_broken_game_log_display_names_get,
             commands::local::avatars::app__avatar_get,
             commands::local::avatars::app__avatar_find_by_image_url,
-            commands::local::avatars::app__avatar_history_add,
             commands::local::avatars::app__avatar_history_list,
             commands::local::avatars::app__avatar_time_spent_add,
             commands::local::avatars::app__avatar_time_spent_get,

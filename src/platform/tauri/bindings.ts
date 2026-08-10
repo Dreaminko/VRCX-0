@@ -695,12 +695,6 @@ export const commands = {
             imageUrl
         });
     },
-    async appAvatarHistoryAdd(userId: string, avatarId: string): Promise<null> {
-        return await TAURI_INVOKE('app__avatar_history_add', {
-            userId,
-            avatarId
-        });
-    },
     async appAvatarHistoryList(
         userId: string,
         limit: number

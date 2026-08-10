@@ -64,16 +64,6 @@ function normalizeAvatarTagInput(entry: AvatarTag): AvatarTagInput {
     };
 }
 
-async function addAvatarToHistory(userId: unknown, avatarId: unknown) {
-    const normalizedUserId = normalizeString(userId);
-    const normalizedAvatarId = normalizeString(avatarId);
-    if (!normalizedUserId || !normalizedAvatarId) {
-        return;
-    }
-
-    await commands.appAvatarHistoryAdd(normalizedUserId, normalizedAvatarId);
-}
-
 async function addAvatarTimeSpent(
     userId: unknown,
     avatarId: unknown,
@@ -236,7 +226,6 @@ async function patchAvatarTags(
 const avatarLocalRepository = Object.freeze({
     addAvatarTag,
     addAvatarTimeSpent,
-    addAvatarToHistory,
     clearAvatarHistory,
     getAllAvatarTags,
     getAllAvatarTimeSpent,
@@ -254,7 +243,6 @@ const avatarLocalRepository = Object.freeze({
 export {
     addAvatarTag,
     addAvatarTimeSpent,
-    addAvatarToHistory,
     clearAvatarHistory,
     getAllAvatarTags,
     getAllAvatarTimeSpent,
