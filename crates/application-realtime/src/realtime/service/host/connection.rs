@@ -186,8 +186,8 @@ impl RealtimeHostRuntime {
         }
         let baseline_revision = self
             .friends
-            .snapshot()
-            .map(|snapshot| snapshot.baseline_revision)
+            .baseline_causal_watermark()
+            .baseline_revision
             .unwrap_or(0);
         if !pending_projection.patches.is_empty()
             || !pending_projection.removals.is_empty()

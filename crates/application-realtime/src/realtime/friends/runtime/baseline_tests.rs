@@ -3,6 +3,20 @@ mod tests {
     use super::super::*;
 
     #[test]
+    fn baseline_causal_watermark_reports_baseline_identity() {
+        let runtime = RealtimeFriendsRuntime::new();
+        let empty = runtime.baseline_causal_watermark();
+        assert_eq!(empty.generation, None);
+        assert_eq!(empty.baseline_revision, None);
+
+        runtime.set_baseline(FriendRosterBaseline::default(), 7, 3);
+
+        let watermark = runtime.baseline_causal_watermark();
+        assert_eq!(watermark.generation, Some(7));
+        assert_eq!(watermark.baseline_revision, Some(3));
+    }
+
+    #[test]
     fn stores_normalized_friend_baseline() {
         let runtime = RealtimeFriendsRuntime::new();
         let result = runtime.set_baseline(

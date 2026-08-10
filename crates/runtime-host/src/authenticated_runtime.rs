@@ -445,8 +445,8 @@ impl AuthenticatedRuntimeOrchestrator {
                         session.display_name
                     );
                 }
-                self.update_snapshot(run_id, |snapshot| {
-                    commit_friend_baseline(snapshot, attempt, output.clone());
+                self.update_snapshot(run_id, move |snapshot| {
+                    commit_friend_baseline(snapshot, attempt, output);
                 });
                 Ok(Some(friends_by_id))
             }
@@ -1140,7 +1140,7 @@ mod tests {
     }
 
     #[test]
-    fn each_successful_friend_rebaseline_advances_the_phase_revision() {
+    fn friend_rebaseline_commits_full_output_and_advances_phase_revision() {
         let mut snapshot = AuthenticatedRuntimePhaseSnapshot::default();
         let output = SocialFriendRosterBaselineOutput {
             user_id: "usr_self".into(),
@@ -1153,6 +1153,14 @@ mod tests {
 
         commit_friend_baseline(&mut snapshot, 1, output.clone());
         assert_eq!(snapshot.friend_baseline_revision, 1);
+        let committed = snapshot.friend_baseline.as_ref().unwrap();
+        assert_eq!(committed.user_id, "usr_self");
+        assert_eq!(committed.count, 1);
+        assert_eq!(committed.detail, "Friends ready.");
+        assert_eq!(
+            committed.snapshot.as_ref().unwrap().as_value(),
+            &json!({"friendsById": {}})
+        );
 
         commit_friend_baseline(&mut snapshot, 1, output);
         assert_eq!(snapshot.friend_baseline_revision, 2);
