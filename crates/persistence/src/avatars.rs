@@ -20,7 +20,7 @@ pub struct AvatarTagInput {
     pub color: Value,
 }
 
-#[derive(Debug, Serialize, specta::Type)]
+#[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AvatarCacheOutput {
     pub id: String,
@@ -84,6 +84,30 @@ pub fn avatar_cache_get(
         .map(|row| cache_entity_from_row(row)))
 }
 
+pub fn avatar_cache_find_by_file_id(
+    db: &DatabaseService,
+    file_id: &str,
+) -> Result<Option<AvatarCacheOutput>, Error> {
+    ensure_global_store_tables(db)?;
+    let file_id = normalize_text(file_id);
+    if !file_id.starts_with("file_")
+        || !file_id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+    {
+        return Ok(None);
+    }
+    Ok(db
+        .execute(
+            "SELECT id, author_id, author_name, created_at, description, image_url, name, release_status, thumbnail_image_url, updated_at, version FROM cache_avatar WHERE image_url LIKE @file_id OR thumbnail_image_url LIKE @file_id LIMIT 1",
+            &ParamsBuilder::new()
+                .set("file_id", format!("%{file_id}%"))
+                .build(),
+        )?
+        .first()
+        .map(|row| cache_entity_from_row(row)))
+}
+
 pub fn avatar_cache_existing_ids(
     db: &DatabaseService,
     avatar_ids: &[String],
@@ -119,18 +143,6 @@ pub fn avatar_cache_existing_ids(
             row.first()
                 .and_then(|value| value.as_str().map(ToOwned::to_owned))
         })
-        .collect())
-}
-
-pub fn avatar_cache_list(db: &DatabaseService) -> Result<Vec<AvatarCacheOutput>, Error> {
-    ensure_global_store_tables(db)?;
-    Ok(db
-        .execute(
-            "SELECT id, author_id, author_name, created_at, description, image_url, name, release_status, thumbnail_image_url, updated_at, version FROM cache_avatar",
-            &Default::default(),
-        )?
-        .into_iter()
-        .map(|row| cache_entity_from_row(&row))
         .collect())
 }
 

@@ -6,46 +6,67 @@ use tauri::State;
 use crate::error::AppError;
 use crate::state::AppState;
 
+use vrcx_0_core::json::RawJson;
+use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 use vrcx_0_persistence::avatars::{
     AvatarCacheOutput, AvatarTagInput, AvatarTagOutput, AvatarTagsPatchInput, AvatarTimeSpentOutput,
 };
-use vrcx_0_persistence::cache_entities::CacheEntityInput;
+
+#[derive(Debug, serde::Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AvatarGetInput {
+    pub avatar_id: String,
+    #[serde(default)]
+    pub full: bool,
+    #[serde(default)]
+    pub fresh: bool,
+}
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__avatar_cache_get(
+pub async fn app__avatar_get(
     state: State<'_, AppState>,
-    avatar_id: String,
-) -> Result<Option<AvatarCacheOutput>, AppError> {
-    vrcx_0_persistence::avatars::avatar_cache_get(state.db.as_ref(), avatar_id)
+    input: AvatarGetInput,
+) -> Result<Option<RawJson>, AppError> {
+    let auth_scope = state.runtime_context.auth_scope.snapshot();
+    let endpoint = if auth_scope.endpoint.is_empty() {
+        VRCHAT_API_DEFAULT_ENDPOINT
+    } else {
+        auth_scope.endpoint.as_str()
+    };
+    state
+        .runtime_context
+        .avatar_cache
+        .resolve(
+            state.web.as_ref(),
+            &auth_scope.current_user_id,
+            endpoint,
+            &input.avatar_id,
+            input.full,
+            input.fresh,
+        )
+        .await
+        .map(|avatar| avatar.map(|value| RawJson::from(value.as_ref().clone())))
         .map_err(AppError::from)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__avatar_cache_list(
+pub fn app__avatar_find_by_image_url(
     state: State<'_, AppState>,
-) -> Result<Vec<AvatarCacheOutput>, AppError> {
-    vrcx_0_persistence::avatars::avatar_cache_list(state.db.as_ref()).map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__avatar_cache_remove(
-    state: State<'_, AppState>,
-    avatar_id: String,
-) -> Result<(), AppError> {
-    vrcx_0_persistence::avatars::avatar_cache_remove(state.db.as_ref(), avatar_id)
-        .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__avatar_cache_upsert(
-    state: State<'_, AppState>,
-    entry: CacheEntityInput,
-) -> Result<i64, AppError> {
-    vrcx_0_persistence::avatars::avatar_cache_upsert(state.db.as_ref(), entry)
+    image_url: String,
+) -> Result<Option<RawJson>, AppError> {
+    let auth_scope = state.runtime_context.auth_scope.snapshot();
+    let endpoint = if auth_scope.endpoint.is_empty() {
+        VRCHAT_API_DEFAULT_ENDPOINT
+    } else {
+        auth_scope.endpoint.as_str()
+    };
+    state
+        .runtime_context
+        .avatar_cache
+        .find_by_image_url(&auth_scope.current_user_id, endpoint, &image_url)
+        .map(|avatar| avatar.map(|value| RawJson::from(value.as_ref().clone())))
         .map_err(AppError::from)
 }
 

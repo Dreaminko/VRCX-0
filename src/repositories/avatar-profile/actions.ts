@@ -1,8 +1,4 @@
-import {
-    invalidateEntityQueries,
-    queryKeys,
-    setCachedQueryData
-} from '@/lib/entityQueryCache';
+import { invalidateEntityQueries, queryKeys } from '@/lib/entityQueryCache';
 import {
     commands,
     type VrchatAvatarSaveInput
@@ -72,12 +68,6 @@ export async function saveAvatar({ avatarId, params = {} }: SaveAvatarInput) {
         await commands.appVrchatAvatarSave(input),
         `avatars/${encodeURIComponent(normalizedAvatarId)}`
     );
-    if (response.json && typeof response.json === 'object') {
-        setCachedQueryData(
-            queryKeys.avatar(normalizedAvatarId, DEFAULT_VRCHAT_API_ENDPOINT),
-            response.json
-        );
-    }
     return response;
 }
 
@@ -93,17 +83,9 @@ export async function deleteAvatar({ avatarId }: AvatarIdInput) {
         await commands.appVrchatAvatarDelete(avatarIdInput(normalizedAvatarId)),
         `avatars/${encodeURIComponent(normalizedAvatarId)}`
     );
-    await Promise.allSettled([
-        invalidateEntityQueries(
-            queryKeys.avatar(normalizedAvatarId, DEFAULT_VRCHAT_API_ENDPOINT)
-        ),
-        invalidateEntityQueries(
-            queryKeys.avatarGallery(
-                normalizedAvatarId,
-                DEFAULT_VRCHAT_API_ENDPOINT
-            )
-        )
-    ]);
+    await invalidateEntityQueries(
+        queryKeys.avatarGallery(normalizedAvatarId, DEFAULT_VRCHAT_API_ENDPOINT)
+    );
     return response;
 }
 

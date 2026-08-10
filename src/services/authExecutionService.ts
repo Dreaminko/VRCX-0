@@ -10,7 +10,6 @@ import authRepository, {
     type SavedAuthSnapshot,
     type SavedCredentialRecord
 } from '@/repositories/authRepository';
-import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { useDialogStore } from '@/state/dialogStore';
 import { useFavoriteRevisionStore } from '@/state/favoriteRevisionStore';
@@ -168,7 +167,6 @@ export function setAuthenticatingSessionState() {
 
 function resetCurrentUserRuntimeCaches() {
     clearEntityQueryCache();
-    avatarProfileRepository.clearAvatarNameCache();
     useFriendRosterStore.getState().resetRoster();
     useFavoriteStore.getState().resetFavorites();
     useFavoriteRevisionStore.getState().reset();

@@ -1,46 +1,37 @@
 import { getPlatformInfo } from './avatarPlatform';
 import { replaceBioSymbols } from './string';
 
-interface AvatarImageArgs {
-    json: {
-        versions: Array<{ created_at?: string }>;
-        name?: string;
-        ownerId?: string;
-    };
-    params: {
-        fileId: string;
-    };
+interface AvatarImageMetadataInput {
+    versions: Array<{ created_at?: string }>;
+    name?: string;
+    ownerId?: string;
 }
 
-interface CachedAvatarImage {
+interface AvatarImageMetadata {
     ownerId?: string;
     avatarName: string;
     fileCreatedAt?: string;
 }
 
-function storeAvatarImage(
-    args: AvatarImageArgs,
-    cachedAvatarNames: Map<string, CachedAvatarImage>
-): CachedAvatarImage {
-    const refCreatedAt = args.json.versions[0];
+function parseAvatarImageMetadata(
+    input: AvatarImageMetadataInput
+): AvatarImageMetadata {
+    const refCreatedAt = input.versions[0];
     const fileCreatedAt = refCreatedAt.created_at;
-    const fileId = args.params.fileId;
     let avatarName = '';
-    const imageName = args.json.name;
+    const imageName = input.name;
     const avatarNameRegex = imageName
         ? /Avatar - (.*) - Image -/gi.exec(imageName)
         : null;
     if (avatarNameRegex) {
         avatarName = replaceBioSymbols(avatarNameRegex[1]);
     }
-    const ownerId = args.json.ownerId;
-    const avatarInfo: CachedAvatarImage = {
+    const ownerId = input.ownerId;
+    return {
         ownerId,
         avatarName,
         fileCreatedAt
     };
-    cachedAvatarNames.set(fileId, avatarInfo);
-    return avatarInfo;
 }
 
 const DEFAULT_AVATAR_FILE_ID = 'file_0e8c4e32-7444-44ea-ade4-313c010d4bae';
@@ -111,7 +102,7 @@ function compareUnityVersion(
 }
 
 export {
-    storeAvatarImage,
+    parseAvatarImageMetadata,
     stripDefaultAvatarImage,
     DEFAULT_AVATAR_FILE_ID,
     parseAvatarUrl,

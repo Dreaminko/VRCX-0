@@ -1,12 +1,31 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    buildFavoriteAvatarDetailIds,
     buildFavoriteAvatarTags,
     buildFavoriteFriendFactIds,
     selectFavoritesCollectionsState
 } from './favoritesCollectionsState';
 
 describe('favorites collections state helpers', () => {
+    it('builds on-demand avatar ids from remote and local favorites', () => {
+        expect(
+            buildFavoriteAvatarDetailIds({
+                kind: 'avatar',
+                favoriteAvatarIds: ['avtr_remote', ' avtr_shared '],
+                localAvatarFavorites: {
+                    Local: ['avtr_local', 'avtr_shared', '']
+                }
+            })
+        ).toEqual(['avtr_remote', 'avtr_shared', 'avtr_local']);
+        expect(
+            buildFavoriteAvatarDetailIds({
+                kind: 'world',
+                favoriteAvatarIds: ['avtr_ignored']
+            })
+        ).toEqual([]);
+    });
+
     it('builds unique friend fact ids from remote and local groups', () => {
         expect(
             buildFavoriteFriendFactIds({
@@ -73,7 +92,6 @@ describe('favorites collections state helpers', () => {
             localAvatarFavoriteGroups: ['Avatars'],
             localFriendFavoriteGroups: ['Friends'],
             localWorldDetailsById: { wrld_1: { name: 'World' } },
-            localAvatarDetailsById: { avtr_1: { name: 'Avatar' } },
             favoriteWorldIds: ['wrld_1'],
             favoriteAvatarIds: ['avtr_1']
         };
@@ -91,8 +109,7 @@ describe('favorites collections state helpers', () => {
             favoriteFriendGroups: [],
             favoriteWorldGroups: [{ key: 'world:group_0' }],
             remoteFavoritesById: { fav_1: { favoriteId: 'wrld_1' } },
-            localWorldDetailsById: { wrld_1: { name: 'World' } },
-            localAvatarDetailsById: {}
+            localWorldDetailsById: { wrld_1: { name: 'World' } }
         });
     });
 });

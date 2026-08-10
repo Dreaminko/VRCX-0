@@ -7,7 +7,7 @@ import {
     commands,
     type VrchatAvatarFileInput
 } from '@/platform/tauri/bindings';
-import { storeAvatarImage } from '@/shared/utils/avatar';
+import { parseAvatarImageMetadata } from '@/shared/utils/avatar';
 import { extractFileId } from '@/shared/utils/fileUtils';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
@@ -18,23 +18,7 @@ import {
     normalizeEntityId,
     unwrapVrchatAvatarResponse
 } from './shared';
-import type {
-    AvatarFileRecord,
-    AvatarGalleryFile,
-    CachedAvatarImage
-} from './types';
-
-const cachedAvatarNames = new Map<string, CachedAvatarImage>();
-
-export function clearAvatarNameCache() {
-    const size = cachedAvatarNames.size;
-    cachedAvatarNames.clear();
-    return size;
-}
-
-export function getAvatarNameCacheSize() {
-    return cachedAvatarNames.size;
-}
+import type { AvatarFileRecord, AvatarGalleryFile } from './types';
 
 export async function getAvatarGallery({
     avatarId,
@@ -89,11 +73,6 @@ export async function getAvatarNameFromImageUrl(imageUrl: unknown) {
         };
     }
 
-    const cacheKey = `${DEFAULT_VRCHAT_API_ENDPOINT}\u0000${fileId}`;
-    if (cachedAvatarNames.has(cacheKey)) {
-        return cachedAvatarNames.get(cacheKey);
-    }
-
     try {
         const response = await fetchCachedData({
             queryKey: queryKeys.file(fileId, DEFAULT_VRCHAT_API_ENDPOINT),
@@ -107,15 +86,7 @@ export async function getAvatarNameFromImageUrl(imageUrl: unknown) {
                 );
             }
         });
-        const nextInfo = storeAvatarImage(
-            {
-                json: normalizeFileResponse(response.json),
-                params: { fileId }
-            },
-            new Map()
-        );
-        cachedAvatarNames.set(cacheKey, nextInfo);
-        return nextInfo;
+        return parseAvatarImageMetadata(normalizeFileResponse(response.json));
     } catch {
         return {
             ownerId: '',

@@ -9,8 +9,9 @@ use vrcx_0_application_activity::{
     RuntimeOverlayActivityEventBusExt,
 };
 use vrcx_0_application_core::{
-    HostSessionRuntime, ImageCache, RuntimeAuthScope, RuntimeBackgroundJobs, RuntimeDiagnostics,
-    RuntimeEventBus, RuntimeLifecycle, RuntimeSyncEngine, TaskSupervisor, WebClient, WorldCache,
+    AvatarCache, HostSessionRuntime, ImageCache, RuntimeAuthScope, RuntimeBackgroundJobs,
+    RuntimeDiagnostics, RuntimeEventBus, RuntimeLifecycle, RuntimeSyncEngine, TaskSupervisor,
+    WebClient, WorldCache,
 };
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
@@ -22,6 +23,8 @@ use crate::notification::{
     OverlayActivityPreferenceFilters, UserImageCache,
 };
 
+const AVATAR_CACHE_WORKING_CAPACITY: u64 = 256;
+const AVATAR_CACHE_WORKING_TTL: Duration = Duration::from_secs(2 * 60);
 const WORLD_CACHE_WORKING_CAPACITY: u64 = 256;
 const WORLD_CACHE_WORKING_TTL: Duration = Duration::from_secs(30 * 60);
 
@@ -91,6 +94,7 @@ pub struct RuntimeHostContext {
     pub mutual_graph_fetch: MutualGraphFetchRuntime,
     pub vrc_status: VrcStatusService,
     pub login_session: LoginSessionRuntime,
+    pub avatar_cache: Arc<AvatarCache>,
     pub world_cache: Arc<WorldCache>,
     pub config: ConfigRepository,
     overlay_activity: OverlayActivityRuntime,
@@ -112,6 +116,11 @@ impl RuntimeHostContext {
         let diagnostics = RuntimeDiagnostics::new();
         let tasks = TaskSupervisor::new();
         let session = HostSessionRuntime::new();
+        let avatar_cache = Arc::new(AvatarCache::new(
+            Arc::clone(&db),
+            AVATAR_CACHE_WORKING_CAPACITY,
+            AVATAR_CACHE_WORKING_TTL,
+        ));
         let world_cache = Arc::new(WorldCache::new(
             Arc::clone(&db),
             WORLD_CACHE_WORKING_CAPACITY,
@@ -155,6 +164,7 @@ impl RuntimeHostContext {
             mutual_graph_fetch,
             vrc_status,
             login_session: LoginSessionRuntime::new(),
+            avatar_cache,
             world_cache,
             config,
             overlay_activity,

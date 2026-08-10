@@ -45,7 +45,6 @@ pub struct FavoriteBaselineSnapshot {
     pub local_avatar_favorites_list: Vec<String>,
     pub local_friend_favorites_list: Vec<String>,
     pub local_world_details_by_id: BTreeMap<String, RawJson>,
-    pub local_avatar_details_by_id: BTreeMap<String, RawJson>,
     pub detail: String,
 }
 

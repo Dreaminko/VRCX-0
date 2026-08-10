@@ -106,7 +106,6 @@ export type FavoriteStoreState = {
     localAvatarFavoritesList: string[];
     localFriendFavoritesList: string[];
     localWorldDetailsById: FavoriteDetailsById;
-    localAvatarDetailsById: FavoriteDetailsById;
 };
 export type FavoriteStore = FavoriteStoreState & {
     setFavoritesLoading(currentUserId: unknown, detail?: string): void;

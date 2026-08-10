@@ -56,7 +56,6 @@ export function useFavoritesViewData({
     groupedFavoriteFriendIdsByGroupKey,
     knownUsersById = {},
     kind,
-    localAvatarDetailsById,
     localAvatarFavoriteGroups,
     localAvatarFavorites,
     localFriendFavoriteGroups,
@@ -67,7 +66,7 @@ export function useFavoritesViewData({
     remoteEntityDetails,
     remoteFavoritesById,
     worldDetailFallbacksById,
-    remoteAvatarCacheFallbacksById,
+    avatarDetailFallbacksById,
     searchMode,
     searchQuery,
     selectedGroupKey,
@@ -139,17 +138,13 @@ export function useFavoritesViewData({
         () => normalizeFavoriteDetailMap(localWorldDetailsById),
         [localWorldDetailsById]
     );
-    const normalizedLocalAvatarDetailsById = useMemo(
-        () => normalizeFavoriteDetailMap(localAvatarDetailsById),
-        [localAvatarDetailsById]
-    );
     const normalizedWorldDetailFallbacksById = useMemo(
         () => normalizeFavoriteDetailMap(worldDetailFallbacksById),
         [worldDetailFallbacksById]
     );
-    const normalizedRemoteAvatarCacheFallbacksById = useMemo(
-        () => normalizeFavoriteDetailMap(remoteAvatarCacheFallbacksById),
-        [remoteAvatarCacheFallbacksById]
+    const normalizedAvatarDetailFallbacksById = useMemo(
+        () => normalizeFavoriteDetailMap(avatarDetailFallbacksById),
+        [avatarDetailFallbacksById]
     );
     const normalizedAvatarHistory = useMemo(
         () => avatarHistory.filter(isFavoriteEntityDetail),
@@ -169,10 +164,8 @@ export function useFavoritesViewData({
             remoteEntityDetailsData,
             remoteEntityDetailsStatus: remoteEntityDetails.status,
             worldDetailFallbacksById: normalizedWorldDetailFallbacksById,
-            remoteAvatarCacheFallbacksById:
-                normalizedRemoteAvatarCacheFallbacksById,
+            avatarDetailFallbacksById: normalizedAvatarDetailFallbacksById,
             localWorldDetailsById: normalizedLocalWorldDetailsById,
-            localAvatarDetailsById: normalizedLocalAvatarDetailsById,
             remoteGroupLabelByKey,
             worldAvailabilityById,
             t
@@ -183,12 +176,11 @@ export function useFavoritesViewData({
         groupedFavoriteFriendIdsByGroupKey,
         knownUsersById,
         kind,
-        normalizedLocalAvatarDetailsById,
         normalizedLocalWorldDetailsById,
         remoteEntityDetailsData,
         remoteEntityDetails.status,
         remoteFavoritesById,
-        normalizedRemoteAvatarCacheFallbacksById,
+        normalizedAvatarDetailFallbacksById,
         normalizedWorldDetailFallbacksById,
         remoteGroupLabelByKey,
         remoteGroups,
@@ -204,7 +196,7 @@ export function useFavoritesViewData({
             localFriendFavorites,
             localAvatarFavorites,
             localWorldFavorites,
-            localAvatarDetailsById: normalizedLocalAvatarDetailsById,
+            avatarDetailFallbacksById: normalizedAvatarDetailFallbacksById,
             localWorldDetailsById: normalizedLocalWorldDetailsById,
             worldDetailFallbacksById: normalizedWorldDetailFallbacksById,
             friendsById,
@@ -216,11 +208,11 @@ export function useFavoritesViewData({
         friendsById,
         knownUsersById,
         kind,
-        normalizedLocalAvatarDetailsById,
         localAvatarFavorites,
         localFriendFavorites,
         localGroups,
         normalizedLocalWorldDetailsById,
+        normalizedAvatarDetailFallbacksById,
         normalizedWorldDetailFallbacksById,
         localWorldFavorites,
         sortValue,

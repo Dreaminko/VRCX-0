@@ -4,7 +4,7 @@ import {
     compareUnityVersion,
     getPlatformInfo,
     parseAvatarUrl,
-    storeAvatarImage
+    parseAvatarImageMetadata
 } from './avatar';
 
 describe('avatar utils', () => {
@@ -68,27 +68,17 @@ describe('avatar utils', () => {
         });
     });
 
-    it('stores avatar image metadata by file id', () => {
-        const cache = new Map();
-        const result = storeAvatarImage(
-            {
-                json: {
-                    name: 'Avatar - Test Avatar - Image - 01',
-                    ownerId: 'usr_owner',
-                    versions: [{ created_at: '2026-01-02T03:04:05Z' }]
-                },
-                params: {
-                    fileId: 'file_avatar'
-                }
-            },
-            cache
-        );
+    it('parses avatar image metadata without storing a frontend mirror', () => {
+        const result = parseAvatarImageMetadata({
+            name: 'Avatar - Test Avatar - Image - 01',
+            ownerId: 'usr_owner',
+            versions: [{ created_at: '2026-01-02T03:04:05Z' }]
+        });
 
         expect(result).toEqual({
             ownerId: 'usr_owner',
             avatarName: 'Test Avatar',
             fileCreatedAt: '2026-01-02T03:04:05Z'
         });
-        expect(cache.get('file_avatar')).toBe(result);
     });
 });

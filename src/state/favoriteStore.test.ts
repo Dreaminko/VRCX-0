@@ -127,6 +127,21 @@ describe('favoriteStore', () => {
         });
     });
 
+    it('keeps avatar details out of the frontend favorite store', () => {
+        const store = useFavoriteStore.getState();
+
+        store.addLocalFavorite({
+            kind: 'avatar',
+            groupName: 'Avatars',
+            entityId: 'avtr_1',
+            entity: { name: 'Avatar' }
+        });
+
+        expect(useFavoriteStore.getState()).not.toHaveProperty(
+            'localAvatarDetailsById'
+        );
+    });
+
     it('indexes remote favorites by favorite object id and updates group counts', () => {
         const store = useFavoriteStore.getState();
 

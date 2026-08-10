@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
-import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import { openAvatarDialog, openUserDialog } from '@/services/dialogService';
 import { extractFileId } from '@/shared/utils/fileUtils';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -76,12 +75,9 @@ async function findAvatarByImageUrl({
         return null;
     }
 
-    const cachedAvatars = await favoritePersistenceRepository
-        .getAvatarCache()
-        .catch(() => []);
-    const cachedMatch = cachedAvatars.find((avatar) =>
-        avatarMatchesFileId(avatar, fileId)
-    );
+    const cachedMatch = await avatarProfileRepository
+        .findAvatarByImageUrl(imageUrl)
+        .catch(() => null);
     if (cachedMatch) {
         return avatarProfileRepository.normalize(cachedMatch);
     }
@@ -103,8 +99,6 @@ async function findAvatarByImageUrl({
         ) ?? null
     );
 }
-
-const avatarInfoLineCache = new Map<string, AvatarInfoLineState>();
 
 function getAvatarInfoLineCacheKey(
     imageUrl: unknown,
@@ -182,13 +176,7 @@ function resolveInitialAvatarInfoLineState({
             status: 'ready',
             cacheKey
         });
-        avatarInfoLineCache.set(cacheKey, nextInfo);
         return nextInfo;
-    }
-
-    const cachedInfo = avatarInfoLineCache.get(cacheKey);
-    if (cachedInfo) {
-        return cachedInfo;
     }
 
     return normalizeAvatarInfoLineState({
@@ -264,14 +252,7 @@ export const AvatarInfoLine = memo(function AvatarInfoLine({
                 status: 'ready',
                 cacheKey
             });
-            avatarInfoLineCache.set(cacheKey, nextInfo);
             setAvatarInfoLineState(setInfo, nextInfo);
-            return undefined;
-        }
-
-        const cachedInfo = avatarInfoLineCache.get(cacheKey);
-        if (cachedInfo) {
-            setAvatarInfoLineState(setInfo, cachedInfo);
             return undefined;
         }
 
@@ -305,7 +286,6 @@ export const AvatarInfoLine = memo(function AvatarInfoLine({
                     status: 'ready',
                     cacheKey
                 });
-                avatarInfoLineCache.set(cacheKey, resolvedInfo);
                 setAvatarInfoLineState(setInfo, resolvedInfo);
             })
             .catch(() => {

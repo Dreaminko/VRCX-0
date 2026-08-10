@@ -410,29 +410,6 @@ fn build_remote_favorite_snapshot(
     }
 }
 
-fn build_details_by_id(rows: Vec<Value>) -> BTreeMap<String, RawJson> {
-    let mut details_by_id = BTreeMap::new();
-    for row in rows {
-        let object_id = object_field_normalized(&row, &["id"]);
-        if !object_id.is_empty() {
-            details_by_id.insert(object_id, RawJson::from(row));
-        }
-    }
-    details_by_id
-}
-
-fn ensure_local_detail_fallbacks(
-    details_by_id: &mut BTreeMap<String, RawJson>,
-    object_ids: &[String],
-) {
-    for object_id in object_ids {
-        if object_id.is_empty() || details_by_id.contains_key(object_id) {
-            continue;
-        }
-        details_by_id.insert(object_id.clone(), RawJson::from(json!({ "id": object_id })));
-    }
-}
-
 fn build_local_grouped_ids(
     rows: Vec<FavoriteRow>,
     explicit_groups: Vec<String>,
@@ -597,12 +574,6 @@ async fn build_favorites_baseline_inner(
         Some(&user_id),
         vrcx_0_core::FavoriteEntityKind::Friend,
     )?;
-    let local_avatar_cache_rows = serde_json::to_value(
-        vrcx_0_persistence::avatars::avatar_cache_list(deps.db.as_ref())?,
-    )?
-    .as_array()
-    .cloned()
-    .unwrap_or_default();
     let explicit_local_world_groups = get_config_array(&deps, "localFavoriteWorldGroups")?;
     let explicit_local_avatar_groups = get_config_array(&deps, "localFavoriteAvatarGroups")?;
     let mut explicit_local_friend_groups = get_config_array(&deps, "localFavoriteFriendGroups")?;
@@ -634,13 +605,7 @@ async fn build_favorites_baseline_inner(
         &mut favorite_groups,
     );
 
-    let local_avatar_ids = local_avatar_favorite_rows
-        .iter()
-        .filter_map(|row| row.avatar_id.clone())
-        .collect::<Vec<_>>();
     let local_world_details_by_id = BTreeMap::new();
-    let mut local_avatar_details_by_id = build_details_by_id(local_avatar_cache_rows);
-    ensure_local_detail_fallbacks(&mut local_avatar_details_by_id, &local_avatar_ids);
 
     let (local_world_favorites, local_world_favorite_groups, local_world_favorites_list) =
         build_local_grouped_ids(
@@ -715,7 +680,6 @@ async fn build_favorites_baseline_inner(
         local_avatar_favorites_list,
         local_friend_favorites_list,
         local_world_details_by_id,
-        local_avatar_details_by_id,
         detail,
     };
 

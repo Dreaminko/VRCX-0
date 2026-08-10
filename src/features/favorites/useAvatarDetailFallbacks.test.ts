@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import avatarCacheRepository from '@/repositories/avatarCacheRepository';
+import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 
 import {
-    filterRemoteAvatarCacheFallbacksById,
-    getRemoteAvatarCacheFallbackIds,
-    loadRemoteAvatarCacheFallbacksById
-} from './useRemoteAvatarCacheFallbacks';
+    filterAvatarDetailFallbacksById,
+    getAvatarDetailFallbackIds,
+    loadAvatarDetailFallbacksById
+} from './useAvatarDetailFallbacks';
 
-vi.mock('@/repositories/avatarCacheRepository', () => ({
+vi.mock('@/repositories/avatarProfileRepository', () => ({
     default: {
-        getCachedAvatarById: vi.fn()
+        getAvatarProfile: vi.fn()
     }
 }));
 
@@ -26,7 +26,13 @@ function cachedAvatar(id: string, name: string, releaseStatus = 'private') {
         releaseStatus,
         thumbnailImageUrl: 'https://example.test/thumb.png',
         updated_at: '2026-06-02T00:00:00.000Z',
-        version: 1
+        version: 1,
+        tags: [],
+        unityPackages: [],
+        $isCached: true,
+        $memo: '',
+        $tags: [],
+        $timeSpent: 0
     };
 }
 
@@ -42,41 +48,44 @@ function emptyAvatar(id: string) {
         releaseStatus: '',
         thumbnailImageUrl: '',
         updated_at: '',
-        version: 0
+        version: 0,
+        tags: [],
+        unityPackages: [],
+        $isCached: true,
+        $memo: '',
+        $tags: [],
+        $timeSpent: 0
     };
 }
 
-describe('useRemoteAvatarCacheFallbacks helpers', () => {
+describe('useAvatarDetailFallbacks helpers', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it('only asks the DB for remote favorite avatars with no displayable detail source', async () => {
-        const fallbackIds = getRemoteAvatarCacheFallbackIds({
-            favoriteAvatarIds: ['avtr_remote', 'avtr_local', 'avtr_missing'],
+    it('asks Rust for every favorite avatar with no remote detail', async () => {
+        const fallbackIds = getAvatarDetailFallbackIds({
+            avatarIds: ['avtr_remote', 'avtr_local', 'avtr_missing'],
             kind: 'avatar',
-            localAvatarDetailsById: {
-                avtr_local: { name: 'Local Baseline Avatar' }
-            },
             remoteEntityDetailsData: {
                 avtr_remote: { name: 'Remote Avatar' }
             },
             remoteEntityDetailsStatus: 'ready'
         });
 
-        vi.mocked(avatarCacheRepository.getCachedAvatarById).mockResolvedValue(
+        vi.mocked(avatarProfileRepository.getAvatarProfile).mockResolvedValue(
             cachedAvatar('avtr_missing', 'DB Missing Avatar')
         );
 
-        const fallbacks = await loadRemoteAvatarCacheFallbacksById(fallbackIds);
+        const fallbacks = await loadAvatarDetailFallbacksById(fallbackIds);
 
-        expect(fallbackIds).toEqual(['avtr_missing']);
-        expect(avatarCacheRepository.getCachedAvatarById).toHaveBeenCalledTimes(
-            1
+        expect(fallbackIds).toEqual(['avtr_local', 'avtr_missing']);
+        expect(avatarProfileRepository.getAvatarProfile).toHaveBeenCalledTimes(
+            2
         );
-        expect(avatarCacheRepository.getCachedAvatarById).toHaveBeenCalledWith(
-            'avtr_missing'
-        );
+        expect(avatarProfileRepository.getAvatarProfile).toHaveBeenCalledWith({
+            avatarId: 'avtr_missing'
+        });
         expect(fallbacks).toMatchObject({
             avtr_missing: {
                 name: 'DB Missing Avatar',
@@ -86,8 +95,8 @@ describe('useRemoteAvatarCacheFallbacks helpers', () => {
     });
 
     it('ignores empty cache shells returned from avatar_cache', async () => {
-        vi.mocked(avatarCacheRepository.getCachedAvatarById).mockImplementation(
-            async (avatarId) => {
+        vi.mocked(avatarProfileRepository.getAvatarProfile).mockImplementation(
+            async ({ avatarId }) => {
                 if (avatarId === 'avtr_cached') {
                     return cachedAvatar(
                         'avtr_cached',
@@ -98,11 +107,11 @@ describe('useRemoteAvatarCacheFallbacks helpers', () => {
                 if (avatarId === 'avtr_shell') {
                     return emptyAvatar('avtr_shell');
                 }
-                return null;
+                throw new Error(`Missing avatar: ${String(avatarId)}`);
             }
         );
 
-        const fallbacks = await loadRemoteAvatarCacheFallbacksById([
+        const fallbacks = await loadAvatarDetailFallbacksById([
             'avtr_cached',
             'avtr_shell',
             'avtr_missing'
@@ -119,7 +128,7 @@ describe('useRemoteAvatarCacheFallbacks helpers', () => {
     });
 
     it('filters stale fallback rows when the current favorite ids change', () => {
-        const fallbacks = filterRemoteAvatarCacheFallbacksById(
+        const fallbacks = filterAvatarDetailFallbacksById(
             {
                 avtr_old: cachedAvatar('avtr_old', 'Old Avatar'),
                 avtr_new: cachedAvatar('avtr_new', 'New Avatar')
@@ -137,8 +146,8 @@ describe('useRemoteAvatarCacheFallbacks helpers', () => {
 
     it('does not search avatar_cache before remote avatar details are ready', () => {
         expect(
-            getRemoteAvatarCacheFallbackIds({
-                favoriteAvatarIds: ['avtr_pending'],
+            getAvatarDetailFallbackIds({
+                avatarIds: ['avtr_pending'],
                 kind: 'avatar',
                 remoteEntityDetailsStatus: 'running'
             })

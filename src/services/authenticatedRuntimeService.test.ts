@@ -95,7 +95,6 @@ function phaseSnapshot(
                 localAvatarFavoritesList: [],
                 localFriendFavoritesList: ['usr_friend'],
                 localWorldDetailsById: {},
-                localAvatarDetailsById: {},
                 detail: 'Favorites ready.'
             }
         },

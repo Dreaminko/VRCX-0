@@ -77,7 +77,6 @@ describe('quick search result model', () => {
             knownFriendUsersById: {},
             remoteFavoritesByObjectId: {},
             localWorldDetailsById: {},
-            localAvatarDetailsById: {},
             groupInstances: []
         };
 
@@ -106,7 +105,6 @@ describe('quick search result model', () => {
                     name: 'Cached World'
                 }
             },
-            localAvatarDetailsById: {},
             groupInstances: []
         });
 

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import avatarCacheRepository from '@/repositories/avatarCacheRepository';
+import avatarLocalRepository from '@/repositories/avatarLocalRepository';
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import { selectAvatar as selectCurrentAvatar } from '@/services/avatarSelectionService';
 import { copyTextToClipboard } from '@/services/clipboardService';
@@ -98,7 +98,7 @@ export function useFavoritesItemActions({
         }
         setAvatarHistoryLoading(true);
         try {
-            const rows = await avatarCacheRepository.getAvatarHistory(
+            const rows = await avatarLocalRepository.getAvatarHistory(
                 currentUserId,
                 100
             );
@@ -126,7 +126,7 @@ export function useFavoritesItemActions({
             return;
         }
         try {
-            await avatarCacheRepository.clearAvatarHistory(currentUserId);
+            await avatarLocalRepository.clearAvatarHistory(currentUserId);
             setAvatarHistory([]);
             if (selectedSource === 'history') {
                 setSelectedGroupKey('');

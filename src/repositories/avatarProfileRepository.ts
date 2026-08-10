@@ -7,9 +7,7 @@ import {
     selectFallbackAvatar
 } from './avatar-profile/actions';
 import {
-    clearAvatarNameCache,
     getAvatarGallery,
-    getAvatarNameCacheSize,
     getAvatarNameFromImageUrl
 } from './avatar-profile/gallery';
 import {
@@ -20,18 +18,16 @@ import {
 import { normalize } from './avatar-profile/normalization';
 import {
     getAllAvatarsByUser,
+    findAvatarByImageUrl,
     getAvatarProfile,
     getAvatarStyles,
-    getAvatarsByUser,
-    getLocalSnapshot
+    getAvatarsByUser
 } from './avatar-profile/profile';
 
 const avatarProfileRepository = Object.freeze({
     normalize,
-    clearAvatarNameCache,
-    getAvatarNameCacheSize,
-    getLocalSnapshot,
     getAvatarProfile,
+    findAvatarByImageUrl,
     getAvatarGallery,
     getAvatarsByUser,
     getAllAvatarsByUser,
@@ -50,10 +46,8 @@ const avatarProfileRepository = Object.freeze({
 
 export {
     normalize,
-    clearAvatarNameCache,
-    getAvatarNameCacheSize,
-    getLocalSnapshot,
     getAvatarProfile,
+    findAvatarByImageUrl,
     getAvatarGallery,
     getAvatarsByUser,
     getAllAvatarsByUser,

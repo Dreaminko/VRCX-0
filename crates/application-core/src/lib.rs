@@ -1,5 +1,6 @@
 mod async_runtime_policy;
 mod auth_scope;
+mod avatar_cache;
 mod backend_runtime;
 mod background;
 mod config;
@@ -28,6 +29,7 @@ pub use async_runtime_policy::{
     recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
 };
 pub use auth_scope::{auth_scope_matches, RuntimeAuthScope, RuntimeAuthScopeSnapshot};
+pub use avatar_cache::AvatarCache;
 pub use backend_runtime::{
     BackendRuntime, BackendRuntimeAuthStatus, BackendRuntimeGameLogStatus, BackendRuntimeMode,
     BackendRuntimePhase, BackendRuntimeProcessStatus, BackendRuntimeSnapshot,

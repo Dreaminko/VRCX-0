@@ -8,20 +8,6 @@ import { normalizeString } from '@/shared/utils/string';
 
 type ObjectRow = Record<string, unknown>;
 
-interface AvatarCacheInput {
-    id?: unknown;
-    authorId?: unknown;
-    authorName?: unknown;
-    created_at?: unknown;
-    description?: unknown;
-    imageUrl?: unknown;
-    name?: unknown;
-    releaseStatus?: unknown;
-    thumbnailImageUrl?: unknown;
-    updated_at?: unknown;
-    version?: unknown;
-}
-
 interface AvatarTag {
     tag?: unknown;
     color?: unknown;
@@ -76,45 +62,6 @@ function normalizeAvatarTagInput(entry: AvatarTag): AvatarTagInput {
         tag: normalizeString(entry.tag),
         color: entry.color ?? null
     };
-}
-
-async function addAvatarToCache(entry: AvatarCacheInput) {
-    return commands.appAvatarCacheUpsert({
-        id: entry.id,
-        authorId: entry.authorId,
-        authorName: entry.authorName,
-        createdAt: entry.created_at,
-        description: entry.description,
-        imageUrl: entry.imageUrl,
-        name: entry.name,
-        releaseStatus: entry.releaseStatus,
-        thumbnailImageUrl: entry.thumbnailImageUrl,
-        updatedAt: entry.updated_at,
-        version: entry.version
-    });
-}
-
-async function getCachedAvatarById(id: unknown) {
-    const normalizedId = normalizeString(id);
-    if (!normalizedId) {
-        return null;
-    }
-
-    const row = await commands.appAvatarCacheGet(normalizedId);
-    return row ? normalizeAvatarCacheRow(row) : null;
-}
-
-async function getAvatarCache() {
-    const rows = await commands.appAvatarCacheList();
-    return rows.map(normalizeAvatarCacheRow);
-}
-
-async function removeAvatarFromCache(avatarId: unknown) {
-    const normalizedAvatarId = normalizeString(avatarId);
-    if (!normalizedAvatarId) {
-        return;
-    }
-    await commands.appAvatarCacheRemove(normalizedAvatarId);
 }
 
 async function addAvatarToHistory(userId: unknown, avatarId: unknown) {
@@ -286,22 +233,18 @@ async function patchAvatarTags(
     await commands.appAvatarTagsPatch(normalizeString(avatarId), patch);
 }
 
-const avatarCacheRepository = Object.freeze({
+const avatarLocalRepository = Object.freeze({
     addAvatarTag,
     addAvatarTimeSpent,
-    addAvatarToCache,
     addAvatarToHistory,
     clearAvatarHistory,
     getAllAvatarTags,
     getAllAvatarTimeSpent,
     getAllDistinctTags,
-    getAvatarCache,
     getAvatarHistory,
     getAvatarTags,
     getAvatarTimeSpent,
-    getCachedAvatarById,
     removeAllAvatarTags,
-    removeAvatarFromCache,
     removeAvatarTag,
     patchAvatarTags,
     replaceAvatarTags,
@@ -311,22 +254,18 @@ const avatarCacheRepository = Object.freeze({
 export {
     addAvatarTag,
     addAvatarTimeSpent,
-    addAvatarToCache,
     addAvatarToHistory,
     clearAvatarHistory,
     getAllAvatarTags,
     getAllAvatarTimeSpent,
     getAllDistinctTags,
-    getAvatarCache,
     getAvatarHistory,
     getAvatarTags,
     getAvatarTimeSpent,
-    getCachedAvatarById,
     removeAllAvatarTags,
-    removeAvatarFromCache,
     removeAvatarTag,
     patchAvatarTags,
     replaceAvatarTags,
     updateAvatarTagColor
 };
-export default avatarCacheRepository;
+export default avatarLocalRepository;

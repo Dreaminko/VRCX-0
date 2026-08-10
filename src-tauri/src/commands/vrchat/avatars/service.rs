@@ -2,7 +2,7 @@
 
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::avatars::{
-    avatar_delete_input, avatar_file_get_input, avatar_gallery_get_input, avatar_get_input,
+    avatar_delete_input, avatar_file_get_input, avatar_gallery_get_input,
     avatar_impostor_create_input, avatar_impostor_delete_input, avatar_list_by_user_get_input,
     avatar_moderation_delete_input, avatar_moderation_send_input, avatar_moderations_get_input,
     avatar_save_input, avatar_select_fallback_input, avatar_select_input, avatar_styles_get_input,
@@ -55,23 +55,6 @@ async fn execute_avatar_api(
 ) -> Result<VrchatApiResponse, AppError> {
     super::super::execute::execute_vrchat_api(state, command, detail, input, VrchatScope::Vrchat)
         .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_avatar_get(
-    state: State<'_, AppState>,
-    input: VrchatAvatarIdInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (avatar_id, request) =
-        avatar_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_api(
-        state,
-        "app__vrchat_avatar_get",
-        format!("Getting avatar {avatar_id}."),
-        request,
-    )
-    .await
 }
 
 #[tauri::command]
@@ -208,13 +191,29 @@ pub async fn app__vrchat_avatar_save(
         input.avatar_id,
         input.params,
     )?;
-    execute_avatar_api(
-        state,
+    let response = execute_avatar_api(
+        state.clone(),
         "app__vrchat_avatar_save",
         format!("Saving avatar {avatar_id}."),
         request,
     )
-    .await
+    .await?;
+    if (200..300).contains(&response.status) {
+        if let Ok(avatar) = serde_json::from_str::<serde_json::Value>(&response.data) {
+            let auth_scope = state.runtime_context.auth_scope.snapshot();
+            let endpoint = if auth_scope.endpoint.is_empty() {
+                VRCHAT_API_DEFAULT_ENDPOINT
+            } else {
+                auth_scope.endpoint.as_str()
+            };
+            state.runtime_context.avatar_cache.hydrate_from_payload(
+                &auth_scope.current_user_id,
+                endpoint,
+                avatar,
+            );
+        }
+    }
+    Ok(response)
 }
 
 #[tauri::command]
@@ -225,13 +224,32 @@ pub async fn app__vrchat_avatar_delete(
 ) -> Result<VrchatApiResponse, AppError> {
     let (avatar_id, request) =
         avatar_delete_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_api(
-        state,
+    let response = execute_avatar_api(
+        state.clone(),
         "app__vrchat_avatar_delete",
         format!("Deleting avatar {avatar_id}."),
         request,
     )
-    .await
+    .await?;
+    if (200..300).contains(&response.status) {
+        let auth_scope = state.runtime_context.auth_scope.snapshot();
+        let endpoint = if auth_scope.endpoint.is_empty() {
+            VRCHAT_API_DEFAULT_ENDPOINT
+        } else {
+            auth_scope.endpoint.as_str()
+        };
+        state.runtime_context.avatar_cache.invalidate(
+            &auth_scope.current_user_id,
+            endpoint,
+            &avatar_id,
+        );
+        if let Err(error) =
+            vrcx_0_persistence::avatars::avatar_cache_remove(state.db.as_ref(), avatar_id.clone())
+        {
+            tracing::warn!(avatar_id = %avatar_id, "Avatar cache cleanup failed: {error}");
+        }
+    }
+    Ok(response)
 }
 
 #[tauri::command]

@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
     respondLoginSession: vi.fn(),
     cancelLoginSession: vi.fn(),
     clearEntityQueryCache: vi.fn(),
-    clearAvatarNameCache: vi.fn(),
     applySavedAuthSnapshot: vi.fn(),
     buildAvatarWearSnapshotUpdate: vi.fn(),
     recordCurrentUserSnapshot: vi.fn(),
@@ -33,12 +32,6 @@ vi.mock('@/lib/entityQueryCache', () => ({
 vi.mock('@/repositories/authRepository', () => ({
     default: {
         endSession: mocks.endSession
-    }
-}));
-
-vi.mock('@/repositories/avatarProfileRepository', () => ({
-    default: {
-        clearAvatarNameCache: mocks.clearAvatarNameCache
     }
 }));
 

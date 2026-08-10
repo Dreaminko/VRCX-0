@@ -6,7 +6,7 @@ import {
 import { commands } from '@/platform/tauri/bindings';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
-import avatarCacheRepository from './avatarCacheRepository';
+import avatarLocalRepository from './avatarLocalRepository';
 import type { AvatarStyleRecord } from './avatarProfileRepository';
 import { unwrapVrchatResponse } from './vrchatRequest';
 
@@ -144,7 +144,7 @@ async function updateAvatarTags({
     const nextEntries = Array.from(nextMap.values());
     const previousEntries = Array.from(previousMap.values());
     if (JSON.stringify(previousEntries) !== JSON.stringify(nextEntries)) {
-        await avatarCacheRepository.patchAvatarTags(
+        await avatarLocalRepository.patchAvatarTags(
             normalizedAvatarId,
             previousEntries,
             nextEntries

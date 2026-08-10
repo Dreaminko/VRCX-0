@@ -687,19 +687,13 @@ export const commands = {
             'app__database_maintenance_broken_game_log_display_names_get'
         );
     },
-    async appAvatarCacheUpsert(entry: CacheEntityInput): Promise<number> {
-        return await TAURI_INVOKE('app__avatar_cache_upsert', { entry });
+    async appAvatarGet(input: AvatarGetInput): Promise<RawJson | null> {
+        return await TAURI_INVOKE('app__avatar_get', { input });
     },
-    async appAvatarCacheGet(
-        avatarId: string
-    ): Promise<AvatarCacheOutput | null> {
-        return await TAURI_INVOKE('app__avatar_cache_get', { avatarId });
-    },
-    async appAvatarCacheList(): Promise<AvatarCacheOutput[]> {
-        return await TAURI_INVOKE('app__avatar_cache_list');
-    },
-    async appAvatarCacheRemove(avatarId: string): Promise<null> {
-        return await TAURI_INVOKE('app__avatar_cache_remove', { avatarId });
+    async appAvatarFindByImageUrl(imageUrl: string): Promise<RawJson | null> {
+        return await TAURI_INVOKE('app__avatar_find_by_image_url', {
+            imageUrl
+        });
     },
     async appAvatarHistoryAdd(userId: string, avatarId: string): Promise<null> {
         return await TAURI_INVOKE('app__avatar_history_add', {
@@ -1373,11 +1367,6 @@ export const commands = {
         input: VrchatAvatarIdInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_avatar_gallery_get', { input });
-    },
-    async appVrchatAvatarGet(
-        input: VrchatAvatarIdInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_avatar_get', { input });
     },
     async appVrchatAvatarImpostorCreate(
         input: VrchatAvatarIdInput
@@ -3085,6 +3074,11 @@ export type AvatarFeedCleanupOutcome = {
     optimizationError?: string | null;
 };
 export type AvatarFeedCleanupStatus = 'completed' | 'optimizationFailed';
+export type AvatarGetInput = {
+    avatarId: string;
+    full?: boolean;
+    fresh?: boolean;
+};
 export type AvatarMemoOutput = {
     avatarId: string;
     editedAt: string;
@@ -3330,19 +3324,6 @@ export type BrowseHistoryRecordInput = {
     recordVisit?: boolean;
 };
 export type CacheCheckResult = { Item1: number; Item2: boolean; Item3: string };
-export type CacheEntityInput = {
-    id?: JsonValue;
-    authorId?: JsonValue;
-    authorName?: JsonValue;
-    createdAt?: JsonValue;
-    description?: JsonValue;
-    imageUrl?: JsonValue;
-    name?: JsonValue;
-    releaseStatus?: JsonValue;
-    thumbnailImageUrl?: JsonValue;
-    updatedAt?: JsonValue;
-    version?: JsonValue;
-};
 export type CapabilityStatus = {
     supported: boolean;
     enabled: boolean;
@@ -3624,7 +3605,6 @@ export type FavoriteBaselineSnapshot = {
     localAvatarFavoritesList: string[];
     localFriendFavoritesList: string[];
     localWorldDetailsById: Partial<{ [key in string]: RawJson }>;
-    localAvatarDetailsById: Partial<{ [key in string]: RawJson }>;
     detail: string;
 };
 export type FavoriteBulkRemoveInput = {

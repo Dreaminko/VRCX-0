@@ -2,7 +2,7 @@ import type { MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import avatarCacheRepository from '@/repositories/avatarCacheRepository';
+import avatarLocalRepository from '@/repositories/avatarLocalRepository';
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
 import { bootstrapFavorites } from '@/services/favoriteBootstrapService';
@@ -95,7 +95,7 @@ export function useFavoritesCollectionActions({
                 currentUserSnapshot
             });
             if (kind === 'avatar') {
-                const rows = await avatarCacheRepository.getAvatarHistory(
+                const rows = await avatarLocalRepository.getAvatarHistory(
                     currentUserId,
                     100
                 );

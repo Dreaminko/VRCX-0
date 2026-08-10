@@ -401,9 +401,8 @@ export function buildFavoriteRemoteItemsByGroup({
     remoteEntityDetailsData,
     remoteEntityDetailsStatus,
     worldDetailFallbacksById = {},
-    remoteAvatarCacheFallbacksById = {},
+    avatarDetailFallbacksById = {},
     localWorldDetailsById = {},
-    localAvatarDetailsById = {},
     remoteGroupLabelByKey,
     worldAvailabilityById = {},
     t
@@ -419,9 +418,8 @@ export function buildFavoriteRemoteItemsByGroup({
     remoteEntityDetailsData?: FavoriteDetailMap;
     remoteEntityDetailsStatus?: string;
     worldDetailFallbacksById?: FavoriteDetailMap;
-    remoteAvatarCacheFallbacksById?: FavoriteDetailMap;
+    avatarDetailFallbacksById?: FavoriteDetailMap;
     localWorldDetailsById?: FavoriteDetailMap;
-    localAvatarDetailsById?: FavoriteDetailMap;
     remoteGroupLabelByKey?: Record<string, string | undefined>;
     worldAvailabilityById?: Record<string, string | undefined>;
     t: unknown;
@@ -492,8 +490,7 @@ export function buildFavoriteRemoteItemsByGroup({
                     : null;
             fallbackDetail = firstDisplayableDetail([
                 isHiddenRemoteAvatar ? detail : null,
-                localAvatarDetailsById[favoriteId],
-                remoteAvatarCacheFallbacksById[favoriteId]
+                avatarDetailFallbacksById[favoriteId]
             ]);
         }
 
@@ -569,7 +566,7 @@ export function buildFavoriteLocalItemsByGroup({
     localFriendFavorites,
     localAvatarFavorites,
     localWorldFavorites,
-    localAvatarDetailsById,
+    avatarDetailFallbacksById = {},
     localWorldDetailsById,
     worldDetailFallbacksById = {},
     friendsById,
@@ -582,7 +579,7 @@ export function buildFavoriteLocalItemsByGroup({
     localFriendFavorites?: FavoriteGroupSourceMap;
     localAvatarFavorites?: FavoriteGroupSourceMap;
     localWorldFavorites?: FavoriteGroupSourceMap;
-    localAvatarDetailsById?: FavoriteDetailMap;
+    avatarDetailFallbacksById?: FavoriteDetailMap;
     localWorldDetailsById?: FavoriteDetailMap;
     worldDetailFallbacksById?: FavoriteDetailMap;
     friendsById?: FavoriteProfileMap;
@@ -620,7 +617,7 @@ export function buildFavoriteLocalItemsByGroup({
     const localFavorites =
         kind === 'avatar' ? localAvatarFavorites : localWorldFavorites;
     const localDetailsById =
-        kind === 'avatar' ? localAvatarDetailsById : localWorldDetailsById;
+        kind === 'avatar' ? avatarDetailFallbacksById : localWorldDetailsById;
 
     for (const group of localGroups) {
         const ids = Array.isArray(localFavorites?.[group.key])

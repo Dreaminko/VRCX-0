@@ -71,12 +71,10 @@ function buildWorldItems({
 }
 
 function buildAvatarItems({
-    cachedAvatarDetail,
-    remoteAvatarCacheFallbackDetail,
+    avatarDetailFallback,
     remoteAvatarDetail
 }: {
-    cachedAvatarDetail?: Record<string, unknown>;
-    remoteAvatarCacheFallbackDetail?: Record<string, unknown>;
+    avatarDetailFallback?: Record<string, unknown>;
     remoteAvatarDetail?: Record<string, unknown>;
 }) {
     return buildFavoriteRemoteItemsByGroup({
@@ -108,19 +106,11 @@ function buildAvatarItems({
               }
             : {},
         remoteEntityDetailsStatus: 'ready',
-        remoteAvatarCacheFallbacksById: remoteAvatarCacheFallbackDetail
+        avatarDetailFallbacksById: avatarDetailFallback
             ? {
                   avtr_favorite: {
                       id: 'avtr_favorite',
-                      ...remoteAvatarCacheFallbackDetail
-                  }
-              }
-            : {},
-        localAvatarDetailsById: cachedAvatarDetail
-            ? {
-                  avtr_favorite: {
-                      id: 'avtr_favorite',
-                      ...cachedAvatarDetail
+                      ...avatarDetailFallback
                   }
               }
             : {},
@@ -415,28 +405,9 @@ describe('favorites page data helpers', () => {
         ]);
     });
 
-    it('uses cached avatar details with a lock when remote details are missing', () => {
-        const items = buildAvatarItems({
-            cachedAvatarDetail: {
-                name: 'Cached Avatar',
-                authorName: 'Rowan',
-                releaseStatus: 'public'
-            }
-        });
-
-        expect(items).toEqual([
-            expect.objectContaining({
-                id: 'avtr_favorite',
-                title: 'Cached Avatar',
-                isPrivate: true,
-                isUnavailable: false
-            })
-        ]);
-    });
-
     it('uses DB fallback avatar details with a lock when remote details are missing', () => {
         const items = buildAvatarItems({
-            remoteAvatarCacheFallbackDetail: {
+            avatarDetailFallback: {
                 name: 'DB Avatar',
                 authorName: 'Sage',
                 releaseStatus: 'private'
@@ -454,9 +425,7 @@ describe('favorites page data helpers', () => {
     });
 
     it('keeps remote-missing avatars unavailable when no cache source has details', () => {
-        const items = buildAvatarItems({
-            cachedAvatarDetail: {}
-        });
+        const items = buildAvatarItems({});
 
         expect(items).toEqual([
             expect.objectContaining({
@@ -476,11 +445,7 @@ describe('favorites page data helpers', () => {
                 authorName: 'Fern',
                 releaseStatus: 'public'
             },
-            cachedAvatarDetail: {
-                name: 'Cached Avatar',
-                releaseStatus: 'private'
-            },
-            remoteAvatarCacheFallbackDetail: {
+            avatarDetailFallback: {
                 name: 'DB Avatar',
                 releaseStatus: 'private'
             }

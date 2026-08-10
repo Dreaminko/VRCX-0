@@ -84,3 +84,23 @@ fn cache_upsert_applies_the_shared_entity_id_invariant_to_avatars() -> Result<()
     assert_eq!(cached.id, "avtr_spaced");
     Ok(())
 }
+
+#[test]
+fn cache_lookup_by_file_id_returns_only_the_matching_avatar() -> Result<(), Error> {
+    let dir = TestDir::new("cache-file-id-lookup");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let mut first = avatar_entry("avtr_first");
+    first.image_url = json!("https://api.vrchat.cloud/api/1/file/file_first/1/file");
+    let mut second = avatar_entry("avtr_second");
+    second.thumbnail_image_url = json!("https://api.vrchat.cloud/api/1/image/file_second/2/256");
+
+    avatar_cache_upsert(&db, first)?;
+    avatar_cache_upsert(&db, second)?;
+
+    let cached = avatar_cache_find_by_file_id(&db, "file_second")?
+        .expect("matching avatar should be returned");
+
+    assert_eq!(cached.id, "avtr_second");
+    assert!(avatar_cache_find_by_file_id(&db, "file_missing")?.is_none());
+    Ok(())
+}

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+    appAvatarGet: vi.fn(),
+    appAvatarFindByImageUrl: vi.fn(),
     appVrchatAvatarFileGet: vi.fn(),
     appVrchatAvatarSelect: vi.fn(),
     appVrchatAvatarSelectFallback: vi.fn()
@@ -8,19 +10,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
+        appAvatarGet: mocks.appAvatarGet,
+        appAvatarFindByImageUrl: mocks.appAvatarFindByImageUrl,
         appVrchatAvatarFileGet: mocks.appVrchatAvatarFileGet,
         appVrchatAvatarSelect: mocks.appVrchatAvatarSelect,
         appVrchatAvatarSelectFallback: mocks.appVrchatAvatarSelectFallback
     }
 }));
 
-import { queryKeys } from '@/lib/entityQueryCache';
 import { queryClient } from '@/lib/queryClient';
-import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
 import avatarProfileRepository, {
-    clearAvatarNameCache,
-    getAvatarNameCacheSize,
     getAvatarNameFromImageUrl
 } from './avatarProfileRepository';
 import * as avatarProfileExports from './avatarProfileRepository';
@@ -28,10 +28,44 @@ import * as avatarProfileExports from './avatarProfileRepository';
 beforeEach(() => {
     vi.resetAllMocks();
     queryClient.clear();
-    clearAvatarNameCache();
 });
 
 describe('AvatarProfileRepository', () => {
+    it.each([
+        {
+            options: {},
+            expected: { avatarId: 'avtr_policy', full: false, fresh: false }
+        },
+        {
+            options: { dialog: true },
+            expected: { avatarId: 'avtr_policy', full: true, fresh: false }
+        },
+        {
+            options: { force: true },
+            expected: { avatarId: 'avtr_policy', full: true, fresh: true }
+        }
+    ])(
+        'delegates avatar freshness policy to Rust: $expected',
+        async ({ options, expected }) => {
+            mocks.appAvatarGet.mockResolvedValue({
+                id: 'avtr_policy',
+                name: 'Policy Avatar'
+            });
+
+            await expect(
+                avatarProfileRepository.getAvatarProfile({
+                    avatarId: 'avtr_policy',
+                    ...options
+                })
+            ).resolves.toMatchObject({
+                id: 'avtr_policy',
+                name: 'Policy Avatar'
+            });
+
+            expect(mocks.appAvatarGet).toHaveBeenCalledWith(expected);
+        }
+    );
+
     it('normalizes the stable avatar fields while preserving nullable metadata', () => {
         const avatar = avatarProfileRepository.normalize({
             id: 'avtr_redacted',
@@ -102,10 +136,8 @@ describe('AvatarProfileRepository', () => {
             keyof typeof avatarProfileRepository
         > = [
             'normalize',
-            'clearAvatarNameCache',
-            'getAvatarNameCacheSize',
-            'getLocalSnapshot',
             'getAvatarProfile',
+            'findAvatarByImageUrl',
             'getAvatarGallery',
             'getAvatarsByUser',
             'getAllAvatarsByUser',
@@ -133,20 +165,31 @@ describe('AvatarProfileRepository', () => {
         }
     });
 
-    it('returns current-user selection responses without replacing avatar cache entries', async () => {
-        const cachedAvatar = {
-            id: 'avtr_selected',
-            name: 'Selected Avatar'
-        };
+    it('finds one persisted avatar by image URL without listing the avatar table', async () => {
+        mocks.appAvatarFindByImageUrl.mockResolvedValue({
+            id: 'avtr_image',
+            name: 'Image Avatar'
+        });
+
+        await expect(
+            avatarProfileRepository.findAvatarByImageUrl(
+                ' https://example.test/file/file_image/1/file '
+            )
+        ).resolves.toMatchObject({
+            id: 'avtr_image',
+            name: 'Image Avatar'
+        });
+
+        expect(mocks.appAvatarFindByImageUrl).toHaveBeenCalledWith(
+            'https://example.test/file/file_image/1/file'
+        );
+    });
+
+    it('returns current-user selection responses', async () => {
         const currentUser = {
             id: 'usr_self',
             currentAvatar: 'avtr_selected'
         };
-        const avatarQueryKey = queryKeys.avatar(
-            cachedAvatar.id,
-            DEFAULT_VRCHAT_API_ENDPOINT
-        );
-        queryClient.setQueryData(avatarQueryKey, cachedAvatar);
         mocks.appVrchatAvatarSelect.mockResolvedValue({
             applied: true,
             response: {
@@ -164,25 +207,24 @@ describe('AvatarProfileRepository', () => {
 
         await expect(
             avatarProfileRepository.selectAvatar({
-                avatarId: ` ${cachedAvatar.id} `
+                avatarId: ' avtr_selected '
             })
         ).resolves.toMatchObject({ applied: true, json: currentUser });
         await expect(
             avatarProfileRepository.selectFallbackAvatar({
-                avatarId: ` ${cachedAvatar.id} `
+                avatarId: ' avtr_selected '
             })
         ).resolves.toMatchObject({ applied: true, json: currentUser });
 
         expect(mocks.appVrchatAvatarSelect).toHaveBeenCalledWith({
-            avatarId: cachedAvatar.id
+            avatarId: 'avtr_selected'
         });
         expect(mocks.appVrchatAvatarSelectFallback).toHaveBeenCalledWith({
-            avatarId: cachedAvatar.id
+            avatarId: 'avtr_selected'
         });
-        expect(queryClient.getQueryData(avatarQueryKey)).toEqual(cachedAvatar);
     });
 
-    it('shares one avatar name cache across facade and named exports', async () => {
+    it('reuses the bounded file query result without a second module cache', async () => {
         mocks.appVrchatAvatarFileGet.mockResolvedValue({
             status: 200,
             data: JSON.stringify({
@@ -203,10 +245,7 @@ describe('AvatarProfileRepository', () => {
             avatarName: 'Shared cache',
             fileCreatedAt: '2026-01-03T00:00:00.000Z'
         });
-        expect(second).toBe(first);
+        expect(second).toEqual(first);
         expect(mocks.appVrchatAvatarFileGet).toHaveBeenCalledTimes(1);
-        expect(avatarProfileRepository.getAvatarNameCacheSize()).toBe(1);
-        expect(clearAvatarNameCache()).toBe(1);
-        expect(getAvatarNameCacheSize()).toBe(0);
     });
 });

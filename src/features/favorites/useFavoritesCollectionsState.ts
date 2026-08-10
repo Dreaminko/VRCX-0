@@ -2,18 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useKnownUserFacts } from '@/lib/useKnownUser';
-import avatarCacheRepository from '@/repositories/avatarCacheRepository';
+import avatarLocalRepository from '@/repositories/avatarLocalRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 
 import {
+    buildFavoriteAvatarDetailIds,
     buildFavoriteAvatarTags,
     buildFavoriteFriendFactIds,
     selectFavoritesCollectionsState
 } from './favoritesCollectionsState';
 import type { FavoriteKind } from './favoritesTypes';
+import { useAvatarDetailFallbacks } from './useAvatarDetailFallbacks';
 import { useFavoriteRemoteDetails } from './useFavoriteRemoteDetails';
-import { useRemoteAvatarCacheFallbacks } from './useRemoteAvatarCacheFallbacks';
 import { useWorldDetailFallbacks } from './useWorldDetailFallbacks';
 
 export function useFavoritesCollectionsState({
@@ -110,12 +111,25 @@ export function useFavoritesCollectionsState({
                 ? 'ready'
                 : remoteEntityDetails.status
     });
-    const remoteAvatarCacheFallbacksById = useRemoteAvatarCacheFallbacks({
-        favoriteAvatarIds: favoriteState.favoriteAvatarIds,
+    const requestedAvatarIds = useMemo(() => {
+        return buildFavoriteAvatarDetailIds({
+            favoriteAvatarIds: favoriteState.favoriteAvatarIds,
+            kind,
+            localAvatarFavorites: favoriteState.localAvatarFavorites
+        });
+    }, [
+        favoriteState.favoriteAvatarIds,
+        favoriteState.localAvatarFavorites,
+        kind
+    ]);
+    const avatarDetailFallbacksById = useAvatarDetailFallbacks({
+        avatarIds: requestedAvatarIds,
         kind,
-        localAvatarDetailsById: favoriteState.localAvatarDetailsById,
         remoteEntityDetailsData: remoteEntityDetails.data,
-        remoteEntityDetailsStatus: remoteEntityDetails.status
+        remoteEntityDetailsStatus:
+            favoriteState.favoriteAvatarIds.length === 0
+                ? 'ready'
+                : remoteEntityDetails.status
     });
     const worldAvailabilityById = remoteEntityDetails.availabilityById;
 
@@ -128,7 +142,7 @@ export function useFavoritesCollectionsState({
             };
         }
         setAvatarHistoryLoading(true);
-        avatarCacheRepository
+        avatarLocalRepository
             .getAvatarHistory(currentUserId, 100)
             .then((rows) => {
                 if (active) {
@@ -181,7 +195,6 @@ export function useFavoritesCollectionsState({
             groupedFavoriteFriendIdsByGroupKey:
                 favoriteState.groupedFavoriteFriendIdsByGroupKey,
             knownUsersById: knownFavoriteUsersById,
-            localAvatarDetailsById: favoriteState.localAvatarDetailsById,
             localAvatarFavoriteGroups: favoriteState.localAvatarFavoriteGroups,
             localAvatarFavorites: favoriteState.localAvatarFavorites,
             localFriendFavoriteGroups: favoriteState.localFriendFavoriteGroups,
@@ -192,7 +205,7 @@ export function useFavoritesCollectionsState({
             remoteEntityDetails,
             remoteFavoritesById: favoriteState.remoteFavoritesById,
             worldDetailFallbacksById,
-            remoteAvatarCacheFallbacksById,
+            avatarDetailFallbacksById,
             worldAvailabilityById
         }
     };

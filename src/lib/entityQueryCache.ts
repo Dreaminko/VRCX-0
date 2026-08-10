@@ -32,18 +32,6 @@ export const entityQueryPolicies = Object.freeze({
         retry: 1,
         refetchOnWindowFocus: false
     }),
-    avatar: Object.freeze({
-        staleTime: 60 * SECOND_MS,
-        gcTime: 300 * SECOND_MS,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
-    avatarDialog: Object.freeze({
-        staleTime: 120 * SECOND_MS,
-        gcTime: 300 * SECOND_MS,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
     group: Object.freeze({
         staleTime: 5 * MINUTE_MS,
         gcTime: 30 * MINUTE_MS,
@@ -191,8 +179,6 @@ export const queryKeys = Object.freeze({
         instanceId: unknown,
         endpoint: unknown = ''
     ) => withEndpoint(['instance', worldId, instanceId, 'shortName'], endpoint),
-    avatar: (avatarId: unknown, endpoint: unknown = '') =>
-        withEndpoint(['avatar', avatarId], endpoint),
     group: (
         groupId: unknown,
         includeRoles: unknown = false,

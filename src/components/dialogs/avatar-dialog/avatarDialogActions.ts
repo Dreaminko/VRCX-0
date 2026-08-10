@@ -69,6 +69,7 @@ export function createAvatarDialogActions({
             const nextAvatar = await avatarProfileRepository.getAvatarProfile({
                 avatarId: normalizedAvatarId,
                 force: true,
+                dialog: true,
                 allowLocalFallback: false
             });
             applyCurrentAvatarUpdate(nextAvatar);
@@ -281,6 +282,7 @@ export function createAvatarDialogActions({
         const nextAvatar = await avatarProfileRepository.getAvatarProfile({
             avatarId: avatar.id,
             force,
+            dialog: true,
             allowLocalFallback: false
         });
         applyCurrentAvatarUpdate(nextAvatar);

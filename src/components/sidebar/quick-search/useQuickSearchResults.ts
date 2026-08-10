@@ -23,9 +23,6 @@ export function useQuickSearchResults({
     const localWorldDetailsById = useFavoriteStore(
         (state) => state.localWorldDetailsById
     );
-    const localAvatarDetailsById = useFavoriteStore(
-        (state) => state.localAvatarDetailsById
-    );
     const worldSearchDetailsById = useWorldSearchDetails(normalizedQuery);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentEndpoint = useRuntimeStore(
@@ -58,7 +55,6 @@ export function useQuickSearchResults({
                 remoteFavoritesByObjectId,
                 localWorldDetailsById,
                 worldSearchDetailsById,
-                localAvatarDetailsById,
                 groupInstances
             }),
         [
@@ -67,7 +63,6 @@ export function useQuickSearchResults({
             friendsById,
             groupInstances,
             knownFriendUsersById,
-            localAvatarDetailsById,
             worldSearchDetailsById,
             localWorldDetailsById,
             normalizedQuery,

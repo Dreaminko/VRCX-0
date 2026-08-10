@@ -16,7 +16,6 @@ type FavoritesCollectionsStoreSlice = Pick<
     | 'favoriteWorldIds'
     | 'favoritesSortOrder'
     | 'groupedFavoriteFriendIdsByGroupKey'
-    | 'localAvatarDetailsById'
     | 'localAvatarFavoriteGroups'
     | 'localAvatarFavorites'
     | 'localFriendFavoriteGroups'
@@ -64,6 +63,30 @@ export function buildFavoriteFriendFactIds({
     const ids = new Set<string>();
     addNormalizedFavoriteIds(ids, groupedFavoriteFriendIdsByGroupKey);
     addNormalizedFavoriteIds(ids, localFriendFavorites);
+    return Array.from(ids);
+}
+
+export function buildFavoriteAvatarDetailIds({
+    favoriteAvatarIds = EMPTY_ARRAY,
+    kind,
+    localAvatarFavorites = EMPTY_OBJECT
+}: {
+    favoriteAvatarIds?: unknown[];
+    kind: FavoriteKind;
+    localAvatarFavorites?: Record<string, unknown>;
+}) {
+    if (kind !== 'avatar') {
+        return [];
+    }
+
+    const ids = new Set<string>();
+    for (const avatarId of favoriteAvatarIds) {
+        const normalizedId = normalizeEntityId(avatarId);
+        if (normalizedId) {
+            ids.add(normalizedId);
+        }
+    }
+    addNormalizedFavoriteIds(ids, localAvatarFavorites);
     return Array.from(ids);
 }
 
@@ -141,9 +164,6 @@ export function selectFavoritesCollectionsState(kind: FavoriteKind) {
                 : EMPTY_ARRAY,
             localWorldDetailsById: isWorld
                 ? state.localWorldDetailsById
-                : EMPTY_OBJECT,
-            localAvatarDetailsById: isAvatar
-                ? state.localAvatarDetailsById
                 : EMPTY_OBJECT,
             favoriteWorldIds: isWorld ? state.favoriteWorldIds : EMPTY_ARRAY,
             favoriteAvatarIds: isAvatar ? state.favoriteAvatarIds : EMPTY_ARRAY

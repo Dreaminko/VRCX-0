@@ -48,7 +48,7 @@ describe('entityQueryCache', () => {
     it('reports entity cache stats only for recognized entity ids', () => {
         setCachedQueryData(queryKeys.user('usr_1'), {});
         setCachedQueryData(queryKeys.user('not-a-user'), {});
-        setCachedQueryData(queryKeys.avatar('avtr_1'), {});
+        setCachedQueryData(queryKeys.avatarGallery('avtr_1'), []);
         setCachedQueryData(queryKeys.group('grp_1'), {});
         setCachedQueryData(['misc', 'usr_2'], {});
 

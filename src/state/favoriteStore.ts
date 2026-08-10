@@ -163,9 +163,6 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
             ),
             localWorldDetailsById: normalizeFavoriteDetailsById(
                 snapshot.localWorldDetailsById
-            ),
-            localAvatarDetailsById: normalizeFavoriteDetailsById(
-                snapshot.localAvatarDetailsById
             )
         };
         set(nextState);
@@ -237,16 +234,7 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                     localAvatarFavoriteGroups:
                         getSortedLocalGroupNames(localAvatarFavorites),
                     localAvatarFavoritesList:
-                        flattenFavoriteGroups(localAvatarFavorites),
-                    localAvatarDetailsById: isObjectRecord(entity)
-                        ? {
-                              ...state.localAvatarDetailsById,
-                              [normalizedEntityId]: {
-                                  id: normalizedEntityId,
-                                  ...entity
-                              }
-                          }
-                        : state.localAvatarDetailsById
+                        flattenFavoriteGroups(localAvatarFavorites)
                 };
             }
 
@@ -312,23 +300,12 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                 );
                 const localAvatarFavoritesList =
                     flattenFavoriteGroups(localAvatarFavorites);
-                const localAvatarDetailsById: FavoriteDetailsById = {
-                    ...state.localAvatarDetailsById
-                };
-                const normalizedEntityId = normalizeFavoriteStoreId(entityId);
-                if (
-                    normalizedEntityId &&
-                    !localAvatarFavoritesList.includes(normalizedEntityId)
-                ) {
-                    delete localAvatarDetailsById[normalizedEntityId];
-                }
                 return {
                     ...state,
                     localAvatarFavorites,
                     localAvatarFavoriteGroups:
                         Object.keys(localAvatarFavorites).sort(),
-                    localAvatarFavoritesList,
-                    localAvatarDetailsById
+                    localAvatarFavoritesList
                 };
             }
 

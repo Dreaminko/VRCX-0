@@ -10,13 +10,13 @@ import {
 } from '@/platform/tauri/bindings';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
-import avatarCacheRepository from '../avatarCacheRepository';
+import avatarLocalRepository from '../avatarLocalRepository';
 import memoPersistenceRepository from '../memoPersistenceRepository';
 import { VRCHAT_API_DEFAULT_PAGE_SIZE } from '../paginationConstants';
 import { normalize, normalizeLocalTags } from './normalization';
 import {
-    avatarIdInput,
     collectPages,
+    isRecord,
     normalizeEntityId,
     normalizeString,
     parseInteger,
@@ -31,66 +31,56 @@ import type {
     AvatarStylesInput
 } from './types';
 
-export async function getLocalSnapshot(
-    avatarId: unknown,
-    currentUserId: unknown = ''
+async function getLocalMetadata(
+    avatarId: string,
+    currentUserId: unknown
 ): Promise<AvatarProfileExtras> {
-    const normalizedAvatarId = normalizeEntityId(avatarId);
-    if (!normalizedAvatarId) {
-        return {
-            cachedAvatar: null,
-            localTags: [],
-            timeSpent: 0,
-            memo: ''
-        };
-    }
-
-    const [cachedAvatar, localTags, timeSpentEntry, memoEntry] =
-        await Promise.all([
-            avatarCacheRepository
-                .getCachedAvatarById(normalizedAvatarId)
-                .catch(
-                    (): Awaited<
-                        ReturnType<
-                            typeof avatarCacheRepository.getCachedAvatarById
-                        >
-                    > | null => null
-                ),
-            avatarCacheRepository
-                .getAvatarTags(normalizedAvatarId)
-                .catch(
-                    (): Awaited<
-                        ReturnType<typeof avatarCacheRepository.getAvatarTags>
-                    > => []
-                ),
-            currentUserId
-                ? avatarCacheRepository
-                      .getAvatarTimeSpent(currentUserId, normalizedAvatarId)
-                      .catch(
-                          (): Awaited<
-                              ReturnType<
-                                  typeof avatarCacheRepository.getAvatarTimeSpent
-                              >
-                          > | null => null
-                      )
-                : Promise.resolve(null),
-            memoPersistenceRepository
-                .getAvatarMemo(normalizedAvatarId)
-                .catch(
-                    (): Awaited<
-                        ReturnType<
-                            typeof memoPersistenceRepository.getAvatarMemo
-                        >
-                    > | null => null
-                )
-        ]);
+    const [localTags, timeSpentEntry, memoEntry] = await Promise.all([
+        avatarLocalRepository
+            .getAvatarTags(avatarId)
+            .catch(
+                (): Awaited<
+                    ReturnType<typeof avatarLocalRepository.getAvatarTags>
+                > => []
+            ),
+        currentUserId
+            ? avatarLocalRepository
+                  .getAvatarTimeSpent(currentUserId, avatarId)
+                  .catch(
+                      (): Awaited<
+                          ReturnType<
+                              typeof avatarLocalRepository.getAvatarTimeSpent
+                          >
+                      > | null => null
+                  )
+            : Promise.resolve(null),
+        memoPersistenceRepository
+            .getAvatarMemo(avatarId)
+            .catch(
+                (): Awaited<
+                    ReturnType<typeof memoPersistenceRepository.getAvatarMemo>
+                > | null => null
+            )
+    ]);
 
     return {
-        cachedAvatar: cachedAvatar || null,
+        cachedAvatar: null,
         localTags: normalizeLocalTags(localTags),
         timeSpent: parseInteger(timeSpentEntry?.timeSpent),
         memo: normalizeString(memoEntry?.memo)
     };
+}
+
+async function requestAvatar(
+    avatarId: string,
+    full: boolean,
+    fresh: boolean
+): Promise<AvatarRecord> {
+    const avatar = await commands.appAvatarGet({ avatarId, full, fresh });
+    if (!isRecord(avatar)) {
+        throw new Error(`Avatar request failed: ${avatarId}`);
+    }
+    return avatar;
 }
 
 export async function getAvatarProfile({
@@ -107,44 +97,57 @@ export async function getAvatarProfile({
         );
     }
 
-    const localSnapshotPromise = getLocalSnapshot(
-        normalizedAvatarId,
-        currentUserId
-    );
+    const localMetadataPromise = dialog
+        ? getLocalMetadata(normalizedAvatarId, currentUserId)
+        : Promise.resolve<AvatarProfileExtras>({
+              cachedAvatar: null,
+              localTags: [],
+              timeSpent: 0,
+              memo: ''
+          });
 
     try {
-        const [json, localSnapshot] = await Promise.all([
-            fetchCachedData({
-                queryKey: queryKeys.avatar(
-                    normalizedAvatarId,
-                    DEFAULT_VRCHAT_API_ENDPOINT
-                ),
-                policy: dialog
-                    ? entityQueryPolicies.avatarDialog
-                    : entityQueryPolicies.avatar,
-                force,
-                queryFn: async () => {
-                    const response = unwrapVrchatAvatarResponse<AvatarRecord>(
-                        await commands.appVrchatAvatarGet(
-                            avatarIdInput(normalizedAvatarId)
-                        ),
-                        `avatars/${encodeURIComponent(normalizedAvatarId)}`
-                    );
-                    return response.json;
-                }
-            }),
-            localSnapshotPromise
+        const [json, localMetadata] = await Promise.all([
+            requestAvatar(normalizedAvatarId, dialog || force, force),
+            localMetadataPromise
         ]);
 
-        return normalize(json, localSnapshot);
+        return normalize(json, {
+            ...localMetadata,
+            cachedAvatar: json
+        });
     } catch (error) {
-        const localSnapshot = await localSnapshotPromise;
-        if (allowLocalFallback && localSnapshot.cachedAvatar) {
-            return normalize(localSnapshot.cachedAvatar, localSnapshot);
+        if (allowLocalFallback) {
+            const [cachedAvatar, localMetadata] = await Promise.all([
+                requestAvatar(normalizedAvatarId, false, false).catch(
+                    () => null
+                ),
+                localMetadataPromise
+            ]);
+            if (cachedAvatar) {
+                return normalize(cachedAvatar, {
+                    ...localMetadata,
+                    cachedAvatar
+                });
+            }
         }
 
         throw error;
     }
+}
+
+export async function findAvatarByImageUrl(
+    imageUrl: unknown
+): Promise<AvatarProfileRecord | null> {
+    const normalizedImageUrl = normalizeString(imageUrl);
+    if (!normalizedImageUrl) {
+        return null;
+    }
+    const avatar = await commands.appAvatarFindByImageUrl(normalizedImageUrl);
+    if (!isRecord(avatar)) {
+        return null;
+    }
+    return normalize(avatar);
 }
 
 export async function getAvatarsByUser({

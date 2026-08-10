@@ -1,7 +1,4 @@
-import type { storeAvatarImage } from '@/shared/utils/avatar';
-
 export type AvatarRecord = Record<string, unknown>;
-export type CachedAvatarImage = ReturnType<typeof storeAvatarImage>;
 
 export type AvatarStyleRecord = AvatarRecord & {
     id?: string;

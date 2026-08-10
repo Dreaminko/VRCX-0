@@ -105,8 +105,7 @@ export const initialFavoriteStoreState: FavoriteStoreState = {
     localWorldFavoritesList: [],
     localAvatarFavoritesList: [],
     localFriendFavoritesList: [],
-    localWorldDetailsById: {},
-    localAvatarDetailsById: {}
+    localWorldDetailsById: {}
 };
 
 export function normalizeFavoriteStoreId(value: unknown): string {
