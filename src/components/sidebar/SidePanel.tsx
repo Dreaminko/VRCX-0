@@ -39,6 +39,7 @@ import type {
     SidePanelPreferences,
     SidePanelSortMethod
 } from './side-panel/sidePanelTypes';
+import { useResponsiveSidePanelTabText } from './useResponsiveSidePanelTabText';
 import { useSidePanelSettingsState } from './useSidePanelSettingsState';
 import { useSidePanelTabData } from './useSidePanelTabData';
 
@@ -196,13 +197,17 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
             orderedFavoriteGroupItems,
             resolvedSidebarFavoriteGroups,
             selectedFavoriteGroupLabel,
-            showTabText,
             tabDisplayMode,
             tabItems,
             tabLayout,
             visibleFavoriteCollectionSourceGroupKeys,
             visibleTabLayout
         } = useSidePanelTabData({ activeTab, prefs, setActiveTab, t });
+        const { showTabText, tabListRef, tabViewportRef } =
+            useResponsiveSidePanelTabText(
+                tabDisplayMode,
+                tabItems.map((item) => item.label)
+            );
 
         const {
             favoriteGroupOrderDialogOpen,
@@ -332,8 +337,14 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                     className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-4.5 pb-2"
                 >
                     <div className="flex min-w-0 shrink-0 items-center gap-2">
-                        <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
-                            <TabsList className="min-w-max justify-start">
+                        <div
+                            ref={tabViewportRef}
+                            className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"
+                        >
+                            <TabsList
+                                ref={tabListRef}
+                                className="min-w-max justify-start"
+                            >
                                 {tabItems.map((item) => {
                                     const Icon = getNavIconComponent(
                                         item.icon,

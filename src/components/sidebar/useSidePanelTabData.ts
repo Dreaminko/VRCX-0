@@ -172,9 +172,6 @@ export function useSidePanelTabData({
     const tabDisplayMode = normalizeSidebarTabDisplayMode(
         prefs.sidebarTabDisplayMode
     );
-    const showTabText =
-        tabDisplayMode === 'iconText' ||
-        (tabDisplayMode === 'auto' && tabItems.length <= 2);
     const groupsTabVisible = visibleTabLayout.some(
         (item) => item.type === 'system' && item.systemTab === 'groups'
     );
@@ -247,7 +244,6 @@ export function useSidePanelTabData({
         orderedFavoriteGroupItems,
         resolvedSidebarFavoriteGroups,
         selectedFavoriteGroupLabel,
-        showTabText,
         tabDisplayMode,
         tabItems,
         tabLayout,
