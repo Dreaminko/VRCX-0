@@ -142,12 +142,7 @@ export default defineConfig(({ mode }) => {
             copyPublicDir: false,
             reportCompressedSize: false,
             chunkSizeWarningLimit: 3000,
-            assetsInlineLimit: 0,
-            rolldownOptions: {
-                output: {
-                    assetFileNames: 'assets/[name][extname]'
-                }
-            }
+            assetsInlineLimit: 0
         }
     };
 });
