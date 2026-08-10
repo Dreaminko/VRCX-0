@@ -15,6 +15,7 @@ permissions:
 jobs:
     update:
         name: Update installer download count
+        if: github.repository == 'Map1en/VRCX-0'
         runs-on: ubuntu-latest
         steps:
             - name: Compute installer download count
