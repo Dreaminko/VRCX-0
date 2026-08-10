@@ -1,0 +1,201 @@
+// @vitest-environment jsdom
+
+import { renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const WORLD_ID = 'wrld_11111111-1111-1111-1111-111111111111';
+const SECOND_WORLD_ID = 'wrld_22222222-2222-2222-2222-222222222222';
+
+const mocks = vi.hoisted(() => ({
+    getWorldNameByWorldId: vi.fn(),
+    getWorldProfile: vi.fn(),
+    groupProfilesById: new Map(),
+    locationHintState: {
+        hintsByKey: {}
+    },
+    runtimeState: {
+        auth: {
+            currentUserEndpoint: 'https://api.example.test/api/1',
+            currentUserId: 'usr_self'
+        },
+        groupInstances: {
+            userId: 'usr_self',
+            endpoint: 'https://api.example.test/api/1',
+            instances: [],
+            lastLoadedAt: '',
+            fetchedAt: '',
+            status: 'ready'
+        }
+    }
+}));
+
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-query')>();
+    return {
+        ...actual,
+        useQueries: () => mocks.groupProfilesById
+    };
+});
+
+vi.mock('@/repositories/gameLogRepository', () => ({
+    default: {
+        getWorldNameByWorldId: mocks.getWorldNameByWorldId
+    }
+}));
+
+vi.mock('@/repositories/groupProfileRepository', () => ({
+    default: {
+        fetchGroupProfile: vi.fn()
+    }
+}));
+
+vi.mock('@/repositories/worldProfileRepository', () => ({
+    default: {
+        getWorldProfile: mocks.getWorldProfile
+    }
+}));
+
+vi.mock('@/state/locationHintStore', () => ({
+    useLocationHintStore: (
+        selector: (state: { hintsByKey: Record<string, unknown> }) => unknown
+    ) => selector(mocks.locationHintState)
+}));
+
+vi.mock('@/state/runtimeStore', () => ({
+    useRuntimeStore: (
+        selector: (state: typeof mocks.runtimeState) => unknown
+    ) => selector(mocks.runtimeState)
+}));
+
+import { useLocationMetadataBatch } from './useLocationMetadata';
+
+function metadataEntries(worldIds: readonly string[] = [WORLD_ID]) {
+    return worldIds.map((worldId) => ({
+        key: `friend:${worldId}`,
+        currentLocation: `${worldId}:12345`
+    }));
+}
+
+describe('useLocationMetadataBatch', () => {
+    beforeEach(() => {
+        mocks.getWorldNameByWorldId.mockReset();
+        mocks.getWorldProfile.mockReset();
+        mocks.getWorldNameByWorldId.mockResolvedValue('');
+    });
+
+    it('retains resolved world names and avoids duplicate IPC for the same ids', async () => {
+        mocks.getWorldProfile.mockResolvedValueOnce({
+            id: WORLD_ID,
+            name: 'Stable World'
+        });
+        mocks.getWorldProfile.mockImplementationOnce(
+            () => new Promise(() => undefined)
+        );
+
+        const { result, rerender } = renderHook(
+            ({ entries }) => useLocationMetadataBatch(entries),
+            {
+                initialProps: { entries: metadataEntries() }
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current.get(`friend:${WORLD_ID}`)?.worldName).toBe(
+                'Stable World'
+            );
+        });
+        expect(mocks.getWorldProfile).toHaveBeenCalledTimes(1);
+
+        rerender({ entries: metadataEntries() });
+
+        expect(result.current.get(`friend:${WORLD_ID}`)?.worldName).toBe(
+            'Stable World'
+        );
+        expect(mocks.getWorldProfile).toHaveBeenCalledTimes(1);
+    });
+
+    it('treats reordered world ids as the same request set', async () => {
+        mocks.getWorldProfile
+            .mockResolvedValueOnce({ id: WORLD_ID, name: 'First World' })
+            .mockResolvedValueOnce({
+                id: SECOND_WORLD_ID,
+                name: 'Second World'
+            });
+
+        const { result, rerender } = renderHook(
+            ({ entries }) => useLocationMetadataBatch(entries),
+            {
+                initialProps: {
+                    entries: metadataEntries([WORLD_ID, SECOND_WORLD_ID])
+                }
+            }
+        );
+
+        await waitFor(() => {
+            expect(
+                result.current.get(`friend:${SECOND_WORLD_ID}`)?.worldName
+            ).toBe('Second World');
+        });
+        expect(mocks.getWorldProfile).toHaveBeenCalledTimes(2);
+
+        rerender({
+            entries: metadataEntries([SECOND_WORLD_ID, WORLD_ID])
+        });
+
+        expect(result.current.get(`friend:${WORLD_ID}`)?.worldName).toBe(
+            'First World'
+        );
+        expect(mocks.getWorldProfile).toHaveBeenCalledTimes(2);
+    });
+
+    it('retains existing names while requesting only newly added ids', async () => {
+        let resolveSecondWorld!: (profile: {
+            id: string;
+            name: string;
+        }) => void;
+        const secondWorldRequest = new Promise<{ id: string; name: string }>(
+            (resolve) => {
+                resolveSecondWorld = resolve;
+            }
+        );
+        mocks.getWorldProfile
+            .mockResolvedValueOnce({ id: WORLD_ID, name: 'First World' })
+            .mockReturnValueOnce(secondWorldRequest);
+
+        const { result, rerender } = renderHook(
+            ({ entries }) => useLocationMetadataBatch(entries),
+            {
+                initialProps: { entries: metadataEntries() }
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current.get(`friend:${WORLD_ID}`)?.worldName).toBe(
+                'First World'
+            );
+        });
+
+        rerender({
+            entries: metadataEntries([WORLD_ID, SECOND_WORLD_ID])
+        });
+
+        expect(result.current.get(`friend:${WORLD_ID}`)?.worldName).toBe(
+            'First World'
+        );
+        expect(mocks.getWorldProfile).toHaveBeenCalledTimes(2);
+        expect(mocks.getWorldProfile).toHaveBeenLastCalledWith({
+            worldId: SECOND_WORLD_ID
+        });
+
+        resolveSecondWorld({
+            id: SECOND_WORLD_ID,
+            name: 'Second World'
+        });
+        await waitFor(() => {
+            expect(
+                result.current.get(`friend:${SECOND_WORLD_ID}`)?.worldName
+            ).toBe('Second World');
+        });
+    });
+});

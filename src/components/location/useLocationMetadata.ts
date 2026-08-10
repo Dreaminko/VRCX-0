@@ -28,6 +28,8 @@ import type {
 
 export type { LocationMetadata, LocationMetadataEntry };
 
+const WORLD_PROFILE_REQUEST_KEY_SEPARATOR = '\u0000';
+
 export function useLocationMetadataBatch(
     entries: readonly (LocationMetadataEntry | null | undefined)[] = [],
     { endpoint = '' }: { endpoint?: unknown } = {}
@@ -100,29 +102,93 @@ export function useLocationMetadataBatch(
     const [worldProfilesById, setWorldProfilesById] = useState(
         () => new Map<string, WorldProfileRecord>()
     );
+    const worldProfilesByIdRef = useRef(worldProfilesById);
+    const worldProfilesEndpointRef = useRef(currentEndpoint);
+    const worldProfileRequestsRef = useRef(
+        new Map<string, Promise<WorldProfileRecord | null>>()
+    );
+    const worldIdsKey = [...worldIds]
+        .sort()
+        .join(WORLD_PROFILE_REQUEST_KEY_SEPARATOR);
     useEffect(() => {
         let active = true;
-        setWorldProfilesById(new Map());
-        Promise.allSettled(
-            worldIds.map((worldId) =>
-                worldProfileRepository.getWorldProfile({ worldId })
-            )
-        ).then((results) => {
+        const requestedWorldIds = worldIdsKey
+            ? worldIdsKey.split(WORLD_PROFILE_REQUEST_KEY_SEPARATOR)
+            : [];
+        const endpointChanged =
+            worldProfilesEndpointRef.current !== currentEndpoint;
+        if (endpointChanged) {
+            worldProfilesEndpointRef.current = currentEndpoint;
+            worldProfilesByIdRef.current = new Map();
+        }
+
+        const retainedProfiles = new Map<string, WorldProfileRecord>();
+        for (const worldId of requestedWorldIds) {
+            const profile = worldProfilesByIdRef.current.get(worldId);
+            if (profile) {
+                retainedProfiles.set(worldId, profile);
+            }
+        }
+        if (
+            endpointChanged ||
+            retainedProfiles.size !== worldProfilesByIdRef.current.size
+        ) {
+            worldProfilesByIdRef.current = retainedProfiles;
+            setWorldProfilesById(retainedProfiles);
+        }
+
+        const missingWorldIds = requestedWorldIds.filter(
+            (worldId) => !retainedProfiles.has(worldId)
+        );
+        if (!missingWorldIds.length) {
+            return () => {
+                active = false;
+            };
+        }
+
+        const requests = missingWorldIds.map((worldId) => {
+            const requestKey = `${currentEndpoint}${WORLD_PROFILE_REQUEST_KEY_SEPARATOR}${worldId}`;
+            const existingRequest =
+                worldProfileRequestsRef.current.get(requestKey);
+            if (existingRequest) {
+                return existingRequest;
+            }
+            const request = worldProfileRepository
+                .getWorldProfile({ worldId })
+                .catch(() => null)
+                .finally(() => {
+                    worldProfileRequestsRef.current.delete(requestKey);
+                });
+            worldProfileRequestsRef.current.set(requestKey, request);
+            return request;
+        });
+
+        Promise.all(requests).then((profiles) => {
             if (!active) {
                 return;
             }
-            const profiles = new Map<string, WorldProfileRecord>();
-            results.forEach((result, index) => {
-                if (result.status === 'fulfilled') {
-                    profiles.set(worldIds[index], result.value);
+            const resolvedProfiles = new Map<string, WorldProfileRecord>();
+            profiles.forEach((profile, index) => {
+                if (profile) {
+                    resolvedProfiles.set(missingWorldIds[index], profile);
                 }
             });
-            setWorldProfilesById(profiles);
+            const nextProfiles = new Map<string, WorldProfileRecord>();
+            for (const worldId of requestedWorldIds) {
+                const profile =
+                    resolvedProfiles.get(worldId) ||
+                    worldProfilesByIdRef.current.get(worldId);
+                if (profile) {
+                    nextProfiles.set(worldId, profile);
+                }
+            }
+            worldProfilesByIdRef.current = nextProfiles;
+            setWorldProfilesById(nextProfiles);
         });
         return () => {
             active = false;
         };
-    }, [currentEndpoint, worldIds]);
+    }, [currentEndpoint, worldIdsKey]);
     const groupProfilesById = useQueries({
         queries: groupIds.map((groupId) => ({
             queryKey: queryKeys.group(groupId, false, currentEndpoint),
