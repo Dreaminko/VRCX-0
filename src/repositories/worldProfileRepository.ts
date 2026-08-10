@@ -38,7 +38,6 @@ interface WorldIdInput extends WorldRepositoryOptions {
 interface WorldProfileInput extends WorldIdInput {
     dialog?: boolean;
     full?: boolean;
-    location?: boolean;
 }
 
 interface WorldSaveInput extends WorldIdInput {
@@ -218,41 +217,11 @@ function normalize(world: unknown): WorldProfileRecord {
     return normalizeWorldProfile(world);
 }
 
-async function requestWorldSummary(
-    worldId: string
-): Promise<WorldProfileRecord> {
-    const world = await commands.appWorldGet(worldId);
-    if (!world) {
-        throw new Error(`World request failed: ${worldId}`);
-    }
-    return normalize(world);
-}
-
-async function fetchWorldProfile({
-    worldId
-}: WorldIdInput): Promise<WorldProfileRecord> {
-    const normalizedWorldId = normalizeEntityId(worldId);
-    if (!normalizedWorldId) {
-        throw new Error(
-            'WorldProfileRepository.fetchWorldProfile requires a world id.'
-        );
-    }
-
-    const input = worldIdInput(normalizedWorldId);
-    const response = unwrapVrchatWorldResponse(
-        await commands.appVrchatWorldGet(input),
-        `worlds/${encodeURIComponent(normalizedWorldId)}`
-    );
-    const world = normalize(response.json);
-    return world;
-}
-
 async function getWorldProfile({
     worldId,
     force = false,
     dialog = false,
-    full = false,
-    location = false
+    full = false
 }: WorldProfileInput): Promise<WorldProfileRecord> {
     const normalizedWorldId = normalizeEntityId(worldId);
     if (!normalizedWorldId) {
@@ -261,25 +230,15 @@ async function getWorldProfile({
         );
     }
 
-    if (!force && !dialog && !full) {
-        return requestWorldSummary(normalizedWorldId);
-    }
-
-    const json = await fetchCachedData({
-        queryKey: queryKeys.world(
-            normalizedWorldId,
-            DEFAULT_VRCHAT_API_ENDPOINT
-        ),
-        policy: location
-            ? entityQueryPolicies.worldLocation
-            : dialog
-              ? entityQueryPolicies.worldDialog
-              : entityQueryPolicies.world,
-        force,
-        queryFn: () => fetchWorldProfile({ worldId: normalizedWorldId })
-    });
-
-    return normalize(json);
+    const response = unwrapVrchatWorldResponse(
+        await commands.appWorldGet({
+            worldId: normalizedWorldId,
+            force,
+            full: dialog || full
+        }),
+        `worlds/${encodeURIComponent(normalizedWorldId)}`
+    );
+    return normalize(response.json);
 }
 
 async function searchWorlds(query: unknown): Promise<WorldProfileRecord[]> {
@@ -354,12 +313,6 @@ async function saveWorld({ worldId, params = {} }: WorldSaveInput) {
         await commands.appVrchatWorldSave(input),
         `worlds/${encodeURIComponent(normalizedWorldId)}`
     );
-    if (response.json && typeof response.json === 'object') {
-        setCachedQueryData(
-            queryKeys.world(normalizedWorldId, DEFAULT_VRCHAT_API_ENDPOINT),
-            response.json
-        );
-    }
     return response;
 }
 
@@ -390,12 +343,6 @@ async function publishWorld({ worldId }: WorldIdInput) {
         await commands.appVrchatWorldPublish(input),
         `worlds/${encodeURIComponent(normalizedWorldId)}/publish`
     );
-    if (response.json && typeof response.json === 'object') {
-        setCachedQueryData(
-            queryKeys.world(normalizedWorldId, DEFAULT_VRCHAT_API_ENDPOINT),
-            response.json
-        );
-    }
     return response;
 }
 
@@ -412,12 +359,6 @@ async function unpublishWorld({ worldId }: WorldIdInput) {
         await commands.appVrchatWorldUnpublish(input),
         `worlds/${encodeURIComponent(normalizedWorldId)}/publish`
     );
-    if (response.json && typeof response.json === 'object') {
-        setCachedQueryData(
-            queryKeys.world(normalizedWorldId, DEFAULT_VRCHAT_API_ENDPOINT),
-            response.json
-        );
-    }
     return response;
 }
 
@@ -530,7 +471,6 @@ async function getAllWorldsByUser({
 
 const worldProfileRepository = Object.freeze({
     normalize,
-    fetchWorldProfile,
     getWorldProfile,
     searchWorlds,
     getWorldsByUser,
@@ -546,7 +486,6 @@ const worldProfileRepository = Object.freeze({
 
 export {
     normalize,
-    fetchWorldProfile,
     getWorldProfile,
     searchWorlds,
     getWorldsByUser,

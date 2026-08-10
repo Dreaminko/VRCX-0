@@ -9,7 +9,9 @@ use vrcx_0_persistence::worlds::{
     world_cache_get, world_cache_search, world_cache_upsert, WorldSummaryOutput,
 };
 use vrcx_0_persistence::DatabaseService;
-use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
+use vrcx_0_vrchat_client::http_api::{
+    execute_response, normalize_vrchat_api_endpoint, ApiScope, HttpApiExecuteResponse,
+};
 use vrcx_0_vrchat_client::worlds::world_get_input;
 
 use crate::web_client::WebClient;
@@ -162,52 +164,88 @@ impl WorldCache {
             return None;
         }
         let key = resolve_key(endpoint, &world_id);
-        if self.recently_failed(&key) {
-            return None;
-        }
-        let inflight = self.inflight_lock(&key);
-        let _guard = inflight.lock().await;
-        if let Some(summary) = self.get_summary(&world_id).ok().flatten() {
-            return Some(summary);
-        }
-        if self.recently_failed(&key) {
-            return None;
-        }
-        match self
-            .fetch_world_summary(web, &key.endpoint, &key.world_id)
-            .await
+        match tokio::time::timeout(
+            Duration::from_millis(WORLD_RESOLVE_FETCH_TIMEOUT_MS),
+            self.get(web, endpoint, &world_id, false, false),
+        )
+        .await
         {
-            Some(summary) => {
-                self.clear_failure(&key);
-                Some(summary)
+            Ok(Ok(response)) if (200..=299).contains(&response.status) => {
+                self.get_summary(&world_id).ok().flatten()
             }
-            None => {
+            Err(_) => {
                 self.record_failure(&key);
                 None
             }
+            _ => None,
         }
     }
 
-    async fn fetch_world_summary(
+    pub async fn get(
         &self,
         web: &WebClient,
         endpoint: &str,
         world_id: &str,
-    ) -> Option<WorldSummaryOutput> {
-        let (_, request) = world_get_input(endpoint.to_string(), world_id.to_string()).ok()?;
-        let response = tokio::time::timeout(
-            Duration::from_millis(WORLD_RESOLVE_FETCH_TIMEOUT_MS),
-            web.execute_api(request, ApiScope::Vrchat, self.db.as_ref()),
-        )
-        .await
-        .ok()?
-        .ok()?;
-        if !(200..=299).contains(&response.status) {
-            return None;
+        force: bool,
+        full: bool,
+    ) -> crate::Result<HttpApiExecuteResponse> {
+        let world_id = normalize_id(world_id);
+        if world_id.is_empty() {
+            return Err(crate::Error::Custom("World id is required.".into()));
         }
-        let world = serde_json::from_str::<Value>(&response.data).ok()?;
-        self.hydrate_from_payload(&world)?;
-        self.get_summary(world_id).ok().flatten()
+        if !force && !full {
+            if let Some(summary) = self.get_summary(&world_id)? {
+                return summary_response(&summary);
+            }
+        }
+
+        let key = resolve_key(endpoint, &world_id);
+        if !force && !full && self.recently_failed(&key) {
+            return Err(crate::Error::Custom(format!(
+                "World request recently failed: {world_id}"
+            )));
+        }
+        let inflight = self.inflight_lock(&key);
+        let _guard = inflight.lock().await;
+        if !force && !full {
+            if let Some(summary) = self.get_summary(&world_id)? {
+                return summary_response(&summary);
+            }
+            if self.recently_failed(&key) {
+                return Err(crate::Error::Custom(format!(
+                    "World request recently failed: {world_id}"
+                )));
+            }
+        }
+
+        let (_, request) = world_get_input(key.endpoint.clone(), world_id.clone())?;
+        let response = web
+            .execute_api(request, ApiScope::Vrchat, self.db.as_ref())
+            .await;
+        match response {
+            Ok(response) => {
+                if (200..=299).contains(&response.status) {
+                    self.hydrate_response(&response);
+                    self.clear_failure(&key);
+                } else {
+                    self.record_failure(&key);
+                }
+                Ok(response)
+            }
+            Err(error) => {
+                self.record_failure(&key);
+                Err(error)
+            }
+        }
+    }
+
+    pub fn hydrate_response(&self, response: &HttpApiExecuteResponse) {
+        if !(200..=299).contains(&response.status) {
+            return;
+        }
+        if let Ok(world) = serde_json::from_str::<Value>(&response.data) {
+            self.hydrate_from_payload(&world);
+        }
     }
 
     fn recently_failed(&self, key: &WorldResolveKey) -> bool {
@@ -329,6 +367,10 @@ fn resolve_key(endpoint: &str, world_id: &str) -> WorldResolveKey {
     }
 }
 
+fn summary_response(summary: &WorldSummaryOutput) -> crate::Result<HttpApiExecuteResponse> {
+    Ok(execute_response(200, serde_json::to_string(summary)?))
+}
+
 fn is_persistable_world(value: &Value, name: &str) -> bool {
     let release_status = value
         .get("releaseStatus")
@@ -385,6 +427,19 @@ mod tests {
         let dir = TestDir::new(name);
         let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap());
         (dir, db)
+    }
+
+    fn test_web(dir: &TestDir, db: &DatabaseService) -> WebClient {
+        let storage =
+            vrcx_0_persistence::storage::StorageService::new(&dir.path.join("storage.json"))
+                .unwrap();
+        WebClient::new(
+            &storage,
+            db,
+            "wss://pipeline.vrchat.cloud".to_string(),
+            env!("CARGO_PKG_VERSION"),
+        )
+        .unwrap()
     }
 
     fn world_entry(id: &str, name: &str, updated_at: &str) -> CacheEntityInput {
@@ -521,16 +576,7 @@ mod tests {
             ),
         )
         .unwrap();
-        let storage =
-            vrcx_0_persistence::storage::StorageService::new(&dir.path.join("storage.json"))
-                .unwrap();
-        let web = WebClient::new(
-            &storage,
-            db.as_ref(),
-            "wss://pipeline.vrchat.cloud".to_string(),
-            env!("CARGO_PKG_VERSION"),
-        )
-        .unwrap();
+        let web = test_web(&dir, db.as_ref());
         let cache = WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60));
 
         let summary = cache
@@ -539,6 +585,88 @@ mod tests {
             .expect("DB row should resolve without remote API");
 
         assert_eq!(summary.name, "DB First World");
+    }
+
+    #[tokio::test]
+    async fn ordinary_get_returns_db_summary_without_remote_api() {
+        let (dir, db) = test_db("get-db-before-api");
+        world_cache_upsert(
+            db.as_ref(),
+            world_entry("wrld_db_get", "DB Get World", "2026-01-02T00:00:00.000Z"),
+        )
+        .unwrap();
+        let web = test_web(&dir, db.as_ref());
+        let cache = WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60));
+
+        let response = cache
+            .get(
+                &web,
+                "http://127.0.0.1:9/api/1",
+                "wrld_db_get",
+                false,
+                false,
+            )
+            .await
+            .expect("ordinary get should use the DB summary");
+        let payload = serde_json::from_str::<Value>(&response.data).unwrap();
+
+        assert_eq!(response.status, 200);
+        assert_eq!(payload["name"], "DB Get World");
+    }
+
+    #[tokio::test]
+    async fn force_get_bypasses_cached_summary_and_preserves_it_on_failure() {
+        let (dir, db) = test_db("force-bypasses-cache");
+        world_cache_upsert(
+            db.as_ref(),
+            world_entry("wrld_force", "Cached World", "2026-01-02T00:00:00.000Z"),
+        )
+        .unwrap();
+        let web = test_web(&dir, db.as_ref());
+        let cache = WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60));
+
+        assert!(cache
+            .get(&web, "http://127.0.0.1:9/api/1", "wrld_force", true, false,)
+            .await
+            .is_err());
+        assert_eq!(
+            cache.get_summary("wrld_force").unwrap().unwrap().name,
+            "Cached World"
+        );
+    }
+
+    #[test]
+    fn successful_remote_response_refreshes_memory_and_database_summary() {
+        let (_dir, db) = test_db("hydrate-response");
+        world_cache_upsert(
+            db.as_ref(),
+            world_entry("wrld_refresh", "Old World", "2026-01-02T00:00:00.000Z"),
+        )
+        .unwrap();
+        let cache = WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60));
+
+        cache.hydrate_response(&execute_response(
+            200,
+            json!({
+                "id": "wrld_refresh",
+                "name": "Fresh World",
+                "releaseStatus": "public",
+                "imageUrl": "fresh.png"
+            })
+            .to_string(),
+        ));
+
+        assert_eq!(
+            cache.get_name("wrld_refresh").as_deref(),
+            Some("Fresh World")
+        );
+        assert_eq!(
+            world_cache_get(db.as_ref(), "wrld_refresh".into())
+                .unwrap()
+                .unwrap()
+                .name,
+            "Fresh World"
+        );
     }
 
     #[test]

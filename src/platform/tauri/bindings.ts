@@ -1060,8 +1060,8 @@ export const commands = {
     async appWorldSearch(query: string): Promise<WorldSummaryOutput[]> {
         return await TAURI_INVOKE('app__world_search', { query });
     },
-    async appWorldGet(worldId: string): Promise<WorldSummaryOutput | null> {
-        return await TAURI_INVOKE('app__world_get', { worldId });
+    async appWorldGet(input: WorldGetInput): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE('app__world_get', { input });
     },
     async appFavoriteList(kind: FavoriteEntityKind): Promise<FavoriteRow[]> {
         return await TAURI_INVOKE('app__favorite_list', { kind });
@@ -2183,11 +2183,6 @@ export const commands = {
         input: VrchatWorldIdInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_world_delete', { input });
-    },
-    async appVrchatWorldGet(
-        input: VrchatWorldIdInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_world_get', { input });
     },
     async appVrchatWorldListByUserGet(
         input: VrchatWorldListByUserInput
@@ -5993,6 +5988,11 @@ export type WorldDetail = {
     id?: string;
     name?: string | null;
     instanceId?: string;
+};
+export type WorldGetInput = {
+    worldId?: string;
+    force?: boolean;
+    full?: boolean;
 };
 export type WorldMemoOutput = {
     worldId: string;

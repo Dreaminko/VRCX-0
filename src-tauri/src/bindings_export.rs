@@ -508,7 +508,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::vrchat::users::service::app__vrchat_user_profile_get,
             commands::vrchat::users::service::app__vrchat_user_represented_group_get,
             commands::vrchat::worlds::service::app__vrchat_world_delete,
-            commands::vrchat::worlds::service::app__vrchat_world_get,
             commands::vrchat::worlds::service::app__vrchat_world_list_by_user_get,
             commands::vrchat::worlds::service::app__vrchat_world_persistent_data_delete,
             commands::vrchat::worlds::service::app__vrchat_world_persistent_data_exists,

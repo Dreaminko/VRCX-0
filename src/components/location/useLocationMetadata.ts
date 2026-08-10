@@ -97,23 +97,32 @@ export function useLocationMetadataBatch(
         () => uniqueIds(normalizedEntries, 'groupId'),
         [normalizedEntries]
     );
-    const worldProfilesById = useQueries({
-        queries: worldIds.map((worldId) => ({
-            queryKey: queryKeys.world(worldId, currentEndpoint),
-            queryFn: () =>
-                worldProfileRepository.fetchWorldProfile({
-                    worldId
-                }),
-            enabled: Boolean(worldId),
-            staleTime: entityQueryPolicies.worldBasic.staleTime,
-            gcTime: entityQueryPolicies.worldBasic.gcTime,
-            retry: entityQueryPolicies.worldBasic.retry,
-            refetchOnWindowFocus:
-                entityQueryPolicies.worldBasic.refetchOnWindowFocus
-        })),
-        combine: (results) =>
-            mapQueryResults<WorldProfileRecord>(worldIds, results)
-    });
+    const [worldProfilesById, setWorldProfilesById] = useState(
+        () => new Map<string, WorldProfileRecord>()
+    );
+    useEffect(() => {
+        let active = true;
+        setWorldProfilesById(new Map());
+        Promise.allSettled(
+            worldIds.map((worldId) =>
+                worldProfileRepository.getWorldProfile({ worldId })
+            )
+        ).then((results) => {
+            if (!active) {
+                return;
+            }
+            const profiles = new Map<string, WorldProfileRecord>();
+            results.forEach((result, index) => {
+                if (result.status === 'fulfilled') {
+                    profiles.set(worldIds[index], result.value);
+                }
+            });
+            setWorldProfilesById(profiles);
+        });
+        return () => {
+            active = false;
+        };
+    }, [currentEndpoint, worldIds]);
     const groupProfilesById = useQueries({
         queries: groupIds.map((groupId) => ({
             queryKey: queryKeys.group(groupId, false, currentEndpoint),

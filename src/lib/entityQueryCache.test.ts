@@ -48,14 +48,12 @@ describe('entityQueryCache', () => {
     it('reports entity cache stats only for recognized entity ids', () => {
         setCachedQueryData(queryKeys.user('usr_1'), {});
         setCachedQueryData(queryKeys.user('not-a-user'), {});
-        setCachedQueryData(queryKeys.world('wrld_1'), {});
         setCachedQueryData(queryKeys.avatar('avtr_1'), {});
         setCachedQueryData(queryKeys.group('grp_1'), {});
         setCachedQueryData(['misc', 'usr_2'], {});
 
         expect(getEntityQueryCacheStats()).toEqual({
             users: 1,
-            worlds: 1,
             avatars: 1,
             groups: 1
         });

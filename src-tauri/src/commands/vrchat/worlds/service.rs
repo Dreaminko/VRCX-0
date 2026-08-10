@@ -2,9 +2,9 @@
 
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::worlds::{
-    world_delete_input, world_get_input, world_list_by_user_get_input,
-    world_persistent_data_delete_input, world_persistent_data_exists_input, world_publish_input,
-    world_save_input, world_unpublish_input,
+    world_delete_input, world_list_by_user_get_input, world_persistent_data_delete_input,
+    world_persistent_data_exists_input, world_publish_input, world_save_input,
+    world_unpublish_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
@@ -25,22 +25,6 @@ async fn execute_world_api(
 ) -> Result<VrchatApiResponse, AppError> {
     super::super::execute::execute_vrchat_api(state, command, detail, input, VrchatScope::Vrchat)
         .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_world_get(
-    state: State<'_, AppState>,
-    input: VrchatWorldIdInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (world_id, request) = world_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.world_id)?;
-    execute_world_api(
-        state,
-        "app__vrchat_world_get",
-        format!("Getting world {world_id}."),
-        request,
-    )
-    .await
 }
 
 #[tauri::command]
@@ -98,13 +82,18 @@ pub async fn app__vrchat_world_save(
         input.world_id,
         input.params,
     )?;
-    execute_world_api(
-        state,
+    let response = execute_world_api(
+        state.clone(),
         "app__vrchat_world_save",
         format!("Saving world {world_id}."),
         request,
     )
-    .await
+    .await?;
+    state
+        .runtime_context
+        .world_cache
+        .hydrate_response(&response);
+    Ok(response)
 }
 
 #[tauri::command]
@@ -132,13 +121,18 @@ pub async fn app__vrchat_world_publish(
 ) -> Result<VrchatApiResponse, AppError> {
     let (world_id, request) =
         world_publish_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.world_id)?;
-    execute_world_api(
-        state,
+    let response = execute_world_api(
+        state.clone(),
         "app__vrchat_world_publish",
         format!("Publishing world {world_id}."),
         request,
     )
-    .await
+    .await?;
+    state
+        .runtime_context
+        .world_cache
+        .hydrate_response(&response);
+    Ok(response)
 }
 
 #[tauri::command]
@@ -149,13 +143,18 @@ pub async fn app__vrchat_world_unpublish(
 ) -> Result<VrchatApiResponse, AppError> {
     let (world_id, request) =
         world_unpublish_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.world_id)?;
-    execute_world_api(
-        state,
+    let response = execute_world_api(
+        state.clone(),
         "app__vrchat_world_unpublish",
         format!("Unpublishing world {world_id}."),
         request,
     )
-    .await
+    .await?;
+    state
+        .runtime_context
+        .world_cache
+        .hydrate_response(&response);
+    Ok(response)
 }
 
 #[tauri::command]

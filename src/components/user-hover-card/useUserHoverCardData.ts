@@ -1,8 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { SidebarFriendRecord } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
-import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
@@ -54,6 +52,9 @@ export function useUserHoverCardData({
     const [population, setPopulation] = useState<UserHoverCardPopulation>(null);
     const [populationLoading, setPopulationLoading] = useState(false);
     const [profileLoading, setProfileLoading] = useState(true);
+    const [worldProfile, setWorldProfile] = useState<Awaited<
+        ReturnType<typeof worldProfileRepository.getWorldProfile>
+    > | null>(null);
 
     const nowMs = useMemo(() => Date.now(), [profile, effectiveSeed]);
     const model = useMemo(
@@ -106,21 +107,30 @@ export function useUserHoverCardData({
     const instanceId = model.location.instanceId;
     const isRealInstance = model.location.isRealInstance;
 
-    const worldQuery = useQuery({
-        queryKey: queryKeys.world(worldId, endpoint),
-        queryFn: () => worldProfileRepository.fetchWorldProfile({ worldId }),
-        enabled: Boolean(worldId),
-        staleTime: entityQueryPolicies.worldBasic.staleTime,
-        gcTime: entityQueryPolicies.worldBasic.gcTime,
-        retry: entityQueryPolicies.worldBasic.retry,
-        refetchOnWindowFocus:
-            entityQueryPolicies.worldBasic.refetchOnWindowFocus
-    });
+    useEffect(() => {
+        let active = true;
+        setWorldProfile(null);
+        if (!worldId) {
+            return () => {
+                active = false;
+            };
+        }
+        worldProfileRepository
+            .getWorldProfile({ worldId })
+            .then((world) => {
+                if (active) {
+                    setWorldProfile(world);
+                }
+            })
+            .catch(() => {});
+        return () => {
+            active = false;
+        };
+    }, [endpoint, worldId]);
     const worldThumb = useMemo(() => {
-        const raw =
-            worldQuery.data?.thumbnailImageUrl || worldQuery.data?.imageUrl;
+        const raw = worldProfile?.thumbnailImageUrl || worldProfile?.imageUrl;
         return raw ? convertFileUrlToImageUrl(raw, 512) : '';
-    }, [worldQuery.data]);
+    }, [worldProfile]);
 
     useEffect(() => {
         let active = true;

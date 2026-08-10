@@ -182,8 +182,8 @@ const NETWORK_ERROR_MARKERS = [
 function isVrchatWorldGetTransportFailure(text: string): boolean {
     const lower = text.toLowerCase();
     const isWorldGetCommand =
-        lower.includes('command: app__vrchat_world_get') ||
-        lower.includes('tauri command failed: app__vrchat_world_get');
+        lower.includes('command: app__world_get') ||
+        lower.includes('tauri command failed: app__world_get');
 
     return (
         isWorldGetCommand &&

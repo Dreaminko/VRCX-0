@@ -22,7 +22,7 @@ use crate::notification::{
     OverlayActivityPreferenceFilters, UserImageCache,
 };
 
-const WORLD_CACHE_WORKING_CAPACITY: u64 = 512;
+const WORLD_CACHE_WORKING_CAPACITY: u64 = 256;
 const WORLD_CACHE_WORKING_TTL: Duration = Duration::from_secs(30 * 60);
 
 #[derive(Clone, Default)]
