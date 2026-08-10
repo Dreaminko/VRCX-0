@@ -8,7 +8,11 @@ fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
         runtime.runtime().deps.db.as_ref(),
         cached_world_entry("wrld_cached", "Cached World", "2026-01-01T00:00:00.000Z"),
     )?;
-    runtime.runtime().world_cache.init_load();
+    runtime
+        .runtime()
+        .world_cache
+        .get_summary("wrld_cached")?
+        .expect("cached world should load on demand");
     runtime.runtime().ingest_user_facts(vec![json!({
         "user": {
             "id": "usr_sender",

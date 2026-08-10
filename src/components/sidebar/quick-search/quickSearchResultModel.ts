@@ -16,7 +16,7 @@ import { entityTypeLabel } from '../QuickSearchResults';
 
 const RESULT_LIMIT = 8;
 export const USER_QUERY_MIN_LENGTH = 1;
-const DETAIL_QUERY_MIN_LENGTH = 2;
+export const DETAIL_QUERY_MIN_LENGTH = 2;
 const searchCollator = new Intl.Collator(undefined, {
     usage: 'search',
     sensitivity: 'base'
@@ -70,6 +70,7 @@ type BuildQuickSearchResultsInput = {
     knownFriendUsersById: unknown;
     remoteFavoritesByObjectId: unknown;
     localWorldDetailsById: unknown;
+    worldSearchDetailsById?: unknown;
     localAvatarDetailsById: unknown;
     groupInstances: unknown;
 };
@@ -310,6 +311,7 @@ export function buildQuickSearchResults({
     knownFriendUsersById,
     remoteFavoritesByObjectId,
     localWorldDetailsById,
+    worldSearchDetailsById,
     localAvatarDetailsById,
     groupInstances
 }: BuildQuickSearchResultsInput): QuickSearchResults {
@@ -373,7 +375,10 @@ export function buildQuickSearchResults({
 
     const remoteFavorites = recordValues(remoteFavoritesByObjectId);
     const localAvatars = recordValues(localAvatarDetailsById);
-    const localWorlds = recordValues(localWorldDetailsById);
+    const localWorlds = [
+        ...recordValues(localWorldDetailsById),
+        ...recordValues(worldSearchDetailsById)
+    ];
     const ownAvatars = buildEntityResults(catalog.ownAvatars, 'avatar', 'own');
     const ownWorlds = buildEntityResults(catalog.ownWorlds, 'world', 'own');
     const ownAvatarIds = new Set(ownAvatars.map((row) => row.id));

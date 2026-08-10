@@ -1,7 +1,6 @@
 import {
     commands,
     type AvatarCacheOutput,
-    type CacheEntityInput as IpcCacheEntityInput,
     type LocalFavoriteGroupInput as IpcLocalFavoriteGroupInput,
     type LocalFavoriteGroupRenameInput as IpcLocalFavoriteGroupRenameInput,
     type LocalFavoriteInput as IpcLocalFavoriteInput,
@@ -45,20 +44,6 @@ export interface FriendFavoriteRow {
     created_at: string;
     userId: string;
     groupName: string;
-}
-
-interface CacheEntryInput {
-    id?: unknown;
-    authorId?: unknown;
-    authorName?: unknown;
-    created_at?: unknown;
-    description?: unknown;
-    imageUrl?: unknown;
-    name?: unknown;
-    releaseStatus?: unknown;
-    thumbnailImageUrl?: unknown;
-    updated_at?: unknown;
-    version?: unknown;
 }
 
 interface LocalFavoriteInput {
@@ -252,49 +237,9 @@ async function getFriendFavorites() {
     );
 }
 
-async function getWorldCache() {
-    const rows = await commands.appWorldCacheList();
-    return Array.isArray(rows) ? rows.map(normalizeCacheRow) : [];
-}
-
 async function getAvatarCache() {
     const rows = await commands.appAvatarCacheList();
     return Array.isArray(rows) ? rows.map(normalizeCacheRow) : [];
-}
-
-async function addWorldToCache(entry: CacheEntryInput) {
-    const input = {
-        id: entry.id,
-        authorId: entry.authorId,
-        authorName: entry.authorName,
-        createdAt: entry.created_at,
-        description: entry.description,
-        imageUrl: entry.imageUrl,
-        name: entry.name,
-        releaseStatus: entry.releaseStatus,
-        thumbnailImageUrl: entry.thumbnailImageUrl,
-        updatedAt: entry.updated_at,
-        version: entry.version
-    } satisfies IpcCacheEntityInput;
-
-    return commands.appWorldCacheUpsert(input);
-}
-
-async function getCachedWorldById(id: unknown) {
-    const normalizedId = normalizeEntityId(id);
-    if (!normalizedId) {
-        return null;
-    }
-    const row = await commands.appWorldCacheGet(normalizedId);
-    return row ? normalizeCacheRow(row) : null;
-}
-
-async function removeWorldFromCache(worldId: unknown) {
-    const normalizedWorldId = normalizeEntityId(worldId);
-    if (!normalizedWorldId) {
-        return;
-    }
-    await commands.appWorldCacheRemove(normalizedWorldId);
 }
 
 async function addLocalFavorite({
@@ -421,42 +366,34 @@ async function deleteLocalFavoriteGroup({
 const favoritePersistenceRepository = Object.freeze({
     addAvatarToFavorites,
     addFriendToLocalFavorites,
-    addWorldToCache,
     addWorldToFavorites,
     getExplicitLocalFavoriteGroups,
     getFreshExplicitLocalFavoriteGroups,
     createLocalFavoriteGroup,
-    getCachedWorldById,
     getWorldFavorites,
     getAvatarFavorites,
     getFriendFavorites,
-    getWorldCache,
     getAvatarCache,
     addLocalFavorite,
     removeLocalFavorite,
     renameLocalFavoriteGroup,
-    deleteLocalFavoriteGroup,
-    removeWorldFromCache
+    deleteLocalFavoriteGroup
 });
 
 export {
     addAvatarToFavorites,
     addFriendToLocalFavorites,
-    addWorldToCache,
     addWorldToFavorites,
     getExplicitLocalFavoriteGroups,
     getFreshExplicitLocalFavoriteGroups,
     createLocalFavoriteGroup,
-    getCachedWorldById,
     getWorldFavorites,
     getAvatarFavorites,
     getFriendFavorites,
-    getWorldCache,
     getAvatarCache,
     addLocalFavorite,
     removeLocalFavorite,
     renameLocalFavoriteGroup,
-    deleteLocalFavoriteGroup,
-    removeWorldFromCache
+    deleteLocalFavoriteGroup
 };
 export default favoritePersistenceRepository;

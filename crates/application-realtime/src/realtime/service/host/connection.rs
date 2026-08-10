@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use vrcx_0_application_core::RuntimeOperationStatus;
 
 use tokio::sync::{broadcast, watch};
-use vrcx_0_application_core::{Error, FavoriteChangeScope, FavoritesChangedPayload, Result};
+use vrcx_0_application_core::{Error, FavoritesChangedPayload, Result};
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
 use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::realtime::{
@@ -209,7 +209,6 @@ impl RealtimeHostRuntime {
         drop(friend_owner);
         self.user_cache.clear();
         self.user_query_cache.clear();
-        self.world_cache.init_load();
         self.record_baseline_friends_into_cache();
         let transport_deps = RealtimeTransportDeps {
             db: Arc::clone(&self.deps.db),
@@ -353,14 +352,7 @@ impl RealtimeHostRuntime {
         self.current_user.snapshot_value()
     }
 
-    pub fn sync_world_cache_favorites_from_db(&self) {
-        self.world_cache.sync_favorites_from_db();
-    }
-
     pub fn notify_favorites_changed(&self, payload: FavoritesChangedPayload) {
-        if payload.kind == FavoriteChangeScope::World && payload.local {
-            self.sync_world_cache_favorites_from_db();
-        }
         self.deps.event_bus.emit_favorites_changed(payload);
     }
 

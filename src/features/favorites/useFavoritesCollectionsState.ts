@@ -5,7 +5,6 @@ import { useKnownUserFacts } from '@/lib/useKnownUser';
 import avatarCacheRepository from '@/repositories/avatarCacheRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
-import { useWorldFactsStore, type WorldFact } from '@/state/worldFactsStore';
 
 import {
     buildFavoriteAvatarTags,
@@ -15,9 +14,7 @@ import {
 import type { FavoriteKind } from './favoritesTypes';
 import { useFavoriteRemoteDetails } from './useFavoriteRemoteDetails';
 import { useRemoteAvatarCacheFallbacks } from './useRemoteAvatarCacheFallbacks';
-import { useRemoteWorldCacheFallbacks } from './useRemoteWorldCacheFallbacks';
-
-const EMPTY_WORLD_FACTS: Record<string, WorldFact> = {};
+import { useWorldDetailFallbacks } from './useWorldDetailFallbacks';
 
 export function useFavoritesCollectionsState({
     currentEndpoint,
@@ -34,9 +31,6 @@ export function useFavoritesCollectionsState({
     );
     const favoriteState = useFavoriteStore(useShallow(favoriteSelector));
     const friendsById = useFriendRosterStore((state) => state.friendsById);
-    const worldFactsById = useWorldFactsStore((state) =>
-        kind === 'world' ? state.worldsById : EMPTY_WORLD_FACTS
-    );
     const [avatarHistoryLoading, setAvatarHistoryLoading] = useState(false);
     const [avatarHistory, setAvatarHistory] = useState<unknown[]>([]);
     const [remoteDetailsRefreshToken, setRemoteDetailsRefreshToken] =
@@ -87,13 +81,34 @@ export function useFavoritesCollectionsState({
                 ? favoriteState.favoriteWorldIds.length > 0
                 : favoriteState.favoriteAvatarIds.length > 0)
     });
-    const remoteWorldCacheFallbacksById = useRemoteWorldCacheFallbacks({
-        favoriteWorldIds: favoriteState.favoriteWorldIds,
+    const requestedWorldIds = useMemo(() => {
+        if (kind !== 'world') {
+            return [];
+        }
+        const worldIds = new Set(favoriteState.favoriteWorldIds);
+        for (const ids of Object.values(favoriteState.localWorldFavorites)) {
+            for (const worldId of Array.isArray(ids) ? ids : []) {
+                const normalizedWorldId = String(worldId ?? '').trim();
+                if (normalizedWorldId) {
+                    worldIds.add(normalizedWorldId);
+                }
+            }
+        }
+        return Array.from(worldIds);
+    }, [
+        favoriteState.favoriteWorldIds,
+        favoriteState.localWorldFavorites,
+        kind
+    ]);
+    const worldDetailFallbacksById = useWorldDetailFallbacks({
+        worldIds: requestedWorldIds,
         kind,
         localWorldDetailsById: favoriteState.localWorldDetailsById,
         remoteEntityDetailsData: remoteEntityDetails.data,
-        remoteEntityDetailsStatus: remoteEntityDetails.status,
-        worldFactsById
+        remoteEntityDetailsStatus:
+            favoriteState.favoriteWorldIds.length === 0
+                ? 'ready'
+                : remoteEntityDetails.status
     });
     const remoteAvatarCacheFallbacksById = useRemoteAvatarCacheFallbacks({
         favoriteAvatarIds: favoriteState.favoriteAvatarIds,
@@ -176,10 +191,9 @@ export function useFavoritesCollectionsState({
             localWorldFavorites: favoriteState.localWorldFavorites,
             remoteEntityDetails,
             remoteFavoritesById: favoriteState.remoteFavoritesById,
-            remoteWorldCacheFallbacksById,
+            worldDetailFallbacksById,
             remoteAvatarCacheFallbacksById,
-            worldAvailabilityById,
-            worldFactsById
+            worldAvailabilityById
         }
     };
 }

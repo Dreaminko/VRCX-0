@@ -597,12 +597,6 @@ async fn build_favorites_baseline_inner(
         Some(&user_id),
         vrcx_0_core::FavoriteEntityKind::Friend,
     )?;
-    let local_world_cache_rows = serde_json::to_value(
-        vrcx_0_persistence::worlds::world_cache_list(deps.db.as_ref())?,
-    )?
-    .as_array()
-    .cloned()
-    .unwrap_or_default();
     let local_avatar_cache_rows = serde_json::to_value(
         vrcx_0_persistence::avatars::avatar_cache_list(deps.db.as_ref())?,
     )?
@@ -640,17 +634,12 @@ async fn build_favorites_baseline_inner(
         &mut favorite_groups,
     );
 
-    let local_world_ids = local_world_favorite_rows
-        .iter()
-        .filter_map(|row| row.world_id.clone())
-        .collect::<Vec<_>>();
     let local_avatar_ids = local_avatar_favorite_rows
         .iter()
         .filter_map(|row| row.avatar_id.clone())
         .collect::<Vec<_>>();
-    let mut local_world_details_by_id = build_details_by_id(local_world_cache_rows);
+    let local_world_details_by_id = BTreeMap::new();
     let mut local_avatar_details_by_id = build_details_by_id(local_avatar_cache_rows);
-    ensure_local_detail_fallbacks(&mut local_world_details_by_id, &local_world_ids);
     ensure_local_detail_fallbacks(&mut local_avatar_details_by_id, &local_avatar_ids);
 
     let (local_world_favorites, local_world_favorite_groups, local_world_favorites_list) =

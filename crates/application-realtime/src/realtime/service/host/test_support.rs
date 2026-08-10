@@ -11,8 +11,6 @@ pub(super) use serde_json::json;
 #[cfg(test)]
 pub(super) use vrcx_0_persistence::cache_entities::CacheEntityInput;
 #[cfg(test)]
-pub(super) use vrcx_0_persistence::favorites::favorite_add;
-#[cfg(test)]
 pub(super) use vrcx_0_persistence::notifications::{
     notification_list_query, NotificationListQueryInput,
 };

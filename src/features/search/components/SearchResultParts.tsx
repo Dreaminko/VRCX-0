@@ -33,7 +33,6 @@ import {
     type LanguageOption,
     normalizeProfileLanguageRows
 } from '@/shared/utils/userLanguage';
-import { useWorldFactsStore } from '@/state/worldFactsStore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -278,10 +277,7 @@ export function AvatarCard({ avatar }: { avatar: AvatarProfileRecord }) {
 }
 
 export function WorldCard({ world }: { world: WorldProfileRecord }) {
-    const liveOccupants = useWorldFactsStore(
-        (state) => state.worldsById[world.id]?.occupants
-    );
-    const occupants = Number(liveOccupants ?? world.occupants) || 0;
+    const occupants = Number(world.occupants) || 0;
     const subtitle = occupants
         ? `${world.authorName || ''} (${occupants})`
         : world.authorName || '';

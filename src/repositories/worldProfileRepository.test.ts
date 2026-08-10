@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const tauriMock = vi.hoisted(() => ({
     commands: {
-        appWorldCacheGet: vi.fn(),
+        appWorldGet: vi.fn(),
         appVrchatWorldGet: vi.fn(),
         appVrchatWorldPersistentDataExists: vi.fn(),
         appWorldOpenRegister: vi.fn()
@@ -14,14 +14,12 @@ vi.mock('@/platform/tauri/bindings', () => ({
 }));
 
 import { clearEntityQueryCache } from '@/lib/entityQueryCache';
-import { useWorldFactsStore } from '@/state/worldFactsStore';
 
 import worldProfileRepository from './worldProfileRepository';
 
 describe('WorldProfileRepository', () => {
     beforeEach(async () => {
         await clearEntityQueryCache();
-        useWorldFactsStore.getState().resetWorldFacts();
         for (const command of Object.values(tauriMock.commands)) {
             command.mockReset();
             command.mockResolvedValue({
@@ -29,7 +27,7 @@ describe('WorldProfileRepository', () => {
                 data: '{"ok":true}'
             });
         }
-        tauriMock.commands.appWorldCacheGet.mockResolvedValue(null);
+        tauriMock.commands.appWorldGet.mockResolvedValue(null);
         tauriMock.commands.appWorldOpenRegister.mockResolvedValue(null);
     });
 
@@ -119,7 +117,7 @@ describe('WorldProfileRepository', () => {
         });
     });
 
-    it('returns full fetched worlds but mirrors summary fields only', async () => {
+    it('returns full fetched worlds without maintaining a frontend mirror', async () => {
         tauriMock.commands.appVrchatWorldGet.mockResolvedValue({
             status: 200,
             data: JSON.stringify({
@@ -142,10 +140,6 @@ describe('WorldProfileRepository', () => {
         const world = await worldProfileRepository.fetchWorldProfile({
             worldId: 'wrld_full'
         });
-        const mirrored = useWorldFactsStore
-            .getState()
-            .getWorldFact('wrld_full');
-
         expect(world).toMatchObject({
             id: 'wrld_full',
             name: 'Full World',
@@ -154,27 +148,12 @@ describe('WorldProfileRepository', () => {
             ],
             instances: [['123', 4]]
         });
-        expect(mirrored).toMatchObject({
-            id: 'wrld_full',
-            name: 'Full World',
-            description: 'Remote details',
-            authorId: 'usr_author',
-            releaseStatus: 'public',
-            imageUrl: 'image.png',
-            capacity: 40,
-            tags: ['system_labs'],
-            isLabs: true,
-            platforms: ['PC']
-        });
-        expect(mirrored).not.toHaveProperty('unityPackages');
-        expect(mirrored).not.toHaveProperty('instances');
-        expect(mirrored).not.toHaveProperty('unknownLargeField');
     });
 
-    it('uses mirrored world facts before local cache or remote fetch', async () => {
-        useWorldFactsStore.getState().upsertWorldFacts({
+    it('delegates ordinary world reads to Rust', async () => {
+        tauriMock.commands.appWorldGet.mockResolvedValue({
             id: 'wrld_mirror',
-            name: 'Mirror World',
+            name: 'Rust World',
             authorId: 'usr_author',
             imageUrl: 'image.png'
         });
@@ -183,13 +162,15 @@ describe('WorldProfileRepository', () => {
             worldId: 'wrld_mirror'
         });
 
-        expect(world.name).toBe('Mirror World');
-        expect(tauriMock.commands.appWorldCacheGet).not.toHaveBeenCalled();
+        expect(world.name).toBe('Rust World');
+        expect(tauriMock.commands.appWorldGet).toHaveBeenCalledWith(
+            'wrld_mirror'
+        );
         expect(tauriMock.commands.appVrchatWorldGet).not.toHaveBeenCalled();
     });
 
     it('uses local world cache before remote fetch for non-dialog reads', async () => {
-        tauriMock.commands.appWorldCacheGet.mockResolvedValue({
+        tauriMock.commands.appWorldGet.mockResolvedValue({
             id: 'wrld_local',
             name: 'Local Cache World',
             authorId: 'usr_author',
@@ -208,18 +189,14 @@ describe('WorldProfileRepository', () => {
         });
 
         expect(world.name).toBe('Local Cache World');
-        expect(tauriMock.commands.appWorldCacheGet).toHaveBeenCalledWith(
+        expect(tauriMock.commands.appWorldGet).toHaveBeenCalledWith(
             'wrld_local'
         );
         expect(tauriMock.commands.appVrchatWorldGet).not.toHaveBeenCalled();
     });
 
     it('fetches remote data for full reads instead of mirrored or local summary cache', async () => {
-        useWorldFactsStore.getState().upsertWorldFacts({
-            id: 'wrld_full_bypass',
-            name: 'Mirrored Summary World'
-        });
-        tauriMock.commands.appWorldCacheGet.mockResolvedValue({
+        tauriMock.commands.appWorldGet.mockResolvedValue({
             id: 'wrld_full_bypass',
             name: 'Local Summary World'
         });
@@ -249,14 +226,14 @@ describe('WorldProfileRepository', () => {
                 assetUrl: 'https://example.test/world.bundle'
             }
         ]);
-        expect(tauriMock.commands.appWorldCacheGet).not.toHaveBeenCalled();
+        expect(tauriMock.commands.appWorldGet).not.toHaveBeenCalled();
         expect(tauriMock.commands.appVrchatWorldGet).toHaveBeenCalledWith({
             worldId: 'wrld_full_bypass'
         });
     });
 
     it('fetches remote data for dialog reads instead of using summary cache', async () => {
-        tauriMock.commands.appWorldCacheGet.mockResolvedValue({
+        tauriMock.commands.appWorldGet.mockResolvedValue({
             id: 'wrld_dialog',
             name: 'Local Summary World'
         });
@@ -276,7 +253,7 @@ describe('WorldProfileRepository', () => {
 
         expect(world.name).toBe('Remote Dialog World');
         expect(world.isLabs).toBe(true);
-        expect(tauriMock.commands.appWorldCacheGet).not.toHaveBeenCalled();
+        expect(tauriMock.commands.appWorldGet).not.toHaveBeenCalled();
         expect(tauriMock.commands.appVrchatWorldGet).toHaveBeenCalled();
     });
 
@@ -295,31 +272,6 @@ describe('WorldProfileRepository', () => {
                 force: true
             })
         ).resolves.toBe(false);
-    });
-
-    it('fetches remote data for dialog reads instead of mirrored facts', async () => {
-        useWorldFactsStore.getState().upsertWorldFacts({
-            id: 'wrld_dialog_mirror',
-            name: 'Mirrored Summary World'
-        });
-        tauriMock.commands.appVrchatWorldGet.mockResolvedValue({
-            status: 200,
-            data: JSON.stringify({
-                id: 'wrld_dialog_mirror',
-                name: 'Fresh Dialog World'
-            })
-        });
-
-        const world = await worldProfileRepository.getWorldProfile({
-            worldId: 'wrld_dialog_mirror',
-            dialog: true
-        });
-
-        expect(world.name).toBe('Fresh Dialog World');
-        expect(tauriMock.commands.appWorldCacheGet).not.toHaveBeenCalled();
-        expect(tauriMock.commands.appVrchatWorldGet).toHaveBeenCalledWith({
-            worldId: 'wrld_dialog_mirror'
-        });
     });
 
     it('throws request errors with status, endpoint, and parsed payload details', async () => {

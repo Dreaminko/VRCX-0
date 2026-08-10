@@ -603,11 +603,6 @@ impl FavoriteImportRuntime {
             inner.status.clone()
         };
         if status.operation == FavoriteImportOperation::Import && status.succeeded > 0 {
-            if status.kind == FavoriteImportKind::World
-                && location == Some(FavoriteImportLocation::Local)
-            {
-                self.world_cache.sync_favorites_from_db();
-            }
             self.event_bus
                 .emit_favorites_changed(FavoritesChangedPayload {
                     kind: status.kind.into(),

@@ -1057,19 +1057,11 @@ export const commands = {
     ): Promise<MutualGraphFetchStatus> {
         return await TAURI_INVOKE('app__mutual_graph_fetch_start', { input });
     },
-    async appWorldCacheUpsert(entry: CacheEntityInput): Promise<number> {
-        return await TAURI_INVOKE('app__world_cache_upsert', { entry });
+    async appWorldSearch(query: string): Promise<WorldSummaryOutput[]> {
+        return await TAURI_INVOKE('app__world_search', { query });
     },
-    async appWorldCacheList(): Promise<WorldSummaryOutput[]> {
-        return await TAURI_INVOKE('app__world_cache_list');
-    },
-    async appWorldCacheGet(
-        worldId: string
-    ): Promise<WorldSummaryOutput | null> {
-        return await TAURI_INVOKE('app__world_cache_get', { worldId });
-    },
-    async appWorldCacheRemove(worldId: string): Promise<null> {
-        return await TAURI_INVOKE('app__world_cache_remove', { worldId });
+    async appWorldGet(worldId: string): Promise<WorldSummaryOutput | null> {
+        return await TAURI_INVOKE('app__world_get', { worldId });
     },
     async appFavoriteList(kind: FavoriteEntityKind): Promise<FavoriteRow[]> {
         return await TAURI_INVOKE('app__favorite_list', { kind });

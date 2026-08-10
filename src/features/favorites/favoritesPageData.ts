@@ -71,16 +71,9 @@ function textValue(value: unknown) {
 }
 
 function favoritePlayerCount(
-    kind: FavoriteKind,
-    entityId: string,
-    detail: FavoriteEntityDetail | null | undefined,
-    worldFactsById: FavoriteDetailMap
+    detail: FavoriteEntityDetail | null | undefined
 ): number {
-    const occupants =
-        kind === 'world'
-            ? (worldFactsById[entityId]?.occupants ?? detail?.occupants)
-            : detail?.occupants;
-    return Number(occupants) || 0;
+    return Number(detail?.occupants) || 0;
 }
 
 function favoriteSeedData(
@@ -407,8 +400,7 @@ export function buildFavoriteRemoteItemsByGroup({
     remoteFavoritesById,
     remoteEntityDetailsData,
     remoteEntityDetailsStatus,
-    worldFactsById = {},
-    remoteWorldCacheFallbacksById = {},
+    worldDetailFallbacksById = {},
     remoteAvatarCacheFallbacksById = {},
     localWorldDetailsById = {},
     localAvatarDetailsById = {},
@@ -426,8 +418,7 @@ export function buildFavoriteRemoteItemsByGroup({
     remoteFavoritesById?: Record<string, FavoriteRecord | undefined>;
     remoteEntityDetailsData?: FavoriteDetailMap;
     remoteEntityDetailsStatus?: string;
-    worldFactsById?: FavoriteDetailMap;
-    remoteWorldCacheFallbacksById?: FavoriteDetailMap;
+    worldDetailFallbacksById?: FavoriteDetailMap;
     remoteAvatarCacheFallbacksById?: FavoriteDetailMap;
     localWorldDetailsById?: FavoriteDetailMap;
     localAvatarDetailsById?: FavoriteDetailMap;
@@ -488,8 +479,7 @@ export function buildFavoriteRemoteItemsByGroup({
         if (kind === 'world') {
             liveDetail = hasDisplayableEntityDetail(detail) ? detail : null;
             fallbackDetail = firstDisplayableDetail([
-                worldFactsById[favoriteId],
-                remoteWorldCacheFallbacksById[favoriteId],
+                worldDetailFallbacksById[favoriteId],
                 localWorldDetailsById[favoriteId]
             ]);
         } else {
@@ -523,12 +513,7 @@ export function buildFavoriteRemoteItemsByGroup({
                       availabilityStatus === 'private' ||
                       (usedFallback && !availabilityStatus))
                 : releaseStatusPrivate || usedFallback;
-        const playerCount = favoritePlayerCount(
-            kind,
-            favoriteId,
-            displayDetail,
-            worldFactsById
-        );
+        const playerCount = favoritePlayerCount(displayDetail);
         const authorName = textValue(displayDetail?.authorName);
         const subtitle =
             authorName ||
@@ -586,7 +571,7 @@ export function buildFavoriteLocalItemsByGroup({
     localWorldFavorites,
     localAvatarDetailsById,
     localWorldDetailsById,
-    worldFactsById = {},
+    worldDetailFallbacksById = {},
     friendsById,
     knownUsersById = {},
     sortValue,
@@ -599,7 +584,7 @@ export function buildFavoriteLocalItemsByGroup({
     localWorldFavorites?: FavoriteGroupSourceMap;
     localAvatarDetailsById?: FavoriteDetailMap;
     localWorldDetailsById?: FavoriteDetailMap;
-    worldFactsById?: FavoriteDetailMap;
+    worldDetailFallbacksById?: FavoriteDetailMap;
     friendsById?: FavoriteProfileMap;
     knownUsersById?: FavoriteProfileMap;
     sortValue?: FavoriteSortValue;
@@ -643,15 +628,11 @@ export function buildFavoriteLocalItemsByGroup({
             : [];
         const items: FavoriteItem[] = ids.map((entityId, index) => {
             const normalizedId = normalizeEntityId(entityId);
-            const detail = localDetailsById?.[normalizedId] || {
-                id: normalizedId
-            };
-            const playerCount = favoritePlayerCount(
-                kind,
-                normalizedId,
-                detail,
-                worldFactsById
-            );
+            const detail = localDetailsById?.[normalizedId] ||
+                (kind === 'world'
+                    ? worldDetailFallbacksById[normalizedId]
+                    : undefined) || { id: normalizedId };
+            const playerCount = favoritePlayerCount(detail);
             const imagePair = favoriteImagePair(detail);
             return {
                 key: `local:${group.key}:${normalizedId}`,

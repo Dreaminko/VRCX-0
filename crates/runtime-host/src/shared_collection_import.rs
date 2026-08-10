@@ -237,7 +237,6 @@ impl SharedCollectionImportRuntime {
             terminal
         };
         if terminal.emit_favorites_changed {
-            self.world_cache.sync_favorites_from_db();
             self.event_bus
                 .emit_favorites_changed(FavoritesChangedPayload {
                     kind: vrcx_0_application_core::FavoriteChangeScope::World,

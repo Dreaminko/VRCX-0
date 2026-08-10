@@ -7,7 +7,7 @@ use crate::database::schema::ensure_global_store_tables;
 use crate::database::DatabaseService;
 use crate::Error;
 
-#[derive(Debug, Serialize, specta::Type)]
+#[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct WorldSummaryOutput {
     pub id: String,
@@ -42,37 +42,6 @@ pub fn world_cache_remove(db: &DatabaseService, world_id: String) -> Result<(), 
     Ok(())
 }
 
-pub fn world_cache_list(db: &DatabaseService) -> Result<Vec<WorldSummaryOutput>, Error> {
-    ensure_global_store_tables(db)?;
-    Ok(db
-        .execute(
-            "SELECT id, author_id, author_name, created_at, description, image_url, name, release_status, thumbnail_image_url, updated_at, version FROM cache_world",
-            &Default::default(),
-        )?
-        .into_iter()
-        .map(|row| world_summary_from_row(&row))
-        .collect())
-}
-
-pub fn world_cache_list_recent(
-    db: &DatabaseService,
-    limit: i64,
-) -> Result<Vec<WorldSummaryOutput>, Error> {
-    ensure_global_store_tables(db)?;
-    let limit = limit.max(0);
-    if limit == 0 {
-        return Ok(Vec::new());
-    }
-    Ok(db
-        .execute(
-            "SELECT id, author_id, author_name, created_at, description, image_url, name, release_status, thumbnail_image_url, updated_at, version FROM cache_world ORDER BY COALESCE(NULLIF(updated_at, ''), NULLIF(created_at, ''), added_at, id) DESC, id DESC LIMIT @limit",
-            &ParamsBuilder::new().set("limit", limit).build(),
-        )?
-        .into_iter()
-        .map(|row| world_summary_from_row(&row))
-        .collect())
-}
-
 pub fn world_cache_get(
     db: &DatabaseService,
     world_id: String,
@@ -89,6 +58,30 @@ pub fn world_cache_get(
         )?
         .first()
         .map(|row| world_summary_from_row(row)))
+}
+
+pub fn world_cache_search(
+    db: &DatabaseService,
+    query: impl AsRef<str>,
+    limit: i64,
+) -> Result<Vec<WorldSummaryOutput>, Error> {
+    ensure_global_store_tables(db)?;
+    let query = normalize_text(query);
+    let limit = limit.clamp(0, 50);
+    if query.is_empty() || limit == 0 {
+        return Ok(Vec::new());
+    }
+    Ok(db
+        .execute(
+            "SELECT id, author_id, author_name, created_at, description, image_url, name, release_status, thumbnail_image_url, updated_at, version FROM cache_world WHERE instr(lower(name), lower(@query)) > 0 ORDER BY CASE WHEN instr(lower(name), lower(@query)) = 1 THEN 0 ELSE 1 END, name COLLATE NOCASE, id LIMIT @limit",
+            &ParamsBuilder::new()
+                .set("query", query)
+                .set("limit", limit)
+                .build(),
+        )?
+        .into_iter()
+        .map(|row| world_summary_from_row(&row))
+        .collect())
 }
 
 pub fn world_cache_get_many(
@@ -226,6 +219,19 @@ mod tests {
     }
 
     #[test]
+    fn search_returns_only_matching_worlds_within_limit() {
+        let (_dir, db) = test_db("search-bounded");
+        world_cache_upsert(db.as_ref(), world_entry("wrld_a", "Cached Alpha")).unwrap();
+        world_cache_upsert(db.as_ref(), world_entry("wrld_b", "Cached Beta")).unwrap();
+        world_cache_upsert(db.as_ref(), world_entry("wrld_c", "Unrelated")).unwrap();
+
+        let rows = world_cache_search(db.as_ref(), "cached", 1).unwrap();
+
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].name.starts_with("Cached"));
+    }
+
+    #[test]
     fn cache_upsert_normalizes_world_id_for_get_and_remove() {
         let (_dir, db) = test_db("normalized-cache-id");
 
@@ -255,6 +261,8 @@ mod tests {
             ));
         }
 
-        assert!(world_cache_list(db.as_ref()).unwrap().is_empty());
+        assert!(world_cache_search(db.as_ref(), "Invalid World", 10)
+            .unwrap()
+            .is_empty());
     }
 }

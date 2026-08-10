@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 
-import { act, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { WorldProfileRecord } from '@/domain/entities/profileEntities';
-import { useWorldFactsStore } from '@/state/worldFactsStore';
 
 import { WorldCard } from './SearchResultParts';
 
@@ -50,32 +49,9 @@ const world = {
 } satisfies WorldProfileRecord;
 
 describe('SearchResultParts WorldCard', () => {
-    beforeEach(() => {
-        useWorldFactsStore.getState().resetWorldFacts();
-    });
-
-    it('updates occupants when a fresh world fact arrives', () => {
+    it('uses occupants from the requested world result', () => {
         render(<WorldCard world={world} />);
 
         expect(screen.getByText('Author (4)')).toBeTruthy();
-
-        act(() => {
-            useWorldFactsStore.getState().upsertWorldFacts({
-                id: world.id,
-                occupants: 12
-            });
-        });
-
-        expect(screen.getByText('Author (12)')).toBeTruthy();
-
-        act(() => {
-            useWorldFactsStore.getState().upsertWorldFacts({
-                id: world.id,
-                occupants: 0
-            });
-        });
-
-        expect(screen.getByText('Author')).toBeTruthy();
-        expect(screen.queryByText('Author (12)')).toBeNull();
     });
 });
