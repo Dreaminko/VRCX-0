@@ -63,7 +63,7 @@ function WorldDialogEmptyState({
 }) {
     return (
         <AppEmptyState
-            className="min-h-56"
+            className={loading ? 'min-h-[min(600px,80vh)]' : 'min-h-56'}
             title={title}
             description={description}
             icon={loading ? Spinner : undefined}
