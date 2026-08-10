@@ -17,8 +17,11 @@ import { useTranslation } from 'react-i18next';
 import { Location } from '@/components/Location';
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { formatDateFilter, timeToText } from '@/lib/dateTime';
+import { useKnownUserFacts } from '@/lib/useKnownUser';
 import { cn } from '@/lib/utils';
 import gameLogRepository from '@/repositories/gameLogRepository';
+import { userImage } from '@/services/entityMediaService';
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -26,6 +29,11 @@ import {
     CollapsibleContent,
     CollapsibleTrigger
 } from '@/ui/shadcn/collapsible';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger
+} from '@/ui/shadcn/hover-card';
 import { Separator } from '@/ui/shadcn/separator';
 import { Spinner } from '@/ui/shadcn/spinner';
 
@@ -80,6 +88,59 @@ type GameLogSessionFriend = ReturnType<
     typeof collectGameLogSessionFriends
 >[number];
 
+function SessionFriendList({
+    friends
+}: {
+    friends: readonly GameLogSessionFriend[];
+}) {
+    const friendUserIds = useMemo(
+        () => friends.map((friend) => friend.userId).filter(Boolean),
+        [friends]
+    );
+    const knownFriendsById = useKnownUserFacts(friendUserIds);
+
+    return (
+        <ul className="max-h-72 overflow-y-auto py-1" role="list">
+            {friends.map((friend) => {
+                const knownFriend = knownFriendsById[friend.userId] || null;
+                const displayName =
+                    friend.displayName ||
+                    knownFriend?.displayName ||
+                    friend.userId;
+                const avatarUrl = userImage(knownFriend, true, '64');
+
+                return (
+                    <li
+                        key={friend.key}
+                        className="flex min-w-0 items-center gap-2 px-2 py-1.5"
+                    >
+                        <Avatar size="sm">
+                            {avatarUrl ? (
+                                <AvatarImage
+                                    src={avatarUrl}
+                                    alt=""
+                                    loading="lazy"
+                                />
+                            ) : null}
+                            <AvatarFallback
+                                className={cn(
+                                    'text-[10px]',
+                                    facepileClass(friend.key)
+                                )}
+                            >
+                                {facepileInitial(displayName)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                            {displayName}
+                        </span>
+                    </li>
+                );
+            })}
+        </ul>
+    );
+}
+
 function SessionFriendFacepile({
     friends
 }: {
@@ -88,13 +149,14 @@ function SessionFriendFacepile({
     const { t } = useTranslation();
     const shown = friends.slice(0, 3);
     const extra = friends.length - shown.length;
+    const friendsCountLabel = t('view.game_log.sessions.friends_count', {
+        count: friends.length
+    });
 
     return (
         <div
             className="flex shrink-0 items-center"
-            aria-label={t('view.game_log.sessions.friends_count', {
-                count: friends.length
-            })}
+            aria-label={friendsCountLabel}
         >
             {shown.map((friend) => (
                 <UserHoverCard
@@ -120,9 +182,33 @@ function SessionFriendFacepile({
                 </UserHoverCard>
             ))}
             {extra > 0 ? (
-                <span className="text-muted-foreground ml-1 text-xs tabular-nums">
-                    +{extra}
-                </span>
+                <HoverCard>
+                    <HoverCardTrigger
+                        delay={250}
+                        closeDelay={120}
+                        render={
+                            <button
+                                type="button"
+                                aria-label={friendsCountLabel}
+                                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 ml-1 cursor-pointer rounded-sm text-xs tabular-nums outline-none focus-visible:ring-2"
+                                onClick={(event) => event.stopPropagation()}
+                            >
+                                +{extra}
+                            </button>
+                        }
+                    />
+                    <HoverCardContent
+                        side="bottom"
+                        align="end"
+                        sideOffset={6}
+                        className="w-64 p-1.5"
+                    >
+                        <div className="text-muted-foreground px-2 pt-1 pb-0.5 text-xs font-medium">
+                            {friendsCountLabel}
+                        </div>
+                        <SessionFriendList friends={friends} />
+                    </HoverCardContent>
+                </HoverCard>
             ) : null}
         </div>
     );
