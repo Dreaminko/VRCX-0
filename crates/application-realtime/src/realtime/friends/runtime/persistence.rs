@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::iter::once_with;
 
 use chrono::Utc;
 use serde_json::{json, Map, Value};
@@ -499,27 +500,33 @@ fn resolve_location_name(
 ) -> ResolvedLocationNames {
     let parsed = parse_location(location);
     ResolvedLocationNames {
-        world_name: first_owned([
-            patch.text_field("worldName"),
-            patch
-                .get("world")
-                .and_then(|world| world.get("name"))
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_string(),
-            previous
-                .map(|previous| record_string(previous, "worldName"))
-                .unwrap_or_default(),
-            parsed.world_id.clone(),
-            location.to_string(),
-        ]),
-        group_name: first_owned([
-            patch.text_field("groupName"),
-            previous
-                .map(|previous| record_string(previous, "groupName"))
-                .unwrap_or_default(),
-            parsed.group_id.clone().unwrap_or_default(),
-        ]),
+        world_name: first_owned(
+            once_with(|| patch.text_field("worldName"))
+                .chain(once_with(|| {
+                    patch
+                        .get("world")
+                        .and_then(|world| world.get("name"))
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string()
+                }))
+                .chain(once_with(|| {
+                    previous
+                        .map(|previous| record_string(previous, "worldName"))
+                        .unwrap_or_default()
+                }))
+                .chain(once_with(|| parsed.world_id.clone()))
+                .chain(once_with(|| location.to_string())),
+        ),
+        group_name: first_owned(
+            once_with(|| patch.text_field("groupName"))
+                .chain(once_with(|| {
+                    previous
+                        .map(|previous| record_string(previous, "groupName"))
+                        .unwrap_or_default()
+                }))
+                .chain(once_with(|| parsed.group_id.clone().unwrap_or_default())),
+        ),
     }
 }
 
@@ -530,28 +537,34 @@ fn resolve_record_location_name(
 ) -> ResolvedLocationNames {
     let parsed = parse_location(location);
     ResolvedLocationNames {
-        world_name: first_owned([
-            record_string(current, "worldName"),
-            current
-                .extra
-                .get("world")
-                .and_then(|world| world.get("name"))
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_string(),
-            previous
-                .map(|previous| record_string(previous, "worldName"))
-                .unwrap_or_default(),
-            parsed.world_id.clone(),
-            location.to_string(),
-        ]),
-        group_name: first_owned([
-            record_string(current, "groupName"),
-            previous
-                .map(|previous| record_string(previous, "groupName"))
-                .unwrap_or_default(),
-            parsed.group_id.unwrap_or_default(),
-        ]),
+        world_name: first_owned(
+            once_with(|| record_string(current, "worldName"))
+                .chain(once_with(|| {
+                    current
+                        .extra
+                        .get("world")
+                        .and_then(|world| world.get("name"))
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .to_string()
+                }))
+                .chain(once_with(|| {
+                    previous
+                        .map(|previous| record_string(previous, "worldName"))
+                        .unwrap_or_default()
+                }))
+                .chain(once_with(|| parsed.world_id.clone()))
+                .chain(once_with(|| location.to_string())),
+        ),
+        group_name: first_owned(
+            once_with(|| record_string(current, "groupName"))
+                .chain(once_with(|| {
+                    previous
+                        .map(|previous| record_string(previous, "groupName"))
+                        .unwrap_or_default()
+                }))
+                .chain(once_with(|| parsed.group_id.unwrap_or_default())),
+        ),
     }
 }
 

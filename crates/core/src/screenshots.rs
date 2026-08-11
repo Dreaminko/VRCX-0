@@ -146,9 +146,18 @@ impl ScreenshotMetadata {
 
     pub fn contains_player_name(&self, name: &str) -> bool {
         let lower = name.to_lowercase();
+        self.contains_player_name_lowercase(&lower)
+    }
+
+    pub fn contains_player_name_lowercase(&self, lowercase_name: &str) -> bool {
         self.players
             .iter()
-            .any(|p| p.display_name.to_lowercase().contains(&lower))
+            .any(|p| {
+                crate::text::contains_lowercase_query_case_insensitive(
+                    &p.display_name,
+                    lowercase_name,
+                )
+            })
     }
 }
 

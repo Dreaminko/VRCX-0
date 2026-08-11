@@ -21,9 +21,22 @@ pub fn first_owned(values: impl IntoIterator<Item = String>) -> String {
     value.trim().to_string()
 }
 
+pub fn contains_lowercase_query_case_insensitive(value: &str, lowercase_query: &str) -> bool {
+    if lowercase_query.is_empty() {
+        return true;
+    }
+    if value.is_ascii() && lowercase_query.is_ascii() {
+        return value
+            .as_bytes()
+            .windows(lowercase_query.len())
+            .any(|window| window.eq_ignore_ascii_case(lowercase_query.as_bytes()));
+    }
+    value.to_lowercase().contains(lowercase_query)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{first_non_empty, first_owned};
+    use super::{contains_lowercase_query_case_insensitive, first_non_empty, first_owned};
 
     #[test]
     fn first_non_empty_skips_blanks_and_trims() {
@@ -38,5 +51,22 @@ mod tests {
             "picked"
         );
         assert_eq!(first_owned([String::new()]), "");
+    }
+
+    #[test]
+    fn case_insensitive_contains_matches_lowercase_search_semantics() {
+        for (value, query) in [
+            ("Player One", "player"),
+            ("usr_ABC123", "abc"),
+            ("İstanbul", "i"),
+            ("Straße", "straße"),
+            ("anything", ""),
+        ] {
+            let lowercase_query = query.to_lowercase();
+            assert_eq!(
+                contains_lowercase_query_case_insensitive(value, &lowercase_query),
+                value.to_lowercase().contains(&lowercase_query)
+            );
+        }
     }
 }

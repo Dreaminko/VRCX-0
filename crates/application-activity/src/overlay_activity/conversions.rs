@@ -4,12 +4,12 @@ use vrcx_0_application_core::{
     RealtimeInstanceQueueProjection, RealtimeNotificationProjection,
 };
 
-use super::content::nested_string;
+use super::content::nested_str;
 use super::definitions::known_definition_for_type;
 use super::types::{OverlayActivityCandidate, OverlayActivityEntry};
 use super::OverlayActivityRuntime;
 use vrcx_0_core::json::JsonExt;
-use vrcx_0_core::text::first_owned;
+use vrcx_0_core::text::first_non_empty_owned;
 
 impl OverlayActivityRuntime {
     pub fn ingest_friend_projection(
@@ -72,9 +72,9 @@ impl OverlayActivityRuntime {
     ) -> Vec<OverlayActivityEntry> {
         let notification = &projection.notification;
         let location = notification.trimmed_text("location");
-        let created_at = first_owned([
-            notification.trimmed_text("createdAt"),
-            notification.trimmed_text("created_at"),
+        let created_at = first_non_empty_owned([
+            notification.trimmed_field("createdAt").unwrap_or_default(),
+            notification.trimmed_field("created_at").unwrap_or_default(),
         ]);
         let candidate = OverlayActivityCandidate {
             source_id: format!("instance-closed:{location}:{created_at}"),
@@ -101,9 +101,9 @@ impl OverlayActivityRuntime {
 fn friend_feed_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
     let activity_type = value.trimmed_text("type");
     known_definition_for_type(&activity_type)?;
-    let created_at = first_owned([
-        value.trimmed_text("created_at"),
-        value.trimmed_text("createdAt"),
+    let created_at = first_non_empty_owned([
+        value.trimmed_field("created_at").unwrap_or_default(),
+        value.trimmed_field("createdAt").unwrap_or_default(),
     ]);
     let user_id = value.trimmed_text("userId");
     let current_instance = activity_type == "OnPlayerJoining";
@@ -121,13 +121,13 @@ fn friend_feed_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
 fn notification_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
     let activity_type = value.trimmed_text("type");
     known_definition_for_type(&activity_type)?;
-    let id = first_owned([
-        value.trimmed_text("id"),
-        value.trimmed_text("notificationId"),
+    let id = first_non_empty_owned([
+        value.trimmed_field("id").unwrap_or_default(),
+        value.trimmed_field("notificationId").unwrap_or_default(),
     ]);
-    let created_at = first_owned([
-        value.trimmed_text("createdAt"),
-        value.trimmed_text("created_at"),
+    let created_at = first_non_empty_owned([
+        value.trimmed_field("createdAt").unwrap_or_default(),
+        value.trimmed_field("created_at").unwrap_or_default(),
     ]);
     let actor_user_id = value.trimmed_text("senderUserId");
     let actor_user_id = if actor_user_id.starts_with("usr_") {
@@ -156,14 +156,16 @@ fn notification_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
 }
 
 fn notification_actor_display_name(value: &Value) -> String {
-    first_owned([
-        value.trimmed_text("senderDisplayName"),
-        value.trimmed_text("displayName"),
-        value.trimmed_text("senderUsername"),
-        nested_string(value, &["details", "senderDisplayName"]),
-        nested_string(value, &["details", "displayName"]),
-        nested_string(value, &["data", "senderDisplayName"]),
-        nested_string(value, &["data", "displayName"]),
+    first_non_empty_owned([
+        value
+            .trimmed_field("senderDisplayName")
+            .unwrap_or_default(),
+        value.trimmed_field("displayName").unwrap_or_default(),
+        value.trimmed_field("senderUsername").unwrap_or_default(),
+        nested_str(value, &["details", "senderDisplayName"]),
+        nested_str(value, &["details", "displayName"]),
+        nested_str(value, &["data", "senderDisplayName"]),
+        nested_str(value, &["data", "displayName"]),
     ])
 }
 

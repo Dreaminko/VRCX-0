@@ -3,7 +3,7 @@ pub(crate) use vrcx_0_core::location::is_meaningful_world_name;
 use vrcx_0_core::location::{format_display_location, parse_location, world_id_from_location};
 
 use vrcx_0_application_core::{RealtimeEntryCorrectionStream, WorldCache};
-use vrcx_0_core::text::first_owned;
+use vrcx_0_core::text::{first_non_empty, first_non_empty_owned};
 
 #[derive(Clone, Debug)]
 pub(crate) struct PendingWorldNameResolution {
@@ -66,7 +66,7 @@ pub(crate) fn enrich_world_name(
                 details.insert("worldName".into(), Value::String(world_name));
             }
         }
-        if !world_id.is_empty() && object_string(object, "worldId").is_empty() {
+        if !world_id.is_empty() && object_str(object, "worldId").is_empty() {
             object.insert("worldId".into(), Value::String(world_id));
         }
     }
@@ -87,51 +87,51 @@ pub(crate) fn resolved_display_location(
 }
 
 pub(crate) fn feed_entry_correction_id(object: &serde_json::Map<String, Value>) -> String {
-    let id = object_string(object, "id");
+    let id = object_str(object, "id");
     if !id.is_empty() {
         return format!("id:{id}");
     }
-    let row_id = first_owned([
-        object_string(object, "rowId"),
-        object_string(object, "row_id"),
+    let row_id = first_non_empty([
+        object_str(object, "rowId"),
+        object_str(object, "row_id"),
     ]);
     if !row_id.is_empty() {
-        let source_rank = first_owned([
-            object_string(object, "sourceRank"),
-            object_string(object, "source_rank"),
+        let source_rank = first_non_empty([
+            object_str(object, "sourceRank"),
+            object_str(object, "source_rank"),
         ]);
-        let entry_type = object_string(object, "type");
+        let entry_type = object_str(object, "type");
         if !source_rank.is_empty() {
             return format!("row:{entry_type}:{source_rank}:{row_id}");
         }
         return format!("row:{entry_type}:{row_id}");
     }
-    let entry_type = object_string(object, "type");
-    let created_at = first_owned([
-        object_string(object, "created_at"),
-        object_string(object, "createdAt"),
+    let entry_type = object_str(object, "type");
+    let created_at = first_non_empty([
+        object_str(object, "created_at"),
+        object_str(object, "createdAt"),
     ]);
-    let user_id = first_owned([
-        object_string(object, "userId"),
-        object_string(object, "senderUserId"),
+    let user_id = first_non_empty([
+        object_str(object, "userId"),
+        object_str(object, "senderUserId"),
     ]);
-    let location = first_owned([
-        object_string(object, "location"),
-        nested_object_string(object, &["details", "location"]),
+    let location = first_non_empty([
+        object_str(object, "location"),
+        nested_object_str(object, &["details", "location"]),
     ]);
-    let message = object_string(object, "message");
+    let message = object_str(object, "message");
     format!("{entry_type}:{created_at}:{user_id}:{location}:{message}")
 }
 
 fn notification_world_id_from_object(object: &serde_json::Map<String, Value>) -> String {
     first_world_id([
-        object_string(object, "worldId"),
-        object_string(object, "worldName"),
-        object_string(object, "location"),
-        object_string(object, "instanceLocation"),
-        nested_object_string(object, &["details", "worldId"]),
-        nested_object_string(object, &["details", "worldName"]),
-        nested_object_string(object, &["details", "location"]),
+        object_str(object, "worldId"),
+        object_str(object, "worldName"),
+        object_str(object, "location"),
+        object_str(object, "instanceLocation"),
+        nested_object_str(object, &["details", "worldId"]),
+        nested_object_str(object, &["details", "worldName"]),
+        nested_object_str(object, &["details", "location"]),
     ])
 }
 
@@ -146,80 +146,87 @@ fn pending_entry_correction(
     (!id.trim().is_empty()).then(|| PendingEntryCorrection {
         stream,
         id,
-        location: first_owned([
-            object_string(object, "location"),
-            nested_object_string(object, &["details", "location"]),
-            object_string(object, "instanceLocation"),
+        location: first_non_empty_owned([
+            object_str(object, "location"),
+            nested_object_str(object, &["details", "location"]),
+            object_str(object, "instanceLocation"),
         ]),
-        group_name: first_owned([
-            object_string(object, "groupName"),
-            nested_object_string(object, &["details", "groupName"]),
+        group_name: first_non_empty_owned([
+            object_str(object, "groupName"),
+            nested_object_str(object, &["details", "groupName"]),
         ]),
     })
 }
 
 fn notification_id_from_object(object: &serde_json::Map<String, Value>) -> String {
-    let id = object_string(object, "id");
-    if id.is_empty() {
-        object_string(object, "notificationId")
-    } else {
-        id
-    }
+    first_non_empty_owned([
+        object_str(object, "id"),
+        object_str(object, "notificationId"),
+    ])
 }
 
 fn apply_display_location(object: &mut serde_json::Map<String, Value>) {
-    let location = first_owned([
-        object_string(object, "location"),
-        nested_object_string(object, &["details", "location"]),
-        object_string(object, "instanceLocation"),
+    let location = first_non_empty([
+        object_str(object, "location"),
+        nested_object_str(object, &["details", "location"]),
+        object_str(object, "instanceLocation"),
     ]);
-    let world_name = first_owned([
-        object_string(object, "worldName"),
-        nested_object_string(object, &["details", "worldName"]),
+    let world_name = first_non_empty([
+        object_str(object, "worldName"),
+        nested_object_str(object, &["details", "worldName"]),
     ]);
-    let group_name = first_owned([
-        object_string(object, "groupName"),
-        nested_object_string(object, &["details", "groupName"]),
+    let group_name = first_non_empty([
+        object_str(object, "groupName"),
+        nested_object_str(object, &["details", "groupName"]),
     ]);
-    let display_location = resolved_display_location(&location, &world_name, &group_name);
+    let display_location = resolved_display_location(location, world_name, group_name);
     if !display_location.is_empty() {
         object.insert("displayLocation".into(), Value::String(display_location));
     }
 }
 
 fn object_string(object: &serde_json::Map<String, Value>, key: &str) -> String {
+    object_str(object, key).to_string()
+}
+
+fn object_str<'a>(object: &'a serde_json::Map<String, Value>, key: &str) -> &'a str {
     object
         .get(key)
         .and_then(Value::as_str)
         .map(str::trim)
-        .map(ToString::to_string)
         .unwrap_or_default()
 }
 
 fn nested_object_string(object: &serde_json::Map<String, Value>, path: &[&str]) -> String {
+    nested_object_str(object, path).to_string()
+}
+
+fn nested_object_str<'a>(
+    object: &'a serde_json::Map<String, Value>,
+    path: &[&str],
+) -> &'a str {
     let Some((first, rest)) = path.split_first() else {
-        return String::new();
+        return "";
     };
     let Some(mut current) = object.get(*first) else {
-        return String::new();
+        return "";
     };
     for key in rest {
         let Some(next) = current.get(*key) else {
-            return String::new();
+            return "";
         };
         current = next;
     }
     current
         .as_str()
         .map(str::trim)
-        .map(ToString::to_string)
         .unwrap_or_default()
 }
 
-fn first_world_id<const N: usize>(values: [String; N]) -> String {
+fn first_world_id<const N: usize>(values: [&str; N]) -> String {
     values
         .into_iter()
-        .map(|value| world_id_from_location_or_id(&value))
+        .map(world_id_from_location_or_id)
         .find(|value| !value.is_empty())
         .unwrap_or_default()
 }

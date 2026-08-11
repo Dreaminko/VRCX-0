@@ -8,6 +8,7 @@ use super::{
     SCREENSHOT_LIBRARY_INDEX_VERSION,
 };
 use crate::{RuntimeEventBus, TaskStopToken, TaskSupervisor};
+use vrcx_0_core::text::contains_lowercase_query_case_insensitive;
 
 pub(super) fn screenshot_search_result(
     path: &str,
@@ -54,6 +55,12 @@ pub fn find_screenshots(
 
     let mut result = Vec::new();
     let mut to_cache: Vec<(String, Option<String>)> = Vec::new();
+    let lowercase_query = matches!(
+        search_type,
+        ScreenshotSearchType::Username | ScreenshotSearchType::WorldName
+    )
+    .then(|| query.to_lowercase());
+    let lowercase_query = lowercase_query.as_deref().unwrap_or_default();
 
     let files: Vec<String> = walkdir::WalkDir::new(dir)
         .into_iter()
@@ -84,13 +91,17 @@ pub fn find_screenshots(
 
         if let Some(meta) = metadata {
             let matched = match search_type {
-                ScreenshotSearchType::Username => meta.contains_player_name(query),
+                ScreenshotSearchType::Username => {
+                    meta.contains_player_name_lowercase(lowercase_query)
+                }
                 ScreenshotSearchType::UserId => meta.contains_player_id(query),
                 ScreenshotSearchType::WorldName => meta
                     .world
                     .name
                     .as_ref()
-                    .is_some_and(|n| n.to_lowercase().contains(&query.to_lowercase())),
+                    .is_some_and(|name| {
+                        contains_lowercase_query_case_insensitive(name, lowercase_query)
+                    }),
                 ScreenshotSearchType::WorldId => meta.world.id == query,
             };
             if matched {

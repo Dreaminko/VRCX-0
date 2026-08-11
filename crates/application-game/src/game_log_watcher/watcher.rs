@@ -263,8 +263,6 @@ pub(super) fn update(
 
     let till_date = chrono::TimeZone::from_utc_datetime(&Local, &till_date_utc).naive_local();
 
-    let mut deleted: HashSet<String> = contexts.keys().cloned().collect();
-
     if !log_dir.exists() {
         *first_run = false;
         return false;
@@ -274,9 +272,14 @@ pub(super) fn update(
         .into_iter()
         .flatten()
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.file_name().to_string_lossy().starts_with("output_log_")
-                && e.file_name().to_string_lossy().ends_with(".txt")
+        .filter_map(|entry| {
+            let file_name = entry.file_name();
+            let name = file_name.to_string_lossy();
+            if !name.starts_with("output_log_") || !name.ends_with(".txt") {
+                return None;
+            }
+            let name = name.into_owned();
+            Some((entry, file_name, name))
         })
         .collect();
 
@@ -286,11 +289,12 @@ pub(super) fn update(
     {
         let latest = entries
             .into_iter()
-            .max_by_key(|entry| entry.file_name())
+            .max_by(|left, right| left.1.cmp(&right.1))
             .expect("multiple GameLog entries");
         entries = vec![latest];
     } else {
-        entries.sort_by_key(|entry| entry.metadata().and_then(|meta| meta.created()).ok());
+        entries
+            .sort_by_key(|(entry, _, _)| entry.metadata().and_then(|meta| meta.created()).ok());
     }
 
     let mut sink = queue::WatcherParseSink {
@@ -298,8 +302,8 @@ pub(super) fn update(
         first_run: *first_run,
     };
     let mut saw_new_data = false;
-    for entry in entries {
-        let name = entry.file_name().to_string_lossy().to_string();
+    let mut present = HashSet::with_capacity(entries.len());
+    for (entry, _, name) in entries {
         let meta = match entry.metadata() {
             Ok(m) => m,
             Err(_) => continue,
@@ -312,16 +316,18 @@ pub(super) fn update(
             }
         }
 
-        deleted.remove(&name);
-
-        let ctx = contexts.entry(name.clone()).or_insert_with(LogContext::new);
+        if !contexts.contains_key(&name) {
+            contexts.insert(name.clone(), LogContext::new());
+        }
+        let ctx = contexts
+            .get_mut(&name)
+            .expect("GameLog context was inserted");
 
         saw_new_data |= game_log_parser::parse_log(&mut sink, &entry.path(), &name, ctx, till_date);
+        present.insert(name);
     }
 
-    for name in deleted {
-        contexts.remove(&name);
-    }
+    contexts.retain(|name, _| present.contains(name));
 
     queue::flush_game_log_events(inner, *first_run);
     *first_run = false;

@@ -579,15 +579,14 @@ impl WebClient {
 
         let mut content_type_override: Option<String> = None;
         for (key, val_str) in &request.headers {
-            let key_lower = key.to_lowercase();
-            if key_lower == "content-type" {
+            if key.eq_ignore_ascii_case("content-type") {
                 content_type_override = Some(val_str.to_string());
                 continue;
             }
-            if key_lower == "user-agent" {
+            if key.eq_ignore_ascii_case("user-agent") {
                 continue;
             }
-            if key_lower == "referer" {
+            if key.eq_ignore_ascii_case("referer") {
                 builder = builder.header(REFERER, val_str);
             } else if let (Ok(name), Ok(value)) = (
                 HeaderName::from_bytes(key.as_bytes()),
@@ -626,7 +625,7 @@ impl WebClient {
             .client
             .put(&request.url)
             .header(CONTENT_TYPE, file_mime)
-            .body(bytes.clone());
+            .body(bytes);
 
         if let Some(md5) = file_md5 {
             let md5_bytes = B64
@@ -636,11 +635,10 @@ impl WebClient {
         }
 
         for (key, val_str) in &request.headers {
-            let key_lower = key.to_lowercase();
-            if key_lower == "content-type" {
+            if key.eq_ignore_ascii_case("content-type") {
                 continue;
             }
-            if key_lower == "user-agent" {
+            if key.eq_ignore_ascii_case("user-agent") {
                 continue;
             }
             if let (Ok(name), Ok(value)) = (
@@ -1082,6 +1080,43 @@ mod tests {
             .await?;
         text_server.await.unwrap();
         assert_eq!(text_response, (200, "not an image".into()));
+        Ok(())
+    }
+
+    #[test]
+    fn file_put_decodes_body_and_ignores_reserved_header_overrides() -> Result<()> {
+        let web = WebClient::new(None, None, env!("CARGO_PKG_VERSION"))?;
+        let mut request = WebExecuteRequest::new(
+            "https://api.vrchat.cloud/api/1/file/file_1/1/file".into(),
+            "PUT".into(),
+        );
+        request
+            .headers
+            .push(("cOnTeNt-TyPe".into(), "text/plain".into()));
+        request
+            .headers
+            .push(("uSeR-aGeNt".into(), "caller-override".into()));
+        let payload = b"payload";
+
+        let built = web.build_file_put_request(
+            &request,
+            &B64.encode(payload),
+            "application/octet-stream",
+            None,
+        )?;
+
+        assert_eq!(
+            built.headers().get(CONTENT_TYPE).and_then(|v| v.to_str().ok()),
+            Some("application/octet-stream")
+        );
+        assert_ne!(
+            built
+                .headers()
+                .get(reqwest::header::USER_AGENT)
+                .and_then(|value| value.to_str().ok()),
+            Some("caller-override")
+        );
+        assert_eq!(built.body().and_then(|body| body.as_bytes()), Some(&payload[..]));
         Ok(())
     }
 

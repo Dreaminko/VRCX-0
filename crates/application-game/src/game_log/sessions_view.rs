@@ -7,6 +7,7 @@ use vrcx_0_core::game_log_sessions::{
     build_game_log_sessions, SessionEventInput, SessionEventOut, SessionLocationInput,
     SessionMemberOut, SessionSegmentOut,
 };
+use vrcx_0_core::text::contains_lowercase_query_case_insensitive;
 use vrcx_0_persistence::game_log::{
     get_session_events_for_range, get_session_location_segments,
     get_session_location_segments_by_date_range, SessionLocationSegmentRow,
@@ -309,14 +310,13 @@ fn session_event_filter_type(type_: &str) -> &str {
 
 fn contains_ci(value: &Option<String>, query: &str) -> bool {
     value
-        .as_ref()
-        .map(|value| value.to_lowercase().contains(query))
-        .unwrap_or(false)
+        .as_deref()
+        .is_some_and(|value| contains_lowercase_query_case_insensitive(value, query))
 }
 
 fn member_matches_search(member: &SessionMemberOut, query: &str) -> bool {
-    member.display_name.to_lowercase().contains(query)
-        || member.user_id.to_lowercase().contains(query)
+    contains_lowercase_query_case_insensitive(&member.display_name, query)
+        || contains_lowercase_query_case_insensitive(&member.user_id, query)
 }
 
 // Retain only members matching `pred`, updating `count`; drop the event (None)
@@ -356,7 +356,7 @@ fn filter_event_by_search(event: SessionEventOut, query: &str) -> Option<Session
     if query.is_empty() {
         return Some(event);
     }
-    let value_matches = event.type_.to_lowercase().contains(query)
+    let value_matches = contains_lowercase_query_case_insensitive(&event.type_, query)
         || contains_ci(&event.display_name, query)
         || contains_ci(&event.user_id, query)
         || contains_ci(&event.video_name, query)
@@ -408,7 +408,7 @@ fn header_matches_search(segment: &SessionSegmentOut, query: &str) -> bool {
         &segment.group_name,
     ]
     .iter()
-    .any(|value| value.to_lowercase().contains(query))
+    .any(|value| contains_lowercase_query_case_insensitive(value, query))
 }
 
 fn filter_sessions(

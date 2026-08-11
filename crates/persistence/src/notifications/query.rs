@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use serde_json::{json, Value};
+use vrcx_0_core::text::contains_lowercase_query_case_insensitive;
 
 use crate::common::{
     add_list_params, normalize_text, now_iso, parse_json_value, strict_row_i64, strict_row_string,
@@ -113,7 +114,7 @@ fn notification_matches_search(notification: &NotificationListItemOutput, search
         notification_value_text(&notification.data, "groupName"),
     ]
     .iter()
-    .any(|value| value.to_lowercase().contains(&search))
+    .any(|value| contains_lowercase_query_case_insensitive(value, &search))
 }
 
 fn notification_matches_filters(

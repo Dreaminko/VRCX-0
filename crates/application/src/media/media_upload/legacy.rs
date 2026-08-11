@@ -98,15 +98,15 @@ pub async fn upload_legacy_entity_image(
     for (kind, file_data, file_mime, file_md5) in [
         (
             FileUploadStageKind::File,
-            input.base64_file.as_str(),
+            input.base64_file,
             "image/png",
-            file_md5.as_str(),
+            file_md5,
         ),
         (
             FileUploadStageKind::Signature,
-            signature_file.as_str(),
+            signature_file,
             "application/x-rsync-signature",
-            signature_md5.as_str(),
+            signature_md5,
         ),
     ] {
         let stage_path = file_upload_stage_path(uploaded_file_id.clone(), file_version, kind)?;
@@ -127,9 +127,9 @@ pub async fn upload_legacy_entity_image(
             &deps,
             file_put_input(
                 upload_url,
-                file_data.to_string(),
+                file_data,
                 file_mime.to_string(),
-                file_md5.to_string(),
+                file_md5,
             ),
             &format!("{} image file PUT failed", target.entity_label),
         )
