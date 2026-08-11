@@ -9,7 +9,6 @@ import type { AppColumnDef } from '@/components/data-table/appTable';
 import { useAppTable } from '@/components/data-table/appTable';
 import {
     sanitizeTableColumnOrder,
-    sanitizeTableColumnSizing,
     sanitizeTableColumnVisibility,
     usePersistedDataTableLayout
 } from '@/components/data-table/dataTablePersistence';
@@ -112,10 +111,6 @@ export function useGroupModerationTable<TData extends RowData>({
                 tableLayout.columnOrder,
                 columnIds
             ),
-            columnSizing: sanitizeTableColumnSizing(
-                tableLayout.columnSizing,
-                columnIds
-            ),
             columnVisibility: sanitizeTableColumnVisibility(
                 tableLayout.columnVisibility,
                 columnIds
@@ -126,7 +121,6 @@ export function useGroupModerationTable<TData extends RowData>({
         columnIds,
         sorting,
         tableLayout.columnOrder,
-        tableLayout.columnSizing,
         tableLayout.columnVisibility,
         tableLayout.writePersistedState
     ]);

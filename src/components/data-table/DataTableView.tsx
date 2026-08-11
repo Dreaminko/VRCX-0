@@ -52,7 +52,6 @@ import {
 } from './dataTableColumnDndContext';
 import {
     sanitizeTableColumnOrder,
-    sanitizeTableColumnSizing,
     usePersistedDataTableLayout
 } from './dataTablePersistence';
 import { ResizableTableCell, ResizableTableHead } from './ResizableTableParts';
@@ -497,17 +496,12 @@ export function DataTableView<TData extends RowData>({
             columnOrder: sanitizeTableColumnOrder(
                 tableLayout.columnOrder,
                 columnIds
-            ),
-            columnSizing: sanitizeTableColumnSizing(
-                tableLayout.columnSizing,
-                columnIds
             )
         });
     }, [
         columnIds,
         persistTableLayout,
         tableLayout.columnOrder,
-        tableLayout.columnSizing,
         tableLayout.writePersistedState
     ]);
 

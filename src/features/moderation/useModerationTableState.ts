@@ -1,6 +1,7 @@
 import type { PaginationState } from '@tanstack/react-table';
 import { useEffect, useRef, useState } from 'react';
 
+import { usePersistedTableColumnSizing } from '@/components/data-table/dataTablePersistence';
 import {
     getTablePageSizePreference,
     getTablePageSizesPreference
@@ -8,11 +9,11 @@ import {
 import { usePreferencesStore } from '@/state/preferencesStore';
 
 import {
+    MODERATION_COLUMN_IDS,
     MODERATION_DEFAULT_PAGE_SIZES,
     readModerationPersistedState,
     resolveModerationPageSize,
     sanitizeModerationColumnOrder,
-    sanitizeModerationColumnSizing,
     sanitizeModerationColumnVisibility,
     sanitizeModerationPageSizes,
     sanitizeModerationSorting,
@@ -48,9 +49,11 @@ export function useModerationTableState({
     const [columnOrder, setColumnOrder] = useState(() =>
         sanitizeModerationColumnOrder(persistedState.columnOrder)
     );
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizeModerationColumnSizing(persistedState.columnSizing)
-    );
+    const [columnSizing, setColumnSizing] = usePersistedTableColumnSizing({
+        columnIds: MODERATION_COLUMN_IDS,
+        initialValue: persistedState.columnSizing,
+        writePersistedState: writeModerationPersistedState
+    });
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
@@ -157,10 +160,9 @@ export function useModerationTableState({
             columnVisibility:
                 sanitizeModerationColumnVisibility(columnVisibility),
             columnOrder: sanitizeModerationColumnOrder(columnOrder),
-            columnSizing: sanitizeModerationColumnSizing(columnSizing),
             columnOrderLocked
         });
-    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnVisibility]);
 
     useEffect(() => {
         setPagination((current) => ({

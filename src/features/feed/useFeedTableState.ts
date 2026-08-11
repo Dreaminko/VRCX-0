@@ -2,6 +2,7 @@ import type { PaginationState } from '@tanstack/react-table';
 import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
+import { usePersistedTableColumnSizing } from '@/components/data-table/dataTablePersistence';
 import configRepository from '@/repositories/configRepository';
 import { FEED_FILTER_TYPES } from '@/repositories/feedRepository';
 import {
@@ -11,12 +12,12 @@ import {
 import { usePreferencesStore } from '@/state/preferencesStore';
 
 import {
+    FEED_TABLE_ORDER_COLUMN_IDS,
     FEED_TABLE_DEFAULT_PAGE_SIZES as DEFAULT_PAGE_SIZES,
     readPersistedFeedTableState as readPersistedState,
     resolveFeedPageSize as resolvePageSize,
     safeJsonParse,
     sanitizeFeedColumnOrder as sanitizeColumnOrder,
-    sanitizeFeedColumnSizing as sanitizeColumnSizing,
     sanitizeFeedColumnVisibility as sanitizeColumnVisibility,
     sanitizeFeedPageSizes as sanitizePageSizes,
     sanitizeFeedSorting as sanitizeSorting,
@@ -72,9 +73,11 @@ export function useFeedTableState({
     const [columnOrder, setColumnOrder] = useState(() =>
         sanitizeColumnOrder(persistedState.columnOrder)
     );
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizeColumnSizing(persistedState.columnSizing)
-    );
+    const [columnSizing, setColumnSizing] = usePersistedTableColumnSizing({
+        columnIds: FEED_TABLE_ORDER_COLUMN_IDS,
+        initialValue: persistedState.columnSizing,
+        writePersistedState
+    });
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
@@ -209,10 +212,9 @@ export function useFeedTableState({
         }
         writePersistedState({
             columnOrder: sanitizeColumnOrder(columnOrder),
-            columnSizing: sanitizeColumnSizing(columnSizing),
             columnOrderLocked
         });
-    }, [columnOrder, columnOrderLocked, columnSizing]);
+    }, [columnOrder, columnOrderLocked]);
 
     useEffect(() => {
         setPagination((current) => ({

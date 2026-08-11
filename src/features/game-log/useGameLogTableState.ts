@@ -1,6 +1,7 @@
 import type { PaginationState } from '@tanstack/react-table';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { usePersistedTableColumnSizing } from '@/components/data-table/dataTablePersistence';
 import {
     getTablePageSizePreference,
     getTablePageSizesPreference
@@ -8,11 +9,11 @@ import {
 import { usePreferencesStore } from '@/state/preferencesStore';
 
 import {
+    GAME_LOG_COLUMN_IDS,
     GAME_LOG_DEFAULT_PAGE_SIZES,
     readPersistedGameLogState,
     resolveGameLogPageSize,
     sanitizeGameLogColumnOrder,
-    sanitizeGameLogColumnSizing,
     sanitizeGameLogColumnVisibility,
     sanitizeGameLogPageSizes,
     sanitizeGameLogSorting,
@@ -65,9 +66,11 @@ export function useGameLogTableState({
     const [columnOrder, setColumnOrder] = useState(() =>
         sanitizeGameLogColumnOrder(persistedState.columnOrder)
     );
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizeGameLogColumnSizing(persistedState.columnSizing)
-    );
+    const [columnSizing, setColumnSizing] = usePersistedTableColumnSizing({
+        columnIds: GAME_LOG_COLUMN_IDS,
+        initialValue: persistedState.columnSizing,
+        writePersistedState: writePersistedGameLogState
+    });
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
@@ -182,10 +185,9 @@ export function useGameLogTableState({
         writePersistedGameLogState({
             columnVisibility: sanitizeGameLogColumnVisibility(columnVisibility),
             columnOrder: sanitizeGameLogColumnOrder(columnOrder),
-            columnSizing: sanitizeGameLogColumnSizing(columnSizing),
             columnOrderLocked
         });
-    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnVisibility]);
 
     useEffect(() => {
         setPagination((current) => ({

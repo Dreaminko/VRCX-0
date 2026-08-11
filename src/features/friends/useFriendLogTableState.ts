@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { usePersistedTableColumnSizing } from '@/components/data-table/dataTablePersistence';
 import {
     getTablePageSizePreference,
     getTablePageSizesPreference
@@ -7,11 +8,11 @@ import {
 import { usePreferencesStore } from '@/state/preferencesStore';
 
 import {
+    COLUMN_IDS,
     DEFAULT_PAGE_SIZES,
     readPersistedState,
     resolvePageSize,
     sanitizeColumnOrder,
-    sanitizeColumnSizing,
     sanitizeColumnVisibility,
     sanitizePageSizes,
     sanitizeSorting,
@@ -49,9 +50,11 @@ export function useFriendLogTableState({
     const [columnOrder, setColumnOrder] = useState(() =>
         sanitizeColumnOrder(persistedState.columnOrder)
     );
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizeColumnSizing(persistedState.columnSizing)
-    );
+    const [columnSizing, setColumnSizing] = usePersistedTableColumnSizing({
+        columnIds: COLUMN_IDS,
+        initialValue: persistedState.columnSizing,
+        writePersistedState
+    });
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
@@ -154,10 +157,9 @@ export function useFriendLogTableState({
         writePersistedState({
             columnVisibility: sanitizeColumnVisibility(columnVisibility),
             columnOrder: sanitizeColumnOrder(columnOrder),
-            columnSizing: sanitizeColumnSizing(columnSizing),
             columnOrderLocked
         });
-    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnVisibility]);
 
     useEffect(() => {
         setPagination((current) => ({

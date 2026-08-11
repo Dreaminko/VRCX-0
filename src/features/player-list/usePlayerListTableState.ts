@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { usePersistedTableColumnSizing } from '@/components/data-table/dataTablePersistence';
+
 import {
     PLAYER_LIST_COLUMN_IDS as COLUMN_IDS,
     readPersistedPlayerListState,
     sanitizePlayerListColumnOrder,
-    sanitizePlayerListColumnSizing,
     sanitizePlayerListColumnVisibility,
     sanitizePlayerListSorting,
     writePersistedPlayerListState
@@ -24,9 +25,11 @@ export function usePlayerListTableState() {
     const [columnOrder, setColumnOrder] = useState(() =>
         sanitizePlayerListColumnOrder(persistedState.columnOrder)
     );
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizePlayerListColumnSizing(persistedState.columnSizing)
-    );
+    const [columnSizing, setColumnSizing] = usePersistedTableColumnSizing({
+        columnIds: COLUMN_IDS,
+        initialValue: persistedState.columnSizing,
+        writePersistedState: writePersistedPlayerListState
+    });
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
@@ -51,11 +54,10 @@ export function usePlayerListTableState() {
         writePersistedPlayerListState({
             columnOrder: sanitizePlayerListColumnOrder(columnOrder),
             columnOrderLocked,
-            columnSizing: sanitizePlayerListColumnSizing(columnSizing),
             columnVisibility:
                 sanitizePlayerListColumnVisibility(columnVisibility)
         });
-    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnVisibility]);
 
     function resetLayout() {
         setColumnVisibility({});

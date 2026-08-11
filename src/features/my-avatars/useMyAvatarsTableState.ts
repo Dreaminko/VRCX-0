@@ -5,6 +5,7 @@ import type {
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { usePersistedTableColumnSizing } from '@/components/data-table/dataTablePersistence';
 import {
     getTablePageSizePreference,
     getTablePageSizesPreference
@@ -12,6 +13,7 @@ import {
 import { usePreferencesStore } from '@/state/preferencesStore';
 
 import {
+    MY_AVATARS_COLUMN_IDS,
     MY_AVATARS_DEFAULT_COLUMN_VISIBILITY,
     MY_AVATARS_DEFAULT_PAGE_SIZES,
     readPersistedMyAvatarsState,
@@ -66,9 +68,13 @@ export function useMyAvatarsTableState({
     const [columnOrder, setColumnOrder] = useState(() =>
         sanitizeMyAvatarsColumnOrder(persistedState.columnOrder)
     );
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizeMyAvatarsColumnSizing(persistedState.columnSizing)
-    );
+    const [columnSizing, setColumnSizing] = usePersistedTableColumnSizing({
+        columnIds: MY_AVATARS_COLUMN_IDS,
+        initialValue: sanitizeMyAvatarsColumnSizing(
+            persistedState.columnSizing
+        ),
+        writePersistedState: writePersistedMyAvatarsState
+    });
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
@@ -179,10 +185,9 @@ export function useMyAvatarsTableState({
             columnVisibility:
                 sanitizeMyAvatarsColumnVisibility(columnVisibility),
             columnOrder: sanitizeMyAvatarsColumnOrder(columnOrder),
-            columnSizing: sanitizeMyAvatarsColumnSizing(columnSizing),
             columnOrderLocked
         });
-    }, [columnOrder, columnOrderLocked, columnSizing, columnVisibility]);
+    }, [columnOrder, columnOrderLocked, columnVisibility]);
 
     useEffect(() => {
         setPagination((current) => ({

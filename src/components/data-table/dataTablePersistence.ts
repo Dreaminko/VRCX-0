@@ -1,9 +1,41 @@
-import { useCallback, useMemo, useState } from 'react';
+import type { ColumnSizingState, OnChangeFn } from '@tanstack/react-table';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 const DATA_TABLE_STORAGE_PREFIX = 'vrcx-0:table:';
 type PersistedTableState = Record<string, unknown>;
 type TableColumnSizing = Record<string, number>;
 type TableColumnVisibility = Record<string, boolean>;
+
+export function usePersistedTableColumnSizing({
+    columnIds,
+    initialValue,
+    writePersistedState
+}: {
+    columnIds: readonly string[];
+    initialValue: unknown;
+    writePersistedState(patch: PersistedTableState): void;
+}): [ColumnSizingState, OnChangeFn<ColumnSizingState>] {
+    const [columnSizing, setColumnSizingState] = useState(() =>
+        sanitizeTableColumnSizing(initialValue, columnIds)
+    );
+    const columnSizingRef = useRef(columnSizing);
+    const setColumnSizing = useCallback<OnChangeFn<ColumnSizingState>>(
+        (updater) => {
+            const nextColumnSizing = sanitizeTableColumnSizing(
+                typeof updater === 'function'
+                    ? updater(columnSizingRef.current)
+                    : updater,
+                columnIds
+            );
+            columnSizingRef.current = nextColumnSizing;
+            setColumnSizingState(nextColumnSizing);
+            writePersistedState({ columnSizing: nextColumnSizing });
+        },
+        [columnIds, writePersistedState]
+    );
+
+    return [columnSizing, setColumnSizing];
+}
 
 function getBrowserLocalStorage() {
     if (typeof window === 'undefined' || !window.localStorage) {
@@ -174,9 +206,6 @@ export function usePersistedDataTableLayout({
         );
         return persistedOrder.length ? persistedOrder : initialColumnOrder;
     });
-    const [columnSizing, setColumnSizing] = useState(() =>
-        sanitizeTableColumnSizing(persistedState.columnSizing, columnIds)
-    );
     const [columnOrderLocked, setColumnOrderLocked] = useState(
         () => persistedState.columnOrderLocked === true
     );
@@ -185,6 +214,11 @@ export function usePersistedDataTableLayout({
             writePersistedTableState(storageKey, patch),
         [storageKey]
     );
+    const [columnSizing, setColumnSizing] = usePersistedTableColumnSizing({
+        columnIds,
+        initialValue: persistedState.columnSizing,
+        writePersistedState
+    });
 
     return {
         columnOrder,
