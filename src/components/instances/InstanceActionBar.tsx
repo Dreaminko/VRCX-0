@@ -487,7 +487,8 @@ export function InstanceActionBar({
             } else {
                 const response = await vrchatInstanceRepository.getInstance({
                     worldId: actionTarget.parsedInstanceLocation.worldId,
-                    instanceId: actionTarget.parsedInstanceLocation.instanceId
+                    instanceId: actionTarget.parsedInstanceLocation.instanceId,
+                    force: true
                 });
                 if (
                     activeContextRef.current.location !== requestLocation ||

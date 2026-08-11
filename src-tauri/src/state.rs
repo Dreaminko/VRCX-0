@@ -8,7 +8,7 @@ use crate::deep_link::PendingDeepLinks;
 use crate::error::AppError;
 use vrcx_0_application::{
     DatabaseUpgradeRuntime, FriendLogNameResolutionCoordinator, GroupModerationBatchCoordinator,
-    RemoteMutationGate,
+    RemoteMutationGate, UserDialogTabCountsRuntime,
 };
 use vrcx_0_application_core::UpdaterPort;
 use vrcx_0_assistant::AssistantController;
@@ -27,6 +27,7 @@ pub struct AppState {
     pub group_moderation_batches: GroupModerationBatchCoordinator,
     pub friend_log_name_resolutions: FriendLogNameResolutionCoordinator,
     pub remote_mutations: RemoteMutationGate,
+    pub user_dialog_tab_counts: UserDialogTabCountsRuntime,
     assistant: tokio::sync::OnceCell<AssistantController>,
     background_resume_route: Mutex<Option<String>>,
     pub(crate) background_delay_generation: AtomicU64,
@@ -83,6 +84,7 @@ impl AppState {
             group_moderation_batches: GroupModerationBatchCoordinator::default(),
             friend_log_name_resolutions: FriendLogNameResolutionCoordinator::default(),
             remote_mutations: RemoteMutationGate::default(),
+            user_dialog_tab_counts: UserDialogTabCountsRuntime::new(),
             assistant: tokio::sync::OnceCell::new(),
             background_resume_route: Mutex::new(None),
             background_delay_generation: AtomicU64::new(0),

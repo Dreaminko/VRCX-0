@@ -1881,6 +1881,11 @@ export const commands = {
     ): Promise<UserGroupsOverviewOutput> {
         return await TAURI_INVOKE('app__user_groups_overview_get', { input });
     },
+    async appUserDialogTabCountsGet(
+        input: UserDialogTabCountsInput
+    ): Promise<UserDialogTabCountsOutput> {
+        return await TAURI_INVOKE('app__user_dialog_tab_counts_get', { input });
+    },
     async appModerationSyncRefresh(
         input: ModerationSyncRefreshInput
     ): Promise<ModerationSyncRefreshOutput> {
@@ -5535,6 +5540,17 @@ export type UpdaterMetadata = {
     version: string;
     date: string | null;
     body: string | null;
+};
+export type UserDialogTabCountsInput = {
+    userId: string;
+    avatarReleaseStatus?: string;
+    force?: boolean;
+};
+export type UserDialogTabCountsOutput = {
+    groups?: number | null;
+    worlds?: number | null;
+    favoriteWorlds?: number | null;
+    avatars?: number | null;
 };
 export type UserGroupsOverviewGroup = {
     groupId: string;

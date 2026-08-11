@@ -456,6 +456,35 @@ describe('InstanceActionBar', () => {
         });
     });
 
+    it('forces a fresh instance request for an explicit refresh', async () => {
+        mocks.getInstance.mockResolvedValue({
+            json: {
+                id: 'wrld_refresh:34567~region(eu)',
+                userCount: 7,
+                capacity: 24
+            }
+        });
+
+        render(
+            <InstanceActionBar
+                target={{ location: 'wrld_refresh:34567~region(eu)' }}
+                disableTooltip
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Refresh instance info' })
+        );
+
+        await waitFor(() => {
+            expect(mocks.getInstance).toHaveBeenCalledWith({
+                worldId: 'wrld_refresh',
+                instanceId: '34567~region(eu)',
+                force: true
+            });
+        });
+    });
+
     it('hides the open in-game action while VRChat is not running', () => {
         mocks.runtimeState.gameState.isGameRunning = false;
 

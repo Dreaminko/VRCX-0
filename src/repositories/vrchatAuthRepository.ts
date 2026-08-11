@@ -1,4 +1,9 @@
 import {
+    entityQueryPolicies,
+    fetchCachedData,
+    queryKeys
+} from '@/lib/entityQueryCache';
+import {
     commands,
     type AutoLoginOutcome,
     type LoginSessionState
@@ -35,9 +40,28 @@ interface FileAnalysisInput {
     variant?: unknown;
 }
 
+interface ConfigQueryOptions {
+    endpoint?: string;
+    force?: boolean;
+}
+
 async function getConfig() {
     const response = await commands.appVrchatAuthConfigGet();
     return unwrapVrchatAuthResponse<AuthRecord>(response, 'config');
+}
+
+async function getCachedConfig(
+    {
+        endpoint = DEFAULT_VRCHAT_API_ENDPOINT,
+        force = false
+    }: ConfigQueryOptions = {}
+): Promise<Awaited<ReturnType<typeof getConfig>>> {
+    return fetchCachedData({
+        queryKey: queryKeys.apiConfig(endpoint),
+        policy: entityQueryPolicies.apiConfig,
+        force,
+        queryFn: getConfig
+    });
 }
 
 async function getCurrentUser() {
@@ -143,6 +167,7 @@ async function getFileAnalysis({
 
 const vrchatAuthRepository = Object.freeze({
     getConfig,
+    getCachedConfig,
     getCurrentUser,
     startLoginSession,
     respondLoginSession,
@@ -154,6 +179,7 @@ const vrchatAuthRepository = Object.freeze({
 
 export {
     getConfig,
+    getCachedConfig,
     getCurrentUser,
     startLoginSession,
     respondLoginSession,

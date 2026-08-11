@@ -2,7 +2,10 @@ import type {
     UserFactMergeOptions,
     UserFactSource
 } from '@/domain/users/userFacts';
-import { ingestUserFactEntries } from '@/services/userFactAccessService';
+import {
+    ingestUserFactEntries,
+    resetPendingUserFactEntries
+} from '@/services/userFactAccessService';
 import { parseLocation } from '@/shared/utils/location';
 import { useInstanceJoinHistoryStore } from '@/state/instanceJoinHistoryStore';
 import { useInstancePresenceStore } from '@/state/instancePresenceStore';
@@ -293,6 +296,7 @@ function recordLocationHintsFromInstances({
 }
 
 function resetDomainFacts() {
+    resetPendingUserFactEntries();
     useUserFactsStore.getState().resetUserFacts();
     useInstancePresenceStore.getState().resetInstancePresence();
     useInstanceJoinHistoryStore.getState().resetInstanceJoinHistory();

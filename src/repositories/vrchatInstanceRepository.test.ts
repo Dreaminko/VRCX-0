@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const tauriApp = vi.hoisted(() => ({
-    appVrchatInstanceCreate: vi.fn()
+    appVrchatInstanceClose: vi.fn(),
+    appVrchatInstanceCreate: vi.fn(),
+    appVrchatInstanceGet: vi.fn()
 }));
 
 const tauriMock = vi.hoisted(() => ({
@@ -11,9 +13,11 @@ const tauriMock = vi.hoisted(() => ({
 vi.mock('@/platform/tauri/bindings', () => ({ commands: tauriMock.commands }));
 
 import vrchatInstanceRepository from './vrchatInstanceRepository';
+import { clearEntityQueryCache } from '@/lib/entityQueryCache';
 
 describe('InstanceRepository', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
+        await clearEntityQueryCache();
         for (const command of Object.values(tauriApp)) {
             command.mockReset();
             command.mockResolvedValue({
@@ -21,6 +25,55 @@ describe('InstanceRepository', () => {
                 data: '{"ok":true}'
             });
         }
+    });
+
+    it('reuses a recent instance read unless the caller explicitly forces freshness', async () => {
+        await vrchatInstanceRepository.getInstance({
+            worldId: 'wrld_test',
+            instanceId: '12345'
+        });
+        await vrchatInstanceRepository.getInstance({
+            worldId: 'wrld_test',
+            instanceId: '12345'
+        });
+        await vrchatInstanceRepository.getInstance({
+            worldId: 'wrld_test',
+            instanceId: '12345',
+            force: true
+        });
+
+        expect(tauriApp.appVrchatInstanceGet).toHaveBeenCalledTimes(2);
+    });
+
+    it('replaces a cached instance with the close response', async () => {
+        tauriApp.appVrchatInstanceGet.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify({ id: 'wrld_test:12345', closedAt: null })
+        });
+        tauriApp.appVrchatInstanceClose.mockResolvedValue({
+            status: 200,
+            data: JSON.stringify({
+                id: 'wrld_test:12345',
+                closedAt: '2026-08-11T00:00:00.000Z'
+            })
+        });
+
+        await vrchatInstanceRepository.getInstance({
+            worldId: 'wrld_test',
+            instanceId: '12345'
+        });
+        await vrchatInstanceRepository.closeInstance({
+            location: 'wrld_test:12345'
+        });
+        const afterClose = await vrchatInstanceRepository.getInstance({
+            worldId: 'wrld_test',
+            instanceId: '12345'
+        });
+
+        expect(afterClose.json).toMatchObject({
+            closedAt: '2026-08-11T00:00:00.000Z'
+        });
+        expect(tauriApp.appVrchatInstanceGet).toHaveBeenCalledTimes(1);
     });
 
     it('maps invite+ instance options to the VRChat create-instance payload', async () => {

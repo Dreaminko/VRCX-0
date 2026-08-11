@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { clearEntityQueryCache } from '@/lib/entityQueryCache';
+
 const commandMocks = vi.hoisted(() => ({
     appVrchatAuthConfigGet: vi.fn(),
     appVrchatAuthCurrentUserGet: vi.fn(),
@@ -17,6 +19,7 @@ vi.mock('@/platform/tauri/bindings', () => ({
 import {
     cancelLoginSession,
     DEFAULT_ENDPOINT_DOMAIN,
+    getCachedConfig,
     getConfig,
     getCurrentUser,
     getFileAnalysis,
@@ -36,7 +39,8 @@ function cancelledState() {
 }
 
 describe('vrchatAuthRepository', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
+        await clearEntityQueryCache();
         vi.resetAllMocks();
         for (const command of Object.values(commandMocks)) {
             command.mockResolvedValue(response());
@@ -62,6 +66,15 @@ describe('vrchatAuthRepository', () => {
         });
 
         expect(commandMocks.appVrchatAuthCurrentUserGet).toHaveBeenCalledWith();
+    });
+
+    it('coalesces config reads through the endpoint-scoped shared query', async () => {
+        await Promise.all([
+            getCachedConfig({ endpoint: 'https://api.example.test' }),
+            getCachedConfig({ endpoint: 'https://api.example.test' })
+        ]);
+
+        expect(commandMocks.appVrchatAuthConfigGet).toHaveBeenCalledTimes(1);
     });
 
     it('passes normalized login-session payloads to the Tauri bridge', async () => {

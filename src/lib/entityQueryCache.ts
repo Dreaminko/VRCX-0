@@ -27,7 +27,7 @@ type FetchWithEntityPolicyOptions<TData = unknown> = {
 
 export const entityQueryPolicies = Object.freeze({
     instance: Object.freeze({
-        staleTime: 0,
+        staleTime: 20 * SECOND_MS,
         gcTime: 90 * SECOND_MS,
         retry: 1,
         refetchOnWindowFocus: false
@@ -117,7 +117,7 @@ export const entityQueryPolicies = Object.freeze({
         refetchOnWindowFocus: false
     }),
     userDialogTabCounts: Object.freeze({
-        staleTime: 10 * MINUTE_MS,
+        staleTime: 0,
         gcTime: 10 * MINUTE_MS,
         retry: 1,
         refetchOnWindowFocus: false

@@ -8,6 +8,17 @@ import {
 import { commands } from '@/platform/tauri/bindings';
 import { useUserFactsStore } from '@/state/userFactsStore';
 
+type UserFactIngestEntry = {
+    user: Record<string, unknown>;
+    source?: string;
+    isFriend?: boolean;
+    isCurrentUser?: boolean;
+    stateBucket?: string;
+};
+
+const pendingUserFactEntries = new Map<string, UserFactIngestEntry>();
+let userFactFlushScheduled = false;
+
 function asRecord(value: unknown): Record<string, unknown> | null {
     return value && typeof value === 'object'
         ? (value as Record<string, unknown>)
@@ -30,13 +41,7 @@ function getKnownUserFact(endpoint: unknown, userId: unknown): UserFact | null {
 }
 
 function ingestUserFactEntries(
-    entries: Array<{
-        user: Record<string, unknown>;
-        source?: string;
-        isFriend?: boolean;
-        isCurrentUser?: boolean;
-        stateBucket?: string;
-    }>
+    entries: UserFactIngestEntry[]
 ): void {
     const valid = entries.filter(
         (entry) =>
@@ -48,9 +53,68 @@ function ingestUserFactEntries(
     if (!valid.length) {
         return;
     }
-    commands.appIngestUserFacts(valid).catch((error: unknown) => {
+    for (const entry of valid) {
+        const userId = userIdFromRecord(entry.user);
+        const key = [
+            userId,
+            entry.source || '',
+            entry.isFriend === true ? 'friend' : '',
+            entry.isCurrentUser === true ? 'current' : '',
+            entry.stateBucket || ''
+        ].join('\u0000');
+        const existing = pendingUserFactEntries.get(key);
+        pendingUserFactEntries.set(key, {
+            ...existing,
+            ...entry,
+            user: mergeUserFactInput(existing?.user, entry.user, userId)
+        });
+    }
+    if (!userFactFlushScheduled) {
+        userFactFlushScheduled = true;
+        queueMicrotask(() => {
+            void flushPendingUserFactEntries();
+        });
+    }
+}
+
+function mergeUserFactInput(
+    existing: Record<string, unknown> | undefined,
+    incoming: Record<string, unknown>,
+    userId: string
+): Record<string, unknown> {
+    const merged = { ...(existing || {}) };
+    for (const [field, value] of Object.entries(incoming)) {
+        if (
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && !value.trim()) ||
+            (Array.isArray(value) &&
+                value.length === 0 &&
+                Object.hasOwn(merged, field))
+        ) {
+            continue;
+        }
+        merged[field] = value;
+    }
+    merged.id = userId;
+    return merged;
+}
+
+async function flushPendingUserFactEntries(): Promise<void> {
+    userFactFlushScheduled = false;
+    const entries = Array.from(pendingUserFactEntries.values());
+    pendingUserFactEntries.clear();
+    if (!entries.length) {
+        return;
+    }
+    await commands.appIngestUserFacts(entries).catch((error: unknown) => {
         console.warn('Failed to ingest user facts:', error);
     });
+}
+
+function resetPendingUserFactEntries(): void {
+    pendingUserFactEntries.clear();
+    userFactFlushScheduled = false;
 }
 
 function recordUserProfile(
@@ -96,10 +160,12 @@ function recordUserProfiles(
 
 export {
     getKnownUserFact,
+    flushPendingUserFactEntries,
     ingestUserFactEntries,
     normalizeEndpoint,
     normalizeUserId,
     recordUserProfile,
     recordUserProfiles,
+    resetPendingUserFactEntries,
     userFactKey
 };

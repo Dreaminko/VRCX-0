@@ -1,8 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { appUserDialogTabCountsGet } = vi.hoisted(() => ({
+    appUserDialogTabCountsGet: vi.fn()
+}));
+
+vi.mock('@/platform/tauri/bindings', () => ({
+    commands: {
+        appUserDialogTabCountsGet
+    }
+}));
 
 import {
     isUserDialogDataTab,
     loadUserDialogTabData,
+    loadUserDialogTabCounts,
     userDialogDataKeyForTab,
     type UserDialogRepositories
 } from './userDialogTabService';
@@ -38,6 +49,10 @@ function repositories(
 }
 
 describe('userDialogTabService', () => {
+    beforeEach(() => {
+        appUserDialogTabCountsGet.mockReset();
+    });
+
     it('recognizes tabs that load remote dialog data', () => {
         expect(isUserDialogDataTab('mutual')).toBe(true);
         expect(isUserDialogDataTab('favorite-worlds')).toBe(true);
@@ -46,6 +61,35 @@ describe('userDialogTabService', () => {
             'favoriteWorlds'
         );
         expect(userDialogDataKeyForTab('groups')).toBe('groups');
+    });
+
+    it('loads tab counts through one backend aggregate without fetching detail rows', async () => {
+        appUserDialogTabCountsGet.mockResolvedValue({
+            groups: 12,
+            worlds: 34,
+            favoriteWorlds: 56,
+            avatars: 78
+        });
+        await expect(
+            loadUserDialogTabCounts({
+                userId: 'usr_target',
+                endpoint: 'https://api.example.test',
+                currentUserId: 'usr_self',
+                effectiveAvatarReleaseStatus: 'public',
+                force: true
+            })
+        ).resolves.toEqual({
+            groups: 12,
+            worlds: 34,
+            'favorite-worlds': 56,
+            avatars: 78
+        });
+        expect(appUserDialogTabCountsGet).toHaveBeenCalledTimes(1);
+        expect(appUserDialogTabCountsGet).toHaveBeenCalledWith({
+            userId: 'usr_target',
+            avatarReleaseStatus: 'public',
+            force: true
+        });
     });
 
     it('requests mutual friends, groups, and worlds with the viewed user context', async () => {

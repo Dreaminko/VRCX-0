@@ -4,6 +4,7 @@ import {
     fetchCachedData,
     queryKeys
 } from '@/lib/entityQueryCache';
+import { commands } from '@/platform/tauri/bindings';
 
 export type UserDialogDataTab =
     | 'mutual'
@@ -73,148 +74,27 @@ export function userDialogDataKeyForTab(tab: UserDialogDataTab) {
     return tab === 'favorite-worlds' ? 'favoriteWorlds' : tab;
 }
 
-function countRows(rows: unknown) {
-    return Array.isArray(rows) ? rows.length : 0;
-}
-
-function resolvedCount(result: PromiseSettledResult<unknown>) {
-    return result.status === 'fulfilled' ? countRows(result.value) : undefined;
-}
-
-async function loadFavoriteWorldCount({
-    endpoint,
-    userId,
-    repositories
-}: {
-    endpoint: string;
-    userId: string;
-    repositories: UserDialogRepositories;
-}) {
-    const favoriteGroups =
-        await repositories.vrchatFavoriteRepository.getAllFavoriteGroups({
-            endpoint,
-            ownerId: userId
-        });
-    const worldGroups = favoriteGroups
-        .filter(isRecord)
-        .filter((group) => group.type === 'world');
-    const worldListResults = await Promise.allSettled(
-        worldGroups.map((group) =>
-            repositories.vrchatFavoriteRepository.getAllFavoriteWorlds({
-                endpoint,
-                ownerId: userId,
-                userId,
-                tag: group.name
-            })
-        )
-    );
-    return worldListResults.reduce(
-        (count, result) =>
-            result.status === 'fulfilled'
-                ? count + countRows(result.value)
-                : count,
-        0
-    );
-}
-
-async function loadAvatarCount({
-    endpoint,
-    userId,
-    currentUserId,
-    currentAvatarId,
-    previousAvatarSwapTime,
-    effectiveAvatarReleaseStatus,
-    providerConfig = null,
-    repositories
-}: {
-    endpoint: string;
-    userId: string;
-    currentUserId: string;
-    currentAvatarId: string;
-    previousAvatarSwapTime: number;
-    effectiveAvatarReleaseStatus: string;
-    providerConfig?: { enabled: boolean; selectedProvider: string } | null;
-    repositories: UserDialogRepositories;
-}) {
-    if (userId === currentUserId) {
-        const rows = await repositories.myAvatarRepository.getMyAvatars({
-            endpoint,
-            currentUserId,
-            currentAvatarId,
-            previousAvatarSwapTime
-        });
-        return countRows(
-            effectiveAvatarReleaseStatus === 'all'
-                ? rows
-                : rows.filter(
-                      (avatar) =>
-                          isRecord(avatar) &&
-                          avatar.releaseStatus === effectiveAvatarReleaseStatus
-                  )
-        );
-    }
-
-    const resolvedProviderConfig =
-        providerConfig ||
-        (await repositories.avatarSearchProviderRepository.getConfig());
-    if (
-        !resolvedProviderConfig.enabled ||
-        !resolvedProviderConfig.selectedProvider
-    ) {
-        return 0;
-    }
-
-    const response = await repositories.avatarSearchProviderRepository.search({
-        provider: resolvedProviderConfig.selectedProvider,
-        query: userId
-    });
-    return countRows(
-        response.avatars.filter(
-            (avatar) => isRecord(avatar) && avatar.authorId === userId
-        )
-    );
-}
-
 export async function loadUserDialogTabCounts({
     userId,
     endpoint,
     currentUserId,
-    currentAvatarId = '',
-    previousAvatarSwapTime = 0,
     effectiveAvatarReleaseStatus,
-    repositories,
     force = false
 }: {
     userId: string;
     endpoint: string;
     currentUserId: string;
-    currentAvatarId?: string;
-    previousAvatarSwapTime?: number;
     effectiveAvatarReleaseStatus: string;
-    repositories: UserDialogRepositories;
     force?: boolean;
 }): Promise<UserDialogTabCounts> {
     if (!userId) {
         return {};
     }
-    const avatarProviderConfig =
-        userId === currentUserId
-            ? null
-            : await repositories.avatarSearchProviderRepository.getConfig();
-    const avatarProviderKey =
-        userId === currentUserId
-            ? 'self'
-            : avatarProviderConfig?.enabled &&
-                avatarProviderConfig?.selectedProvider
-              ? avatarProviderConfig.selectedProvider
-              : 'disabled';
-
     return fetchCachedData({
         queryKey: queryKeys.userDialogTabCounts(
             {
                 userId,
                 currentUserId,
-                avatarProvider: avatarProviderKey,
                 avatarReleaseStatus: effectiveAvatarReleaseStatus
             },
             endpoint
@@ -222,48 +102,17 @@ export async function loadUserDialogTabCounts({
         policy: entityQueryPolicies.userDialogTabCounts,
         force,
         queryFn: async () => {
-            const releaseStatus = userId === currentUserId ? 'all' : 'public';
-            const [groups, worlds, favoriteWorlds, avatars] =
-                await Promise.allSettled([
-                    repositories.groupProfileRepository.getUserGroups({
-                        userId,
-                        endpoint
-                    }),
-                    repositories.worldProfileRepository.getAllWorldsByUser({
-                        userId,
-                        endpoint,
-                        sort: 'updated',
-                        order: 'descending',
-                        releaseStatus
-                    }),
-                    loadFavoriteWorldCount({
-                        endpoint,
-                        userId,
-                        repositories
-                    }),
-                    loadAvatarCount({
-                        endpoint,
-                        userId,
-                        currentUserId,
-                        currentAvatarId,
-                        previousAvatarSwapTime,
-                        effectiveAvatarReleaseStatus,
-                        providerConfig: avatarProviderConfig,
-                        repositories
-                    })
-                ]);
+            const counts = await commands.appUserDialogTabCountsGet({
+                userId,
+                avatarReleaseStatus: effectiveAvatarReleaseStatus,
+                force
+            });
 
             return {
-                groups: resolvedCount(groups),
-                worlds: resolvedCount(worlds),
-                'favorite-worlds':
-                    favoriteWorlds.status === 'fulfilled'
-                        ? Number(favoriteWorlds.value) || 0
-                        : undefined,
-                avatars:
-                    avatars.status === 'fulfilled'
-                        ? Number(avatars.value) || 0
-                        : undefined
+                groups: counts.groups ?? undefined,
+                worlds: counts.worlds ?? undefined,
+                'favorite-worlds': counts.favoriteWorlds ?? undefined,
+                avatars: counts.avatars ?? undefined
             };
         }
     });

@@ -135,6 +135,10 @@ pub use social::{
     UserGroupsOverviewInput, UserGroupsOverviewOutput,
 };
 pub use social::{
+    get_user_dialog_tab_counts, UserDialogTabCountsDeps, UserDialogTabCountsInput,
+    UserDialogTabCountsOutput, UserDialogTabCountsRuntime,
+};
+pub use social::{
     load_group_calendar, GroupCalendarDeps, GroupCalendarInput, GroupCalendarSnapshot,
 };
 pub use social::{

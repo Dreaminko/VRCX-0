@@ -1,9 +1,11 @@
 import {
     entityQueryPolicies,
     fetchCachedData,
-    queryKeys
+    queryKeys,
+    setCachedQueryData
 } from '@/lib/entityQueryCache';
 import { commands } from '@/platform/tauri/bindings';
+import { parseLocation } from '@/shared/utils/location';
 import { normalizeString } from '@/shared/utils/string';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
@@ -300,7 +302,7 @@ async function closeInstance({
     const params: { hardClose: boolean } = {
         hardClose: Boolean(hardClose)
     };
-    return unwrapVrchatInstanceResponse(
+    const response = unwrapVrchatInstanceResponse(
         await commands.appVrchatInstanceClose({
             location: normalizedLocation,
             hardClose: Boolean(hardClose)
@@ -308,6 +310,28 @@ async function closeInstance({
         `instances/${normalizedLocation}`,
         params
     );
+    const parsedLocation = parseLocation(normalizedLocation);
+    if (
+        parsedLocation.worldId &&
+        parsedLocation.instanceId &&
+        isRecord(response.json)
+    ) {
+        setCachedQueryData(
+            queryKeys.instance(
+                parsedLocation.worldId,
+                parsedLocation.instanceId,
+                DEFAULT_VRCHAT_API_ENDPOINT
+            ),
+            {
+                ...response,
+                params: {
+                    worldId: parsedLocation.worldId,
+                    instanceId: parsedLocation.instanceId
+                }
+            }
+        );
+    }
+    return response;
 }
 
 const vrchatInstanceRepository = Object.freeze({

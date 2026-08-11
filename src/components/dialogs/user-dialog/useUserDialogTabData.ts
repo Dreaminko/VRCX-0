@@ -82,8 +82,6 @@ type UserDialogLoadContext = {
 
 type UserDialogCountContext = UserDialogLoadContext & {
     currentUserId: string;
-    currentAvatarId: string;
-    previousAvatarSwapTime: number;
     avatarReleaseStatus: string;
 };
 
@@ -177,8 +175,6 @@ export function useUserDialogTabData({
         endpoint: currentEndpoint,
         userId: profileUserId,
         currentUserId: currentUserId || '',
-        currentAvatarId,
-        previousAvatarSwapTime,
         avatarReleaseStatus: effectiveAvatarReleaseStatus,
         reloadToken
     });
@@ -189,8 +185,6 @@ export function useUserDialogTabData({
         endpoint: currentEndpoint,
         userId: profileUserId,
         currentUserId: currentUserId || '',
-        currentAvatarId,
-        previousAvatarSwapTime,
         avatarReleaseStatus: effectiveAvatarReleaseStatus,
         reloadToken
     };
@@ -324,10 +318,6 @@ export function useUserDialogTabData({
             countContextRef.current.endpoint === context.endpoint &&
             countContextRef.current.userId === context.userId &&
             countContextRef.current.currentUserId === context.currentUserId &&
-            countContextRef.current.currentAvatarId ===
-                context.currentAvatarId &&
-            countContextRef.current.previousAvatarSwapTime ===
-                context.previousAvatarSwapTime &&
             countContextRef.current.avatarReleaseStatus ===
                 context.avatarReleaseStatus &&
             countContextRef.current.reloadToken === context.reloadToken
@@ -343,8 +333,6 @@ export function useUserDialogTabData({
             endpoint: currentEndpoint,
             userId: profileUserId,
             currentUserId: currentUserId || '',
-            currentAvatarId,
-            previousAvatarSwapTime,
             avatarReleaseStatus: effectiveAvatarReleaseStatus,
             reloadToken
         };
@@ -353,10 +341,7 @@ export function useUserDialogTabData({
                 userId: profileUserId,
                 endpoint: currentEndpoint,
                 currentUserId: currentUserId || '',
-                currentAvatarId,
-                previousAvatarSwapTime,
                 effectiveAvatarReleaseStatus,
-                repositories: userDialogTabServiceRepositories,
                 force
             });
             if (!isCurrentCountContext(countContext)) {
@@ -533,10 +518,8 @@ export function useUserDialogTabData({
         loadTabCounts({ force: shouldForceReload });
     }, [
         currentEndpoint,
-        currentAvatarId,
         currentUserId,
         effectiveAvatarReleaseStatus,
-        previousAvatarSwapTime,
         profileUserId,
         reloadToken
     ]);
@@ -544,7 +527,7 @@ export function useUserDialogTabData({
     useEffect(() => {
         let active = true;
         vrchatAuthRepository
-            .getConfig()
+            .getCachedConfig({ endpoint: currentEndpoint })
             .then((response) => {
                 if (active) {
                     setVrchatConfigConstants(response?.json?.constants || null);

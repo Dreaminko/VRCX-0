@@ -23,7 +23,10 @@ import {
     isSameLocationTag,
     resolvePresenceLocation
 } from './userDialogContentHelpers';
-import { replacePreviousDisplayNameSource } from './userDialogRows';
+import {
+    mergePreviousDisplayNames,
+    replacePreviousDisplayNameSource
+} from './userDialogRows';
 import { normalizeUserId } from './userProfileFields';
 import type { UserDialogProfileRecord } from './useUserDialogProfileResource';
 
@@ -147,6 +150,11 @@ export function useUserDialogSupplementalData({
         userStatsState.targetKey === targetKey
             ? userStatsState.stats
             : DEFAULT_USER_STATS;
+    const profileDisplayName = normalizeUserId(
+        profile?.displayName || profile?.username
+    );
+    const profileDisplayNameRef = useRef('');
+    profileDisplayNameRef.current = profileDisplayName;
     const representedGroupMatchesTarget =
         representedGroupState.userId === normalizedUserId &&
         representedGroupState.endpoint === currentEndpoint;
@@ -204,6 +212,25 @@ export function useUserDialogSupplementalData({
         },
         [targetKey]
     );
+
+    useEffect(() => {
+        setUserStatsForTarget((current) => {
+            const sources = current.previousDisplayNameSources;
+            return {
+                ...current,
+                previousDisplayNames: sources
+                    ? mergePreviousDisplayNames(
+                          profileDisplayName,
+                          sources.friendLog,
+                          sources.gameLog
+                      )
+                    : mergePreviousDisplayNames(
+                          profileDisplayName,
+                          current.previousDisplayNames
+                      )
+            };
+        });
+    }, [profileDisplayName, setUserStatsForTarget]);
 
     useEffect(() => {
         let active = true;
@@ -365,7 +392,7 @@ export function useUserDialogSupplementalData({
             .getUserStats(
                 {
                     id: profile.id,
-                    displayName: profile.displayName || profile.username || ''
+                    displayName: profileDisplayNameRef.current
                 },
                 inCurrentWorld
             )
@@ -381,7 +408,7 @@ export function useUserDialogSupplementalData({
                 setUserStatsForTarget((current) => {
                     const previousDisplayNames =
                         replacePreviousDisplayNameSource(
-                            profile.displayName || profile.username,
+                            profileDisplayNameRef.current,
                             current.previousDisplayNameSources,
                             'gameLog',
                             stats?.previousDisplayNames
@@ -403,11 +430,9 @@ export function useUserDialogSupplementalData({
         currentGameDestination,
         currentGameLocation,
         currentSnapshotLocation,
-        profile?.displayName,
         profile?.id,
         profile?.location,
         profile?.travelingToLocation,
-        profile?.username,
         openNonce,
         reloadToken,
         setUserStatsForTarget,
@@ -481,7 +506,7 @@ export function useUserDialogSupplementalData({
                     ...current,
                     friendedAt: '',
                     ...replacePreviousDisplayNameSource(
-                        profile?.displayName || profile?.username,
+                        profileDisplayNameRef.current,
                         current.previousDisplayNameSources,
                         'friendLog',
                         []
@@ -515,7 +540,7 @@ export function useUserDialogSupplementalData({
                     ...current,
                     friendedAt,
                     ...replacePreviousDisplayNameSource(
-                        profile?.displayName || profile?.username,
+                        profileDisplayNameRef.current,
                         current.previousDisplayNameSources,
                         'friendLog',
                         friendLogPreviousDisplayNames
@@ -533,9 +558,7 @@ export function useUserDialogSupplementalData({
         currentUserSnapshot?.userId,
         currentUserSnapshot?.user_id,
         isTargetCurrentUser,
-        profile?.displayName,
         profile?.id,
-        profile?.username,
         reloadToken,
         setUserStatsForTarget,
         targetKey

@@ -242,7 +242,7 @@ export function useUserDialogSelfActions({
 
         setLanguageOptionsStatus('running');
         vrchatAuthRepository
-            .getConfig()
+            .getCachedConfig({ endpoint: currentEndpoint })
             .then((response) => {
                 if (!active) {
                     return;

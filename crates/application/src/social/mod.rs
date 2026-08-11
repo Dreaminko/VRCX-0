@@ -9,6 +9,7 @@ mod quick_search_catalog;
 #[cfg(test)]
 mod realtime;
 mod social_mutation;
+mod user_dialog_tab_counts;
 
 pub use friend_log_names::{
     resolve_friend_log_names, FriendLogNameResolutionCoordinator, FriendLogNameResolutionDeps,
@@ -81,4 +82,8 @@ pub use social_mutation::{
     SocialMutationDeps, SocialUnfriendBatchInput, SocialUnfriendBatchItemResult,
     SocialUnfriendBatchItemState, SocialUnfriendBatchResult, SocialUnfriendBatchTarget,
     SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
+};
+pub use user_dialog_tab_counts::{
+    get_user_dialog_tab_counts, UserDialogTabCountsDeps, UserDialogTabCountsInput,
+    UserDialogTabCountsOutput, UserDialogTabCountsRuntime,
 };

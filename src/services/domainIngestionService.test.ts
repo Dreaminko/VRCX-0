@@ -10,6 +10,7 @@ vi.mock('@/platform/tauri/bindings', () => ({ commands: tauriMock.commands }));
 
 import { useInstancePresenceStore } from '@/state/instancePresenceStore';
 import { useLocationHintStore } from '@/state/locationHintStore';
+import { flushPendingUserFactEntries } from '@/services/userFactAccessService';
 
 import {
     recordCurrentUserSnapshot,
@@ -38,7 +39,7 @@ describe('domainIngestionService', () => {
         resetDomainFacts();
     });
 
-    it('forwards current user and friend patch users to the Rust ingest IPC', () => {
+    it('forwards current user and friend patch users to the Rust ingest IPC', async () => {
         recordCurrentUserSnapshot(
             {
                 id: 'usr_self',
@@ -57,6 +58,7 @@ describe('domainIngestionService', () => {
                 location: 'wrld_live:123'
             }
         });
+        await flushPendingUserFactEntries();
 
         expect(tauriMock.commands.appIngestUserFacts).toHaveBeenCalled();
 
@@ -80,7 +82,7 @@ describe('domainIngestionService', () => {
         });
     });
 
-    it('records game runtime presence without trusting API private location over it', () => {
+    it('records game runtime presence without trusting API private location over it', async () => {
         recordCurrentUserSnapshot(
             {
                 id: 'usr_self',
@@ -106,6 +108,7 @@ describe('domainIngestionService', () => {
                 }
             ]
         });
+        await flushPendingUserFactEntries();
 
         expect(ingestedEntryFor('usr_self', 'gameRuntime')).toMatchObject({
             user: {
@@ -122,7 +125,7 @@ describe('domainIngestionService', () => {
         ).toEqual(['usr_friend']);
     });
 
-    it('normalizes player snapshot ids to the real user id and drops synthetic ids for anonymous players', () => {
+    it('normalizes player snapshot ids to the real user id and drops synthetic ids for anonymous players', async () => {
         recordGameRuntimePresence({
             endpoint: 'api',
             currentUserId: 'usr_self',
@@ -145,6 +148,7 @@ describe('domainIngestionService', () => {
                 }
             ]
         });
+        await flushPendingUserFactEntries();
 
         expect(ingestedEntryFor('usr_dup', 'playerSnapshot')).toMatchObject({
             user: {
@@ -162,7 +166,7 @@ describe('domainIngestionService', () => {
         expect(ingestedIds).not.toContain('id:usr_dup');
     });
 
-    it('keeps traveling as a sentinel and does not record destination as current presence', () => {
+    it('keeps traveling as a sentinel and does not record destination as current presence', async () => {
         recordGameRuntimePresence({
             endpoint: 'api',
             currentUserId: 'usr_self',
@@ -180,6 +184,7 @@ describe('domainIngestionService', () => {
                 }
             ]
         });
+        await flushPendingUserFactEntries();
 
         expect(ingestedEntryFor('usr_self', 'gameRuntime')).toMatchObject({
             user: {
@@ -193,7 +198,7 @@ describe('domainIngestionService', () => {
         expect(useInstancePresenceStore.getState().presenceByKey).toEqual({});
     });
 
-    it('records instance display hints separately from full query data', () => {
+    it('records instance display hints separately from full query data', async () => {
         recordLocationHintsFromInstances({
             endpoint: 'api',
             instances: [
@@ -212,6 +217,7 @@ describe('domainIngestionService', () => {
                 }
             ]
         });
+        await flushPendingUserFactEntries();
 
         expect(
             useLocationHintStore.getState().hintsByKey[
@@ -232,7 +238,7 @@ describe('domainIngestionService', () => {
         });
     });
 
-    it('resets domain stores on auth boundaries', () => {
+    it('resets domain stores on auth boundaries', async () => {
         recordKnownUser(
             {
                 id: 'usr_test',
@@ -244,6 +250,7 @@ describe('domainIngestionService', () => {
             endpoint: 'api',
             instances: [{ location: 'wrld_test:12345', worldName: 'World' }]
         });
+        await flushPendingUserFactEntries();
 
         expect(ingestedEntryFor('usr_test')).toMatchObject({
             user: { id: 'usr_test', displayName: 'User' },
