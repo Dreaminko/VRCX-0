@@ -32,17 +32,17 @@ const markdownComponents: Components = {
         </pre>
     ),
     a: ({ href, children }) => (
-        <a
-            className="text-primary underline underline-offset-2"
-            onClick={(event) => {
-                event.preventDefault();
+        <button
+            type="button"
+            className="text-primary cursor-pointer underline underline-offset-2"
+            onClick={() => {
                 if (href) {
                     openExternalLink(href);
                 }
             }}
         >
             {children}
-        </a>
+        </button>
     ),
     h1: ({ children }) => (
         <h1 className="mt-2 mb-1 text-base font-semibold">{children}</h1>

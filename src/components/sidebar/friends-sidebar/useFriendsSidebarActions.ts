@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 
 import { useCurrentUserSocialStatusDialog } from '@/components/dialogs/user-dialog/useCurrentUserSocialStatusDialog';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
-import userProfileRepository from '@/repositories/userProfileRepository';
+import currentUserProfileService from '@/services/currentUserProfileService';
 import { openUserDialog } from '@/services/dialogService';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
 import {
@@ -257,7 +257,7 @@ export function useFriendsSidebarActions({
             return false;
         }
         try {
-            const nextUser = await userProfileRepository.updateCurrentUser({
+            const nextUser = await currentUserProfileService.updateCurrentUser({
                 userId: currentUserId,
                 params: patch
             });

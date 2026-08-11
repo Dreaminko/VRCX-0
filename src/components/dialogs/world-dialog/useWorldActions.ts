@@ -8,9 +8,9 @@ import {
 } from '@/lib/worldAssetBundle';
 import { assetBundleRepository } from '@/repositories/assetBundleRepository';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
-import userProfileRepository from '@/repositories/userProfileRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
+import currentUserProfileService from '@/services/currentUserProfileService';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
 import { persistFavoriteWorldDetails } from '@/services/favoriteWorldCacheService';
 import { openFolderAndSelectItem } from '@/services/shellIntegrationService';
@@ -188,7 +188,7 @@ export function useWorldActions({
         }
 
         try {
-            const nextUser = await userProfileRepository.updateCurrentUser({
+            const nextUser = await currentUserProfileService.updateCurrentUser({
                 userId: currentUserId,
                 params: {
                     homeLocation: nextHomeLocation

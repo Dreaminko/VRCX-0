@@ -262,7 +262,7 @@ export function InviteMessagePanel({
         }
     }
 
-    async function useRow(
+    async function applyRow(
         row: InviteMessageRow,
         message: string = row.message || ''
     ) {
@@ -464,7 +464,7 @@ export function InviteMessagePanel({
                                                                 event: MouseEvent<HTMLButtonElement>
                                                             ) => {
                                                                 event.stopPropagation();
-                                                                useRow(row);
+                                                                applyRow(row);
                                                             }}
                                                         >
                                                             {actionLabel}
@@ -548,7 +548,10 @@ export function InviteMessagePanel({
                                 }
                                 onClick={() => {
                                     if (resolvedMode === 'respond') {
-                                        useRow(editingRow, editMessage.trim());
+                                        applyRow(
+                                            editingRow,
+                                            editMessage.trim()
+                                        );
                                         return;
                                     }
                                     saveEdit();
@@ -593,7 +596,7 @@ export function InviteMessagePanel({
                             size="sm"
                             disabled={sending}
                             onClick={() => {
-                                useRow(confirmRow);
+                                applyRow(confirmRow);
                             }}
                         >
                             {sending ? (

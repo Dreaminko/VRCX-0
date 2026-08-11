@@ -6,7 +6,6 @@ use vrcx_0_application::{
 };
 use vrcx_0_application_activity::{
     OverlayActivityDelivery, OverlayActivityRuntime, OverlayActivitySink, OverlayActivitySnapshot,
-    RuntimeOverlayActivityEventBusExt,
 };
 use vrcx_0_application_core::{
     AvatarCache, HostSessionRuntime, ImageCache, RuntimeAuthScope, RuntimeBackgroundJobs,
@@ -64,17 +63,6 @@ impl OverlayActivitySink for OverlayActivityFanoutSink {
         for sink in self.sinks() {
             sink.emit_overlay_activity_delivery(delivery.clone());
         }
-    }
-}
-
-#[derive(Clone)]
-struct OverlayActivityRuntimeEventSink {
-    event_bus: RuntimeEventBus,
-}
-
-impl OverlayActivitySink for OverlayActivityRuntimeEventSink {
-    fn emit_overlay_activity_snapshot(&self, snapshot: OverlayActivitySnapshot) {
-        self.event_bus.emit_overlay_activity_snapshot(snapshot);
     }
 }
 
@@ -142,9 +130,6 @@ impl RuntimeHostContext {
             tasks: tasks.clone(),
         });
         let vrc_status = VrcStatusService::new(Arc::clone(&web), event_bus.clone());
-        overlay_activity_sinks.add(Arc::new(OverlayActivityRuntimeEventSink {
-            event_bus: event_bus.clone(),
-        }));
         overlay_activity_sinks.add(Arc::new(NotificationWebhookSink::new(
             NotificationWebhookSinkDeps {
                 session: session.clone(),

@@ -6,5 +6,5 @@ pub use overlay_activity::{
     OverlayActivityFavoriteGroupKeys, OverlayActivityFilters, OverlayActivityRule,
     OverlayActivityRuntime, OverlayActivityScope, OverlayActivitySink, OverlayActivitySnapshot,
     OverlayActivitySurface, OverlayActivitySurfaceFilters, OverlayActivityText,
-    OverlayActivityTypeDefinition, OverlayFavoriteGroups, RuntimeOverlayActivityEventBusExt,
+    OverlayActivityTypeDefinition, OverlayFavoriteGroups,
 };

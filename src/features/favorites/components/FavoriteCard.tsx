@@ -571,7 +571,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                     ? item.imageSmallUrl || item.imageUrl
                                     : item.imageUrl
                             }
-                            alt={item.title}
+                            alt={item.title || ''}
                             loading="lazy"
                             className="size-full object-cover"
                             fallback={
@@ -697,7 +697,7 @@ const FavoriteCard = memo(function FavoriteCard({
                         {item.imageSmallUrl || item.imageUrl ? (
                             <FadeInImage
                                 src={item.imageSmallUrl || item.imageUrl}
-                                alt={item.title}
+                                alt={item.title || ''}
                                 loading="lazy"
                                 className="size-full object-cover"
                                 fallback={

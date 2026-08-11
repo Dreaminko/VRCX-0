@@ -8,13 +8,19 @@ import {
 
 import { cn } from '@/lib/utils';
 
+type FadeInImageProps = Omit<ComponentProps<'img'>, 'alt'> & {
+    alt: string;
+    fallback?: ReactNode;
+};
+
 function FadeInImage({
+    alt,
     className,
     fallback,
     onLoad,
     onError,
     ...props
-}: ComponentProps<'img'> & { fallback?: ReactNode }) {
+}: FadeInImageProps) {
     const imgRef = useRef<HTMLImageElement | null>(null);
     const [loaded, setLoaded] = useState(false);
     const [instant, setInstant] = useState(false);
@@ -35,6 +41,7 @@ function FadeInImage({
     return (
         <img
             {...props}
+            alt={alt}
             ref={imgRef}
             className={cn(
                 loaded ? 'opacity-100' : 'opacity-0',

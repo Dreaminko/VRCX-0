@@ -53,14 +53,14 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 
 import type { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import { isValidFontFamilyList, parseIntegerInput } from './settingsValues';
-import { useSettingsMaintenanceActions } from './useSettingsMaintenanceActions';
+import { createSettingsMaintenanceActions } from './useSettingsMaintenanceActions';
 import { useSettingsPreferenceActions } from './useSettingsPreferenceActions';
 
 type SettingsPreferenceActionDeps = Parameters<
     typeof useSettingsPreferenceActions
 >[0];
 type SettingsMaintenanceActionDeps = Parameters<
-    typeof useSettingsMaintenanceActions
+    typeof createSettingsMaintenanceActions
 >[0];
 type SettingsPagePrefsDraft = ReturnType<typeof createDefaultSettingsPrefs>;
 type SettingsPagePrefsSetter = (
@@ -194,7 +194,7 @@ export function useSettingsActions(deps: SettingsActionsDeps) {
         vrchatAuthRepository
     };
     const preferenceActions = useSettingsPreferenceActions(actionDeps);
-    const maintenanceActions = useSettingsMaintenanceActions({
+    const maintenanceActions = createSettingsMaintenanceActions({
         ...actionDeps,
         ...preferenceActions
     });

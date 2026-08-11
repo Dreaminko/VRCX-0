@@ -106,7 +106,7 @@ type SettingsMaintenanceActionsDeps = {
     toast: SettingsToast;
 };
 
-export function useSettingsMaintenanceActions({
+export function createSettingsMaintenanceActions({
     alert,
     commit,
     confirm,

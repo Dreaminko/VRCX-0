@@ -7,7 +7,7 @@ import {
     DEFAULT_VR_NOTIFICATION_ACTIVITY_FILTERS,
     DEFAULT_WEBHOOK_ACTIVITY_FILTERS
 } from './settingsValues';
-import { useSettingsMaintenanceActions } from './useSettingsMaintenanceActions';
+import { createSettingsMaintenanceActions } from './useSettingsMaintenanceActions';
 
 function createMaintenanceActions({
     cleanupAvatarFeedHistory = async () => ({
@@ -39,7 +39,7 @@ function createMaintenanceActions({
     setPurgeDialogOpen?: (open: boolean) => void;
     toastWarning?: (message: string) => void;
 }) {
-    return useSettingsMaintenanceActions({
+    return createSettingsMaintenanceActions({
         alert: async () => ({ ok: true, reason: 'ok' }),
         avatarFeedHistoryRepository: {
             cleanupAvatarFeedHistory

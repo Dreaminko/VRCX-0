@@ -42,26 +42,28 @@ export function SessionSidebar() {
                         <div
                             key={session.id}
                             className={cn(
-                                'group flex items-center gap-1 rounded-md px-2 py-1.5 text-sm',
-                                'hover:bg-card/60 cursor-pointer',
+                                'group flex items-center gap-1 rounded-md text-sm',
+                                'hover:bg-card/60',
                                 session.id === activeSessionId &&
                                     'bg-card text-foreground'
                             )}
-                            onClick={() => openSession(session.id)}
                         >
-                            {session.busy && (
-                                <Loader2Icon className="text-muted-foreground size-3 shrink-0 animate-spin" />
-                            )}
-                            <span className="text-muted-foreground group-hover:text-foreground min-w-0 flex-1 truncate">
-                                {session.title || t('assistant.untitled')}
-                            </span>
                             <button
                                 type="button"
-                                className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    deleteSession(session.id);
-                                }}
+                                className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 px-2 py-1.5 text-left"
+                                onClick={() => openSession(session.id)}
+                            >
+                                {session.busy && (
+                                    <Loader2Icon className="text-muted-foreground size-3 shrink-0 animate-spin" />
+                                )}
+                                <span className="text-muted-foreground group-hover:text-foreground min-w-0 flex-1 truncate">
+                                    {session.title || t('assistant.untitled')}
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                className="mr-2 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                                onClick={() => deleteSession(session.id)}
                                 title={t('common.actions.delete')}
                             >
                                 <Trash2Icon className="text-muted-foreground hover:text-destructive size-3.5" />

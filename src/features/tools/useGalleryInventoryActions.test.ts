@@ -23,6 +23,9 @@ describe('useGalleryInventoryActions', () => {
         const actions = useGalleryInventoryActions({
             buildProfilePicOverride: (endpoint: string, fileId: string) =>
                 `${endpoint}/file/${fileId}/1`,
+            currentUserProfileService: {
+                updateCurrentUser
+            },
             currentEndpoint: 'https://api.vrchat.cloud/api/1',
             currentUserId: 'usr_self',
             currentUserSnapshot,
@@ -51,9 +54,6 @@ describe('useGalleryInventoryActions', () => {
                     },
                     setAuthBootstrap
                 })
-            },
-            userProfileRepository: {
-                updateCurrentUser
             }
         });
 

@@ -17,7 +17,7 @@ import {
 } from './galleryUploadParams';
 import type { EmojiUploadSettings } from './inventoryHelpers';
 
-export function useGalleryAssetActions({
+export function createGalleryAssetActions({
     FILE_TABS,
     UPLOAD_ASPECT_RATIOS,
     activeTab,

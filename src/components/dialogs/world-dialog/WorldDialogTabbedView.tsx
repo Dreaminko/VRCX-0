@@ -1,7 +1,6 @@
 import {
     useEffect,
     useMemo,
-    useRef,
     useState,
     type Dispatch,
     type ReactNode,
@@ -19,7 +18,6 @@ import {
     type CurrentInstanceRosterSnapshot
 } from '@/domain/instances/currentInstanceRoster';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
-import mediaRepository from '@/repositories/mediaRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
@@ -34,11 +32,6 @@ import {
     convertFileUrlToImageUrl,
     openExternalLink
 } from '@/services/entityMediaService';
-import {
-    getCurrentScreenshotLibraryScanStatus,
-    startScreenshotLibraryScan,
-    subscribeScreenshotLibraryScanStatus
-} from '@/services/screenshotLibraryScanService';
 import { vrchatWorldUrl } from '@/shared/constants/vrchatWebUrls';
 import { vrcxWorldDeepLink } from '@/shared/constants/vrcxDeepLinks';
 import { parseLocation } from '@/shared/utils/location';
@@ -50,6 +43,10 @@ import {
 } from '../EntityDialogScaffold';
 import type { WorldPreviousInstances } from './useWorldDialogData';
 import { useWorldDialogTabbedRuntimeState } from './useWorldDialogRuntimeState';
+import {
+    useWorldDialogScreenshots,
+    type WorldWorldScreenshots
+} from './useWorldDialogScreenshots';
 import { WorldDialogOverviewSection } from './WorldDialogHeaderSection';
 import { buildWorldDialogDisplayInstanceRows } from './worldDialogInstanceRows';
 import { WorldDialogTabPanels } from './WorldDialogTabPanels';
@@ -69,39 +66,7 @@ import {
     sameLocationTag
 } from './WorldDialogViewParts';
 
-export type WorldWorldScreenshots = Array<{
-    path: string;
-    folderPath: string;
-    fileName: string;
-    sizeBytes: number;
-    modifiedAt: number;
-    createdAt: number;
-    width: number;
-    height: number;
-    worldId: string;
-    worldName: string | null;
-    capturedAt: string | null;
-    metadata: {
-        application: string;
-        version: number;
-        author: {
-            id: string;
-            displayName?: string;
-        };
-        world: {
-            id: string;
-            name?: string;
-            instanceId: string;
-        };
-        players: Array<{
-            id: string;
-            displayName: string;
-        }>;
-        sourceFile: string;
-        timestamp?: string;
-    };
-    error: string | null;
-}>;
+export type { WorldWorldScreenshots } from './useWorldDialogScreenshots';
 
 export type WorldDialogDisplayInstanceRows = ReturnType<
     typeof buildWorldDialogDisplayInstanceRows
@@ -217,10 +182,6 @@ function isInstanceDetailResult(
     return Boolean(value?.instance);
 }
 
-type ScreenshotScanStatus = Awaited<
-    ReturnType<typeof mediaRepository.getScreenshotLibraryStatus>
->;
-
 type WorldDialogTabbedViewProps = {
     world: WorldProfileRecord;
     resource: {
@@ -332,6 +293,18 @@ export function WorldDialogTabbedView({
         screenshotCacheStatus
     } = useWorldDialogTabbedRuntimeState();
     const [activeTab, setActiveTab] = useState(() => lastWorldDialogTab);
+    const {
+        error: worldScreenshotsError,
+        refresh: refreshWorldScreenshots,
+        refreshDisabled: worldScreenshotsRefreshDisabled,
+        screenshots: worldScreenshots,
+        status: worldScreenshotsStatus
+    } = useWorldDialogScreenshots({
+        activeTab,
+        loadFailedMessage: t('dialog.world.screenshots.load_failed'),
+        openNonce,
+        worldId: world.id
+    });
     const [currentInstanceDetails, setCurrentInstanceDetails] =
         useState<CurrentInstanceDetails>({
             location: '',
@@ -346,14 +319,6 @@ export function WorldDialogTabbedView({
     const [creatorGroupsById, setCreatorGroupsById] = useState<
         Record<string, GroupProfileRecord>
     >({});
-    const [worldScreenshots, setWorldScreenshots] =
-        useState<WorldWorldScreenshots>([]);
-    const [worldScreenshotsStatus, setWorldScreenshotsStatus] =
-        useState('idle');
-    const [worldScreenshotsError, setWorldScreenshotsError] = useState('');
-    const [worldScreenshotsRefreshToken, setWorldScreenshotsRefreshToken] =
-        useState(0);
-    const worldScreenshotsForceRefreshRef = useRef(false);
     const instanceRows = useMemo(
         () => resolveInstanceRows(world),
         [world?.id, world?.instances]
@@ -470,146 +435,6 @@ export function WorldDialogTabbedView({
         lastWorldDialogTab = resolveWorldDialogTab(tabs, tab);
         setActiveTab(lastWorldDialogTab);
     }
-
-    function refreshWorldScreenshots() {
-        worldScreenshotsForceRefreshRef.current = true;
-        setWorldScreenshotsRefreshToken((current) => current + 1);
-    }
-
-    useEffect(() => {
-        setWorldScreenshots([]);
-        setWorldScreenshotsStatus('idle');
-        setWorldScreenshotsError('');
-    }, [world?.id]);
-
-    useEffect(() => {
-        if (activeTab !== 'screenshots' || !world?.id) {
-            return undefined;
-        }
-
-        let active = true;
-        let scanActive = false;
-        let scanCompleted = false;
-        let scanError = '';
-
-        const loadWorldScreenshots = async () => {
-            try {
-                const screenshots = await mediaRepository.getWorldScreenshots(
-                    world.id
-                );
-                if (!active) {
-                    return;
-                }
-                const screenshotList = Array.isArray(screenshots)
-                    ? (screenshots as WorldWorldScreenshots)
-                    : [];
-                setWorldScreenshots(screenshotList);
-                if (scanError) {
-                    setWorldScreenshotsError(scanError);
-                    setWorldScreenshotsStatus(
-                        screenshotList.length ? 'ready' : 'error'
-                    );
-                    return;
-                }
-                setWorldScreenshotsError('');
-                setWorldScreenshotsStatus('ready');
-            } catch (error) {
-                if (!active) {
-                    return;
-                }
-                setWorldScreenshots([]);
-                setWorldScreenshotsError(
-                    error instanceof Error
-                        ? error.message
-                        : t('dialog.world.screenshots.load_failed')
-                );
-                setWorldScreenshotsStatus('error');
-            }
-        };
-
-        const completeScan = (status: ScreenshotScanStatus) => {
-            if (scanCompleted) {
-                return;
-            }
-            scanActive = false;
-            scanCompleted = true;
-            if (status?.error) {
-                scanError = status.error;
-            }
-            loadWorldScreenshots();
-        };
-
-        const handleScanStatus = (status: ScreenshotScanStatus) => {
-            if (!active) {
-                return;
-            }
-            if (status.error) {
-                scanError = status.error;
-            }
-            if (status.running) {
-                scanError = '';
-                scanActive = true;
-                scanCompleted = false;
-                return;
-            }
-            if (scanActive) {
-                completeScan(status);
-            }
-        };
-
-        const unsubscribe =
-            subscribeScreenshotLibraryScanStatus(handleScanStatus);
-        setWorldScreenshotsStatus('loading');
-        setWorldScreenshotsError('');
-        const forceRefresh = worldScreenshotsForceRefreshRef.current;
-        worldScreenshotsForceRefreshRef.current = false;
-        const initializeScan = async () => {
-            try {
-                let currentStatus =
-                    await getCurrentScreenshotLibraryScanStatus();
-                if (!active) {
-                    return;
-                }
-                if (!currentStatus) {
-                    currentStatus =
-                        await getCurrentScreenshotLibraryScanStatus();
-                    if (!active) {
-                        return;
-                    }
-                }
-                if (currentStatus?.running) {
-                    handleScanStatus(currentStatus);
-                    return;
-                }
-                scanActive = true;
-                const status = await startScreenshotLibraryScan(forceRefresh);
-                if (!active || !status) {
-                    return;
-                }
-                handleScanStatus(status);
-                if (!status.running) {
-                    completeScan(status);
-                }
-            } catch (error) {
-                if (!active) {
-                    return;
-                }
-                setWorldScreenshots([]);
-                setWorldScreenshotsError(
-                    error instanceof Error
-                        ? error.message
-                        : t('dialog.world.screenshots.load_failed')
-                );
-                setWorldScreenshotsStatus('error');
-            }
-        };
-        void initializeScan();
-
-        return () => {
-            active = false;
-            unsubscribe();
-        };
-    }, [activeTab, openNonce, t, world?.id, worldScreenshotsRefreshToken]);
 
     useEffect(() => {
         if (!instanceDetailTargets.length) {
@@ -1078,7 +903,7 @@ export function WorldDialogTabbedView({
         screenshots: worldScreenshots,
         screenshotsError: worldScreenshotsError,
         screenshotsStatus: worldScreenshotsStatus,
-        screenshotsRefreshDisabled: worldScreenshotsStatus === 'loading',
+        screenshotsRefreshDisabled: worldScreenshotsRefreshDisabled,
         tabs,
         totalVisitTime,
         visibleInstanceUserIds,

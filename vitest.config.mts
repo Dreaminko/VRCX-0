@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { resolve } from 'node:path';
 
 import react from '@vitejs/plugin-react';
@@ -44,10 +43,10 @@ export default defineConfig({
             reporter: ['text', 'json-summary'],
             reportsDirectory: './coverage',
             thresholds: {
-                statements: 32,
-                branches: 31,
-                functions: 28,
-                lines: 32,
+                statements: 36,
+                branches: 34,
+                functions: 32,
+                lines: 37,
                 'src/app/**': {
                     statements: 7,
                     branches: 15,
@@ -55,70 +54,70 @@ export default defineConfig({
                     lines: 7
                 },
                 'src/components/**': {
-                    statements: 20,
-                    branches: 21,
-                    functions: 18,
-                    lines: 20
+                    statements: 25,
+                    branches: 25,
+                    functions: 22,
+                    lines: 25
                 },
                 'src/domain/**': {
-                    statements: 85,
-                    branches: 77,
+                    statements: 87,
+                    branches: 79,
                     functions: 85,
-                    lines: 85
+                    lines: 87
                 },
                 'src/features/**': {
-                    statements: 24,
-                    branches: 24,
-                    functions: 20,
-                    lines: 24
+                    statements: 29,
+                    branches: 28,
+                    functions: 25,
+                    lines: 30
                 },
                 'src/lib/**': {
-                    statements: 50,
-                    branches: 44,
-                    functions: 46,
-                    lines: 50
+                    statements: 51,
+                    branches: 45,
+                    functions: 50,
+                    lines: 51
                 },
                 'src/platform/**': {
-                    statements: 70,
-                    branches: 71,
-                    functions: 63,
-                    lines: 70
+                    statements: 78,
+                    branches: 77,
+                    functions: 76,
+                    lines: 78
                 },
                 'src/repositories/**': {
-                    statements: 37,
-                    branches: 31,
-                    functions: 35,
-                    lines: 37
+                    statements: 43,
+                    branches: 36,
+                    functions: 40,
+                    lines: 43
                 },
                 'src/services/**': {
-                    statements: 64,
-                    branches: 55,
-                    functions: 63,
-                    lines: 64
+                    statements: 67,
+                    branches: 58,
+                    functions: 66,
+                    lines: 67
                 },
                 'src/shared/**': {
-                    statements: 74,
-                    branches: 70,
-                    functions: 77,
-                    lines: 74
+                    statements: 78,
+                    branches: 74,
+                    functions: 80,
+                    lines: 78
                 },
                 'src/shared/utils/**': {
+                    statements: 79,
+                    branches: 75,
+                    functions: 83,
+                    lines: 79
+                },
+                'src/state/**': {
                     statements: 74,
-                    branches: 70,
+                    branches: 63,
                     functions: 79,
                     lines: 74
                 },
-                'src/state/**': {
-                    statements: 70,
-                    branches: 61,
-                    functions: 73,
-                    lines: 70
-                },
                 'src/ui/**': {
-                    statements: 34,
-                    branches: 27,
-                    functions: 27,
-                    lines: 34
+                    statements: 39,
+                    branches: 31,
+                    functions: 34,
+                    lines: 39
                 }
             }
         }

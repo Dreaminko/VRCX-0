@@ -1,13 +1,21 @@
-// @ts-nocheck
-/* global process, require */
-
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const REPO_RELEASE_DOWNLOAD_BASE =
     'https://github.com/Map1en/VRCX-0/releases/download';
 
-function readArg(argName, fallback = '') {
+type UpdaterPlatform = {
+    signature: string;
+    url: string;
+};
+
+type UpdaterManifest = Record<string, unknown> & {
+    version: string;
+    platforms: Record<string, unknown>;
+};
+
+function readArg(argName: string, fallback = ''): string {
     const prefix = `--${argName}=`;
     const inline = process.argv.find((arg) => arg.startsWith(prefix));
     if (inline) {
@@ -22,7 +30,7 @@ function readArg(argName, fallback = '') {
     return fallback;
 }
 
-function requireArg(argName) {
+function requireArg(argName: string): string {
     const value = readArg(argName).trim();
     if (!value) {
         throw new Error(`Missing required argument: --${argName}`);
@@ -30,7 +38,7 @@ function requireArg(argName) {
     return value;
 }
 
-function validateTarget(target) {
+function validateTarget(target: string): void {
     if (
         /^windows-x86_64-stable$/.test(target) === false &&
         /^linux-x86_64-(appimage|deb|rpm)-stable$/.test(target) === false &&
@@ -40,35 +48,48 @@ function validateTarget(target) {
     }
 }
 
-function readNotes(notesFile) {
+function readNotes(notesFile: string): string {
     if (!notesFile) {
         return '';
     }
     return fs.readFileSync(notesFile, 'utf8').trim();
 }
 
-function releaseAssetUrl(tag, assetName) {
+function releaseAssetUrl(tag: string, assetName: string): string {
     return `${REPO_RELEASE_DOWNLOAD_BASE}/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`;
 }
 
-function readBaseManifest(basePath, version) {
+function readBaseManifest(
+    basePath: string,
+    version: string
+): UpdaterManifest | null {
     if (!basePath) {
         return null;
     }
 
-    const manifest = JSON.parse(fs.readFileSync(basePath, 'utf8'));
+    const parsedManifest: unknown = JSON.parse(
+        fs.readFileSync(basePath, 'utf8')
+    );
+    if (!parsedManifest || typeof parsedManifest !== 'object') {
+        throw new Error(`Base manifest must be an object: ${basePath}`);
+    }
+    const manifest = parsedManifest as Record<string, unknown>;
     if (manifest.version !== version) {
         throw new Error(
             `Base manifest version ${manifest.version} does not match ${version}.`
         );
     }
-    if (!manifest.platforms || typeof manifest.platforms !== 'object') {
+    if (
+        !manifest.platforms ||
+        typeof manifest.platforms !== 'object' ||
+        Array.isArray(manifest.platforms)
+    ) {
         throw new Error(`Base manifest has no platforms object: ${basePath}`);
     }
-    return manifest;
+    return manifest as UpdaterManifest;
 }
 
-function main() {
+function main(): void {
     const version = requireArg('version');
     const tag = requireArg('tag');
     const target = requireArg('target');
@@ -85,25 +106,33 @@ function main() {
         throw new Error(`Signature file is empty: ${signatureFile}`);
     }
 
-    const manifest = readBaseManifest(base, version) || {
+    const manifest: UpdaterManifest = readBaseManifest(base, version) || {
         version,
         notes: readNotes(notesFile),
         pub_date: new Date().toISOString(),
         platforms: {}
     };
-    manifest.platforms[target] = {
+    const platform: UpdaterPlatform = {
         signature,
         url: releaseAssetUrl(tag, assetName)
     };
+    manifest.platforms[target] = platform;
 
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, `${JSON.stringify(manifest, null, 4)}\n`);
     console.log(out);
 }
 
-try {
-    main();
-} catch (error) {
-    console.error(error);
-    process.exitCode = 1;
+if (
+    process.argv[1] &&
+    import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+) {
+    try {
+        main();
+    } catch (error) {
+        console.error(error);
+        process.exitCode = 1;
+    }
 }
+
+export { readBaseManifest, releaseAssetUrl, validateTarget };

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { GalleryUploadTarget } from './galleryConstants';
-import { useGalleryAssetActions } from './useGalleryAssetActions';
+import { createGalleryAssetActions } from './useGalleryAssetActions';
 
 function createActions(overrides: Record<string, unknown> = {}) {
     const uploadAssetImage = vi.fn().mockResolvedValue({ json: null });
@@ -14,7 +14,7 @@ function createActions(overrides: Record<string, unknown> = {}) {
         error: vi.fn(),
         success: vi.fn()
     };
-    const actions = useGalleryAssetActions({
+    const actions = createGalleryAssetActions({
         FILE_TABS: {},
         UPLOAD_ASPECT_RATIOS: {},
         activeTab: 'prints',
@@ -86,7 +86,7 @@ function createActions(overrides: Record<string, unknown> = {}) {
     };
 }
 
-describe('useGalleryAssetActions', () => {
+describe('createGalleryAssetActions', () => {
     it('uses the crop white border option provided by the print crop dialog', async () => {
         const { actions, uploadAssetImage } = createActions();
         const blob = new Blob(['image'], { type: 'image/png' });

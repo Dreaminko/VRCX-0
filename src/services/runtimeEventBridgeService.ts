@@ -387,7 +387,6 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'gameLogPersistenceFallback',
         'gameLogSideEffect',
         'runtimeGroupInstancesProjection',
-        'overlayActivitySnapshot',
         'printsAutoCleanup',
         'profileBackupStatus',
         'profileRestoreProgress',

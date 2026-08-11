@@ -14,6 +14,7 @@ import type {
 } from '@/domain/entities/profileEntities';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import userProfileRepository from '@/repositories/userProfileRepository';
+import currentUserProfileService from '@/services/currentUserProfileService';
 import { mergeCurrentUserPresenceFields } from '@/shared/utils/currentUserPresence';
 import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -262,7 +263,7 @@ export function useUserDialogSelfActions({
 
         setSelfActionStatus(actionStatusRef, setActionStatus, 'self-profile');
         try {
-            const nextUser = await userProfileRepository.updateCurrentUser({
+            const nextUser = await currentUserProfileService.updateCurrentUser({
                 userId: currentUserId,
                 params: patch
             });
@@ -380,7 +381,7 @@ export function useUserDialogSelfActions({
         try {
             if (Object.keys(patch).length) {
                 const nextProfile =
-                    await userProfileRepository.updateCurrentUser({
+                    await currentUserProfileService.updateCurrentUser({
                         userId: currentUserId,
                         params: patch
                     });
@@ -388,7 +389,7 @@ export function useUserDialogSelfActions({
             }
             if (removeLanguageKeys.length) {
                 const nextProfile =
-                    await userProfileRepository.removeCurrentUserTags({
+                    await currentUserProfileService.removeCurrentUserTags({
                         userId: currentUserId,
                         tags: removeLanguageKeys.map((key) => `language_${key}`)
                     });
@@ -396,7 +397,7 @@ export function useUserDialogSelfActions({
             }
             if (addLanguageKeys.length) {
                 const nextProfile =
-                    await userProfileRepository.addCurrentUserTags({
+                    await currentUserProfileService.addCurrentUserTags({
                         userId: currentUserId,
                         tags: addLanguageKeys.map((key) => `language_${key}`)
                     });

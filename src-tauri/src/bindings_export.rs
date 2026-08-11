@@ -7,7 +7,6 @@ use vrcx_0_application::{
     GroupModerationBatchProgress, MutualGraphFetchStatus, NoteExportStatus, ProfileBackupStatus,
     ProfileRestoreProgress, RealtimeFeedProjection, SharedCollectionImportStatus,
 };
-use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
     BackendRuntimeTelemetry, FavoritesChangedPayload, FriendProfileLoadStatusPayload,
     FriendProjection, HostSessionProjection, ParsedLocation, PrintAutoCleanupEvent,
@@ -53,7 +52,6 @@ struct BackendRuntimeEventPayloadMap {
     runtime_worker_error: RuntimeWorkerErrorPayload,
     runtime_vrchat_auth_failure: RuntimeVrchatAuthFailurePayload,
     runtime_group_instances_projection: RuntimeGroupInstancesProjection,
-    overlay_activity_snapshot: OverlayActivitySnapshot,
     prints_auto_cleanup: PrintAutoCleanupEvent,
     profile_backup_status: ProfileBackupStatus,
     profile_restore_progress: ProfileRestoreProgress,
@@ -96,7 +94,6 @@ pub fn builder() -> Builder<tauri::Wry> {
         .typ::<GameLogProjection>()
         .typ::<HostSessionProjection>()
         .typ::<McpServerStatus>()
-        .typ::<OverlayActivitySnapshot>()
         .typ::<ParsedLocation>()
         .typ::<PrintAutoCleanupEvent>()
         .typ::<ProfileRestoreProgress>()

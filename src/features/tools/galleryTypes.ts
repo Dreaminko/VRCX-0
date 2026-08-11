@@ -97,7 +97,7 @@ export type GalleryActionDeps = GalleryControllerDeps & {
     t: Translation;
     toast: ToastApi;
     useRuntimeStore: typeof import('@/state/runtimeStore').useRuntimeStore;
-    userProfileRepository: typeof import('@/repositories/userProfileRepository').default;
+    currentUserProfileService: typeof import('@/services/currentUserProfileService').default;
     validateImageFile(file: Blob, t: Translation): boolean;
     withUploadTimeout<T>(promise: Promise<T>): Promise<T>;
 };
@@ -109,7 +109,7 @@ export type GalleryAssetActionDeps = Omit<
     | 'mediaRepository'
     | 'prompt'
     | 'useRuntimeStore'
-    | 'userProfileRepository'
+    | 'currentUserProfileService'
 > & {
     mediaRepository: Pick<
         GalleryActionDeps['mediaRepository'],
@@ -155,8 +155,8 @@ export type GalleryInventoryActionDeps = Pick<
             }): void;
         };
     };
-    userProfileRepository: Pick<
-        GalleryActionDeps['userProfileRepository'],
+    currentUserProfileService: Pick<
+        GalleryActionDeps['currentUserProfileService'],
         'updateCurrentUser'
     >;
 };

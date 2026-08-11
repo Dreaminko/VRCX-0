@@ -10,7 +10,6 @@ import {
     setCachedQueryData
 } from '@/lib/entityQueryCache';
 import { commands } from '@/platform/tauri/bindings';
-import { recordUserProfile } from '@/services/userFactAccessService';
 import { stripDefaultAvatarImage } from '@/shared/utils/avatar';
 import {
     computeTrustLevel,
@@ -426,11 +425,6 @@ async function updateCurrentUser({
     const mergedJson = mergeCurrentUserUpdateResponse(json, cachedUser, params);
     const nextUser = normalize(mergedJson);
     setCachedQueryData(queryKey, mergedJson);
-    recordUserProfile(nextUser, {
-        endpoint: DEFAULT_VRCHAT_API_ENDPOINT,
-        source: 'currentUser',
-        isCurrentUser: true
-    });
     return nextUser;
 }
 
@@ -511,13 +505,7 @@ async function addCurrentUserTags({ userId, tags = [] }: CurrentUserTagsInput) {
         response,
         `users/${encodeURIComponent(normalizedUserId)}/addTags`
     ).json;
-    const nextUser = normalize(json);
-    recordUserProfile(nextUser, {
-        endpoint: DEFAULT_VRCHAT_API_ENDPOINT,
-        source: 'currentUser',
-        isCurrentUser: true
-    });
-    return nextUser;
+    return normalize(json);
 }
 
 async function removeCurrentUserTags({
@@ -542,13 +530,7 @@ async function removeCurrentUserTags({
         response,
         `users/${encodeURIComponent(normalizedUserId)}/removeTags`
     ).json;
-    const nextUser = normalize(json);
-    recordUserProfile(nextUser, {
-        endpoint: DEFAULT_VRCHAT_API_ENDPOINT,
-        source: 'currentUser',
-        isCurrentUser: true
-    });
-    return nextUser;
+    return normalize(json);
 }
 
 const userProfileRepository = Object.freeze({

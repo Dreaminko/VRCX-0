@@ -1,17 +1,22 @@
-// @ts-nocheck
-/* global __dirname, process, require */
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const fs = require('node:fs');
-const path = require('node:path');
-
-const rootDir = path.join(__dirname, '..');
+const rootDir = path.join(import.meta.dirname, '..');
 const tauriConfigPath = path.join(rootDir, 'src-tauri', 'tauri.conf.json');
 const cargoTomlPath = path.join(rootDir, 'src-tauri', 'Cargo.toml');
 const cargoLockPath = path.join(rootDir, 'Cargo.lock');
 const RELEASE_VERSION_PATTERN =
     /^v?(?<major>[1-9][0-9]{0,1})\.(?<minor>0|[1-9][0-9]{0,2})\.(?<patch>0|[1-9][0-9]{0,2})(?:-[0-9A-Za-z.-]+)?$/;
 
-function readArg(argName, fallback = '') {
+type ReleaseMeta = {
+    base_version: string;
+    build_version: string;
+    display_version: string;
+    tag: string;
+};
+
+function readArg(argName: string, fallback = ''): string {
     const prefix = `--${argName}=`;
     const inline = process.argv.find((arg) => arg.startsWith(prefix));
     if (inline) {
@@ -26,12 +31,12 @@ function readArg(argName, fallback = '') {
     return fallback;
 }
 
-function hasFlag(argName) {
+function hasFlag(argName: string): boolean {
     return process.argv.includes(`--${argName}`);
 }
 
-function buildReleaseMeta() {
-    const version = readArg('version').trim();
+function buildReleaseMeta(versionInput: string): ReleaseMeta {
+    const version = versionInput.trim();
     const match = RELEASE_VERSION_PATTERN.exec(version);
     if (!match?.groups) {
         throw new Error(`Invalid release version: ${version}`);
@@ -48,8 +53,14 @@ function buildReleaseMeta() {
     };
 }
 
-function syncVersionToManifests(buildVersion) {
-    const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
+function syncVersionToManifests(buildVersion: string): void {
+    const parsedTauriConfig: unknown = JSON.parse(
+        fs.readFileSync(tauriConfigPath, 'utf8')
+    );
+    if (!parsedTauriConfig || typeof parsedTauriConfig !== 'object') {
+        throw new Error('Invalid src-tauri/tauri.conf.json');
+    }
+    const tauriConfig = parsedTauriConfig as Record<string, unknown>;
     tauriConfig.version = buildVersion;
     fs.writeFileSync(
         tauriConfigPath,
@@ -84,7 +95,7 @@ function syncVersionToManifests(buildVersion) {
     );
 }
 
-function writeOutputs(meta) {
+function writeOutputs(meta: ReleaseMeta): void {
     const lines = Object.entries(meta).map(([key, value]) => `${key}=${value}`);
     for (const line of lines) {
         console.log(line);
@@ -95,13 +106,24 @@ function writeOutputs(meta) {
     }
 }
 
-try {
-    const meta = buildReleaseMeta();
+function main(): void {
+    const meta = buildReleaseMeta(readArg('version'));
     if (!hasFlag('dry-run')) {
         syncVersionToManifests(meta.build_version);
     }
     writeOutputs(meta);
-} catch (error) {
-    console.error(error);
-    process.exitCode = 1;
 }
+
+if (
+    process.argv[1] &&
+    import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+) {
+    try {
+        main();
+    } catch (error) {
+        console.error(error);
+        process.exitCode = 1;
+    }
+}
+
+export { buildReleaseMeta };

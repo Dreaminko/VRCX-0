@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import mediaRepository from '@/repositories/mediaRepository';
-import userProfileRepository from '@/repositories/userProfileRepository';
+import currentUserProfileService from '@/services/currentUserProfileService';
 import {
     readFileAsBase64,
     withUploadTimeout
@@ -21,7 +21,7 @@ import {
     parseEmojiUploadSettings,
     validateImageFile
 } from './inventoryHelpers';
-import { useGalleryAssetActions } from './useGalleryAssetActions';
+import { createGalleryAssetActions } from './useGalleryAssetActions';
 import { useGalleryInventoryActions } from './useGalleryInventoryActions';
 
 function buildProfilePicOverride(endpoint: unknown, fileId: unknown) {
@@ -64,6 +64,7 @@ export function useGalleryActions(deps: GalleryControllerDeps) {
         UPLOAD_ASPECT_RATIOS,
         buildProfilePicOverride,
         confirm,
+        currentUserProfileService,
         getLocalTimestampString,
         isRuntimeAuthTarget,
         mediaRepository,
@@ -73,11 +74,10 @@ export function useGalleryActions(deps: GalleryControllerDeps) {
         t,
         toast,
         useRuntimeStore,
-        userProfileRepository,
         validateImageFile,
         withUploadTimeout
     } satisfies GalleryActionDeps;
-    const assetActions = useGalleryAssetActions(actionDeps);
+    const assetActions = createGalleryAssetActions(actionDeps);
     const inventoryActions = useGalleryInventoryActions({
         ...actionDeps,
         ...assetActions

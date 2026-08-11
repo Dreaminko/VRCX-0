@@ -3037,7 +3037,6 @@ export type BackendRuntimeEventPayloadMap = {
     runtimeWorkerError: RuntimeWorkerErrorPayload;
     runtimeVrchatAuthFailure: RuntimeVrchatAuthFailurePayload;
     runtimeGroupInstancesProjection: RuntimeGroupInstancesProjection;
-    overlayActivitySnapshot: OverlayActivitySnapshot;
     printsAutoCleanup: PrintAutoCleanupEvent;
     profileBackupStatus: ProfileBackupStatus;
     profileRestoreProgress: ProfileRestoreProgress;
@@ -4626,7 +4625,6 @@ export type NowPlayingPayload = {
     videoId?: string | null;
     updatedAt: string;
 };
-export type OverlayActivityActorRelation = 'none' | 'friend' | 'favorite';
 export type OverlayActivityCategory =
     | 'actionRequired'
     | 'currentInstance'
@@ -4635,34 +4633,6 @@ export type OverlayActivityCategory =
     | 'groupSocial'
     | 'systemSafety'
     | 'media';
-export type OverlayActivityContent = {
-    icon: string;
-    title: OverlayActivityText;
-    body: OverlayActivityText;
-    summary: string;
-    detail: string;
-    location: string;
-    worldId: string;
-    displayLocation: string;
-    worldName: string;
-    groupName: string;
-    status: string;
-    statusDescription: string;
-    avatarName: string;
-    imageUrl: string;
-};
-export type OverlayActivityEntry = {
-    sequence: number;
-    sourceId: string;
-    activityType: string;
-    category: OverlayActivityCategory;
-    createdAt: string;
-    actorUserId: string;
-    actorDisplayName: string;
-    content: OverlayActivityContent;
-    actorRelation?: OverlayActivityActorRelation;
-    payload?: JsonValue;
-};
 export type OverlayActivityFilterProfile = {
     version: number;
     types: Partial<{ [key in string]: OverlayActivityRule }>;
@@ -4686,10 +4656,6 @@ export type OverlayActivityScope =
     | 'selectedFavorites'
     | 'allFavorites'
     | 'everyoneInInstance';
-export type OverlayActivitySnapshot = { entries: OverlayActivityEntry[] };
-export type OverlayActivityText =
-    | { kind: 'message'; value: OverlayMessage }
-    | { kind: 'literal'; value: string };
 export type OverlayActivityTypeDefinition = {
     key: string;
     category: OverlayActivityCategory;
@@ -4698,88 +4664,6 @@ export type OverlayActivityTypeDefinition = {
     hmdDefaultScope: OverlayActivityScope;
     aliases: string[];
 };
-export type OverlayMessage = {
-    key: OverlayMessageKey;
-    params: Partial<{ [key in string]: string }>;
-};
-export type OverlayMessageKey =
-    | 'notifications.has_joined'
-    | 'notifications.has_left'
-    | 'notifications.joined_with_others'
-    | 'notifications.left_with_others'
-    | 'notifications.is_joining'
-    | 'notifications.gps'
-    | 'notifications.online'
-    | 'notifications.online_location'
-    | 'notifications.offline'
-    | 'notifications.status_update'
-    | 'notifications.avatar_change'
-    | 'notifications.friend'
-    | 'notifications.unfriend'
-    | 'notifications.display_name'
-    | 'notifications.trust_level'
-    | 'notifications.bio'
-    | 'notifications.invite'
-    | 'notifications.request_invite'
-    | 'notifications.invite_response'
-    | 'notifications.request_invite_response'
-    | 'notifications.friend_request'
-    | 'notifications.group_announcement_title'
-    | 'notifications.group_informative_title'
-    | 'notifications.group_invite_title'
-    | 'notifications.group_join_request_title'
-    | 'notifications.group_transfer_request_title'
-    | 'notifications.group_queue_ready_title'
-    | 'notifications.instance_closed_title'
-    | 'notifications.event_title'
-    | 'notifications.external_title'
-    | 'notifications.video_play_title'
-    | 'notifications.blocked'
-    | 'notifications.unblocked'
-    | 'notifications.muted'
-    | 'notifications.unmuted'
-    | 'notifications.blocked_player_joined'
-    | 'notifications.blocked_player_left'
-    | 'notifications.muted_player_joined'
-    | 'notifications.muted_player_left'
-    | 'overlay.footer.players'
-    | 'overlay.footer.instance_duration'
-    | 'overlay.generic_instance_location'
-    | 'overlay.friends_panel.title'
-    | 'overlay.friends_panel.all'
-    | 'overlay.friends_panel.empty'
-    | 'overlay.friends_panel.note'
-    | 'overlay.friends_panel.memo'
-    | 'overlay.friends_panel.open'
-    | 'overlay.friends_panel.request'
-    | 'overlay.friends_panel.invite'
-    | 'overlay.friends_panel.favorites_online'
-    | 'overlay.friends_panel.same_instance'
-    | 'overlay.friends_panel.local_favorites'
-    | 'overlay.friends_panel.traveling'
-    | 'overlay.friends_panel.private'
-    | 'overlay.friends_panel.offline'
-    | 'overlay.access.public'
-    | 'overlay.access.invite'
-    | 'overlay.access.invite_plus'
-    | 'overlay.access.friends'
-    | 'overlay.access.friends_plus'
-    | 'overlay.access.group'
-    | 'overlay.access.group_public'
-    | 'overlay.access.group_plus'
-    | 'overlay.status.active'
-    | 'overlay.status.join_me'
-    | 'overlay.status.ask_me'
-    | 'overlay.status.busy'
-    | 'overlay.discord.title.invite'
-    | 'overlay.discord.title.request_invite'
-    | 'overlay.discord.title.invite_response'
-    | 'overlay.discord.title.request_invite_response'
-    | 'overlay.discord.title.gps'
-    | 'overlay.discord.title.status'
-    | 'overlay.discord.title.avatar_change'
-    | 'overlay.discord.title.online'
-    | 'overlay.discord.title.offline';
 export type ParsedLocation = {
     tag: string;
     isOffline: boolean;

@@ -32,6 +32,7 @@ export function useGalleryInventoryActions({
     buildProfilePicOverride,
     confirm,
     currentEndpoint,
+    currentUserProfileService,
     currentUserId,
     currentUserSnapshot,
     getAuthTarget,
@@ -43,8 +44,7 @@ export function useGalleryInventoryActions({
     setMutatingKey,
     t,
     toast,
-    useRuntimeStore,
-    userProfileRepository
+    useRuntimeStore
 }: GalleryInventoryActionDeps) {
     async function deletePrint(printId: unknown) {
         const normalizedPrintId =
@@ -136,7 +136,7 @@ export function useGalleryInventoryActions({
         }
         setMutatingKey(`${fieldName}:${normalizedFileId || 'clear'}`);
         try {
-            const nextUser = await userProfileRepository.updateCurrentUser({
+            const nextUser = await currentUserProfileService.updateCurrentUser({
                 userId: currentUserId,
                 params: {
                     [fieldName]: nextValue

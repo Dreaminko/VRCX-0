@@ -293,7 +293,7 @@ export function UserDialogProfileMediaPanel({
         }
     }, [profile?.id]);
 
-    async function useProfileMedia(
+    async function applyProfileMedia(
         fieldName: ProfileMediaFieldName,
         fileId: string
     ) {
@@ -343,7 +343,7 @@ export function UserDialogProfileMediaPanel({
                             busy={busy}
                             mutatingKey={mutatingKey}
                             onUse={(fieldName, fileId) => {
-                                useProfileMedia(fieldName, fileId);
+                                applyProfileMedia(fieldName, fileId);
                             }}
                             onClear={(fieldName) => {
                                 clearProfileMedia(fieldName);
