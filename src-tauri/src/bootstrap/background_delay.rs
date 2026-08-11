@@ -85,11 +85,7 @@ async fn start_background_mode_after_delay(
     {
         Ok(snapshot) => snapshot,
         Err(error) => {
-            super::show_auth_failure_notification_after_backend_start_error(
-                app,
-                state,
-                &error,
-            );
+            super::show_auth_failure_notification_after_backend_start_error(app, state, &error);
             let _ = super::refresh_tray_menu(app, state);
             return Err(error.into());
         }

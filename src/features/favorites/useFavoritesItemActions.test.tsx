@@ -95,10 +95,12 @@ const favoriteFriend: FavoriteItem = {
     }
 };
 
-function renderActions(overrides: {
-    kind?: 'friend' | 'world' | 'avatar';
-    selectedSource?: 'remote' | 'local' | 'history';
-} = {}) {
+function renderActions(
+    overrides: {
+        kind?: 'friend' | 'world' | 'avatar';
+        selectedSource?: 'remote' | 'local' | 'history';
+    } = {}
+) {
     const setAvatarHistory = vi.fn();
     const setSelectedGroupKey = vi.fn();
     const hook = renderHook(() =>
@@ -139,7 +141,9 @@ describe('useFavoritesItemActions', () => {
             selectedSource: 'history'
         });
 
-        await act(async () => rendered.result.current.handleAvatarHistoryClear());
+        await act(async () =>
+            rendered.result.current.handleAvatarHistoryClear()
+        );
 
         expect(mocks.clearAvatarHistory).not.toHaveBeenCalled();
         expect(rendered.setAvatarHistory).not.toHaveBeenCalled();
@@ -154,7 +158,9 @@ describe('useFavoritesItemActions', () => {
             selectedSource: 'history'
         });
 
-        await act(async () => rendered.result.current.handleAvatarHistoryClear());
+        await act(async () =>
+            rendered.result.current.handleAvatarHistoryClear()
+        );
 
         expect(mocks.clearAvatarHistory).toHaveBeenCalledWith('usr_self');
         expect(rendered.setAvatarHistory).toHaveBeenCalledWith([]);
@@ -180,10 +186,12 @@ describe('useFavoritesItemActions', () => {
         mocks.selectAvatar.mockResolvedValue({ applied: false });
         const { result } = renderActions({ kind: 'avatar' });
 
-        await act(async () => result.current.selectFavoriteAvatar({
-            ...favoriteFriend,
-            kind: 'avatar'
-        }));
+        await act(async () =>
+            result.current.selectFavoriteAvatar({
+                ...favoriteFriend,
+                kind: 'avatar'
+            })
+        );
 
         expect(mocks.toastSuccess).not.toHaveBeenCalled();
         expect(mocks.toastError).not.toHaveBeenCalled();

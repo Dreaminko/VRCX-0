@@ -184,9 +184,7 @@ function readBundledFontEntries(
                 needsReview: !license && !noticeText
             };
         })
-        .filter(
-            (entry): entry is ThirdPartyLicenseEntry => entry !== null
-        );
+        .filter((entry): entry is ThirdPartyLicenseEntry => entry !== null);
 }
 
 function createThirdPartyNoticeText(
@@ -244,17 +242,15 @@ function parseCargoMetadata(value: unknown): CargoMetadata {
         ? value.workspace_members.map(String)
         : [];
     const packages = Array.isArray(value.packages)
-        ? value.packages
-              .filter(isRecord)
-              .map((pkg): CargoMetadataPackage => ({
-                  id: normalizeWhitespace(pkg.id),
-                  name: normalizeWhitespace(pkg.name),
-                  version: normalizeWhitespace(pkg.version),
-                  license: normalizeWhitespace(pkg.license),
-                  licenseFile: normalizeWhitespace(pkg.license_file),
-                  repository: normalizeWhitespace(pkg.repository),
-                  homepage: normalizeWhitespace(pkg.homepage)
-              }))
+        ? value.packages.filter(isRecord).map((pkg): CargoMetadataPackage => ({
+              id: normalizeWhitespace(pkg.id),
+              name: normalizeWhitespace(pkg.name),
+              version: normalizeWhitespace(pkg.version),
+              license: normalizeWhitespace(pkg.license),
+              licenseFile: normalizeWhitespace(pkg.license_file),
+              repository: normalizeWhitespace(pkg.repository),
+              homepage: normalizeWhitespace(pkg.homepage)
+          }))
         : [];
     return { workspaceMembers, packages };
 }
@@ -301,9 +297,7 @@ function readRustEntries(): ThirdPartyLicenseEntry[] {
                 license,
                 sourceType: 'rust',
                 sourceLabel: 'Rust dependency (backend)',
-                projectUrl: normalizeWhitespace(
-                    pkg.repository || pkg.homepage
-                ),
+                projectUrl: normalizeWhitespace(pkg.repository || pkg.homepage),
                 noticeText: '',
                 needsReview: !license
             };

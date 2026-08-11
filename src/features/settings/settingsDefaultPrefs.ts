@@ -6,8 +6,8 @@ import {
     DEFAULT_MAX_TABLE_SIZE,
     DEFAULT_SEARCH_LIMIT
 } from '@/shared/constants/settings';
-import { TRUST_COLOR_DEFAULTS } from '@/shared/utils/trustColors';
 import { DEFAULT_GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
+import { TRUST_COLOR_DEFAULTS } from '@/shared/utils/trustColors';
 
 import {
     DEFAULT_TRANSLATION_ENDPOINT,

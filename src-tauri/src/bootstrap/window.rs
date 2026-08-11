@@ -135,11 +135,7 @@ pub async fn start_background_mode_for_current_session(
     {
         Ok(snapshot) => snapshot,
         Err(error) => {
-            show_auth_failure_notification_after_backend_start_error(
-                app,
-                state,
-                &error,
-            );
+            show_auth_failure_notification_after_backend_start_error(app, state, &error);
             let _ = refresh_tray_menu(app, state);
             return Err(error.into());
         }

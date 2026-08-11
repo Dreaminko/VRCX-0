@@ -141,9 +141,9 @@ describe('useNotificationActions', () => {
             userId: 'usr_self',
             version: 3
         });
-        expect(mocks.deleteNotification.mock.invocationCallOrder[0]).toBeLessThan(
-            mocks.reload.mock.invocationCallOrder[0]
-        );
+        expect(
+            mocks.deleteNotification.mock.invocationCallOrder[0]
+        ).toBeLessThan(mocks.reload.mock.invocationCallOrder[0]);
         expect(mocks.toastSuccess).toHaveBeenCalledWith(
             'view.notification.success.notification_log_entry_deleted'
         );

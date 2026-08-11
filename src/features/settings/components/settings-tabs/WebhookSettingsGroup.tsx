@@ -1,12 +1,12 @@
 import { CircleHelpIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
 import type {
     WebhookDeliveryChannelSnapshot,
     WebhookDeliveryRecord,
     WebhookDeliverySnapshot
 } from '@/platform/tauri/bindings';
+import { GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {

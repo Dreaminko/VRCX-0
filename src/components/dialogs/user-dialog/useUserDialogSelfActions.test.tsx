@@ -55,9 +55,8 @@ vi.mock('@/state/runtimeStore', () => {
 });
 
 vi.mock('@/state/vrchatConfigStore', () => ({
-    useVrchatConfigStore: (
-        selector: (state: { snapshot: null }) => unknown
-    ) => selector({ snapshot: null })
+    useVrchatConfigStore: (selector: (state: { snapshot: null }) => unknown) =>
+        selector({ snapshot: null })
 }));
 
 vi.mock('./useCurrentUserSocialStatusDialog', () => ({
@@ -208,9 +207,9 @@ describe('useUserDialogSelfActions', () => {
             userId: 'usr_self',
             tags: ['language_ja']
         });
-        expect(mocks.updateCurrentUser.mock.invocationCallOrder[0]).toBeLessThan(
-            mocks.removeTags.mock.invocationCallOrder[0]
-        );
+        expect(
+            mocks.updateCurrentUser.mock.invocationCallOrder[0]
+        ).toBeLessThan(mocks.removeTags.mock.invocationCallOrder[0]);
         expect(mocks.removeTags.mock.invocationCallOrder[0]).toBeLessThan(
             mocks.addTags.mock.invocationCallOrder[0]
         );

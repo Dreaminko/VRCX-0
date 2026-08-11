@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import type { Dispatch, SetStateAction } from 'react';
 import { act, renderHook } from '@testing-library/react';
+import type { Dispatch, SetStateAction } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FriendListRow } from './friendListRows';
@@ -101,18 +101,18 @@ const friend: FriendListRow = {
 function renderActions() {
     let deletingFriendIds = new Set<string>();
     let selectedFriendIds = new Set(['usr_friend']);
-    const setDeletingFriendIds = vi.fn<
-        Dispatch<SetStateAction<Set<string>>>
-    >((next) => {
-        deletingFriendIds =
-            typeof next === 'function' ? next(deletingFriendIds) : next;
-    });
-    const setSelectedFriendIds = vi.fn<
-        Dispatch<SetStateAction<Set<string>>>
-    >((next) => {
-        selectedFriendIds =
-            typeof next === 'function' ? next(selectedFriendIds) : next;
-    });
+    const setDeletingFriendIds = vi.fn<Dispatch<SetStateAction<Set<string>>>>(
+        (next) => {
+            deletingFriendIds =
+                typeof next === 'function' ? next(deletingFriendIds) : next;
+        }
+    );
+    const setSelectedFriendIds = vi.fn<Dispatch<SetStateAction<Set<string>>>>(
+        (next) => {
+            selectedFriendIds =
+                typeof next === 'function' ? next(selectedFriendIds) : next;
+        }
+    );
     const hook = renderHook(() =>
         useFriendListRowActions({
             filteredRows: [friend],

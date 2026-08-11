@@ -117,10 +117,9 @@ impl From<vrcx_0_persistence::Error> for AppError {
     fn from(value: vrcx_0_persistence::Error) -> Self {
         match value {
             vrcx_0_persistence::Error::Database(message) => AppError::database(message, None),
-            vrcx_0_persistence::Error::Sqlite {
-                message,
-                category,
-            } => AppError::database(message, category),
+            vrcx_0_persistence::Error::Sqlite { message, category } => {
+                AppError::database(message, category)
+            }
             vrcx_0_persistence::Error::Io(error) => AppError::Io(error),
             vrcx_0_persistence::Error::Json(error) => AppError::Json(error),
             vrcx_0_persistence::Error::InvalidData(message) => AppError::Custom(message),
@@ -152,18 +151,15 @@ impl From<vrcx_0_application_core::Error> for AppError {
     fn from(value: vrcx_0_application_core::Error) -> Self {
         match value {
             vrcx_0_application_core::Error::Database(message) => AppError::database(message, None),
-            vrcx_0_application_core::Error::Sqlite {
-                message,
-                category,
-            } => AppError::database(message, category),
+            vrcx_0_application_core::Error::Sqlite { message, category } => {
+                AppError::database(message, category)
+            }
             vrcx_0_application_core::Error::Io(error) => AppError::Io(error),
             vrcx_0_application_core::Error::Json(error) => AppError::Json(error),
             vrcx_0_application_core::Error::UpdateArtifactInvalid(message) => {
                 AppError::Custom(format!("Update artifact is invalid: {message}"))
             }
-            vrcx_0_application_core::Error::VrchatApi { message, .. } => {
-                AppError::Custom(message)
-            }
+            vrcx_0_application_core::Error::VrchatApi { message, .. } => AppError::Custom(message),
             vrcx_0_application_core::Error::Custom(message) => AppError::Custom(message),
         }
     }
@@ -173,10 +169,9 @@ impl From<vrcx_0_runtime_host::Error> for AppError {
     fn from(value: vrcx_0_runtime_host::Error) -> Self {
         match value {
             vrcx_0_runtime_host::Error::Database(message) => AppError::database(message, None),
-            vrcx_0_runtime_host::Error::Sqlite {
-                message,
-                category,
-            } => AppError::database(message, category),
+            vrcx_0_runtime_host::Error::Sqlite { message, category } => {
+                AppError::database(message, category)
+            }
             vrcx_0_runtime_host::Error::Io(error) => AppError::Io(error),
             vrcx_0_runtime_host::Error::Json(error) => AppError::Json(error),
             vrcx_0_runtime_host::Error::VrchatApi { message, .. } => AppError::Custom(message),
@@ -252,11 +247,9 @@ mod tests {
 
     #[test]
     fn does_not_classify_database_errors_from_display_text() {
-        let payload = serde_json::to_value(AppError::database(
-            "database or disk is full".into(),
-            None,
-        ))
-        .unwrap();
+        let payload =
+            serde_json::to_value(AppError::database("database or disk is full".into(), None))
+                .unwrap();
 
         assert_eq!(
             payload,
@@ -269,10 +262,8 @@ mod tests {
 
     #[test]
     fn omits_sqlite_category_for_unrelated_errors() {
-        let payload = serde_json::to_value(AppError::Custom(
-            "database or disk is full".to_string(),
-        ))
-        .unwrap();
+        let payload =
+            serde_json::to_value(AppError::Custom("database or disk is full".to_string())).unwrap();
 
         assert_eq!(
             payload,

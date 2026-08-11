@@ -126,8 +126,7 @@ fn should_show_runtime_auth_failure_notification(
     snapshot: &BackendRuntimeSnapshot,
     status_code: i32,
 ) -> bool {
-    snapshot.auth_status == BackendRuntimeAuthStatus::InteractionRequired
-        && status_code != 401
+    snapshot.auth_status == BackendRuntimeAuthStatus::InteractionRequired && status_code != 401
 }
 
 fn should_show_backend_start_auth_notification(
@@ -299,8 +298,7 @@ mod tests {
             RealtimeWsStatus::AuthFailure,
         );
         assert!(!should_show_runtime_auth_failure_notification(
-            &snapshot,
-            401
+            &snapshot, 401
         ));
     }
 

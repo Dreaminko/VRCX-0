@@ -54,24 +54,27 @@ describe('currentUserProfileService', () => {
                     tags: ['language_en']
                 })
         ]
-    ] as const)('records the resolved profile after %s', async (_, call, run) => {
-        const profile = {
-            id: 'usr_self',
-            displayName: 'Current User'
-        };
-        call.mockResolvedValueOnce(profile);
+    ] as const)(
+        'records the resolved profile after %s',
+        async (_, call, run) => {
+            const profile = {
+                id: 'usr_self',
+                displayName: 'Current User'
+            };
+            call.mockResolvedValueOnce(profile);
 
-        await expect(run()).resolves.toBe(profile);
+            await expect(run()).resolves.toBe(profile);
 
-        expect(mocks.recordUserProfile).toHaveBeenCalledWith(profile, {
-            endpoint: 'https://api.vrchat.cloud/api/1',
-            source: 'currentUser',
-            isCurrentUser: true
-        });
-        expect(call.mock.invocationCallOrder[0]).toBeLessThan(
-            mocks.recordUserProfile.mock.invocationCallOrder[0]
-        );
-    });
+            expect(mocks.recordUserProfile).toHaveBeenCalledWith(profile, {
+                endpoint: 'https://api.vrchat.cloud/api/1',
+                source: 'currentUser',
+                isCurrentUser: true
+            });
+            expect(call.mock.invocationCallOrder[0]).toBeLessThan(
+                mocks.recordUserProfile.mock.invocationCallOrder[0]
+            );
+        }
+    );
 
     it('does not record a profile when the repository mutation fails', async () => {
         const error = new Error('update failed');
