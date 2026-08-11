@@ -62,7 +62,7 @@ impl UserCacheRuntime {
     pub(crate) fn record_user(
         &self,
         value: &Value,
-        options: UserFactMergeOptions,
+        options: &UserFactMergeOptions,
     ) -> Option<UserCacheOutput> {
         let user_id = Self::extract_user_id(value);
         if user_id.is_empty() {
@@ -77,7 +77,7 @@ impl UserCacheRuntime {
         }
 
         let mut state = self.lock();
-        let result = merge_user_fact(state.users.get(&key), value, &options);
+        let result = merge_user_fact(state.users.get(&key), value, options);
         let pinned = is_pinned(&result.fact);
         let output = result.changed.then(|| UserCacheOutput {
             user: result.fact.to_object(),
@@ -146,7 +146,7 @@ mod tests {
         let cache = UserCacheRuntime::new();
         let out = cache.record_user(
             &json!({ "id": "usr_1", "displayName": "Alice" }),
-            opts(false),
+            &opts(false),
         );
         assert!(out.is_some());
         assert_eq!(
@@ -163,17 +163,17 @@ mod tests {
     #[test]
     fn unchanged_record_returns_none() {
         let cache = UserCacheRuntime::new();
-        cache.record_user(&json!({ "id": "usr_1", "state": "online" }), opts(false));
-        let again = cache.record_user(&json!({ "id": "usr_1", "state": "online" }), opts(false));
+        cache.record_user(&json!({ "id": "usr_1", "state": "online" }), &opts(false));
+        let again = cache.record_user(&json!({ "id": "usr_1", "state": "online" }), &opts(false));
         assert!(again.is_none());
     }
 
     #[test]
     fn non_friend_lru_evicts_oldest() {
         let cache = UserCacheRuntime::with_capacity(2);
-        cache.record_user(&json!({ "id": "usr_a", "displayName": "A" }), opts(false));
-        cache.record_user(&json!({ "id": "usr_b", "displayName": "B" }), opts(false));
-        cache.record_user(&json!({ "id": "usr_c", "displayName": "C" }), opts(false));
+        cache.record_user(&json!({ "id": "usr_a", "displayName": "A" }), &opts(false));
+        cache.record_user(&json!({ "id": "usr_b", "displayName": "B" }), &opts(false));
+        cache.record_user(&json!({ "id": "usr_c", "displayName": "C" }), &opts(false));
         assert!(cache
             .get_user("https://api.example.test", "usr_a")
             .is_none());
@@ -194,7 +194,7 @@ mod tests {
                     "id": format!("usr_{index}"),
                     "displayName": format!("User {index}")
                 }),
-                opts(false),
+                &opts(false),
             );
         }
 
@@ -214,10 +214,10 @@ mod tests {
         let cache = UserCacheRuntime::with_capacity(1);
         cache.record_user(
             &json!({ "id": "usr_friend", "displayName": "F" }),
-            opts(true),
+            &opts(true),
         );
-        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), opts(false));
-        cache.record_user(&json!({ "id": "usr_y", "displayName": "Y" }), opts(false));
+        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), &opts(false));
+        cache.record_user(&json!({ "id": "usr_y", "displayName": "Y" }), &opts(false));
         assert!(cache
             .get_user("https://api.example.test", "usr_friend")
             .is_some());
@@ -228,7 +228,7 @@ mod tests {
         let cache = UserCacheRuntime::with_capacity(1);
         cache.record_user(
             &json!({ "id": "usr_self", "displayName": "Self" }),
-            UserFactMergeOptions {
+            &UserFactMergeOptions {
                 is_current_user: true,
                 ..opts(false)
             },
@@ -236,8 +236,8 @@ mod tests {
         assert!(cache
             .get_user("https://api.example.test", "usr_self")
             .is_some());
-        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), opts(false));
-        cache.record_user(&json!({ "id": "usr_y", "displayName": "Y" }), opts(false));
+        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), &opts(false));
+        cache.record_user(&json!({ "id": "usr_y", "displayName": "Y" }), &opts(false));
 
         assert!(cache
             .get_user("https://api.example.test", "usr_self")
@@ -249,9 +249,9 @@ mod tests {
         let cache = UserCacheRuntime::new();
         cache.record_user(
             &json!({ "id": "usr_friend", "displayName": "F" }),
-            opts(true),
+            &opts(true),
         );
-        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), opts(false));
+        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), &opts(false));
         cache.clear();
         assert!(cache
             .get_user("https://api.example.test", "usr_friend")

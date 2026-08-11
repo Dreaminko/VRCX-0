@@ -47,6 +47,11 @@ pub(crate) struct FriendBaselineEffects {
     pub(crate) confirmed_feed_entries: Vec<Value>,
 }
 
+pub(crate) struct FriendUserCacheSeed {
+    pub(crate) endpoint: String,
+    pub(crate) values: Vec<Value>,
+}
+
 pub(crate) enum SyntheticFriendEvent {
     Delete { user_id: String },
     TrustedAdd { user_id: String, profile: Value },
@@ -361,6 +366,20 @@ impl RealtimeFriendsRuntime {
 
     pub fn snapshot(&self) -> Option<RealtimeFriendSnapshot> {
         self.lock_state().baseline.clone()
+    }
+
+    pub(crate) fn user_cache_seed(&self) -> Option<FriendUserCacheSeed> {
+        let state = self.lock_state();
+        let baseline = state.baseline.as_ref()?;
+        let values = baseline
+            .friends_by_id
+            .values()
+            .map(|record| serde_json::to_value(record).unwrap_or(Value::Null))
+            .collect();
+        Some(FriendUserCacheSeed {
+            endpoint: baseline.endpoint.clone(),
+            values,
+        })
     }
 
     pub fn roster_snapshot(

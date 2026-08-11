@@ -25,7 +25,8 @@ use super::super::{
     SocialFriendRosterBaselineInput, SocialFriendRosterBaselineOutput,
 };
 use super::entry::{
-    build_fast_roster_snapshot, build_roster_snapshot_from_records, infer_state_from_platform,
+    build_fast_roster_records, build_fast_roster_snapshot, build_roster_snapshot_from_records,
+    infer_state_from_platform,
 };
 use super::profile::{
     fetch_all_friends, insert_fetched_friend, normalize_state_bucket, RemoteFriendProfile,
@@ -123,25 +124,47 @@ pub async fn build_friend_roster_baseline(
     deps: SocialBaselineDeps,
     input: SocialFriendRosterBaselineInput,
 ) -> Result<SocialFriendRosterBaselineOutput> {
-    Ok(build_friend_roster_baseline_inner(deps, input, true)
-        .await?
-        .output)
+    Ok(build_friend_roster_baseline_inner(
+        deps,
+        input,
+        FriendRosterBuildOptions {
+            reconcile_friend_log: true,
+            retain_raw_snapshot: true,
+        },
+    )
+    .await?
+    .output)
 }
 
 pub async fn build_friend_roster_baseline_deferred(
     deps: SocialBaselineDeps,
     input: SocialFriendRosterBaselineInput,
 ) -> Result<SocialFriendRosterBaselineOutput> {
-    Ok(build_friend_roster_baseline_inner(deps, input, false)
-        .await?
-        .output)
+    Ok(build_friend_roster_baseline_inner(
+        deps,
+        input,
+        FriendRosterBuildOptions {
+            reconcile_friend_log: false,
+            retain_raw_snapshot: true,
+        },
+    )
+    .await?
+    .output)
 }
 
 pub(crate) async fn build_friend_roster_baseline_deferred_internal(
     deps: SocialBaselineDeps,
     input: SocialFriendRosterBaselineInput,
 ) -> Result<BuiltFriendRosterBaseline> {
-    build_friend_roster_baseline_inner(deps, input, false).await
+    build_friend_roster_baseline_inner(
+        deps,
+        input,
+        FriendRosterBuildOptions {
+            reconcile_friend_log: false,
+            retain_raw_snapshot: false,
+        },
+    )
+    .await
 }
 
 pub(crate) struct BuiltFriendRosterBaseline {
@@ -149,10 +172,15 @@ pub(crate) struct BuiltFriendRosterBaseline {
     pub(crate) friends_by_id: Option<Result<HashMap<String, FriendRecord>>>,
 }
 
+struct FriendRosterBuildOptions {
+    reconcile_friend_log: bool,
+    retain_raw_snapshot: bool,
+}
+
 async fn build_friend_roster_baseline_inner(
     deps: SocialBaselineDeps,
     input: SocialFriendRosterBaselineInput,
-    reconcile_friend_log: bool,
+    options: FriendRosterBuildOptions,
 ) -> Result<BuiltFriendRosterBaseline> {
     let cached_current_user =
         CurrentUserSnapshotView::from_raw(input.current_user_snapshot.as_value());
@@ -197,11 +225,7 @@ async fn build_friend_roster_baseline_inner(
     let mut expected_ids = Vec::new();
     let mut expected_seen = HashSet::new();
     extend_unique(&mut expected_ids, &mut expected_seen, state_order_ids);
-    extend_unique(
-        &mut expected_ids,
-        &mut expected_seen,
-        snapshot_friend_ids.clone(),
-    );
+    extend_unique(&mut expected_ids, &mut expected_seen, snapshot_friend_ids);
 
     let online_friends = fetch_all_friends(&deps, &input.endpoint, false).await?;
     let offline_friends = fetch_all_friends(&deps, &input.endpoint, true).await?;
@@ -261,32 +285,42 @@ async fn build_friend_roster_baseline_inner(
         }
     }
 
-    let snapshot = build_fast_roster_snapshot(
-        &user_id,
-        &expected_ids,
-        &state_by_id,
-        &fetched_friends_by_id,
-    );
     let detail = String::new();
-    let count = snapshot
-        .get("orderedFriendIds")
-        .and_then(Value::as_array)
-        .map_or(0, Vec::len);
-    let friends_by_id = snapshot
-        .get("friendsById")
-        .cloned()
-        .ok_or_else(|| Error::Custom("Friend roster baseline has no friendsById map.".into()))
-        .and_then(|value| serde_json::from_value(value).map_err(Error::from));
+    let (count, snapshot, friends_by_id) = if options.retain_raw_snapshot {
+        let snapshot = build_fast_roster_snapshot(
+            &user_id,
+            &expected_ids,
+            &state_by_id,
+            fetched_friends_by_id,
+        );
+        let count = snapshot
+            .get("orderedFriendIds")
+            .and_then(Value::as_array)
+            .map_or(0, Vec::len);
+        let friends_by_id = snapshot
+            .get("friendsById")
+            .cloned()
+            .ok_or_else(|| Error::Custom("Friend roster baseline has no friendsById map.".into()))
+            .and_then(|value| serde_json::from_value(value).map_err(Error::from));
+        (count, Some(RawJson::from(snapshot)), friends_by_id)
+    } else {
+        let friends_by_id =
+            build_fast_roster_records(&expected_ids, &state_by_id, fetched_friends_by_id);
+        let count = friends_by_id.len();
+        let friends_by_id =
+            serde_json::from_value(Value::Object(friends_by_id)).map_err(Error::from);
+        (count, None, friends_by_id)
+    };
 
     let mut output = SocialFriendRosterBaselineOutput {
         user_id,
         stale: false,
         count,
         detail,
-        snapshot: Some(RawJson::from(snapshot)),
+        snapshot,
         friend_log_changed: false,
     };
-    if reconcile_friend_log {
+    if options.reconcile_friend_log {
         match &friends_by_id {
             Ok(friends_by_id) => {
                 output.friend_log_changed = reconcile_friend_roster_baseline(
@@ -348,16 +382,28 @@ pub fn apply_friend_roster_baseline_sync_outcome(
     output: &mut SocialFriendRosterBaselineOutput,
     outcome: FriendBaselineSyncOutcome,
 ) -> Result<bool> {
-    let Some(snapshot) = outcome.snapshot.filter(|_| outcome.result.accepted) else {
+    Ok(apply_friend_roster_baseline_sync_outcome_and_take_friends(output, outcome)?.is_some())
+}
+
+pub(crate) fn apply_friend_roster_baseline_sync_outcome_and_take_friends(
+    output: &mut SocialFriendRosterBaselineOutput,
+    outcome: FriendBaselineSyncOutcome,
+) -> Result<Option<HashMap<String, FriendRecord>>> {
+    let FriendBaselineSyncOutcome {
+        result,
+        snapshot,
+        friend_log_changed,
+    } = outcome;
+    let Some(snapshot) = snapshot.filter(|_| result.accepted) else {
         output.stale = true;
         output.snapshot = None;
         output.friend_log_changed = false;
         output.detail = "Superseded friend roster baseline.".into();
-        return Ok(false);
+        return Ok(None);
     };
     replace_friend_roster_baseline_snapshot(output, &snapshot.friends_by_id)?;
-    output.friend_log_changed = outcome.friend_log_changed;
-    Ok(true)
+    output.friend_log_changed = friend_log_changed;
+    Ok(Some(snapshot.friends_by_id))
 }
 
 #[derive(Default)]

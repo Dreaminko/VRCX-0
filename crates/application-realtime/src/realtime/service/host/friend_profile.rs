@@ -137,7 +137,7 @@ impl RealtimeHostRuntime {
             is_friend,
             ..Default::default()
         };
-        if let Some(output) = self.user_cache.record_user(profile, options) {
+        if let Some(output) = self.user_cache.record_user(profile, &options) {
             self.emit_user_cache_changes(vec![output.user]);
         }
     }
@@ -156,7 +156,7 @@ impl RealtimeHostRuntime {
     pub(super) fn record_users_into_cache(&self, values: &[Value], options: &UserFactMergeOptions) {
         let mut changed = Vec::new();
         for value in values {
-            if let Some(output) = self.user_cache.record_user(value, options.clone()) {
+            if let Some(output) = self.user_cache.record_user(value, options) {
                 changed.push(output.user);
             }
         }
@@ -164,18 +164,13 @@ impl RealtimeHostRuntime {
     }
 
     pub(super) fn record_baseline_friends_into_cache(&self) {
-        let Some(snapshot) = self.friends.snapshot() else {
+        let Some(seed) = self.friends.user_cache_seed() else {
             return;
         };
-        let values: Vec<Value> = snapshot
-            .friends_by_id
-            .values()
-            .map(|record| serde_json::to_value(record).unwrap_or(Value::Null))
-            .collect();
         self.record_users_into_cache(
-            &values,
+            &seed.values,
             &UserFactMergeOptions {
-                endpoint: snapshot.endpoint,
+                endpoint: seed.endpoint,
                 source: "friend".into(),
                 received_at: chrono::Utc::now().to_rfc3339(),
                 is_friend: true,
@@ -220,7 +215,7 @@ impl RealtimeHostRuntime {
                     .to_string(),
                 ..Default::default()
             };
-            if let Some(output) = self.user_cache.record_user(user, options) {
+            if let Some(output) = self.user_cache.record_user(user, &options) {
                 changed.push(output.user);
             }
         }

@@ -33,7 +33,7 @@ enum FriendBaselineSyncMode {
 struct FriendBaselineApplyPlan {
     result: FriendBaselineResult,
     active: ActiveRealtimeContext,
-    projection: Option<FriendProjection>,
+    previous_snapshot: Option<RealtimeFriendSnapshot>,
     schedules: Vec<PendingOfflineSchedule>,
     confirmed_feed_entries: Vec<Value>,
 }
@@ -135,7 +135,7 @@ impl RealtimeHostRuntime {
         let FriendBaselineApplyPlan {
             result,
             active,
-            projection: baseline_projection,
+            previous_snapshot,
             schedules: baseline_schedules,
             confirmed_feed_entries,
         } = {
@@ -266,8 +266,8 @@ impl RealtimeHostRuntime {
                     generation: generation.unwrap_or(active.generation),
                     baseline_revision: self
                         .friends
-                        .snapshot()
-                        .map(|snapshot| snapshot.baseline_revision)
+                        .baseline_causal_watermark()
+                        .baseline_revision
                         .unwrap_or(0),
                     friend_count: friends_by_id.len(),
                 }));
@@ -314,20 +314,10 @@ impl RealtimeHostRuntime {
             let result = baseline_effects.result;
             let baseline_schedules = baseline_effects.schedules;
             let confirmed_feed_entries = baseline_effects.confirmed_feed_entries;
-            let baseline_projection = if result.accepted {
-                self.friends
-                    .snapshot()
-                    .filter(|snapshot| snapshot.generation == active.generation)
-                    .and_then(|snapshot| {
-                        friend_snapshot_diff_projection(previous_snapshot.as_ref(), &snapshot)
-                    })
-            } else {
-                None
-            };
             FriendBaselineApplyPlan {
                 result,
                 active,
-                projection: baseline_projection,
+                previous_snapshot,
                 schedules: baseline_schedules,
                 confirmed_feed_entries,
             }
@@ -340,6 +330,10 @@ impl RealtimeHostRuntime {
         } else {
             None
         };
+        let baseline_projection = canonical_snapshot.as_ref().and_then(|snapshot| {
+            friend_snapshot_diff_projection(previous_snapshot.as_ref(), snapshot)
+        });
+        drop(previous_snapshot);
         if let Some(snapshot) = canonical_snapshot.as_ref() {
             self.set_activity_friend_user_ids(snapshot.friends_by_id.keys().cloned().collect());
         }
@@ -361,6 +355,7 @@ impl RealtimeHostRuntime {
         } else {
             FriendRosterReconcileOutcome::default()
         };
+        drop(canonical_snapshot);
         if baseline_projection.is_some() || !confirmed_feed_entries.is_empty() {
             let mut projection = baseline_projection.unwrap_or_else(|| {
                 FriendProjection::new(result.generation, result.baseline_revision)

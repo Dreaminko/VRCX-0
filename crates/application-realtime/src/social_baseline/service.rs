@@ -12,8 +12,8 @@ use vrcx_0_vrchat_client::http_api::{
 use vrcx_0_vrchat_client::{favorites as remote_favorites, friends as remote_friends};
 
 use crate::realtime::{FriendBaselineSyncOutcome, RealtimeHostRuntime, RealtimeSessionContext};
+use vrcx_0_application_core::Result;
 use vrcx_0_application_core::RuntimeAuthScope;
-use vrcx_0_application_core::{Error, Result};
 use vrcx_0_application_core::{HostSessionRuntime, WebClient};
 
 use crate::social_baseline::types::{
@@ -149,6 +149,7 @@ pub use friends::{
     build_friend_roster_baseline_deferred, FriendStatusVerdicts,
 };
 use friends::{
+    apply_friend_roster_baseline_sync_outcome_and_take_friends,
     build_friend_roster_baseline_deferred_internal, build_friend_state_map,
     build_snapshot_friend_ids,
 };
@@ -191,18 +192,14 @@ pub async fn build_synced_friend_roster_baseline(
         friends_by_id,
         verdicts,
     )?;
-    let canonical_friends = outcome
-        .accepted_snapshot()
-        .map(|snapshot| snapshot.friends_by_id.clone());
-    if !apply_friend_roster_baseline_sync_outcome(&mut output, outcome)? {
+    let Some(friends_by_id) =
+        apply_friend_roster_baseline_sync_outcome_and_take_friends(&mut output, outcome)?
+    else {
         return Ok(SyncedFriendRosterBaseline {
             output,
             friends_by_id: None,
         });
-    }
-    let friends_by_id = canonical_friends.ok_or_else(|| {
-        Error::Custom("Accepted friend roster baseline has no canonical snapshot.".into())
-    })?;
+    };
     Ok(SyncedFriendRosterBaseline {
         output,
         friends_by_id: Some(friends_by_id),

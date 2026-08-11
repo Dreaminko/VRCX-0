@@ -70,6 +70,50 @@ fn seed_online_friend(
 }
 
 #[test]
+fn baseline_friend_cache_seed_preserves_profile_and_friend_fields() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("baseline-friend-cache-open-fields")?;
+    let active = active_transport(&runtime);
+    let mut extra = serde_json::Map::new();
+    extra.insert(
+        "currentAvatarImageUrl".into(),
+        json!("https://example.test/avatar.png"),
+    );
+    extra.insert("tags".into(), json!(["system_trust_known"]));
+    runtime.runtime().sync_friend_snapshot(
+        active_session.clone(),
+        Some(active.generation),
+        HashMap::from([(
+            "usr_future".to_string(),
+            FriendRecord {
+                id: "usr_future".into(),
+                display_name: "Future Friend".into(),
+                state: "online".into(),
+                state_bucket: "online".into(),
+                extra,
+                ..FriendRecord::default()
+            },
+        )]),
+    )?;
+    runtime.runtime().user_cache.clear();
+
+    runtime.runtime().record_baseline_friends_into_cache();
+
+    let cached = runtime
+        .runtime()
+        .user_cache
+        .get_user(&active_session.endpoint, "usr_future")
+        .expect("baseline friend should be cached");
+    assert_eq!(
+        cached.get("currentAvatarImageUrl"),
+        Some(&json!("https://example.test/avatar.png"))
+    );
+    assert_eq!(cached.get("tags"), Some(&json!(["system_trust_known"])));
+    assert_eq!(cached.get("isFriend"), Some(&json!(true)));
+    Ok(())
+}
+
+#[test]
 fn auth_expiry_keeps_snapshots_for_the_reconnect_attempt() -> Result<()> {
     let (_dir, runtime, active_session) = runtime_with_active_session("transport-lifecycle")?;
     let expected = active_transport(&runtime);

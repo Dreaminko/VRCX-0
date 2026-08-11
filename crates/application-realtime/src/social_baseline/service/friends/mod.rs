@@ -36,6 +36,7 @@ pub use baseline::{
     build_friend_roster_baseline_deferred, FriendStatusVerdicts,
 };
 pub(crate) use baseline::{
+    apply_friend_roster_baseline_sync_outcome_and_take_friends,
     build_friend_roster_baseline_deferred_internal, reconcile_friend_roster_records,
     verify_friend_log_relationship_changes, FriendRosterReconcileOutcome,
 };

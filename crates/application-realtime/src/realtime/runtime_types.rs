@@ -78,10 +78,6 @@ impl FriendBaselineSyncOutcome {
     pub(crate) fn into_result(self) -> FriendBaselineResult {
         self.result
     }
-
-    pub(crate) fn accepted_snapshot(&self) -> Option<&RealtimeFriendSnapshot> {
-        self.snapshot.as_ref().filter(|_| self.result.accepted)
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]

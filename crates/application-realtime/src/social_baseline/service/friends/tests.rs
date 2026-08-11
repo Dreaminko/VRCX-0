@@ -126,7 +126,7 @@ fn fast_roster_snapshot_uses_current_user_ids_and_remote_profiles_without_friend
         "usr_self",
         &expected_ids,
         &state_by_id,
-        &fetched_friends_by_id,
+        fetched_friends_by_id,
     );
 
     let friends_by_id = snapshot
@@ -165,6 +165,43 @@ fn fast_roster_snapshot_uses_current_user_ids_and_remote_profiles_without_friend
 }
 
 #[test]
+fn fast_roster_snapshot_preserves_open_remote_profile_fields() {
+    let expected_ids = vec!["usr_future".to_string()];
+    let state_by_id = HashMap::from([("usr_future".to_string(), "online".to_string())]);
+    let fetched_friends_by_id = HashMap::from([(
+        "usr_future".to_string(),
+        RemoteFriendProfile::from_raw(
+            json!({
+                "id": "usr_future",
+                "displayName": "Future Friend",
+                "platform": "standalonewindows",
+                "futureProfile": {
+                    "nested": [1, { "unknown": true }]
+                }
+            }),
+            Some("online"),
+        )
+        .expect("valid profile"),
+    )]);
+
+    let snapshot = build_fast_roster_snapshot(
+        "usr_self",
+        &expected_ids,
+        &state_by_id,
+        fetched_friends_by_id,
+    );
+
+    assert_eq!(
+        snapshot["friendsById"]["usr_future"]["futureProfile"],
+        json!({ "nested": [1, { "unknown": true }] })
+    );
+    assert_eq!(
+        snapshot["friendsById"]["usr_future"]["$profileSource"],
+        json!("remote")
+    );
+}
+
+#[test]
 fn placeholder_friend_uses_realtime_list_bucket() {
     let expected_ids = vec!["usr_stale".to_string()];
     let state_by_id = HashMap::from([("usr_stale".to_string(), "online".to_string())]);
@@ -174,7 +211,7 @@ fn placeholder_friend_uses_realtime_list_bucket() {
         "usr_self",
         &expected_ids,
         &state_by_id,
-        &fetched_friends_by_id,
+        fetched_friends_by_id,
     );
 
     let friends_by_id = snapshot
@@ -202,7 +239,7 @@ fn placeholder_active_friend_is_kept_active() {
         "usr_self",
         &expected_ids,
         &state_by_id,
-        &fetched_friends_by_id,
+        fetched_friends_by_id,
     );
 
     let friends_by_id = snapshot
@@ -246,7 +283,7 @@ fn online_friend_in_private_world_stays_online() {
         "usr_self",
         &expected_ids,
         &state_by_id,
-        &fetched_friends_by_id,
+        fetched_friends_by_id,
     );
 
     let friends_by_id = snapshot
@@ -282,7 +319,7 @@ fn list_bucket_decides_state_not_location() {
         "usr_self",
         &expected_ids,
         &state_by_id,
-        &fetched_friends_by_id,
+        fetched_friends_by_id,
     );
 
     let friends_by_id = snapshot
@@ -320,7 +357,7 @@ fn active_list_bucket_ignores_location() {
         "usr_self",
         &expected_ids,
         &state_by_id,
-        &fetched_friends_by_id,
+        fetched_friends_by_id,
     );
 
     let friends_by_id = snapshot
@@ -405,6 +442,66 @@ fn canonical_records_replace_raw_roster_snapshot_and_ordering() -> Result<()> {
     assert_eq!(
         snapshot["orderedFriendIds"],
         json!(["usr_online", "usr_offline"])
+    );
+    Ok(())
+}
+
+#[test]
+fn canonical_records_can_be_moved_out_after_raw_snapshot_rebuild() -> Result<()> {
+    let mut output = SocialFriendRosterBaselineOutput {
+        user_id: "usr_self".into(),
+        stale: false,
+        count: 0,
+        detail: String::new(),
+        snapshot: None,
+        friend_log_changed: false,
+    };
+    let mut extra = serde_json::Map::new();
+    extra.insert(
+        "futureProfile".into(),
+        json!({ "nested": [1, { "unknown": true }] }),
+    );
+    let friends_by_id = HashMap::from([(
+        "usr_future".to_string(),
+        FriendRecord {
+            id: "usr_future".into(),
+            display_name: "Future Friend".into(),
+            state: "online".into(),
+            state_bucket: "online".into(),
+            extra,
+            ..FriendRecord::default()
+        },
+    )]);
+
+    let returned = apply_friend_roster_baseline_sync_outcome_and_take_friends(
+        &mut output,
+        FriendBaselineSyncOutcome::accepted(
+            crate::realtime::FriendBaselineResult {
+                accepted: true,
+                generation: 7,
+                baseline_revision: 1,
+                friend_count: friends_by_id.len(),
+            },
+            crate::realtime::RealtimeFriendSnapshot {
+                current_user_id: "usr_self".into(),
+                generation: 7,
+                baseline_revision: 1,
+                friends_by_id,
+                ..crate::realtime::RealtimeFriendSnapshot::default()
+            },
+            false,
+        ),
+    )?
+    .expect("accepted baseline should return canonical records");
+
+    assert_eq!(
+        returned["usr_future"].extra["futureProfile"],
+        json!({ "nested": [1, { "unknown": true }] })
+    );
+    assert_eq!(
+        output.snapshot.as_ref().expect("raw snapshot").as_value()["friendsById"]["usr_future"]
+            ["futureProfile"],
+        json!({ "nested": [1, { "unknown": true }] })
     );
     Ok(())
 }
