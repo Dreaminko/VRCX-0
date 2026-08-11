@@ -36,6 +36,9 @@ pub enum TickOutcome {
 pub trait OverlayBackend: Send + 'static {
     fn set_input_event_sink(&mut self, _sink: OverlayInputEventSink) {}
     fn set_interaction_active(&mut self, _active: bool) {}
+    fn needs_high_frequency_tick(&self) -> bool {
+        false
+    }
     fn start(&mut self) -> Result<(), BackendStartError>;
     fn register_surface(&mut self, config: OverlaySurfaceConfig) -> Result<(), String>;
     fn unregister_surface(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
@@ -248,7 +251,8 @@ fn run_actor<B>(
     let mut last_tick_at = Instant::now();
     let mut interaction_active = false;
     loop {
-        let tick_interval = overlay_tick_interval(interaction_active);
+        let tick_interval =
+            overlay_tick_interval(interaction_active || backend.needs_high_frequency_tick());
         match receiver.recv_timeout(tick_interval) {
             Ok(message) => {
                 match message {

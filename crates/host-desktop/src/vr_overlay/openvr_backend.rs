@@ -5,7 +5,8 @@ use std::time::{Duration, Instant};
 use openvr::{
     overlay::OverlayHandle,
     property::{
-        ControllerRoleHint_Int32, ModelNumber_String, SerialNumber_String, TrackingSystemName_String,
+        ControllerRoleHint_Int32, ModelNumber_String, SerialNumber_String,
+        TrackingSystemName_String,
     },
     system::event::Event,
     tracked_device_index, ApplicationType, Context, ControllerState, Overlay, System,
@@ -28,7 +29,6 @@ use super::openvr_helpers::{
     trigger_pressed, FrameFingerprint, InteractiveHit, InteractiveSurfaceCandidate,
     InteractiveTarget,
 };
-use openvr_devices::{snapshot_openvr_devices, string_property, BatteryReadingState};
 use super::{
     actor::{OverlayBackend, TickOutcome},
     policy::WristVisibilityPolicy,
@@ -38,6 +38,7 @@ use super::{
         VrDeviceSnapshot,
     },
 };
+use openvr_devices::{snapshot_openvr_devices, string_property, BatteryReadingState};
 
 const WRIST_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_secs(2);
 const MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL: Duration = Duration::from_millis(16);
@@ -106,6 +107,22 @@ struct OpenVrSurface {
     target_alpha: f32,
     fade: Option<SurfaceFade>,
     hide_after_fade: bool,
+}
+
+impl OpenVrSurface {
+    fn take_pending_frame_if_due(&mut self, now: Instant) -> Option<(OverlayHandle, RgbaFrame)> {
+        if !self.visible {
+            return None;
+        }
+        if self.last_visible_frame_upload_at.is_some_and(|last| {
+            now.saturating_duration_since(last) < visible_frame_upload_interval(self)
+        }) {
+            return None;
+        }
+        let frame = self.pending_frame.take()?;
+        self.last_visible_frame_upload_at = Some(now);
+        Some((self.handle, frame))
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -201,6 +218,14 @@ impl OverlayBackend for OpenVrOverlayBackend {
         self.input_events = sink;
     }
 
+    fn needs_high_frequency_tick(&self) -> bool {
+        self.surfaces.values().any(|surface| {
+            surface.visible
+                && surface.pending_frame.is_some()
+                && visible_frame_upload_interval(surface) <= MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL
+        })
+    }
+
     fn start(&mut self) -> Result<(), BackendStartError> {
         if self.context.is_some() && self.overlay.is_some() && self.system.is_some() {
             return Ok(());
@@ -274,7 +299,7 @@ impl OverlayBackend for OpenVrOverlayBackend {
         frame: RgbaFrame,
     ) -> Result<(), String> {
         let fingerprint = frame_fingerprint(&frame);
-        let handle = {
+        let pending = {
             let surface = self.surfaces.get_mut(surface_id).ok_or_else(|| {
                 format!(
                     "overlay surface '{}' is not registered",
@@ -285,26 +310,11 @@ impl OverlayBackend for OpenVrOverlayBackend {
                 surface.pending_frame = None;
                 return Ok(());
             }
-            if surface.visible {
-                let now = Instant::now();
-                let can_upload = surface
-                    .last_visible_frame_upload_at
-                    .map(|last| {
-                        now.saturating_duration_since(last)
-                            >= visible_frame_upload_interval(surface)
-                    })
-                    .unwrap_or(true);
-                if !can_upload {
-                    surface.pending_frame = Some(frame);
-                    return Ok(());
-                }
-                surface.pending_frame = None;
-                surface.last_visible_frame_upload_at = Some(now);
-                surface.handle
-            } else {
-                surface.pending_frame = Some(frame);
-                return Ok(());
-            }
+            surface.pending_frame = Some(frame);
+            surface.take_pending_frame_if_due(Instant::now())
+        };
+        let Some((handle, frame)) = pending else {
+            return Ok(());
         };
 
         if let Err(error) = self.upload_frame(surface_id, handle, &frame) {
@@ -402,6 +412,9 @@ impl OverlayBackend for OpenVrOverlayBackend {
         }
         if let Err(error) = self.advance_fades() {
             tracing::warn!(error = %error, "failed to advance VR overlay fade");
+        }
+        if let Err(error) = self.flush_pending_frames(Instant::now()) {
+            tracing::warn!(error = %error, "failed to flush pending VR overlay frame");
         }
         TickOutcome::Continue
     }
@@ -1147,6 +1160,31 @@ impl OpenVrOverlayBackend {
         upload_raw_frame(overlay, handle, frame)
     }
 
+    fn flush_pending_frames(&mut self, now: Instant) -> Result<(), String> {
+        let surface_ids = self.surfaces.keys().cloned().collect::<Vec<_>>();
+        for surface_id in surface_ids {
+            let pending = self
+                .surfaces
+                .get_mut(&surface_id)
+                .and_then(|surface| surface.take_pending_frame_if_due(now));
+            let Some((handle, frame)) = pending else {
+                continue;
+            };
+            let fingerprint = frame_fingerprint(&frame);
+            if let Err(error) = self.upload_frame(&surface_id, handle, &frame) {
+                if let Some(surface) = self.surfaces.get_mut(&surface_id) {
+                    surface.pending_frame = Some(frame);
+                    surface.last_visible_frame_upload_at = None;
+                }
+                return Err(error);
+            }
+            if let Some(surface) = self.surfaces.get_mut(&surface_id) {
+                surface.last_uploaded_frame_fingerprint = Some(fingerprint);
+            }
+        }
+        Ok(())
+    }
+
     #[cfg(windows)]
     fn ensure_gpu_presenter(&mut self) {
         if self.gpu.is_some() || self.gpu_init_attempted {
@@ -1456,6 +1494,78 @@ fn grip_pressed(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use vrcx_0_vr_overlay::OverlaySize;
+
+    #[test]
+    fn visible_surface_releases_pending_frame_when_upload_interval_elapses() {
+        let started_at = Instant::now();
+        let frame = RgbaFrame::new(OverlaySize::new(1, 1), vec![255, 255, 255, 255]);
+        let mut surface = test_main_surface(frame.clone(), started_at);
+
+        assert!(surface
+            .take_pending_frame_if_due(
+                started_at + MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL - Duration::from_millis(1)
+            )
+            .is_none());
+        assert_eq!(surface.pending_frame.as_ref(), Some(&frame));
+
+        let (_, released_frame) = surface
+            .take_pending_frame_if_due(started_at + MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL)
+            .expect("release pending frame at the upload deadline");
+        assert_eq!(released_frame, frame);
+        assert!(surface.pending_frame.is_none());
+        assert_eq!(
+            surface.last_visible_frame_upload_at,
+            Some(started_at + MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL)
+        );
+    }
+
+    #[test]
+    fn pending_main_frame_requests_high_frequency_tick_until_released() {
+        let started_at = Instant::now();
+        let frame = RgbaFrame::new(OverlaySize::new(1, 1), vec![255, 255, 255, 255]);
+        let surface_id = OverlaySurfaceId::new(MAIN_SURFACE_ID);
+        let mut backend = OpenVrOverlayBackend::new();
+        backend
+            .surfaces
+            .insert(surface_id.clone(), test_main_surface(frame, started_at));
+
+        assert!(backend.needs_high_frequency_tick());
+        backend
+            .surfaces
+            .get_mut(&surface_id)
+            .expect("main surface")
+            .take_pending_frame_if_due(started_at + MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL)
+            .expect("release pending frame");
+        assert!(!backend.needs_high_frequency_tick());
+    }
+
+    fn test_main_surface(frame: RgbaFrame, last_uploaded_at: Instant) -> OpenVrSurface {
+        OpenVrSurface {
+            handle: OverlayHandle(1),
+            config: OverlaySurfaceConfig {
+                surface_id: OverlaySurfaceId::new(MAIN_SURFACE_ID),
+                size: frame.size,
+                physical_width_meters: 1.0,
+                placement: OverlayPlacement::TrackedDeviceRelative {
+                    device_hint: "hmd".to_string(),
+                },
+                activation_button: OverlayActivationButton::Grip,
+                interactive: false,
+            },
+            transform_device: None,
+            policy: WristVisibilityPolicy::default(),
+            visible: true,
+            active: true,
+            pending_frame: Some(frame),
+            last_uploaded_frame_fingerprint: None,
+            last_visible_frame_upload_at: Some(last_uploaded_at),
+            current_alpha: 1.0,
+            target_alpha: 1.0,
+            fade: None,
+            hide_after_fade: false,
+        }
+    }
 
     #[test]
     fn openvr_context_lease_blocks_concurrent_owners_until_release() {
