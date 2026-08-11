@@ -8,7 +8,6 @@ import {
     type VrchatInviteResponsePhotoInput,
     type VrchatNotificationHideInput,
     type VrchatNotificationIdInput,
-    type VrchatNotificationMarkSeenInput,
     type VrchatNotificationPhotoSendInput,
     type VrchatNotificationRespondInput,
     type VrchatNotificationSendInput
@@ -333,52 +332,6 @@ async function expireNotification({
     await commands.appNotificationExpire(normalizedUserId, normalizedId);
 }
 
-async function markSeen({
-    userId,
-    id,
-    version
-}: NotificationActionOptions & { version?: unknown } = {}) {
-    const normalizedUserId = normalizeUserId(userId);
-    const normalizedId =
-        typeof id === 'string' ? id.trim() : String(id ?? '').trim();
-    if (!normalizedUserId || !normalizedId) {
-        return;
-    }
-
-    const numericVersion = Number(version) || 0;
-    const input = {
-        userId: normalizedUserId,
-        id: normalizedId,
-        version: numericVersion
-    } satisfies VrchatNotificationMarkSeenInput;
-    const response = await commands.appVrchatNotificationMarkSeen(input);
-    const path =
-        numericVersion >= 2
-            ? `notifications/${encodeURIComponent(normalizedId)}/see`
-            : `auth/user/notifications/${encodeURIComponent(normalizedId)}/see`;
-    unwrapVrchatNotificationResponse(response, path);
-}
-
-async function markSeenLocalBulk({
-    userId,
-    ids
-}: NotificationUserOptions & { ids?: unknown[] | unknown } = {}) {
-    const normalizedUserId = normalizeUserId(userId);
-    const normalizedIds = (Array.isArray(ids) ? ids : [ids])
-        .map((id) =>
-            typeof id === 'string' ? id.trim() : String(id ?? '').trim()
-        )
-        .filter(Boolean);
-    if (!normalizedUserId || !normalizedIds.length) {
-        return;
-    }
-
-    await commands.appNotificationMarkSeenLocalBulk(
-        normalizedUserId,
-        normalizedIds
-    );
-}
-
 async function acceptFriendRequest({ id }: NotificationActionOptions = {}) {
     const normalizedId =
         typeof id === 'string' ? id.trim() : String(id ?? '').trim();
@@ -657,8 +610,6 @@ const notificationPersistenceRepository = Object.freeze({
     queryNotifications,
     deleteNotification,
     expireNotification,
-    markSeen,
-    markSeenLocalBulk,
     acceptFriendRequest,
     hideRemoteNotification,
     sendNotificationResponse,
@@ -680,8 +631,6 @@ export {
     queryNotifications,
     deleteNotification,
     expireNotification,
-    markSeen,
-    markSeenLocalBulk,
     acceptFriendRequest,
     hideRemoteNotification,
     sendNotificationResponse,

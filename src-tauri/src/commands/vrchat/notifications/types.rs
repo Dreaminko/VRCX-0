@@ -3,17 +3,6 @@ use serde_json::Value;
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct VrchatNotificationMarkSeenInput {
-    #[serde(default)]
-    pub(crate) user_id: String,
-    #[serde(default)]
-    pub(crate) id: String,
-    #[serde(default)]
-    pub(crate) version: i64,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct VrchatNotificationIdInput {
     #[serde(default)]
     pub(crate) id: String,

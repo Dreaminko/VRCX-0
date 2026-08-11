@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const notificationRepositoryMock = vi.hoisted(() => ({
-    queryNotifications: vi.fn(),
-    markSeen: vi.fn()
+    queryNotifications: vi.fn()
 }));
 
 const commandMocks = vi.hoisted(() => ({
@@ -33,18 +32,21 @@ import { useVrcNotificationStore } from './vrcNotificationStore';
 describe('vrcNotificationStore', () => {
     beforeEach(() => {
         notificationRepositoryMock.queryNotifications.mockReset();
-        notificationRepositoryMock.markSeen.mockReset();
         commandMocks.markSeenBatch.mockReset();
         commandMocks.sync.mockReset();
-        notificationRepositoryMock.markSeen.mockResolvedValue(undefined);
         commandMocks.markSeenBatch.mockImplementation(
-            async ({ items }: { items: Array<{ id: string }> }) => ({
+            async ({
+                items
+            }: {
+                items: Array<{ id: string; version: number }>;
+            }) => ({
                 total: items.length,
                 succeeded: items.length,
                 failed: 0,
                 items: items.map((item) => ({
                     id: item.id,
                     state: 'succeeded',
+                    effect: item.version >= 2 ? 'seen' : 'expired',
                     attempts: 1,
                     message: ''
                 })),
@@ -73,10 +75,6 @@ describe('vrcNotificationStore', () => {
             seen: false,
             created_at: '2020-01-01T00:00:00.000Z'
         };
-        notificationRepositoryMock.queryNotifications.mockResolvedValue([
-            { ...friendRequest, expired: true }
-        ]);
-
         useVrcNotificationStore.getState().upsertNotification(friendRequest);
 
         await useVrcNotificationStore.getState().markAllSeen();
@@ -96,6 +94,9 @@ describe('vrcNotificationStore', () => {
                 }
             ]
         });
+        expect(
+            notificationRepositoryMock.queryNotifications
+        ).not.toHaveBeenCalled();
     });
 
     it('expires a v1 friend request after marking it seen', async () => {
@@ -106,25 +107,29 @@ describe('vrcNotificationStore', () => {
             seen: false,
             created_at: '2020-01-01T00:00:00.000Z'
         };
-        notificationRepositoryMock.queryNotifications.mockResolvedValue([
-            { ...friendRequest, expired: true }
-        ]);
         useVrcNotificationStore.getState().upsertNotification(friendRequest);
 
         await useVrcNotificationStore
             .getState()
             .markNotificationSeen(friendRequest);
 
-        expect(notificationRepositoryMock.markSeen).toHaveBeenCalledWith({
-            userId: 'usr_me',
-            id: 'notif_friend_request',
-            version: 1
+        expect(commandMocks.markSeenBatch).toHaveBeenCalledWith({
+            items: [
+                {
+                    id: 'notif_friend_request',
+                    version: 1,
+                    location: 'remote'
+                }
+            ]
         });
         expect(useVrcNotificationStore.getState().unseenCount).toBe(0);
         expect(useVrcNotificationStore.getState().rows[0]).toMatchObject({
             id: 'notif_friend_request',
             expired: true
         });
+        expect(
+            notificationRepositoryMock.queryNotifications
+        ).not.toHaveBeenCalled();
     });
 
     it('keeps a v1 friend request pending when mark-all-seen fails', async () => {
@@ -143,6 +148,7 @@ describe('vrcNotificationStore', () => {
                 {
                     id: friendRequest.id,
                     state: 'failed',
+                    effect: null,
                     attempts: 4,
                     message: 'Too many requests'
                 }
@@ -173,6 +179,69 @@ describe('vrcNotificationStore', () => {
         });
         expect(useVrcNotificationStore.getState().unseenCount).toBe(1);
         expect(useShellStore.getState().vrcUnseenNotificationCount).toBe(1);
+    });
+
+    it('reconciles partial failures without overriding a persisted v1 expiration', async () => {
+        const friendRequest = {
+            id: 'notif_friend_request',
+            type: 'friendRequest',
+            version: 1,
+            seen: false,
+            created_at: '2020-01-01T00:00:00.000Z'
+        };
+        const failedNotification = {
+            id: 'notif_failed',
+            type: 'inviteResponse',
+            version: 2,
+            seen: false,
+            created_at: '2020-01-01T00:00:01.000Z'
+        };
+        commandMocks.markSeenBatch.mockResolvedValue({
+            total: 2,
+            succeeded: 1,
+            failed: 1,
+            items: [
+                {
+                    id: friendRequest.id,
+                    state: 'succeeded',
+                    effect: 'expired',
+                    attempts: 1,
+                    message: ''
+                },
+                {
+                    id: failedNotification.id,
+                    state: 'failed',
+                    effect: null,
+                    attempts: 4,
+                    message: 'Too many requests'
+                }
+            ],
+            lastError: 'Too many requests'
+        });
+        notificationRepositoryMock.queryNotifications.mockResolvedValue([
+            { ...friendRequest, expired: true },
+            failedNotification
+        ]);
+        useVrcNotificationStore.getState().upsertNotification(friendRequest);
+        useVrcNotificationStore
+            .getState()
+            .upsertNotification(failedNotification);
+
+        await expect(
+            useVrcNotificationStore.getState().markAllSeen()
+        ).rejects.toThrow('Failed to mark 1 notification(s) as seen.');
+
+        expect(
+            useVrcNotificationStore
+                .getState()
+                .rows.find((row) => row.id === friendRequest.id)
+        ).toMatchObject({ seen: false, expired: true });
+        expect(
+            useVrcNotificationStore
+                .getState()
+                .rows.find((row) => row.id === failedNotification.id)
+        ).toMatchObject({ seen: false });
+        expect(useVrcNotificationStore.getState().unseenCount).toBe(1);
     });
 
     it('excludes expired friend requests from the notification center', () => {
@@ -249,13 +318,6 @@ describe('vrcNotificationStore', () => {
             seen: false,
             created_at: new Date().toISOString()
         };
-        notificationRepositoryMock.queryNotifications.mockResolvedValue([
-            {
-                ...systemNotification,
-                seen: true
-            }
-        ]);
-
         useVrcNotificationStore
             .getState()
             .upsertNotification(systemNotification);
@@ -287,13 +349,6 @@ describe('vrcNotificationStore', () => {
             seen: false,
             created_at: new Date().toISOString()
         };
-        notificationRepositoryMock.queryNotifications.mockResolvedValue([
-            {
-                ...activityNotification,
-                seen: true
-            }
-        ]);
-
         useVrcNotificationStore
             .getState()
             .upsertNotification(activityNotification);
@@ -332,11 +387,6 @@ describe('vrcNotificationStore', () => {
             seen: false,
             created_at: '2020-01-01T00:00:00.000Z'
         };
-        notificationRepositoryMock.queryNotifications.mockResolvedValue([
-            { ...systemNotification, seen: true },
-            { ...activityNotification, seen: true }
-        ]);
-
         useVrcNotificationStore
             .getState()
             .upsertNotification(systemNotification);
@@ -380,6 +430,7 @@ describe('vrcNotificationStore', () => {
                 {
                     id: 'notif_failing',
                     state: 'failed',
+                    effect: null,
                     attempts: 4,
                     message: 'Too many requests'
                 }

@@ -69,6 +69,9 @@ export function useNotificationActions({
     const markAllNotificationsSeen = useVrcNotificationStore(
         (state) => state.markAllSeen
     );
+    const markNotificationSeen = useVrcNotificationStore(
+        (state) => state.markNotificationSeen
+    );
     const confirm = useModalStore((state) => state.confirm);
     const openImagePreview = useModalStore((state) => state.openImagePreview);
     const openUser = useCallback((params: DialogParams) => {
@@ -167,12 +170,7 @@ export function useNotificationActions({
     const markSeen = useCallback(
         async (notification: NotificationRow) => {
             try {
-                await notificationPersistenceRepository.markSeen({
-                    id: notification.id,
-                    userId: currentUserId,
-                    version: notification.version
-                });
-                reload();
+                await markNotificationSeen(notification);
             } catch (error) {
                 toast.error(
                     error instanceof Error
@@ -183,13 +181,12 @@ export function useNotificationActions({
                 );
             }
         },
-        [currentUserId, endpoint, reload, t]
+        [markNotificationSeen, t]
     );
 
     const markAllSeen = useCallback(async () => {
         try {
             await markAllNotificationsSeen();
-            reload();
         } catch (error) {
             toast.error(
                 error instanceof Error
@@ -199,7 +196,7 @@ export function useNotificationActions({
                       )
             );
         }
-    }, [markAllNotificationsSeen, reload, t]);
+    }, [markAllNotificationsSeen, t]);
 
     const deleteNotification = useCallback(
         async (

@@ -3,8 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const commandMocks = vi.hoisted(() => ({
     appNotificationListQuery: vi.fn(),
     appNotificationAddV1: vi.fn(),
-    appNotificationMarkSeenLocalBulk: vi.fn(),
-    appVrchatNotificationMarkSeen: vi.fn(),
     appVrchatNotificationHideRemote: vi.fn(),
     appVrchatNotificationRespond: vi.fn()
 }));
@@ -19,8 +17,6 @@ vi.mock('./configRepository', () => ({ default: configMocks }));
 import {
     addNotificationToDatabase,
     hideRemoteNotification,
-    markSeen,
-    markSeenLocalBulk,
     queryNotifications,
     sendNotificationResponse
 } from './notificationPersistenceRepository';
@@ -41,12 +37,6 @@ describe('notificationPersistenceRepository', () => {
         );
         commandMocks.appNotificationListQuery.mockResolvedValue([]);
         commandMocks.appNotificationAddV1.mockResolvedValue(undefined);
-        commandMocks.appNotificationMarkSeenLocalBulk.mockResolvedValue(
-            undefined
-        );
-        commandMocks.appVrchatNotificationMarkSeen.mockResolvedValue(
-            httpResponse()
-        );
         commandMocks.appVrchatNotificationHideRemote.mockResolvedValue(
             httpResponse()
         );
@@ -149,40 +139,6 @@ describe('notificationPersistenceRepository', () => {
             })
         ).rejects.toThrow('missing required field');
         expect(commandMocks.appNotificationAddV1).not.toHaveBeenCalled();
-    });
-
-    it('normalizes local-only bulk ids without sending remote requests', async () => {
-        await markSeenLocalBulk({
-            userId: ' usr_1 ',
-            ids: [' notification_1 ', null, '', 42]
-        });
-
-        expect(
-            commandMocks.appNotificationMarkSeenLocalBulk
-        ).toHaveBeenCalledWith('usr_1', ['notification_1', '42']);
-        expect(
-            commandMocks.appVrchatNotificationMarkSeen
-        ).not.toHaveBeenCalled();
-    });
-
-    it('preserves the version-specific mark-seen path on auth failure', async () => {
-        commandMocks.appVrchatNotificationMarkSeen.mockResolvedValueOnce(
-            httpResponse(401, {
-                error: { message: 'Missing Credentials' }
-            })
-        );
-
-        await expect(
-            markSeen({
-                userId: 'usr_1',
-                id: 'notification/2',
-                version: 2
-            })
-        ).rejects.toMatchObject({
-            message: 'Missing Credentials',
-            status: 401,
-            endpoint: 'notifications/notification%2F2/see'
-        });
     });
 
     it('uses the sender deletion path for ignored friend requests', async () => {

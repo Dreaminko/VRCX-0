@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde::Serialize;
@@ -34,6 +34,7 @@ use self::release::{
 const GITHUB_RELEASES_URL: &str = "https://api.github.com/repos/Map1en/VRCX-0/releases";
 const APP_UPDATE_CHECK_JOB: &str = "appUpdateCheck";
 const APP_UPDATE_CHECK_INTERVAL_SECONDS: u64 = 10_800;
+const APP_UPDATE_PROGRESS_EMIT_INTERVAL: Duration = Duration::from_millis(500);
 const CONFIG_AUTO_INSTALL_ON_STARTUP: &str = "autoInstallUpdatesOnStartup";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
@@ -284,6 +285,7 @@ struct DownloadState {
     error: Option<String>,
     pending: Option<PendingDownload>,
     queued: Option<AppUpdateReleaseSnapshot>,
+    last_progress_emitted_at: Option<Instant>,
 }
 
 impl DownloadState {
@@ -297,6 +299,7 @@ impl DownloadState {
             error: None,
             pending: None,
             queued: None,
+            last_progress_emitted_at: None,
         }
     }
 
@@ -575,6 +578,7 @@ impl AppUpdateRuntime {
                             error: None,
                             pending: None,
                             queued: None,
+                            last_progress_emitted_at: None,
                         };
                         StartAction::Start
                     }
@@ -673,15 +677,25 @@ impl AppUpdateRuntime {
     }
 
     fn apply_download_progress(&self, version: &str, event: UpdaterDownloadProgress) {
+        self.apply_download_progress_at(version, event, Instant::now());
+    }
+
+    fn apply_download_progress_at(
+        &self,
+        version: &str,
+        event: UpdaterDownloadProgress,
+        now: Instant,
+    ) {
         let snapshot = self.with_download_state(|state| {
             if state.version.as_deref() != Some(version) {
                 return None;
             }
-            match event {
+            let should_emit = match event {
                 UpdaterDownloadProgress::Started { content_length } => {
                     state.total_bytes = content_length.unwrap_or(0);
                     state.downloaded_bytes = 0;
                     state.percent = 0;
+                    true
                 }
                 UpdaterDownloadProgress::Progress { chunk_length } => {
                     state.downloaded_bytes =
@@ -692,11 +706,22 @@ impl AppUpdateRuntime {
                     } else {
                         0
                     };
+                    state
+                        .last_progress_emitted_at
+                        .is_none_or(|last_emitted_at| {
+                            now.saturating_duration_since(last_emitted_at)
+                                >= APP_UPDATE_PROGRESS_EMIT_INTERVAL
+                        })
                 }
                 UpdaterDownloadProgress::Finished => {
                     state.percent = 100;
+                    true
                 }
+            };
+            if !should_emit {
+                return None;
             }
+            state.last_progress_emitted_at = Some(now);
             Some(state.snapshot())
         });
         if let Some(snapshot) = snapshot {

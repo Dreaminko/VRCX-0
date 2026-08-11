@@ -22,35 +22,14 @@ async function restoreVrcRegistryBackup(
     return commands.appRegistryBackupRestore(key);
 }
 
-async function saveVrcRegistryBackupToFile(key: string): Promise<unknown> {
+async function saveVrcRegistryBackupToFile(key: string): Promise<string> {
     requireHostCapability('registryPrefs');
-    const backups = await listVrcRegistryBackups();
-    const backup = backups.find((item) => item.key === key);
-    if (!backup) {
-        throw new Error('Registry backup not found.');
-    }
-    const json = await commands.appRegistryBackupExportJson(key);
-    return commands.appSaveVrcRegJsonFile(
-        null,
-        `${backup.name || 'VRChat Registry Backup'}.json`,
-        json
-    );
+    return commands.appRegistryBackupExportToFile(key);
 }
 
 async function restoreVrcRegistryBackupFromFile(): Promise<boolean> {
     requireHostCapability('registryPrefs');
-    const filePath = await commands.appOpenFileSelectorDialog(
-        null,
-        '.json',
-        'JSON Files (*.json)|*.json'
-    );
-    if (!filePath) {
-        return false;
-    }
-
-    const json = await commands.appReadVrcRegJsonFile(filePath);
-    await commands.appRegistryBackupImportJson(String(json));
-    return true;
+    return commands.appRegistryBackupImportFromFile();
 }
 
 async function deleteVrcRegistryFolder(): Promise<unknown> {

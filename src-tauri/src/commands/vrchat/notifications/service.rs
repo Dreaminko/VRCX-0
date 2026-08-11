@@ -4,28 +4,20 @@ use tauri::State;
 use vrcx_0_application_core::vrchat_api::notifications::{
     boop_send_input, invite_photo_input, invite_response_photo_input, invite_response_send_input,
     invite_send_input, notification_accept_friend_request_input, notification_hide_remote_input,
-    notification_mark_seen_input, notification_respond_input, request_invite_photo_input,
-    request_invite_send_input,
+    notification_respond_input, request_invite_photo_input, request_invite_send_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
-use vrcx_0_persistence::notifications::notification_mark_seen;
 
 use crate::error::AppError;
 use crate::state::AppState;
 use vrcx_0_application as media_upload;
 use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
-use vrcx_0_vrchat_client::http_api::ApiJsonResponse;
 
 use super::types::{
     VrchatBoopInput, VrchatInviteResponseInput, VrchatInviteResponsePhotoInput,
-    VrchatNotificationHideInput, VrchatNotificationIdInput, VrchatNotificationMarkSeenInput,
-    VrchatNotificationPhotoSendInput, VrchatNotificationRespondInput, VrchatNotificationSendInput,
+    VrchatNotificationHideInput, VrchatNotificationIdInput, VrchatNotificationPhotoSendInput,
+    VrchatNotificationRespondInput, VrchatNotificationSendInput,
 };
-
-fn response_has_error(response: &VrchatApiResponse) -> bool {
-    response.status >= 400
-        || ApiJsonResponse::parse(response.status, &response.data).has_error_field()
-}
 
 async fn execute_notification_api(
     state: State<'_, AppState>,
@@ -51,34 +43,6 @@ async fn execute_media_api(
         VrchatScope::VrchatMedia,
     )
     .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_notification_mark_seen(
-    state: State<'_, AppState>,
-    input: VrchatNotificationMarkSeenInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let version = input.version;
-    let (user_id, id, request) = notification_mark_seen_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.user_id,
-        input.id,
-        version,
-    )?;
-    let response = execute_notification_api(
-        state.clone(),
-        "app__vrchat_notification_mark_seen",
-        format!("Marking notification {id} seen."),
-        request,
-    )
-    .await?;
-
-    if !response_has_error(&response) {
-        notification_mark_seen(state.db.as_ref(), user_id, id, version)?;
-    }
-
-    Ok(response)
 }
 
 #[tauri::command]

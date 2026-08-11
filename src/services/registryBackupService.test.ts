@@ -6,11 +6,8 @@ const mocks = vi.hoisted(() => ({
     appRegistryBackupCreate: vi.fn(),
     appRegistryBackupRestore: vi.fn(),
     appRegistryBackupDelete: vi.fn(),
-    appRegistryBackupExportJson: vi.fn(),
-    appRegistryBackupImportJson: vi.fn(),
-    appOpenFileSelectorDialog: vi.fn(),
-    appSaveVrcRegJsonFile: vi.fn(),
-    appReadVrcRegJsonFile: vi.fn(),
+    appRegistryBackupExportToFile: vi.fn(),
+    appRegistryBackupImportFromFile: vi.fn(),
     appDeleteVrchatRegistryFolder: vi.fn()
 }));
 
@@ -20,11 +17,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appRegistryBackupCreate: mocks.appRegistryBackupCreate,
         appRegistryBackupRestore: mocks.appRegistryBackupRestore,
         appRegistryBackupDelete: mocks.appRegistryBackupDelete,
-        appRegistryBackupExportJson: mocks.appRegistryBackupExportJson,
-        appRegistryBackupImportJson: mocks.appRegistryBackupImportJson,
-        appOpenFileSelectorDialog: mocks.appOpenFileSelectorDialog,
-        appSaveVrcRegJsonFile: mocks.appSaveVrcRegJsonFile,
-        appReadVrcRegJsonFile: mocks.appReadVrcRegJsonFile,
+        appRegistryBackupExportToFile: mocks.appRegistryBackupExportToFile,
+        appRegistryBackupImportFromFile: mocks.appRegistryBackupImportFromFile,
         appDeleteVrchatRegistryFolder: mocks.appDeleteVrchatRegistryFolder
     }
 }));
@@ -48,11 +42,8 @@ const commandMocks = [
     mocks.appRegistryBackupCreate,
     mocks.appRegistryBackupRestore,
     mocks.appRegistryBackupDelete,
-    mocks.appRegistryBackupExportJson,
-    mocks.appRegistryBackupImportJson,
-    mocks.appOpenFileSelectorDialog,
-    mocks.appSaveVrcRegJsonFile,
-    mocks.appReadVrcRegJsonFile,
+    mocks.appRegistryBackupExportToFile,
+    mocks.appRegistryBackupImportFromFile,
     mocks.appDeleteVrchatRegistryFolder
 ];
 
@@ -70,13 +61,10 @@ describe('registryBackupService', () => {
         mocks.appRegistryBackupCreate.mockResolvedValue([backup]);
         mocks.appRegistryBackupRestore.mockResolvedValue(backup);
         mocks.appRegistryBackupDelete.mockResolvedValue([]);
-        mocks.appRegistryBackupExportJson.mockResolvedValue('{"value":1}');
-        mocks.appRegistryBackupImportJson.mockResolvedValue(null);
-        mocks.appOpenFileSelectorDialog.mockResolvedValue(
+        mocks.appRegistryBackupExportToFile.mockResolvedValue(
             'C:/Temp/backup.json'
         );
-        mocks.appSaveVrcRegJsonFile.mockResolvedValue('C:/Temp/backup.json');
-        mocks.appReadVrcRegJsonFile.mockResolvedValue('{"value":1}');
+        mocks.appRegistryBackupImportFromFile.mockResolvedValue(true);
         mocks.appDeleteVrchatRegistryFolder.mockResolvedValue(null);
     });
 
@@ -127,74 +115,42 @@ describe('registryBackupService', () => {
         );
     });
 
-    it('does not export or save when the requested backup is missing', async () => {
-        mocks.appRegistryBackupList.mockResolvedValueOnce([backup]);
+    it('forwards a missing-backup error from the file export action', async () => {
+        mocks.appRegistryBackupExportToFile.mockRejectedValueOnce(
+            new Error('Registry backup not found.')
+        );
 
         await expect(
             saveVrcRegistryBackupToFile('missing-key')
         ).rejects.toThrow('Registry backup not found.');
 
-        expect(mocks.appRegistryBackupList).toHaveBeenCalledTimes(1);
-        expect(mocks.appRegistryBackupExportJson).not.toHaveBeenCalled();
-        expect(mocks.appSaveVrcRegJsonFile).not.toHaveBeenCalled();
+        expect(mocks.appRegistryBackupExportToFile).toHaveBeenCalledWith(
+            'missing-key'
+        );
     });
 
-    it('lists before exporting and saves with the backup name', async () => {
+    it('exports a backup through one file action IPC', async () => {
         await expect(saveVrcRegistryBackupToFile('backup-key')).resolves.toBe(
             'C:/Temp/backup.json'
         );
 
-        expect(mocks.appRegistryBackupExportJson).toHaveBeenCalledWith(
+        expect(mocks.appRegistryBackupExportToFile).toHaveBeenCalledWith(
             'backup-key'
         );
-        expect(mocks.appSaveVrcRegJsonFile).toHaveBeenCalledWith(
-            null,
-            'Before update.json',
-            '{"value":1}'
-        );
-        expect(
-            mocks.appRegistryBackupList.mock.invocationCallOrder[0]
-        ).toBeLessThan(
-            mocks.appRegistryBackupExportJson.mock.invocationCallOrder[0]
-        );
-        expect(
-            mocks.appRegistryBackupExportJson.mock.invocationCallOrder[0]
-        ).toBeLessThan(mocks.appSaveVrcRegJsonFile.mock.invocationCallOrder[0]);
     });
 
     it('returns false when file selection is cancelled', async () => {
-        mocks.appOpenFileSelectorDialog.mockResolvedValueOnce('');
+        mocks.appRegistryBackupImportFromFile.mockResolvedValueOnce(false);
 
         await expect(restoreVrcRegistryBackupFromFile()).resolves.toBe(false);
 
-        expect(mocks.appOpenFileSelectorDialog).toHaveBeenCalledWith(
-            null,
-            '.json',
-            'JSON Files (*.json)|*.json'
-        );
-        expect(mocks.appReadVrcRegJsonFile).not.toHaveBeenCalled();
-        expect(mocks.appRegistryBackupImportJson).not.toHaveBeenCalled();
+        expect(mocks.appRegistryBackupImportFromFile).toHaveBeenCalledWith();
     });
 
-    it('selects, reads, and imports a registry backup in order', async () => {
-        mocks.appReadVrcRegJsonFile.mockResolvedValueOnce('{"value":42}');
-
+    it('imports a registry backup through one file action IPC', async () => {
         await expect(restoreVrcRegistryBackupFromFile()).resolves.toBe(true);
 
-        expect(mocks.appReadVrcRegJsonFile).toHaveBeenCalledWith(
-            'C:/Temp/backup.json'
-        );
-        expect(mocks.appRegistryBackupImportJson).toHaveBeenCalledWith(
-            '{"value":42}'
-        );
-        expect(
-            mocks.appOpenFileSelectorDialog.mock.invocationCallOrder[0]
-        ).toBeLessThan(mocks.appReadVrcRegJsonFile.mock.invocationCallOrder[0]);
-        expect(
-            mocks.appReadVrcRegJsonFile.mock.invocationCallOrder[0]
-        ).toBeLessThan(
-            mocks.appRegistryBackupImportJson.mock.invocationCallOrder[0]
-        );
+        expect(mocks.appRegistryBackupImportFromFile).toHaveBeenCalledWith();
     });
 
     it('deletes the VRChat registry folder', async () => {

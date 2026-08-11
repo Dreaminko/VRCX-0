@@ -64,9 +64,9 @@ pub use instance_launch::{
 };
 pub use notification_actions::{
     mark_notifications_seen_batch, NotificationMarkSeenActions, NotificationMarkSeenBatchInput,
-    NotificationMarkSeenBatchItem, NotificationMarkSeenBatchResult, NotificationMarkSeenItemResult,
-    NotificationMarkSeenItemState, NotificationMarkSeenLocation, VrchatNotificationMarkSeenActions,
-    NOTIFICATION_MARK_SEEN_MAX_ITEMS,
+    NotificationMarkSeenBatchItem, NotificationMarkSeenBatchResult, NotificationMarkSeenEffect,
+    NotificationMarkSeenItemResult, NotificationMarkSeenItemState, NotificationMarkSeenLocation,
+    VrchatNotificationMarkSeenActions, NOTIFICATION_MARK_SEEN_MAX_ITEMS,
 };
 pub use notification_chains::{
     accept_request_invite_notification, dismiss_boop_notifications, hide_and_expire_notification,

@@ -534,11 +534,13 @@ export const commands = {
     ): Promise<RegistryBackupSnapshot[]> {
         return await TAURI_INVOKE('app__registry_backup_delete', { key });
     },
-    async appRegistryBackupExportJson(key: string): Promise<string> {
-        return await TAURI_INVOKE('app__registry_backup_export_json', { key });
+    async appRegistryBackupExportToFile(key: string): Promise<string> {
+        return await TAURI_INVOKE('app__registry_backup_export_to_file', {
+            key
+        });
     },
-    async appRegistryBackupImportJson(json: string): Promise<null> {
-        return await TAURI_INVOKE('app__registry_backup_import_json', { json });
+    async appRegistryBackupImportFromFile(): Promise<boolean> {
+        return await TAURI_INVOKE('app__registry_backup_import_from_file');
     },
     async appRegistryBackupMaintenanceRun(
         reason: string
@@ -1169,15 +1171,6 @@ export const commands = {
     },
     async appNotificationExpire(userId: string, id: string): Promise<null> {
         return await TAURI_INVOKE('app__notification_expire', { userId, id });
-    },
-    async appNotificationMarkSeenLocalBulk(
-        userId: string,
-        ids: string[]
-    ): Promise<null> {
-        return await TAURI_INVOKE('app__notification_mark_seen_local_bulk', {
-            userId,
-            ids
-        });
     },
     async appLocalModerationList(
         ownerUserId: string
@@ -1940,13 +1933,6 @@ export const commands = {
             input
         });
     },
-    async appVrchatNotificationMarkSeen(
-        input: VrchatNotificationMarkSeenInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_notification_mark_seen', {
-            input
-        });
-    },
     async appVrchatNotificationRespond(
         input: VrchatNotificationRespondInput
     ): Promise<HttpApiExecuteResponse> {
@@ -2469,9 +2455,6 @@ export const commands = {
             value,
             typeInt
         });
-    },
-    async appReadVrcRegJsonFile(filepath: string): Promise<string> {
-        return await TAURI_INVOKE('app__read_vrc_reg_json_file', { filepath });
     },
     async appDesktopNotification(
         boldText: string,
@@ -4659,9 +4642,11 @@ export type NotificationMarkSeenBatchResult = {
     items: NotificationMarkSeenItemResult[];
     lastError: string | null;
 };
+export type NotificationMarkSeenEffect = 'seen' | 'expired';
 export type NotificationMarkSeenItemResult = {
     id: string;
     state: NotificationMarkSeenItemState;
+    effect: NotificationMarkSeenEffect | null;
     attempts: number;
     message: string;
 };
@@ -5876,11 +5861,6 @@ export type VrchatNotificationHideInput = {
     senderUserId?: string;
 };
 export type VrchatNotificationIdInput = { id?: string };
-export type VrchatNotificationMarkSeenInput = {
-    userId?: string;
-    id?: string;
-    version?: number;
-};
 export type VrchatNotificationPhotoSendInput = {
     receiverUserId?: string;
     params?: JsonValue;

@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 import {
     commands,
-    type NotificationMarkSeenBatchItem
+    type NotificationMarkSeenBatchItem,
+    type NotificationMarkSeenItemResult
 } from '@/platform/tauri/bindings';
 import notificationPersistenceRepository from '@/repositories/notificationPersistenceRepository';
 import type { NotificationRow } from '@/repositories/notificationPersistenceRepository';
@@ -192,6 +193,53 @@ function getCurrentAuth(): RuntimeAuthSnapshot {
 
 function getUnseenRows(rows: NotificationRow[]): NotificationRow[] {
     return rows.filter(isUnseenNotification);
+}
+
+function notificationMarkSeenBatchItem(
+    notification: NotificationRow
+): NotificationMarkSeenBatchItem | null {
+    const id = normalizeNotificationId(notification.id);
+    const version = Number(notification.version) || 1;
+    const remote = shouldMarkSeenRemotely(notification);
+    if (!id || (!remote && version !== 2)) {
+        return null;
+    }
+    return {
+        id,
+        version,
+        location: remote ? 'remote' : 'local'
+    };
+}
+
+function applyMarkSeenResults(
+    rows: NotificationRow[],
+    results: NotificationMarkSeenItemResult[]
+): NotificationRow[] {
+    const effects = new Map(
+        results.flatMap((result) =>
+            result.state === 'succeeded' && result.effect
+                ? [[result.id, result.effect] as const]
+                : []
+        )
+    );
+    if (!effects.size) {
+        return rows;
+    }
+    return rows.map((row) => {
+        const effect = row.id ? effects.get(row.id) : undefined;
+        if (effect === 'seen') {
+            return { ...row, seen: true };
+        }
+        if (effect === 'expired') {
+            return {
+                ...row,
+                $isExpired: true,
+                expired: true,
+                seen: false
+            };
+        }
+        return row;
+    });
 }
 
 function applyPendingSeenRows(rows: NotificationRow[]): NotificationRow[] {
@@ -390,20 +438,53 @@ export const useVrcNotificationStore = create<VrcNotificationStore>(
         },
         async markNotificationSeen(notification?: NotificationRow | null) {
             const auth = getCurrentAuth();
+            const item = notification
+                ? notificationMarkSeenBatchItem(notification)
+                : null;
             if (
                 !auth.currentUserId ||
-                !notification?.id ||
+                !item ||
                 !isUnseenNotification(notification)
             ) {
                 return;
             }
-            await notificationPersistenceRepository.markSeen({
-                userId: auth.currentUserId,
-                id: notification.id,
-                version: notification.version
-            });
-            get().markNotificationsSeen(notification.id);
-            await get().loadForCurrentUser();
+            pendingSeenIds.add(item.id);
+            get().markNotificationsSeen(item.id);
+            let failedCount = 0;
+            let failureMessage = '';
+            try {
+                const result = await commands.appNotificationMarkSeenBatch({
+                    items: [item]
+                });
+                failedCount = result.failed;
+                failureMessage = result.lastError || '';
+                for (const resultItem of result.items) {
+                    pendingSeenIds.delete(resultItem.id);
+                }
+                set((state) =>
+                    createNotificationState(
+                        applyMarkSeenResults(state.rows, result.items),
+                        state.detail
+                    )
+                );
+                syncShellUnseenCount(get().unseenCount);
+                if (failedCount > 0) {
+                    await get().loadForCurrentUser();
+                }
+            } catch (error) {
+                pendingSeenIds.delete(item.id);
+                await get()
+                    .loadForCurrentUser()
+                    .catch(() => {});
+                throw error;
+            } finally {
+                pendingSeenIds.delete(item.id);
+            }
+            if (failedCount > 0) {
+                throw new Error(
+                    failureMessage || 'Failed to mark the notification as seen.'
+                );
+            }
         },
         async markAllSeen() {
             const auth = getCurrentAuth();
@@ -414,19 +495,8 @@ export const useVrcNotificationStore = create<VrcNotificationStore>(
 
             const items = unseenRows.flatMap<NotificationMarkSeenBatchItem>(
                 (notification) => {
-                    const id = normalizeNotificationId(notification.id);
-                    const version = Number(notification.version) || 1;
-                    const remote = shouldMarkSeenRemotely(notification);
-                    if (!id || (!remote && version !== 2)) {
-                        return [];
-                    }
-                    return [
-                        {
-                            id,
-                            version,
-                            location: remote ? 'remote' : 'local'
-                        }
-                    ];
+                    const item = notificationMarkSeenBatchItem(notification);
+                    return item ? [item] : [];
                 }
             );
             const ids = items.map((item) => item.id);
@@ -444,15 +514,26 @@ export const useVrcNotificationStore = create<VrcNotificationStore>(
                 });
                 failedCount = result.failed;
                 for (const item of result.items) {
+                    pendingSeenIds.delete(item.id);
+                }
+                set((state) =>
+                    createNotificationState(
+                        applyMarkSeenResults(state.rows, result.items),
+                        state.detail
+                    )
+                );
+                syncShellUnseenCount(get().unseenCount);
+                for (const item of result.items) {
                     if (item.state === 'failed') {
-                        pendingSeenIds.delete(item.id);
                         console.warn(
                             'Failed to mark VRChat notification as seen:',
                             item.message
                         );
                     }
                 }
-                await get().loadForCurrentUser();
+                if (failedCount > 0) {
+                    await get().loadForCurrentUser();
+                }
             } catch (error) {
                 for (const id of ids) {
                     pendingSeenIds.delete(id);

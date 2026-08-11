@@ -43,11 +43,19 @@ pub enum NotificationMarkSeenItemState {
     Failed,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum NotificationMarkSeenEffect {
+    Seen,
+    Expired,
+}
+
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationMarkSeenItemResult {
     pub id: String,
     pub state: NotificationMarkSeenItemState,
+    pub effect: Option<NotificationMarkSeenEffect>,
     pub attempts: usize,
     pub message: String,
 }
@@ -186,11 +194,17 @@ async fn mark_notifications_seen_batch_with_delay(
     let mut failed = 0;
     let mut last_error = None;
     for item in items {
+        let effect = if item.version >= 2 {
+            NotificationMarkSeenEffect::Seen
+        } else {
+            NotificationMarkSeenEffect::Expired
+        };
         if item.location == NotificationMarkSeenLocation::Local {
             succeeded += 1;
             results.push(NotificationMarkSeenItemResult {
                 id: item.id,
                 state: NotificationMarkSeenItemState::Succeeded,
+                effect: Some(effect),
                 attempts: 1,
                 message: String::new(),
             });
@@ -203,6 +217,7 @@ async fn mark_notifications_seen_batch_with_delay(
                 results.push(NotificationMarkSeenItemResult {
                     id: item.id,
                     state: NotificationMarkSeenItemState::Succeeded,
+                    effect: Some(effect),
                     attempts,
                     message: String::new(),
                 });
@@ -213,6 +228,7 @@ async fn mark_notifications_seen_batch_with_delay(
                 results.push(NotificationMarkSeenItemResult {
                     id: item.id,
                     state: NotificationMarkSeenItemState::Failed,
+                    effect: None,
                     attempts,
                     message: error.message,
                 });
@@ -386,7 +402,7 @@ mod tests {
                     },
                     NotificationMarkSeenBatchItem {
                         id: "remote-b".into(),
-                        version: 2,
+                        version: 1,
                         location: NotificationMarkSeenLocation::Remote,
                     },
                 ],
@@ -403,7 +419,15 @@ mod tests {
         );
         assert_eq!(output.succeeded, 3);
         assert_eq!(output.failed, 0);
+        assert_eq!(
+            output.items[0].effect,
+            Some(NotificationMarkSeenEffect::Seen)
+        );
         assert_eq!(output.items[1].attempts, 3);
+        assert_eq!(
+            output.items[2].effect,
+            Some(NotificationMarkSeenEffect::Expired)
+        );
     }
 
     #[tokio::test]

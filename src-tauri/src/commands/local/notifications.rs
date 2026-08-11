@@ -64,21 +64,6 @@ pub fn app__notification_list_query(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__notification_mark_seen_local_bulk(
-    state: State<'_, AppState>,
-    user_id: String,
-    ids: Vec<String>,
-) -> Result<(), AppError> {
-    vrcx_0_persistence::notifications::notification_mark_seen_local_bulk(
-        state.db.as_ref(),
-        user_id,
-        ids,
-    )
-    .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn app__notification_update_expired(
     state: State<'_, AppState>,
     user_id: String,

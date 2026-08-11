@@ -1,8 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::error::AppError;
-use crate::state::AppState;
-use tauri::{AppHandle, State};
+use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use vrcx_0_host_desktop::vrchat_registry;
 
@@ -40,17 +39,4 @@ pub fn app__set_vrchat_registry_key(
     require_host_capability(HostCapability::RegistryPrefs)?;
     vrchat_registry::validate_registry_entry(&key, &value, type_int)?;
     Ok(vrchat_registry::set_registry_key(&key, &value, type_int)?)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__read_vrc_reg_json_file(
-    state: State<'_, AppState>,
-    filepath: String,
-) -> Result<String, AppError> {
-    state
-        .desktop
-        .host_file_access
-        .ensure_read_allowed(&filepath, &state.paths)?;
-    Ok(vrchat_registry::read_reg_json_file(&filepath)?)
 }

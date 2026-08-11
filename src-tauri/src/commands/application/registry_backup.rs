@@ -1,10 +1,14 @@
 #![allow(non_snake_case)]
 
-use tauri::State;
+use std::path::PathBuf;
+
+use tauri::{AppHandle, State};
+use tauri_plugin_dialog::DialogExt;
 use vrcx_0_application_game::{
     RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
 };
 use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapability};
+use vrcx_0_host_desktop::{shell_actions, vrchat_registry};
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -50,22 +54,64 @@ pub fn app__registry_backup_delete(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__registry_backup_export_json(
+pub async fn app__registry_backup_export_to_file(
     state: State<'_, AppState>,
+    app_handle: AppHandle,
     key: String,
 ) -> Result<String, AppError> {
     require_host_capability(HostCapability::RegistryPrefs)?;
-    Ok(state.registry_backup_export_json(&key)?)
+    let backup = state
+        .registry_backup_list()?
+        .into_iter()
+        .find(|backup| backup.key == key)
+        .ok_or_else(|| AppError::Custom("Registry backup not found.".into()))?;
+    let json = state.registry_backup_export_json(&key)?;
+    let backup_name = if backup.name.trim().is_empty() {
+        "VRChat Registry Backup"
+    } else {
+        backup.name.trim()
+    };
+    let file_path = app_handle
+        .dialog()
+        .file()
+        .set_file_name(format!("{backup_name}.json"))
+        .add_filter("JSON Files", &["json"])
+        .blocking_save_file();
+    let Some(file_path) = file_path else {
+        return Ok(String::new());
+    };
+    let path = match file_path {
+        tauri_plugin_dialog::FilePath::Path(path) => path,
+        other => PathBuf::from(other.to_string()),
+    };
+    shell_actions::write_string_file(&path, &json)?;
+    state.desktop.host_file_access.register_path(&path);
+    Ok(path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__registry_backup_import_json(
+pub async fn app__registry_backup_import_from_file(
     state: State<'_, AppState>,
-    json: String,
-) -> Result<(), AppError> {
+    app_handle: AppHandle,
+) -> Result<bool, AppError> {
     require_host_capability(HostCapability::RegistryPrefs)?;
-    Ok(state.registry_backup_import_json(&json)?)
+    let file_path = app_handle
+        .dialog()
+        .file()
+        .add_filter("JSON Files", &["json"])
+        .blocking_pick_file();
+    let Some(file_path) = file_path else {
+        return Ok(false);
+    };
+    let path = match file_path {
+        tauri_plugin_dialog::FilePath::Path(path) => path,
+        other => PathBuf::from(other.to_string()),
+    };
+    state.desktop.host_file_access.register_path(&path);
+    let json = vrchat_registry::read_reg_json_file(&path.to_string_lossy())?;
+    state.registry_backup_import_json(&json)?;
+    Ok(true)
 }
 
 #[tauri::command]

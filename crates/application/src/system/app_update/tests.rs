@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use chrono::{FixedOffset, NaiveDate, TimeZone};
@@ -241,6 +242,60 @@ fn error_progress_event_count(event_bus: &RuntimeEventBus) -> usize {
         .count()
 }
 
+#[test]
+fn download_progress_coalesces_chunk_bursts_and_keeps_boundaries() {
+    let context = app_update_test_context("progress-coalescing", []);
+    context.runtime.with_download_state(|state| {
+        *state = DownloadState {
+            phase: AppUpdateDownloadPhase::Downloading,
+            version: Some(TEST_UPDATE_VERSION.into()),
+            downloaded_bytes: 0,
+            total_bytes: 0,
+            percent: 0,
+            error: None,
+            pending: None,
+            queued: None,
+            last_progress_emitted_at: None,
+        };
+    });
+    let started_at = Instant::now();
+
+    context.runtime.apply_download_progress_at(
+        TEST_UPDATE_VERSION,
+        UpdaterDownloadProgress::Started {
+            content_length: Some(101),
+        },
+        started_at,
+    );
+    for _ in 0..100 {
+        context.runtime.apply_download_progress_at(
+            TEST_UPDATE_VERSION,
+            UpdaterDownloadProgress::Progress { chunk_length: 1 },
+            started_at + Duration::from_millis(1),
+        );
+    }
+    context.runtime.apply_download_progress_at(
+        TEST_UPDATE_VERSION,
+        UpdaterDownloadProgress::Progress { chunk_length: 1 },
+        started_at + super::APP_UPDATE_PROGRESS_EMIT_INTERVAL,
+    );
+    context.runtime.apply_download_progress_at(
+        TEST_UPDATE_VERSION,
+        UpdaterDownloadProgress::Finished,
+        started_at + super::APP_UPDATE_PROGRESS_EMIT_INTERVAL,
+    );
+
+    let progress_events = context
+        .event_bus
+        .take_events_for_test()
+        .into_iter()
+        .filter(|event| event.name == "appUpdateDownloadProgress")
+        .collect::<Vec<_>>();
+    assert_eq!(progress_events.len(), 3);
+    assert_eq!(context.runtime.download_status().downloaded_bytes, 101);
+    assert_eq!(context.runtime.download_status().percent, 100);
+}
+
 fn asset(name: &str, state: &str, url: &str) -> GitHubReleaseAsset {
     GitHubReleaseAsset {
         state: Some(state.into()),
@@ -462,6 +517,7 @@ async fn background_download_does_not_replace_an_installing_flight() {
             error: None,
             pending: None,
             queued: None,
+            last_progress_emitted_at: None,
         };
     });
 
