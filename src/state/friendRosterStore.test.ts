@@ -136,6 +136,38 @@ describe('friendRosterStore', () => {
         );
     });
 
+    it('returns the same state reference for a no-op patch batch', () => {
+        const store = useFriendRosterStore.getState();
+        store.applyFriendPatches([
+            {
+                userId: 'usr_stable',
+                patch: {
+                    id: 'usr_stable',
+                    displayName: 'Stable Friend'
+                },
+                stateBucket: 'online'
+            }
+        ]);
+
+        const stateBefore = useFriendRosterStore.getState();
+        store.applyFriendPatches([
+            {
+                userId: 'usr_stable',
+                patch: {
+                    id: 'usr_stable',
+                    displayName: 'Stable Friend'
+                },
+                stateBucket: 'online'
+            }
+        ]);
+        const stateAfter = useFriendRosterStore.getState();
+
+        expect(stateAfter).toBe(stateBefore);
+        expect(stateAfter.friendsById.usr_stable).toBe(
+            stateBefore.friendsById.usr_stable
+        );
+    });
+
     it('seeds a running roster from current-user buckets and cached friend log rows', () => {
         const store = useFriendRosterStore.getState();
 

@@ -73,7 +73,7 @@ export function useFriendListPageController() {
         onColumnSizingChange: tableState.setColumnSizing,
         autoResetPageIndex: false,
         enableColumnResizing: true,
-        columnResizeMode: 'onChange',
+        columnResizeMode: 'onEnd',
         meta: {
             columnOrderLocked: tableState.columnOrderLocked,
             setColumnOrderLocked: tableState.setColumnOrderLocked

@@ -706,7 +706,7 @@ export const useFriendRosterStore = create<FriendRosterStore>((set) => ({
 
             let changed = false;
             let orderingDirty = false;
-            const friendsById: FriendRosterById = { ...state.friendsById };
+            let friendsById = state.friendsById;
 
             for (const entry of patches) {
                 const patch: FriendRecordInput = isRecord(entry?.patch)
@@ -745,12 +745,20 @@ export const useFriendRosterStore = create<FriendRosterStore>((set) => ({
                         friendNumber: 0
                     }
                 );
+                const entryOrderingDirty = friendEntryNeedsOrderingUpdate(
+                    existingEntry,
+                    normalizedEntry
+                );
                 if (
-                    friendEntryNeedsOrderingUpdate(
-                        existingEntry,
-                        normalizedEntry
-                    )
+                    !entryOrderingDirty &&
+                    friendEntryIsUnchanged(existingEntry, normalizedEntry)
                 ) {
+                    continue;
+                }
+                if (!changed) {
+                    friendsById = { ...friendsById };
+                }
+                if (entryOrderingDirty) {
                     orderingDirty = true;
                 }
                 friendsById[normalizedUserId] = normalizedEntry;

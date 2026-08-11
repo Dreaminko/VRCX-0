@@ -1,4 +1,10 @@
-import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    type Dispatch,
+    type SetStateAction
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -51,7 +57,6 @@ export function useFriendListRowActions({
     const currentUserSnapshot = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot
     );
-    const friendsById = useFriendRosterStore((state) => state.friendsById);
     const applyFriendPatch = useFriendRosterStore(
         (state) => state.applyFriendPatch
     );
@@ -130,125 +135,144 @@ export function useFriendListRowActions({
         t
     ]);
 
-    function setFriendDeleting(userId: unknown, isDeleting: boolean) {
-        const normalizedUserId = normalizeId(userId);
-        if (!normalizedUserId) {
-            return;
-        }
-        setDeletingFriendIds((current) => {
-            const next = new Set(current);
-            if (isDeleting) {
-                next.add(normalizedUserId);
-            } else {
-                next.delete(normalizedUserId);
+    const setFriendDeleting = useCallback(
+        (userId: unknown, isDeleting: boolean) => {
+            const normalizedUserId = normalizeId(userId);
+            if (!normalizedUserId) {
+                return;
             }
-            return next;
-        });
-    }
-
-    function toggleSelectedFriend(userId: unknown) {
-        const normalizedUserId = normalizeId(userId);
-        if (!normalizedUserId) {
-            return;
-        }
-        setSelectedFriendIds((current) => {
-            const next = new Set(current);
-            if (next.has(normalizedUserId)) {
-                next.delete(normalizedUserId);
-            } else {
-                next.add(normalizedUserId);
-            }
-            return next;
-        });
-    }
-
-    async function deleteFriendById(userId: unknown) {
-        const normalizedUserId = normalizeId(userId);
-        const friend = friendsById[normalizedUserId];
-        if (!normalizedUserId || !friend || !currentUserId) {
-            return {
-                stale: false,
-                deleted: false
-            };
-        }
-        setFriendDeleting(normalizedUserId, true);
-        try {
-            const result = await friendRelationshipService.deleteFriend({
-                friend,
-                userId: normalizedUserId,
-                endpoint: currentEndpoint,
-                currentUserId
-            });
-            if (!result.stale) {
-                setSelectedFriendIds((current) => {
-                    const next = new Set(current);
-                    next.delete(normalizedUserId);
-                    return next;
-                });
-                if (result.localError) {
-                    toast.warning(
-                        t(
-                            'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
-                        )
-                    );
+            setDeletingFriendIds((current) => {
+                const next = new Set(current);
+                if (isDeleting) {
+                    next.add(normalizedUserId);
                 } else {
-                    toast.success(
-                        t('view.friends.dynamic.unfriended_value', {
-                            value: friend.displayName || normalizedUserId
-                        })
-                    );
+                    next.delete(normalizedUserId);
                 }
+                return next;
+            });
+        },
+        [setDeletingFriendIds]
+    );
+
+    const toggleSelectedFriend = useCallback(
+        (userId: unknown) => {
+            const normalizedUserId = normalizeId(userId);
+            if (!normalizedUserId) {
+                return;
             }
-            return {
-                ...result,
-                deleted: !result.stale
-            };
-        } catch (error) {
-            const auth = useRuntimeStore.getState().auth;
-            if (
-                normalizeId(auth.currentUserId) !==
-                    normalizeId(currentUserId) ||
-                normalizeId(auth.currentUserEndpoint) !==
-                    normalizeId(currentEndpoint)
-            ) {
+            setSelectedFriendIds((current) => {
+                const next = new Set(current);
+                if (next.has(normalizedUserId)) {
+                    next.delete(normalizedUserId);
+                } else {
+                    next.add(normalizedUserId);
+                }
+                return next;
+            });
+        },
+        [setSelectedFriendIds]
+    );
+
+    const deleteFriendById = useCallback(
+        async (userId: unknown) => {
+            const normalizedUserId = normalizeId(userId);
+            const friend =
+                useFriendRosterStore.getState().friendsById[normalizedUserId];
+            if (!normalizedUserId || !friend || !currentUserId) {
                 return {
-                    stale: true,
+                    stale: false,
                     deleted: false
                 };
             }
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('view.friends.toast.failed_to_unfriend_value', {
-                          value: friend.displayName || normalizedUserId
-                      })
-            );
-            return {
-                stale: false,
-                deleted: false
-            };
-        } finally {
-            setFriendDeleting(normalizedUserId, false);
-        }
-    }
+            setFriendDeleting(normalizedUserId, true);
+            try {
+                const result = await friendRelationshipService.deleteFriend({
+                    friend,
+                    userId: normalizedUserId,
+                    endpoint: currentEndpoint,
+                    currentUserId
+                });
+                if (!result.stale) {
+                    setSelectedFriendIds((current) => {
+                        const next = new Set(current);
+                        next.delete(normalizedUserId);
+                        return next;
+                    });
+                    if (result.localError) {
+                        toast.warning(
+                            t(
+                                'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
+                            )
+                        );
+                    } else {
+                        toast.success(
+                            t('view.friends.dynamic.unfriended_value', {
+                                value: friend.displayName || normalizedUserId
+                            })
+                        );
+                    }
+                }
+                return {
+                    ...result,
+                    deleted: !result.stale
+                };
+            } catch (error) {
+                const auth = useRuntimeStore.getState().auth;
+                if (
+                    normalizeId(auth.currentUserId) !==
+                        normalizeId(currentUserId) ||
+                    normalizeId(auth.currentUserEndpoint) !==
+                        normalizeId(currentEndpoint)
+                ) {
+                    return {
+                        stale: true,
+                        deleted: false
+                    };
+                }
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : t('view.friends.toast.failed_to_unfriend_value', {
+                              value: friend.displayName || normalizedUserId
+                          })
+                );
+                return {
+                    stale: false,
+                    deleted: false
+                };
+            } finally {
+                setFriendDeleting(normalizedUserId, false);
+            }
+        },
+        [
+            currentEndpoint,
+            currentUserId,
+            setFriendDeleting,
+            setSelectedFriendIds,
+            t
+        ]
+    );
 
-    async function confirmDeleteFriend(friend: FriendListRow) {
-        const normalizedUserId = normalizeId(friend?.id);
-        if (!normalizedUserId) {
-            return;
-        }
-        const result = await confirm({
-            title: t('view.friends.modal.unfriend_user'),
-            description: friend?.displayName || normalizedUserId,
-            confirmText: t('view.friends.modal.unfriend'),
-            cancelText: t('common.actions.cancel'),
-            destructive: true
-        });
-        if (!result.ok) {
-            return;
-        }
-        await deleteFriendById(normalizedUserId);
-    }
+    const confirmDeleteFriend = useCallback(
+        async (friend: FriendListRow) => {
+            const normalizedUserId = normalizeId(friend?.id);
+            if (!normalizedUserId) {
+                return;
+            }
+            const result = await confirm({
+                title: t('view.friends.modal.unfriend_user'),
+                description: friend?.displayName || normalizedUserId,
+                confirmText: t('view.friends.modal.unfriend'),
+                cancelText: t('common.actions.cancel'),
+                destructive: true
+            });
+            if (!result.ok) {
+                return;
+            }
+            await deleteFriendById(normalizedUserId);
+        },
+        [confirm, deleteFriendById, t]
+    );
 
     async function bulkUnfriendSelected() {
         if (!currentUserId || !currentEndpoint) {
