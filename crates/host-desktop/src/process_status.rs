@@ -1,4 +1,13 @@
+#[cfg(windows)]
+use std::num::NonZeroUsize;
+
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, WAIT_TIMEOUT};
+#[cfg(windows)]
+use windows_sys::Win32::Storage::FileSystem::SYNCHRONIZE;
+#[cfg(windows)]
+use windows_sys::Win32::System::Threading::{OpenProcess, WaitForSingleObject};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct VrcProcessStatus {
@@ -8,25 +17,150 @@ pub struct VrcProcessStatus {
 
 pub struct ProcessStatusDetector {
     sys: System,
+    #[cfg(windows)]
+    process_handles: ProcessHandleCache<WindowsProcessHandle>,
 }
 
 impl ProcessStatusDetector {
     pub fn new() -> Self {
-        Self { sys: System::new() }
+        Self {
+            sys: System::new(),
+            #[cfg(windows)]
+            process_handles: ProcessHandleCache::default(),
+        }
     }
 
     pub fn detect(&mut self) -> VrcProcessStatus {
-        self.sys.refresh_processes_specifics(
-            ProcessesToUpdate::All,
-            true,
-            ProcessRefreshKind::nothing(),
-        );
-        detect_process_status_from_names(
-            self.sys
-                .processes()
-                .values()
-                .map(|process| process.name().to_string_lossy()),
-        )
+        #[cfg(windows)]
+        {
+            let cached_status = self
+                .process_handles
+                .retain_running(WindowsProcessHandle::is_running);
+            if cached_status.is_game_running && cached_status.is_steamvr_running {
+                return cached_status;
+            }
+
+            self.sys.refresh_processes_specifics(
+                ProcessesToUpdate::All,
+                true,
+                ProcessRefreshKind::nothing(),
+            );
+            self.process_handles.update_from_processes(
+                self.sys
+                    .processes()
+                    .values()
+                    .map(|process| (process.pid(), process.name().to_string_lossy())),
+                WindowsProcessHandle::open,
+            )
+        }
+
+        #[cfg(not(windows))]
+        {
+            self.sys.refresh_processes_specifics(
+                ProcessesToUpdate::All,
+                true,
+                ProcessRefreshKind::nothing(),
+            );
+            detect_process_status_from_names(
+                self.sys
+                    .processes()
+                    .values()
+                    .map(|process| process.name().to_string_lossy()),
+            )
+        }
+    }
+}
+
+#[cfg(any(windows, test))]
+struct ProcessHandleCache<H> {
+    game: Option<H>,
+    steamvr: Option<H>,
+}
+
+#[cfg(any(windows, test))]
+impl<H> ProcessHandleCache<H> {
+    fn retain_running(&mut self, mut is_running: impl FnMut(&H) -> bool) -> VrcProcessStatus {
+        self.game = self.game.take().filter(|handle| is_running(handle));
+        self.steamvr = self
+            .steamvr
+            .take()
+            .filter(|handle| is_running(handle));
+        VrcProcessStatus {
+            is_game_running: self.game.is_some(),
+            is_steamvr_running: self.steamvr.is_some(),
+        }
+    }
+
+    fn update_from_processes<I, S>(
+        &mut self,
+        processes: I,
+        mut open_handle: impl FnMut(Pid) -> Option<H>,
+    ) -> VrcProcessStatus
+    where
+        I: IntoIterator<Item = (Pid, S)>,
+        S: AsRef<str>,
+    {
+        let mut status = VrcProcessStatus {
+            is_game_running: self.game.is_some(),
+            is_steamvr_running: self.steamvr.is_some(),
+        };
+
+        for (pid, name) in processes {
+            let name = name.as_ref();
+            if is_vrchat_process_name(name) {
+                status.is_game_running = true;
+                if self.game.is_none() {
+                    self.game = open_handle(pid);
+                }
+            }
+            if is_steamvr_process_name(name) {
+                status.is_steamvr_running = true;
+                if self.steamvr.is_none() {
+                    self.steamvr = open_handle(pid);
+                }
+            }
+            if self.game.is_some() && self.steamvr.is_some() {
+                break;
+            }
+        }
+
+        status
+    }
+}
+
+#[cfg(any(windows, test))]
+impl<H> Default for ProcessHandleCache<H> {
+    fn default() -> Self {
+        Self {
+            game: None,
+            steamvr: None,
+        }
+    }
+}
+
+#[cfg(windows)]
+struct WindowsProcessHandle {
+    handle: NonZeroUsize,
+}
+
+#[cfg(windows)]
+impl WindowsProcessHandle {
+    fn open(pid: Pid) -> Option<Self> {
+        let handle = unsafe { OpenProcess(SYNCHRONIZE, false.into(), pid.as_u32()) };
+        NonZeroUsize::new(handle as usize).map(|handle| Self { handle })
+    }
+
+    fn is_running(&self) -> bool {
+        unsafe { WaitForSingleObject(self.handle.get() as HANDLE, 0) == WAIT_TIMEOUT }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for WindowsProcessHandle {
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.handle.get() as HANDLE);
+        }
     }
 }
 
@@ -76,6 +210,7 @@ fn is_legacy_vrcx_process_name(name: &str) -> bool {
     name.eq_ignore_ascii_case("VRCX.exe") || name.eq_ignore_ascii_case("VRCX")
 }
 
+#[cfg(any(not(windows), test))]
 fn detect_process_status_from_names<I, S>(names: I) -> VrcProcessStatus
 where
     I: IntoIterator<Item = S>,
@@ -125,8 +260,9 @@ fn is_steamvr_process_name(name: &str) -> bool {
 mod tests {
     use super::{
         detect_process_status_from_names, is_legacy_vrcx_process_name, is_steamvr_process_name,
-        is_vrchat_process_name,
+        is_vrchat_process_name, ProcessHandleCache,
     };
+    use sysinfo::Pid;
 
     #[cfg(target_os = "linux")]
     const STEAMVR_PROCESS_FIXTURE: &str = "vrmonitor";
@@ -169,6 +305,126 @@ mod tests {
         let status = detect_process_status_from_names(["VRChat.exe", STEAMVR_PROCESS_FIXTURE]);
         assert!(status.is_game_running);
         assert!(status.is_steamvr_running);
+    }
+
+    #[test]
+    fn initial_discovery_tracks_targets_started_before_app() {
+        let game_pid = Pid::from_u32(10);
+        let steamvr_pid = Pid::from_u32(20);
+        let mut cache = ProcessHandleCache::default();
+
+        let cached_status = cache.retain_running(|_: &u32| true);
+        assert!(!cached_status.is_game_running);
+        assert!(!cached_status.is_steamvr_running);
+
+        let status = cache.update_from_processes(
+            [
+                (game_pid, "VRChat.exe"),
+                (steamvr_pid, STEAMVR_PROCESS_FIXTURE),
+            ],
+            |pid| Some(pid.as_u32()),
+        );
+
+        assert!(status.is_game_running);
+        assert!(status.is_steamvr_running);
+        assert_eq!(cache.game, Some(game_pid.as_u32()));
+        assert_eq!(cache.steamvr, Some(steamvr_pid.as_u32()));
+    }
+
+    #[test]
+    fn missing_target_keeps_discovery_enabled_until_it_starts() {
+        let game_pid = Pid::from_u32(10);
+        let steamvr_pid = Pid::from_u32(20);
+        let mut cache = ProcessHandleCache::default();
+
+        let initial = cache.update_from_processes([(game_pid, "VRChat.exe")], |pid| {
+            Some(pid.as_u32())
+        });
+        assert!(initial.is_game_running);
+        assert!(!initial.is_steamvr_running);
+
+        let cached_status = cache.retain_running(|_: &u32| true);
+        assert!(cached_status.is_game_running);
+        assert!(!cached_status.is_steamvr_running);
+
+        let status = cache.update_from_processes(
+            [(steamvr_pid, STEAMVR_PROCESS_FIXTURE)],
+            |pid| Some(pid.as_u32()),
+        );
+
+        assert!(status.is_game_running);
+        assert!(status.is_steamvr_running);
+        assert_eq!(cache.game, Some(game_pid.as_u32()));
+        assert_eq!(cache.steamvr, Some(steamvr_pid.as_u32()));
+    }
+
+    #[test]
+    fn exited_target_is_rediscovered_in_the_same_poll() {
+        let old_game_pid = Pid::from_u32(10);
+        let new_game_pid = Pid::from_u32(11);
+        let steamvr_pid = Pid::from_u32(20);
+        let mut cache = ProcessHandleCache {
+            game: Some(old_game_pid.as_u32()),
+            steamvr: Some(steamvr_pid.as_u32()),
+        };
+
+        let cached_status = cache.retain_running(|pid| *pid != old_game_pid.as_u32());
+        assert!(!cached_status.is_game_running);
+        assert!(cached_status.is_steamvr_running);
+
+        let status = cache.update_from_processes([(new_game_pid, "VRChat.exe")], |pid| {
+            Some(pid.as_u32())
+        });
+
+        assert!(status.is_game_running);
+        assert!(status.is_steamvr_running);
+        assert_eq!(cache.game, Some(new_game_pid.as_u32()));
+        assert_eq!(cache.steamvr, Some(steamvr_pid.as_u32()));
+    }
+
+    #[test]
+    fn failed_handle_open_preserves_snapshot_status_without_caching() {
+        let game_pid = Pid::from_u32(10);
+        let steamvr_pid = Pid::from_u32(20);
+        let mut cache = ProcessHandleCache::<u32>::default();
+
+        let status = cache.update_from_processes(
+            [
+                (game_pid, "VRChat.exe"),
+                (steamvr_pid, STEAMVR_PROCESS_FIXTURE),
+            ],
+            |_| None,
+        );
+
+        assert!(status.is_game_running);
+        assert!(status.is_steamvr_running);
+        assert!(cache.game.is_none());
+        assert!(cache.steamvr.is_none());
+
+        let cached_status = cache.retain_running(|_| true);
+        assert!(!cached_status.is_game_running);
+        assert!(!cached_status.is_steamvr_running);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn windows_process_handle_detects_current_process() {
+        let handle = super::WindowsProcessHandle::open(Pid::from_u32(std::process::id())).unwrap();
+        assert!(handle.is_running());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn windows_process_handle_detects_process_exit() {
+        let mut child = std::process::Command::new("cmd.exe")
+            .args(["/D", "/C", "ping.exe -n 2 127.0.0.1 >NUL"])
+            .spawn()
+            .unwrap();
+        let handle = super::WindowsProcessHandle::open(Pid::from_u32(child.id())).unwrap();
+
+        assert!(handle.is_running());
+        assert!(child.wait().unwrap().success());
+        assert!(!handle.is_running());
     }
 
     #[test]
