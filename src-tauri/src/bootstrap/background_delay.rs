@@ -88,7 +88,7 @@ async fn start_background_mode_after_delay(
             super::show_auth_failure_notification_after_backend_start_error(
                 app,
                 state,
-                &error.to_string(),
+                &error,
             );
             let _ = super::refresh_tray_menu(app, state);
             return Err(error.into());

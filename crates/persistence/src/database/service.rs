@@ -179,9 +179,9 @@ impl DatabaseService {
         }
 
         let conn = Connection::open_with_flags(&self.db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-            .map_err(|error| Error::Database(error.to_string()))?;
+            .map_err(Error::sqlite)?;
         conn.busy_timeout(std::time::Duration::from_secs(5))
-            .map_err(|error| Error::Database(error.to_string()))?;
+            .map_err(Error::sqlite)?;
         let dest = dest
             .to_str()
             .ok_or_else(|| {
@@ -331,7 +331,7 @@ impl DatabaseService {
         };
         checkpoint(&conn)?;
         conn.execute_batch("VACUUM;")
-            .map_err(|e| Error::Database(e.to_string()))?;
+            .map_err(Error::sqlite)?;
         checkpoint(&conn)?;
         Ok(())
     }
@@ -347,7 +347,7 @@ fn map_profile_backup_sqlite_error(error: rusqlite::Error) -> Error {
             error.to_string(),
         ));
     }
-    Error::Database(error.to_string())
+    Error::sqlite(error)
 }
 
 pub fn optimize_database(db: &DatabaseService) -> Result<(), Error> {
@@ -441,14 +441,14 @@ fn open_main_database(db_path: &Path) -> Result<MainDatabase, Error> {
 }
 
 fn open_configured_connection(db_path: &Path) -> Result<Connection, Error> {
-    let conn = Connection::open(db_path).map_err(|e| Error::Database(e.to_string()))?;
+    let conn = Connection::open(db_path).map_err(Error::sqlite)?;
     configure_connection(&conn)?;
     Ok(conn)
 }
 
 fn open_read_connection(db_path: &Path) -> Result<Connection, Error> {
     let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
     configure_read_connection(&conn)?;
     Ok(conn)
 }
@@ -461,7 +461,7 @@ fn configure_connection(conn: &Connection) -> Result<(), Error> {
          PRAGMA secure_delete=ON;
          PRAGMA optimize=0x10002;",
     )
-    .map_err(|e| Error::Database(e.to_string()))?;
+    .map_err(Error::sqlite)?;
     conn.set_prepared_statement_cache_capacity(64);
     Ok(())
 }
@@ -471,7 +471,7 @@ fn configure_read_connection(conn: &Connection) -> Result<(), Error> {
         "PRAGMA busy_timeout=5000;
          PRAGMA query_only=ON;",
     )
-    .map_err(|e| Error::Database(e.to_string()))?;
+    .map_err(Error::sqlite)?;
     conn.set_prepared_statement_cache_capacity(64);
     Ok(())
 }
@@ -490,7 +490,7 @@ fn checkpoint_status(conn: &Connection) -> Result<WalCheckpointStatus, Error> {
             checkpointed_frames: row.get(2)?,
         })
     })
-    .map_err(|e| Error::Database(e.to_string()))
+    .map_err(Error::sqlite)
 }
 
 fn checkpoint(conn: &Connection) -> Result<(), Error> {
@@ -507,13 +507,13 @@ where
 {
     let tx = conn
         .transaction()
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
     let mut wrapped = DatabaseWriteTransaction { tx };
     let value = f(&mut wrapped)?;
     wrapped
         .tx
         .commit()
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
     Ok(value)
 }
 
@@ -525,7 +525,7 @@ fn ensure_upgrade_version_written(conn: &Connection, to_version: i64) -> Result<
             |row| row.get(0),
         )
         .optional()
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
 
     let expected = to_version.to_string();
     if value.as_deref() != Some(expected.as_str()) {
@@ -544,7 +544,7 @@ fn execute_on_connection(
 ) -> Result<Vec<Vec<serde_json::Value>>, Error> {
     let mut stmt = conn
         .prepare_cached(sql)
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
 
     let param_names = statement_param_names(&stmt);
     let params = statement_param_values(&param_names, args)?;
@@ -566,11 +566,11 @@ fn execute_on_connection(
             }
             Ok(vals)
         })
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
 
     let mut result = Vec::new();
     for row in rows {
-        result.push(row.map_err(|e| Error::Database(e.to_string()))?);
+        result.push(row.map_err(Error::sqlite)?);
     }
     Ok(result)
 }
@@ -582,7 +582,7 @@ fn execute_non_query_on_connection(
 ) -> Result<i64, Error> {
     let mut stmt = conn
         .prepare_cached(sql)
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
 
     let param_names = statement_param_names(&stmt);
     let params = statement_param_values(&param_names, args)?;
@@ -595,7 +595,7 @@ fn execute_non_query_on_connection(
 
     let affected = stmt
         .execute(&*param_refs)
-        .map_err(|e| Error::Database(e.to_string()))?;
+        .map_err(Error::sqlite)?;
 
     Ok(affected as i64)
 }

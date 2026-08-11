@@ -490,9 +490,9 @@ pub(super) fn copy_open_archive_with_budget_and_progress(
 
 pub fn read_profile_database_version(db_path: &Path) -> Result<i64, Error> {
     let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .map_err(|error| Error::Database(error.to_string()))?;
+        .map_err(Error::sqlite)?;
     conn.busy_timeout(Duration::from_secs(5))
-        .map_err(|error| Error::Database(error.to_string()))?;
+        .map_err(Error::sqlite)?;
     let version: Option<String> = conn
         .query_row(
             "SELECT value FROM configs WHERE key = 'config:vrcx_0_databaseversion' LIMIT 1",
@@ -500,7 +500,7 @@ pub fn read_profile_database_version(db_path: &Path) -> Result<i64, Error> {
             |row| row.get(0),
         )
         .optional()
-        .map_err(|error| Error::Database(error.to_string()))?;
+        .map_err(Error::sqlite)?;
     version
         .and_then(|value| value.parse::<i64>().ok())
         .ok_or_else(|| {

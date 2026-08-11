@@ -101,7 +101,9 @@ impl RuntimeHostState {
                     .await;
                 snapshot
             }
-            Err(NonInteractiveAuthError::SessionInvalidated { user_id, reason }) => {
+            Err(NonInteractiveAuthError::SessionInvalidated {
+                user_id, reason, ..
+            }) => {
                 let snapshot = self.clear_invalid_non_interactive_auth_session(&user_id, &reason);
                 self.emit_backend_runtime_telemetry_snapshot(
                     BackendRuntimeTelemetryKind::AuthRecoveryFailed,

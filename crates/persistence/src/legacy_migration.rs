@@ -212,10 +212,10 @@ fn copy_database_snapshot(
     on_progress: impl FnMut(u64, u64),
 ) -> Result<(), Error> {
     let source = Connection::open_with_flags(from, OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .map_err(|error| Error::Database(error.to_string()))?;
+        .map_err(Error::sqlite)?;
     source
         .busy_timeout(Duration::from_secs(5))
-        .map_err(|error| Error::Database(error.to_string()))?;
+        .map_err(Error::sqlite)?;
     let file_name = to.file_name().ok_or_else(|| {
         Error::InvalidData(format!(
             "Legacy migration destination has no file name: {}",

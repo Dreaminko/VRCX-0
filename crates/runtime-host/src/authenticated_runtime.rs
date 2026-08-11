@@ -699,10 +699,13 @@ impl AuthenticatedRuntimeOrchestrator {
                     self.emit_auth_failure_if_needed(
                         scope,
                         "runtime/realtime-auth-probe",
-                        &Error::Custom(format!(
-                            "Realtime auth probe was rejected (HTTP {}).",
-                            response.status
-                        )),
+                        &Error::VrchatApi {
+                            status_code: response.status,
+                            message: format!(
+                                "Realtime auth probe was rejected (HTTP {}).",
+                                response.status
+                            ),
+                        },
                     );
                 }
             }
@@ -740,10 +743,10 @@ impl AuthenticatedRuntimeOrchestrator {
         path: &str,
         error: &Error,
     ) {
-        let reason = error.to_string();
-        let Some(status_code) = auth_failure_status(&reason) else {
+        let Some(status_code) = vrchat_auth_failure_status(error) else {
             return;
         };
+        let reason = error.to_string();
         if !self.auth_scope.snapshot().generation_matches(scope) {
             return;
         }
@@ -1061,14 +1064,13 @@ fn retry_delay_seconds(attempt: u32) -> u64 {
     RETRY_DELAYS_SECONDS[(attempt.saturating_sub(1) as usize).min(RETRY_DELAYS_SECONDS.len() - 1)]
 }
 
-fn auth_failure_status(reason: &str) -> Option<i32> {
-    let reason = reason.to_ascii_lowercase();
-    if reason.contains("missing credentials") || reason.contains("http 401") {
-        Some(401)
-    } else if reason.contains("http 403") {
-        Some(403)
-    } else {
-        None
+fn vrchat_auth_failure_status(error: &Error) -> Option<i32> {
+    match error {
+        Error::VrchatApi {
+            status_code: status_code @ (401 | 403),
+            ..
+        } => Some(*status_code),
+        _ => None,
     }
 }
 
@@ -1169,11 +1171,25 @@ mod tests {
     }
 
     #[test]
-    fn recognizes_baseline_auth_failures() {
-        assert_eq!(auth_failure_status("Missing Credentials (401)"), Some(401));
-        assert_eq!(auth_failure_status("Unauthorized (HTTP 401)"), Some(401));
-        assert_eq!(auth_failure_status("Forbidden (HTTP 403)"), Some(403));
-        assert_eq!(auth_failure_status("request timed out"), None);
+    fn recognizes_only_typed_vrchat_auth_failures() {
+        assert_eq!(
+            vrchat_auth_failure_status(&Error::VrchatApi {
+                status_code: 401,
+                message: "opaque auth failure".into(),
+            }),
+            Some(401)
+        );
+        assert_eq!(
+            vrchat_auth_failure_status(&Error::VrchatApi {
+                status_code: 403,
+                message: "opaque auth failure".into(),
+            }),
+            Some(403)
+        );
+        assert_eq!(
+            vrchat_auth_failure_status(&Error::Custom("HTTP 401".into())),
+            None
+        );
     }
 
     #[test]

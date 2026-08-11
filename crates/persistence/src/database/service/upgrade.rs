@@ -174,6 +174,7 @@ impl DatabaseService {
                 *inner = DatabaseMode::Main(main);
             }
             Err(error) => {
+                let mut sqlite_category = error.sqlite_category();
                 let mut reason = format!(
                     "Database upgrade replaced the main database, but reopening it failed: {error}"
                 );
@@ -183,12 +184,16 @@ impl DatabaseService {
                             *inner = DatabaseMode::Main(main);
                         }
                         Err(reopen_error) => {
+                            sqlite_category =
+                                sqlite_category.or(reopen_error.sqlite_category());
                             reason = format!(
                                 "{reason} Restoring the original database succeeded, but reopening it failed: {reopen_error}"
                             );
                         }
                     },
                     Err(rollback_error) => {
+                        sqlite_category =
+                            sqlite_category.or(rollback_error.sqlite_category());
                         reason = format!(
                             "{reason} Restoring the original database failed: {rollback_error}"
                         );
@@ -208,17 +213,20 @@ impl DatabaseService {
                         if let Err(status_error) =
                             self.remove_file_if_exists(&self.active_status_path())
                         {
+                            sqlite_category =
+                                sqlite_category.or(status_error.sqlite_category());
                             reason = format!(
                                 "{reason} Removing the active status failed: {status_error}"
                             );
                         }
                     }
                     Err(status_error) => {
+                        sqlite_category = sqlite_category.or(status_error.sqlite_category());
                         reason =
                             format!("{reason} Writing the failure status failed: {status_error}");
                     }
                 }
-                return Err(Error::Database(reason));
+                return Err(Error::database_message(reason, sqlite_category));
             }
         }
 
@@ -389,9 +397,17 @@ impl DatabaseService {
                         *inner = DatabaseMode::Main(main);
                         Err(error)
                     }
-                    Err(rollback_error) => Err(Error::Database(format!(
-                        "{error} Restoring the original database after the fresh-start failure also failed: {rollback_error}"
-                    ))),
+                    Err(rollback_error) => {
+                        let sqlite_category = error
+                            .sqlite_category()
+                            .or(rollback_error.sqlite_category());
+                        Err(Error::database_message(
+                            format!(
+                                "{error} Restoring the original database after the fresh-start failure also failed: {rollback_error}"
+                            ),
+                            sqlite_category,
+                        ))
+                    }
                 }
             }
         }

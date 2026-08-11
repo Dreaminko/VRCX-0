@@ -205,8 +205,8 @@ impl RuntimeHostState {
             Err(NonInteractiveAuthError::InteractionRequired(reason)) => {
                 return Err(NonInteractiveAuthError::InteractionRequired(reason));
             }
-            Err(NonInteractiveAuthError::SessionInvalidated { user_id, reason }) => {
-                return Err(NonInteractiveAuthError::SessionInvalidated { user_id, reason });
+            Err(error @ NonInteractiveAuthError::SessionInvalidated { .. }) => {
+                return Err(error);
             }
             Err(NonInteractiveAuthError::Failed(reason)) => {
                 tracing::warn!(reason, "global cookie auth restore failed");
@@ -234,11 +234,8 @@ impl RuntimeHostState {
                     Err(NonInteractiveAuthError::InteractionRequired(reason)) => {
                         return Err(NonInteractiveAuthError::InteractionRequired(reason));
                     }
-                    Err(NonInteractiveAuthError::SessionInvalidated { user_id, reason }) => {
-                        return Err(NonInteractiveAuthError::SessionInvalidated {
-                            user_id,
-                            reason,
-                        });
+                    Err(error @ NonInteractiveAuthError::SessionInvalidated { .. }) => {
+                        return Err(error);
                     }
                     Err(NonInteractiveAuthError::Failed(reason)) => {
                         tracing::warn!(reason, "saved cookie auth restore failed");
@@ -272,6 +269,7 @@ impl RuntimeHostState {
         if matches!(response.status, 401 | 403) {
             return Err(NonInteractiveAuthError::SessionInvalidated {
                 user_id: user_id.clone(),
+                status_code: Some(response.status),
                 reason: auth_response_error_message(
                     &response,
                     format!(

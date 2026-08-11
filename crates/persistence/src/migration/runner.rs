@@ -122,10 +122,10 @@ fn apply(db: &DatabaseService, migration: &Migration) -> Result<(), Error> {
 }
 
 fn migration_failure(migration: &Migration, detail: &str, error: Error) -> Error {
-    Error::Database(format!(
-        "Migration {} ({}) {detail}: {error}",
-        migration.version, migration.label
-    ))
+    Error::database_with_context(
+        format!("Migration {} ({}) {detail}", migration.version, migration.label),
+        error,
+    )
 }
 
 fn apply_step(tx: &dyn MigrationTx, step: &Step) -> Result<(), Error> {

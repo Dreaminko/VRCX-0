@@ -13,6 +13,7 @@ use vrcx_0_application_core::{RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFa
 use vrcx_0_application_realtime::RealtimeTransportStartResult;
 #[cfg(test)]
 use vrcx_0_core::realtime::RealtimeWsStatus;
+use vrcx_0_runtime_host::Error as RuntimeHostError;
 
 use crate::localization::shell_locale::{
     self, AuthFailureNotificationLabels, BackgroundModeNotificationLabels, TrayLabels,
@@ -36,9 +37,9 @@ pub(super) fn handle_runtime_auth_failure_notification(
     if !runtime_auth_failure_matches_active_source(&state, failure) {
         return;
     }
-    let reason = failure.reason.clone();
+    let reason = &failure.reason;
     let snapshot = state.snapshot_backend_runtime();
-    if !should_show_runtime_auth_failure_notification(&snapshot, &reason) {
+    if !should_show_runtime_auth_failure_notification(&snapshot, failure.status_code) {
         return;
     }
 
@@ -123,30 +124,30 @@ fn runtime_auth_failure_transport_matches(
 
 fn should_show_runtime_auth_failure_notification(
     snapshot: &BackendRuntimeSnapshot,
-    reason: &str,
+    status_code: i32,
 ) -> bool {
     snapshot.auth_status == BackendRuntimeAuthStatus::InteractionRequired
-        && !auth_failure_reason_allows_automatic_recovery(reason)
+        && status_code != 401
 }
 
 fn should_show_backend_start_auth_notification(
     snapshot: &BackendRuntimeSnapshot,
-    reason: &str,
+    error: &RuntimeHostError,
 ) -> bool {
-    if auth_failure_reason_allows_automatic_recovery(reason) {
-        return false;
+    match error {
+        RuntimeHostError::AuthInteractionRequired(_) => {
+            snapshot.auth_status == BackendRuntimeAuthStatus::InteractionRequired
+        }
+        RuntimeHostError::AuthSessionInvalidated {
+            status_code: Some(401),
+            ..
+        } => false,
+        RuntimeHostError::AuthSessionInvalidated { .. } => {
+            snapshot.phase == BackendRuntimePhase::Idle
+                && snapshot.auth_status == BackendRuntimeAuthStatus::SignedOut
+        }
+        _ => false,
     }
-    snapshot.auth_status == BackendRuntimeAuthStatus::InteractionRequired
-        || (snapshot.phase == BackendRuntimePhase::Idle
-            && snapshot.auth_status == BackendRuntimeAuthStatus::SignedOut)
-}
-
-fn auth_failure_reason_allows_automatic_recovery(reason: &str) -> bool {
-    let normalized = reason.trim().to_ascii_lowercase();
-    normalized.contains("missing credentials")
-        || normalized.contains("401")
-        || normalized == "unauthorized"
-        || normalized.contains("\"unauthorized\"")
 }
 
 pub(crate) fn show_auth_failure_notification_once(
@@ -182,14 +183,15 @@ pub(crate) fn show_auth_failure_notification_once(
 pub(crate) fn show_auth_failure_notification_after_backend_start_error(
     app_handle: &tauri::AppHandle,
     state: &AppState,
-    reason: &str,
+    error: &RuntimeHostError,
 ) {
     let snapshot = state.snapshot_backend_runtime();
-    if !should_show_backend_start_auth_notification(&snapshot, reason) {
+    if !should_show_backend_start_auth_notification(&snapshot, error) {
         return;
     }
 
-    show_auth_failure_notification_once(app_handle, state, reason);
+    let reason = error.to_string();
+    show_auth_failure_notification_once(app_handle, state, &reason);
 }
 
 pub(crate) fn show_background_mode_started_notification(app: &tauri::AppHandle, state: &AppState) {
@@ -298,7 +300,7 @@ mod tests {
         );
         assert!(!should_show_runtime_auth_failure_notification(
             &snapshot,
-            "auth transport bootstrap failed (401): {\"error\":{\"message\":\"Missing Credentials\"}}"
+            401
         ));
     }
 
@@ -357,7 +359,10 @@ mod tests {
         );
         assert!(!should_show_backend_start_auth_notification(
             &recoverable,
-            "Missing Credentials"
+            &RuntimeHostError::AuthSessionInvalidated {
+                reason: "opaque".into(),
+                status_code: Some(401),
+            }
         ));
 
         let interaction_required = backend_snapshot(
@@ -368,7 +373,7 @@ mod tests {
         );
         assert!(should_show_backend_start_auth_notification(
             &interaction_required,
-            "Re-authentication in the GUI is required because this account requires 2FA/OTP."
+            &RuntimeHostError::AuthInteractionRequired("opaque".into())
         ));
 
         let invalid_session = backend_snapshot(
@@ -379,7 +384,10 @@ mod tests {
         );
         assert!(should_show_backend_start_auth_notification(
             &invalid_session,
-            "VRChat config request failed with HTTP 403."
+            &RuntimeHostError::AuthSessionInvalidated {
+                reason: "opaque".into(),
+                status_code: Some(403),
+            }
         ));
     }
 }

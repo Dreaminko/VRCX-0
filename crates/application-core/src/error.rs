@@ -3,6 +3,12 @@ pub enum Error {
     #[error("Database error: {0}")]
     Database(String),
 
+    #[error("Database error: {message}")]
+    Sqlite {
+        message: String,
+        category: Option<vrcx_0_persistence::SqliteErrorCategory>,
+    },
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -11,6 +17,9 @@ pub enum Error {
 
     #[error("Update artifact is invalid: {0}")]
     UpdateArtifactInvalid(String),
+
+    #[error("{message}")]
+    VrchatApi { status_code: i32, message: String },
 
     #[error("{0}")]
     Custom(String),
@@ -30,6 +39,13 @@ impl From<vrcx_0_persistence::Error> for Error {
     fn from(value: vrcx_0_persistence::Error) -> Self {
         match value {
             vrcx_0_persistence::Error::Database(message) => Self::Database(message),
+            vrcx_0_persistence::Error::Sqlite {
+                message,
+                category,
+            } => Self::Sqlite {
+                message,
+                category,
+            },
             vrcx_0_persistence::Error::Io(error) => Self::Io(error),
             vrcx_0_persistence::Error::Json(error) => Self::Json(error),
             vrcx_0_persistence::Error::InvalidData(message) => Self::Custom(message),

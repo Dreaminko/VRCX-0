@@ -61,7 +61,7 @@ struct MetadataCacheDbInner {
 impl MetadataCacheDb {
     pub fn new(db_path: &Path) -> Result<Self> {
         let mut conn = Connection::open(db_path)
-            .map_err(|e| Error::Database(format!("open cache db: {e}")))?;
+            .map_err(|error| Error::sqlite_with_context("open cache db", error))?;
         conn.execute_batch(
             "PRAGMA locking_mode=NORMAL;
              PRAGMA busy_timeout=5000;
@@ -100,7 +100,7 @@ impl MetadataCacheDb {
                  last_used_at INTEGER NOT NULL
              );",
         )
-        .map_err(|e| Error::Database(format!("init cache db: {e}")))?;
+        .map_err(|error| Error::sqlite_with_context("init cache db", error))?;
         let _ = conn.execute(
             "ALTER TABLE screenshot_files ADD COLUMN scan_root TEXT NOT NULL DEFAULT ''",
             [],
@@ -123,7 +123,7 @@ impl MetadataCacheDb {
              CREATE INDEX IF NOT EXISTS idx_screenshot_thumbnail_cache_source
                  ON screenshot_thumbnail_cache(source_path);",
         )
-        .map_err(|e| Error::Database(format!("init screenshot db indexes: {e}")))?;
+        .map_err(|error| Error::sqlite_with_context("init screenshot db indexes", error))?;
         let thumbnail_dir = db_path
             .parent()
             .unwrap_or_else(|| Path::new(""))
@@ -244,7 +244,7 @@ impl MetadataCacheDb {
     ) -> Result<usize> {
         let conn = self.inner.conn.lock().unwrap();
         let tx = conn.unchecked_transaction().map_err(|error| {
-            Error::Database(format!("start screenshot index transaction: {error}"))
+            Error::sqlite_with_context("start screenshot index transaction", error)
         })?;
         let now = now_unix_seconds();
 
@@ -275,7 +275,7 @@ impl MetadataCacheDb {
                     error = excluded.error",
                 )
                 .map_err(|error| {
-                    Error::Database(format!("prepare screenshot index upsert: {error}"))
+                    Error::sqlite_with_context("prepare screenshot index upsert", error)
                 })?;
 
             for entry in entries {
@@ -297,7 +297,7 @@ impl MetadataCacheDb {
                     now,
                     entry.error.as_deref(),
                 ])
-                .map_err(|error| Error::Database(format!("write screenshot index row: {error}")))?;
+                .map_err(|error| Error::sqlite_with_context("write screenshot index row", error))?;
             }
         }
 
@@ -307,12 +307,12 @@ impl MetadataCacheDb {
                 let mut stmt = tx
                     .prepare("SELECT path FROM screenshot_files WHERE scan_root = ?1")
                     .map_err(|error| {
-                        Error::Database(format!("prepare screenshot index prune: {error}"))
+                        Error::sqlite_with_context("prepare screenshot index prune", error)
                     })?;
                 let rows = stmt
                     .query_map([root], |row| row.get::<_, String>(0))
                     .map_err(|error| {
-                        Error::Database(format!("read screenshot index prune set: {error}"))
+                        Error::sqlite_with_context("read screenshot index prune set", error)
                     })?;
                 rows.filter_map(|row| row.ok()).collect::<Vec<_>>()
             };
@@ -321,7 +321,7 @@ impl MetadataCacheDb {
                 if !seen.contains(&path) {
                     tx.execute("DELETE FROM screenshot_files WHERE path = ?1", [&path])
                         .map_err(|error| {
-                            Error::Database(format!("delete stale screenshot index row: {error}"))
+                            Error::sqlite_with_context("delete stale screenshot index row", error)
                         })?;
                     deleted += 1;
                 }
@@ -329,7 +329,7 @@ impl MetadataCacheDb {
         }
 
         tx.commit().map_err(|error| {
-            Error::Database(format!("commit screenshot index transaction: {error}"))
+            Error::sqlite_with_context("commit screenshot index transaction", error)
         })?;
         Ok(deleted)
     }
@@ -341,7 +341,7 @@ impl MetadataCacheDb {
             "UPDATE screenshot_files SET index_version = 0, metadata_json = NULL WHERE path = ?1",
             [path],
         )
-        .map_err(|error| Error::Database(format!("mark screenshot row stale: {error}")))?;
+        .map_err(|error| Error::sqlite_with_context("mark screenshot row stale", error))?;
         Ok(())
     }
 
@@ -356,7 +356,7 @@ impl MetadataCacheDb {
              WHERE scan_root = ?1
              GROUP BY folder_path",
             )
-            .map_err(|error| Error::Database(format!("prepare screenshot folder tree: {error}")))?;
+            .map_err(|error| Error::sqlite_with_context("prepare screenshot folder tree", error))?;
         let rows = stmt
             .query_map([root_path], |row| {
                 Ok((
@@ -365,10 +365,10 @@ impl MetadataCacheDb {
                     row.get::<_, Option<i64>>(2)?,
                 ))
             })
-            .map_err(|error| Error::Database(format!("read screenshot folder tree: {error}")))?;
+            .map_err(|error| Error::sqlite_with_context("read screenshot folder tree", error))?;
         for row in rows {
             let (folder_path, count, latest_modified_at) = row
-                .map_err(|error| Error::Database(format!("read screenshot folder row: {error}")))?;
+                .map_err(|error| Error::sqlite_with_context("read screenshot folder row", error))?;
             if let Some(latest_modified_at) = latest_modified_at {
                 latest_modified_by_folder.insert(folder_path.clone(), latest_modified_at);
             }
@@ -482,13 +482,13 @@ impl MetadataCacheDb {
               ORDER BY file_name ASC, modified_at ASC",
             )
             .map_err(|error| {
-                Error::Database(format!("prepare screenshot folder images: {error}"))
+                Error::sqlite_with_context("prepare screenshot folder images", error)
             })?;
         let rows = stmt
             .query_map([root_path, folder_path], Self::map_library_image_row)
-            .map_err(|error| Error::Database(format!("read screenshot folder images: {error}")))?;
+            .map_err(|error| Error::sqlite_with_context("read screenshot folder images", error))?;
         rows.collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|error| Error::Database(format!("read screenshot folder image row: {error}")))
+            .map_err(|error| Error::sqlite_with_context("read screenshot folder image row", error))
     }
 
     pub fn list_world_screenshots_for_root(
@@ -505,12 +505,12 @@ impl MetadataCacheDb {
              WHERE scan_root = ?1 AND world_id = ?2
               ORDER BY file_name ASC, modified_at ASC",
             )
-            .map_err(|error| Error::Database(format!("prepare world screenshots: {error}")))?;
+            .map_err(|error| Error::sqlite_with_context("prepare world screenshots", error))?;
         let rows = stmt
             .query_map([root_path, world_id], Self::map_library_image_row)
-            .map_err(|error| Error::Database(format!("read world screenshots: {error}")))?;
+            .map_err(|error| Error::sqlite_with_context("read world screenshots", error))?;
         rows.collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|error| Error::Database(format!("read world screenshot row: {error}")))
+            .map_err(|error| Error::sqlite_with_context("read world screenshot row", error))
     }
 
     pub fn record_thumbnail_cache(
@@ -642,15 +642,15 @@ fn normalize_thumbnail_cache_paths(conn: &mut Connection, thumbnail_dir: &Path) 
         let mut stmt = conn
             .prepare("SELECT thumb_path FROM screenshot_thumbnail_cache")
             .map_err(|error| {
-                Error::Database(format!("prepare thumbnail path normalization: {error}"))
+                Error::sqlite_with_context("prepare thumbnail path normalization", error)
             })?;
         let rows = stmt
             .query_map([], |row| row.get::<_, String>(0))
             .map_err(|error| {
-                Error::Database(format!("read thumbnail paths for normalization: {error}"))
+                Error::sqlite_with_context("read thumbnail paths for normalization", error)
             })?;
         rows.collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|error| Error::Database(format!("read thumbnail path row: {error}")))?
+            .map_err(|error| Error::sqlite_with_context("read thumbnail path row", error))?
             .into_iter()
             .filter(|path| Path::new(path).is_absolute())
             .collect::<Vec<_>>()
@@ -661,7 +661,7 @@ fn normalize_thumbnail_cache_paths(conn: &mut Connection, thumbnail_dir: &Path) 
 
     let transaction = conn
         .transaction()
-        .map_err(|error| Error::Database(format!("begin thumbnail path normalization: {error}")))?;
+        .map_err(|error| Error::sqlite_with_context("begin thumbnail path normalization", error))?;
     for absolute_path in absolute_paths {
         let path = Path::new(&absolute_path);
         let Some(relative_path) = path
@@ -675,7 +675,7 @@ fn normalize_thumbnail_cache_paths(conn: &mut Connection, thumbnail_dir: &Path) 
                     [&absolute_path],
                 )
                 .map_err(|error| {
-                    Error::Database(format!("remove stale thumbnail path: {error}"))
+                    Error::sqlite_with_context("remove stale thumbnail path", error)
                 })?;
             continue;
         };
@@ -689,7 +689,7 @@ fn normalize_thumbnail_cache_paths(conn: &mut Connection, thumbnail_dir: &Path) 
                 |row| row.get::<_, bool>(0),
             )
             .map_err(|error| {
-                Error::Database(format!("check normalized thumbnail path: {error}"))
+                Error::sqlite_with_context("check normalized thumbnail path", error)
             })?;
         if relative_exists {
             transaction
@@ -705,7 +705,7 @@ fn normalize_thumbnail_cache_paths(conn: &mut Connection, thumbnail_dir: &Path) 
                     rusqlite::params![relative_path, absolute_path],
                 )
                 .map_err(|error| {
-                    Error::Database(format!("merge normalized thumbnail path: {error}"))
+                    Error::sqlite_with_context("merge normalized thumbnail path", error)
                 })?;
             transaction
                 .execute(
@@ -713,7 +713,7 @@ fn normalize_thumbnail_cache_paths(conn: &mut Connection, thumbnail_dir: &Path) 
                     [&absolute_path],
                 )
                 .map_err(|error| {
-                    Error::Database(format!("remove duplicate thumbnail path: {error}"))
+                    Error::sqlite_with_context("remove duplicate thumbnail path", error)
                 })?;
         } else {
             transaction
@@ -723,12 +723,12 @@ fn normalize_thumbnail_cache_paths(conn: &mut Connection, thumbnail_dir: &Path) 
                      WHERE thumb_path = ?2",
                     rusqlite::params![relative_path, absolute_path],
                 )
-                .map_err(|error| Error::Database(format!("normalize thumbnail path: {error}")))?;
+                .map_err(|error| Error::sqlite_with_context("normalize thumbnail path", error))?;
         }
     }
     transaction
         .commit()
-        .map_err(|error| Error::Database(format!("commit thumbnail path normalization: {error}")))
+        .map_err(|error| Error::sqlite_with_context("commit thumbnail path normalization", error))
 }
 
 fn path_string(path: &Path) -> String {

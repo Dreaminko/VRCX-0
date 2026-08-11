@@ -20,21 +20,21 @@ pub(crate) fn backup_connection_to_path(
     let result = (|| {
         let source_snapshot = source
             .unchecked_transaction()
-            .map_err(|error| Error::Database(error.to_string()))?;
+            .map_err(Error::sqlite)?;
         source_snapshot
             .query_row("SELECT COUNT(*) FROM sqlite_schema", [], |_| Ok(()))
-            .map_err(|error| Error::Database(error.to_string()))?;
+            .map_err(Error::sqlite)?;
         let mut destination = Connection::open(destination_path)
-            .map_err(|error| Error::Database(error.to_string()))?;
+            .map_err(Error::sqlite)?;
         let backup = Backup::new(&source_snapshot, &mut destination)
-            .map_err(|error| Error::Database(error.to_string()))?;
+            .map_err(Error::sqlite)?;
         let mut last_progress = None;
         let mut last_progress_at = Instant::now();
 
         loop {
             let step = backup
                 .step(PAGES_PER_STEP)
-                .map_err(|error| Error::Database(error.to_string()))?;
+                .map_err(Error::sqlite)?;
             let progress = backup.progress();
             let total_pages = progress.pagecount.max(0) as u64;
             let remaining_pages = progress.remaining.max(0) as u64;

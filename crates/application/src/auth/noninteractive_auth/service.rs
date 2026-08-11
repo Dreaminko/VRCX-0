@@ -41,7 +41,11 @@ impl AuthenticatedRuntimeSession {
 #[derive(Debug)]
 pub enum NonInteractiveAuthError {
     InteractionRequired(String),
-    SessionInvalidated { user_id: String, reason: String },
+    SessionInvalidated {
+        user_id: String,
+        reason: String,
+        status_code: Option<i32>,
+    },
     Failed(String),
 }
 
@@ -161,6 +165,7 @@ pub(crate) async fn current_user_from_cookie_with_api(
         CookieProbeResult::MissingCredentials(response) => {
             Err(NonInteractiveAuthError::SessionInvalidated {
                 user_id,
+                status_code: Some(response.status),
                 reason: auth_response_error_message(
                     &response,
                     format!("VRChat auth request failed with HTTP {}.", response.status),
@@ -170,6 +175,7 @@ pub(crate) async fn current_user_from_cookie_with_api(
         CookieProbeResult::UserMismatch => Err(NonInteractiveAuthError::SessionInvalidated {
             user_id,
             reason: "The stored browser session belongs to a different account.".into(),
+            status_code: None,
         }),
         CookieProbeResult::Rejected { stage, response } => {
             rejected_probe_error(user_id, stage, response)
@@ -194,7 +200,11 @@ fn rejected_probe_error<T>(
         ),
     );
     if matches!(response.status, 401 | 403) {
-        Err(NonInteractiveAuthError::SessionInvalidated { user_id, reason })
+        Err(NonInteractiveAuthError::SessionInvalidated {
+            user_id,
+            reason,
+            status_code: Some(response.status),
+        })
     } else {
         Err(NonInteractiveAuthError::Failed(reason))
     }
