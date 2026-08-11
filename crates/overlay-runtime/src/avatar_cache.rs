@@ -12,7 +12,7 @@ const HMD_AVATAR_SIZE: u32 = 128;
 const HMD_AVATAR_MASK_FEATHER_PX: f32 = 2.0;
 const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 const HMD_AVATAR_FAILURE_TTL: Duration = Duration::from_secs(60);
-const HMD_AVATAR_CACHE_CAPACITY: usize = 300;
+const HMD_AVATAR_CACHE_CAPACITY: usize = 256;
 
 #[derive(Default)]
 struct AvatarBitmapCacheState {
