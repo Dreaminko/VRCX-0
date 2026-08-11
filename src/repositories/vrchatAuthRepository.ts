@@ -50,12 +50,10 @@ async function getConfig() {
     return unwrapVrchatAuthResponse<AuthRecord>(response, 'config');
 }
 
-async function getCachedConfig(
-    {
-        endpoint = DEFAULT_VRCHAT_API_ENDPOINT,
-        force = false
-    }: ConfigQueryOptions = {}
-): Promise<Awaited<ReturnType<typeof getConfig>>> {
+async function getCachedConfig({
+    endpoint = DEFAULT_VRCHAT_API_ENDPOINT,
+    force = false
+}: ConfigQueryOptions = {}): Promise<Awaited<ReturnType<typeof getConfig>>> {
     return fetchCachedData({
         queryKey: queryKeys.apiConfig(endpoint),
         policy: entityQueryPolicies.apiConfig,

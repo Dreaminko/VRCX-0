@@ -8,9 +8,9 @@ const tauriMock = vi.hoisted(() => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({ commands: tauriMock.commands }));
 
+import { flushPendingUserFactEntries } from '@/services/userFactAccessService';
 import { useInstancePresenceStore } from '@/state/instancePresenceStore';
 import { useLocationHintStore } from '@/state/locationHintStore';
-import { flushPendingUserFactEntries } from '@/services/userFactAccessService';
 
 import {
     recordCurrentUserSnapshot,

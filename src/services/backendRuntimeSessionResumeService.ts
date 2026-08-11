@@ -90,9 +90,7 @@ async function getBackendFrontendSessionSnapshot(
     includeCurrentUserSnapshot: boolean
 ) {
     return commands
-        .appGetBackendRuntimeFrontendSessionSnapshot(
-            includeCurrentUserSnapshot
-        )
+        .appGetBackendRuntimeFrontendSessionSnapshot(includeCurrentUserSnapshot)
         .catch((): null => null);
 }
 
@@ -192,8 +190,7 @@ export async function resumeFrontendSessionFromBackendRuntime(
         ) {
             return false;
         }
-        frontendSessionSnapshot =
-            await getBackendFrontendSessionSnapshot(true);
+        frontendSessionSnapshot = await getBackendFrontendSessionSnapshot(true);
         if (
             useSessionStore.getState().sessionPhase !== 'ready' ||
             !frontendSessionSnapshot ||

@@ -40,9 +40,7 @@ function getKnownUserFact(endpoint: unknown, userId: unknown): UserFact | null {
     return key ? useUserFactsStore.getState().usersByKey[key] || null : null;
 }
 
-function ingestUserFactEntries(
-    entries: UserFactIngestEntry[]
-): void {
+function ingestUserFactEntries(entries: UserFactIngestEntry[]): void {
     const valid = entries.filter(
         (entry) =>
             entry &&

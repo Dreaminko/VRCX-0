@@ -12,8 +12,9 @@ const tauriMock = vi.hoisted(() => ({
 
 vi.mock('@/platform/tauri/bindings', () => ({ commands: tauriMock.commands }));
 
-import vrchatInstanceRepository from './vrchatInstanceRepository';
 import { clearEntityQueryCache } from '@/lib/entityQueryCache';
+
+import vrchatInstanceRepository from './vrchatInstanceRepository';
 
 describe('InstanceRepository', () => {
     beforeEach(async () => {
