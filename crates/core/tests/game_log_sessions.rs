@@ -378,3 +378,21 @@ fn dedupes_repeated_rows_across_pages_by_row_key() {
 
     assert_eq!(event_user_ids(&segments[0]), vec!["usr_a".to_string()]);
 }
+
+#[test]
+fn legacy_dedupe_treats_missing_and_empty_video_urls_as_equal() {
+    let locations = [location(
+        1,
+        "2024-01-01T10:00:00.000Z",
+        "wrld_dup:1",
+        "wrld_dup",
+        None,
+    )];
+    let missing = join(None, "2024-01-01T10:00:01.000Z", "usr_a", "wrld_dup:1");
+    let mut empty = missing.clone();
+    empty.video_url = Some(String::new());
+
+    let segments = build_game_log_sessions(&locations, &[missing, empty]);
+
+    assert_eq!(event_user_ids(&segments[0]), vec!["usr_a".to_string()]);
+}

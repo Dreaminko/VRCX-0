@@ -156,24 +156,6 @@ pub enum GameLogEventKind {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ParsedLogEntry {
-    pub event: GameLogEvent,
-    pub compat_row: Vec<String>,
-}
-
-impl ParsedLogEntry {
-    pub fn new(file_name: &str, created_at: String, kind: GameLogEventKind) -> Self {
-        let event = GameLogEvent {
-            file_name: file_name.to_string(),
-            created_at,
-            kind,
-        };
-        let compat_row = event.to_compat_row();
-        Self { event, compat_row }
-    }
-}
-
 impl GameLogEvent {
     pub fn to_compat_row(&self) -> Vec<String> {
         let mut row = vec![
@@ -332,7 +314,7 @@ impl GameLogEventKind {
 
 #[cfg(test)]
 mod tests {
-    use super::{GameLogEvent, GameLogEventKind, ParsedLogEntry};
+    use super::{GameLogEvent, GameLogEventKind};
 
     fn row(fields: &[&str]) -> Vec<String> {
         fields.iter().map(|field| (*field).to_string()).collect()
@@ -443,18 +425,18 @@ mod tests {
     }
 
     #[test]
-    fn typed_entry_generates_compatible_raw_row() {
-        let entry = ParsedLogEntry::new(
-            "output_log.txt",
-            "2026-05-14T01:00:00.000Z".into(),
-            GameLogEventKind::Location {
+    fn typed_event_generates_compatible_raw_row() {
+        let event = GameLogEvent {
+            file_name: "output_log.txt".into(),
+            created_at: "2026-05-14T01:00:00.000Z".into(),
+            kind: GameLogEventKind::Location {
                 location: "wrld_test:123".into(),
                 world_name: "测试世界".into(),
             },
-        );
+        };
 
         assert_eq!(
-            entry.compat_row,
+            event.to_compat_row(),
             row(&[
                 "output_log.txt",
                 "2026-05-14T01:00:00.000Z",

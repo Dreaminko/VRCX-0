@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use crate::game_log_parser::GameLogEvent;
+use crate::game_log_parser::{GameLogEvent, GameLogParseSink};
 use vrcx_0_core::game_log_parser::GameLogEventKind;
 
 use super::sink::{GameLogEventOrigin, GameLogEventSink};
@@ -164,5 +164,37 @@ fn flush_labels_initial_and_live_batches() {
     assert_eq!(
         *sink.origins.lock().unwrap(),
         vec![GameLogEventOrigin::InitialScan, GameLogEventOrigin::Live]
+    );
+}
+
+#[test]
+fn parse_sink_emits_compat_payloads_only_for_live_events() {
+    let watcher = LogWatcher::new(None);
+    let entry = || GameLogEvent {
+        file_name: "output_log_test.txt".into(),
+        created_at: "2026-08-06T00:00:00.000Z".into(),
+        kind: GameLogEventKind::DesktopMode,
+    };
+
+    super::queue::WatcherParseSink {
+        inner: &watcher.inner,
+        first_run: true,
+    }
+    .push(entry());
+    assert!(watcher.drain_compat_event_payloads().is_empty());
+
+    let live_entry = entry();
+    let expected = live_entry.to_compat_row();
+    super::queue::WatcherParseSink {
+        inner: &watcher.inner,
+        first_run: false,
+    }
+    .push(live_entry);
+
+    let payloads = watcher.drain_compat_event_payloads();
+    assert_eq!(payloads.len(), 1);
+    assert_eq!(
+        serde_json::from_str::<Vec<String>>(&payloads[0]).unwrap(),
+        expected
     );
 }

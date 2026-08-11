@@ -38,7 +38,6 @@ impl LogLocationSnapshotScanner for NoopLogLocationSnapshotScanner {
 }
 
 pub(super) struct Inner {
-    pub(super) log_list: RwLock<Vec<Vec<String>>>,
     pub(super) event_buffer: Mutex<Vec<GameLogEvent>>,
     pub(super) compat_event_buffer: Mutex<Vec<String>>,
     pub(super) event_sink: Option<Arc<dyn GameLogEventSink>>,
@@ -72,7 +71,6 @@ impl LogWatcher {
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
-                log_list: RwLock::new(Vec::new()),
                 event_buffer: Mutex::new(Vec::new()),
                 compat_event_buffer: Mutex::new(Vec::new()),
                 event_sink,
@@ -167,16 +165,6 @@ impl LogWatcher {
             Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
     }
 
-    pub fn get(&self) -> Vec<Vec<String>> {
-        let mut list = self.inner.log_list.write().unwrap();
-        if list.is_empty() {
-            return Vec::new();
-        }
-        let n = list.len().min(1000);
-        let items: Vec<Vec<String>> = list.drain(..n).collect();
-        items
-    }
-
     pub fn drain_compat_event_payloads(&self) -> Vec<String> {
         std::mem::take(&mut *self.inner.compat_event_buffer.lock().unwrap())
     }
@@ -223,7 +211,6 @@ fn thread_loop(inner: Arc<Inner>, log_dir: PathBuf, generation: u64) {
                 first_run = true;
                 *reset = false;
                 contexts.clear();
-                inner.log_list.write().unwrap().clear();
                 inner.event_buffer.lock().unwrap().clear();
                 inner.compat_event_buffer.lock().unwrap().clear();
             }

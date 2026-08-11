@@ -92,19 +92,37 @@ fn compare_stream(left: (i64, i64), right: (i64, i64)) -> Ordering {
     left.0.cmp(&right.0).then(left.1.cmp(&right.1))
 }
 
-fn dedupe_key(event: &SessionEventInput) -> String {
-    if let Some(row_id) = event.row_id {
-        return format!("{}\0row:{}", event.type_, row_id);
+#[derive(Hash, PartialEq, Eq)]
+enum DedupeKey<'a> {
+    Row {
+        type_: &'a str,
+        row_id: i64,
+    },
+    Fields {
+        type_: &'a str,
+        created_at: &'a str,
+        user_id: &'a str,
+        display_name: &'a str,
+        location: &'a str,
+        video_url: &'a str,
+    },
+}
+
+fn dedupe_key(event: &SessionEventInput) -> DedupeKey<'_> {
+    match event.row_id {
+        Some(row_id) => DedupeKey::Row {
+            type_: &event.type_,
+            row_id,
+        },
+        None => DedupeKey::Fields {
+            type_: &event.type_,
+            created_at: &event.created_at,
+            user_id: &event.user_id,
+            display_name: &event.display_name,
+            location: &event.location,
+            video_url: event.video_url.as_deref().unwrap_or_default(),
+        },
     }
-    format!(
-        "{}\0{}\0{}\0{}\0{}\0{}",
-        event.type_,
-        event.created_at,
-        event.user_id,
-        event.display_name,
-        event.location,
-        event.video_url.as_deref().unwrap_or_default()
-    )
 }
 
 struct SingleNode {
@@ -183,13 +201,12 @@ fn make_group(events: &[Node], indices: &[usize], group_type: &str) -> GroupNode
         Node::Single(single) => single.created_at.clone(),
         Node::Group(group) => group.created_at.clone(),
     };
-    let members = indices
-        .iter()
-        .filter_map(|&index| match &events[index] {
-            Node::Single(single) => Some(member_of(single)),
-            Node::Group(_) => None,
-        })
-        .collect();
+    let mut members = Vec::with_capacity(indices.len());
+    for &index in indices {
+        if let Node::Single(single) = &events[index] {
+            members.push(member_of(single));
+        }
+    }
     GroupNode {
         epoch,
         type_: group_type.to_string(),
@@ -198,12 +215,22 @@ fn make_group(events: &[Node], indices: &[usize], group_type: &str) -> GroupNode
     }
 }
 
-fn splice_group(events: &mut Vec<Node>, indices: Vec<usize>, group: GroupNode) {
-    let insert_at = indices[0];
-    for &index in indices.iter().rev() {
-        events.remove(index);
-    }
-    events.insert(insert_at, Node::Group(group));
+fn splice_group(events: &mut Vec<Node>, indices: &[usize], group: GroupNode) {
+    let first = indices[0];
+    let last = indices[indices.len() - 1];
+    events[first] = Node::Group(group);
+    let mut next_match = 1;
+    let mut index = first + 1;
+    events
+        .extract_if(first + 1..=last, |_| {
+            let remove = indices.get(next_match).copied() == Some(index);
+            if remove {
+                next_match += 1;
+            }
+            index += 1;
+            remove
+        })
+        .for_each(drop);
 }
 
 // Collapse a run of >= THRESHOLD same-type events within WINDOW_MS of the anchor
@@ -223,7 +250,7 @@ fn aggregate(events: &mut Vec<Node>, match_type: &str, group_type: &str, from_ta
         None => return,
     };
 
-    let mut indices: Vec<usize> = Vec::new();
+    let mut indices: Vec<usize> = Vec::with_capacity(SESSION_AGGREGATE_THRESHOLD);
     if from_tail {
         let window_start = events[anchor].epoch() - SESSION_AGGREGATE_WINDOW_MS;
         for index in (0..=anchor).rev() {
@@ -231,9 +258,10 @@ fn aggregate(events: &mut Vec<Node>, match_type: &str, group_type: &str, from_ta
                 break;
             }
             if events[index].type_str() == match_type {
-                indices.insert(0, index);
+                indices.push(index);
             }
         }
+        indices.reverse();
     } else {
         let window_end = events[anchor].epoch() + SESSION_AGGREGATE_WINDOW_MS;
         for (index, node) in events.iter().enumerate().skip(anchor) {
@@ -250,7 +278,7 @@ fn aggregate(events: &mut Vec<Node>, match_type: &str, group_type: &str, from_ta
     }
 
     let group = make_group(events, &indices, group_type);
-    splice_group(events, indices, group);
+    splice_group(events, &indices, group);
 }
 
 fn merge_video_plays(events: &mut Vec<Node>) {
@@ -365,8 +393,8 @@ pub fn build_game_log_sessions(
         compare_stream((left.epoch, left.sort_id), (right.epoch, right.sort_id))
     });
 
-    let mut seen: HashSet<String> = HashSet::new();
-    let mut deduped: Vec<&SessionEventInput> = Vec::new();
+    let mut seen: HashSet<DedupeKey<'_>> = HashSet::with_capacity(events.len());
+    let mut deduped: Vec<&SessionEventInput> = Vec::with_capacity(events.len());
     for event in events {
         if seen.insert(dedupe_key(event)) {
             deduped.push(event);

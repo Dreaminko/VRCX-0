@@ -1,11 +1,9 @@
-use vrcx_0_core::game_log_parser::ParsedLogEntry;
+use vrcx_0_core::game_log_parser::GameLogEvent;
 
 use crate::game_log_parser::GameLogParseSink;
 
 use super::sink::GameLogEventOrigin;
 use super::watcher::Inner;
-
-const MAX_COMPAT_LOG_ROWS: usize = 5000;
 
 pub(super) struct WatcherParseSink<'a> {
     pub(super) inner: &'a Inner,
@@ -13,22 +11,17 @@ pub(super) struct WatcherParseSink<'a> {
 }
 
 impl GameLogParseSink for WatcherParseSink<'_> {
-    fn push(&mut self, entry: ParsedLogEntry) {
+    fn push(&mut self, event: GameLogEvent) {
         let inner = self.inner;
+        let compat_row = (!self.first_run).then(|| event.to_compat_row());
         if inner.event_sink.is_some() {
-            inner.event_buffer.lock().unwrap().push(entry.event);
+            inner.event_buffer.lock().unwrap().push(event);
         }
 
-        if !self.first_run {
-            if let Ok(json) = serde_json::to_string(&entry.compat_row) {
+        if let Some(compat_row) = compat_row {
+            if let Ok(json) = serde_json::to_string(&compat_row) {
                 inner.compat_event_buffer.lock().unwrap().push(json);
             }
-        }
-        let mut log_list = inner.log_list.write().unwrap();
-        log_list.push(entry.compat_row);
-        if log_list.len() > MAX_COMPAT_LOG_ROWS {
-            let overflow = log_list.len() - MAX_COMPAT_LOG_ROWS;
-            log_list.drain(..overflow);
         }
     }
 

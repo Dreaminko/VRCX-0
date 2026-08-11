@@ -1,4 +1,4 @@
-use vrcx_0_core::game_log_parser::{parse_log_line_header, ParsedLogEntry};
+use vrcx_0_core::game_log_parser::{parse_log_line_header, GameLogEvent};
 
 use super::context::LogContext;
 use super::sink::GameLogParseSink;
@@ -11,8 +11,8 @@ struct RecordingParseSink {
 }
 
 impl GameLogParseSink for RecordingParseSink {
-    fn push(&mut self, entry: ParsedLogEntry) {
-        self.rows.push(entry.compat_row);
+    fn push(&mut self, event: GameLogEvent) {
+        self.rows.push(event.to_compat_row());
     }
 
     fn set_vrc_closed_gracefully(&mut self, value: bool) {
