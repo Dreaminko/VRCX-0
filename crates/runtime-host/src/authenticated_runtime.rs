@@ -50,6 +50,12 @@ pub struct AuthenticatedRuntimeDeps {
     pub favorites_sink: Option<RuntimeHostFavoritesCallback>,
 }
 
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct FavoriteGroupMemberships {
+    pub friend_groups_by_key: HashMap<String, Vec<String>>,
+    pub world_groups_by_key: HashMap<String, Vec<String>>,
+}
+
 #[derive(Clone)]
 pub struct AuthenticatedRuntimeOrchestrator {
     shared: Arc<AuthenticatedRuntimeShared>,
@@ -158,6 +164,14 @@ impl AuthenticatedRuntimeOrchestrator {
             .as_ref()
             .and_then(|baseline| baseline.snapshot.as_ref())
             .map(favorite_group_membership_from_baseline)
+    }
+
+    pub fn favorite_group_memberships(&self) -> Option<FavoriteGroupMemberships> {
+        self.lock_state()
+            .favorites_baseline
+            .as_ref()
+            .and_then(|baseline| baseline.snapshot.as_ref())
+            .map(favorite_group_memberships_from_baseline)
     }
 
     pub fn apply_favorites_snapshot(&self, snapshot: &FavoriteBaselineSnapshot) {
@@ -1095,6 +1109,15 @@ pub fn favorite_world_group_membership_from_baseline(
     groups
 }
 
+fn favorite_group_memberships_from_baseline(
+    snapshot: &FavoriteBaselineSnapshot,
+) -> FavoriteGroupMemberships {
+    FavoriteGroupMemberships {
+        friend_groups_by_key: favorite_group_membership_from_baseline(snapshot),
+        world_groups_by_key: favorite_world_group_membership_from_baseline(snapshot),
+    }
+}
+
 fn append_typed_favorite_group_membership(
     groups: &mut HashMap<String, Vec<String>>,
     memberships: &std::collections::BTreeMap<String, Vec<String>>,
@@ -1115,12 +1138,14 @@ fn append_typed_favorite_group_membership(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
     use serde_json::json;
 
     #[test]
     fn typed_favorite_membership_normalizes_ids_and_prefixes_local_groups() {
-        let memberships = std::collections::BTreeMap::from([(
+        let memberships = BTreeMap::from([(
             "Friends".to_string(),
             vec![" usr_one ".to_string(), String::new()],
         )]);
@@ -1269,6 +1294,48 @@ mod tests {
         assert!(state.phase.favorites_baseline.is_none());
         assert!(state.favorites_baseline.is_some());
         assert!(emitted.favorites_baseline.is_some());
+    }
+
+    #[test]
+    fn combined_favorite_group_memberships_preserve_remote_and_local_groups() {
+        let snapshot = FavoriteBaselineSnapshot {
+            grouped_favorite_friend_ids_by_group_key: BTreeMap::from([(
+                "group_friend".into(),
+                vec!["usr_friend".into()],
+            )]),
+            local_friend_favorites: BTreeMap::from([(
+                "local_friend".into(),
+                vec!["usr_local".into()],
+            )]),
+            grouped_favorite_world_ids_by_group_key: BTreeMap::from([(
+                "group_world".into(),
+                vec!["wrld_remote".into()],
+            )]),
+            local_world_favorites: BTreeMap::from([(
+                "local_world".into(),
+                vec!["wrld_local".into()],
+            )]),
+            ..Default::default()
+        };
+
+        let memberships = favorite_group_memberships_from_baseline(&snapshot);
+
+        assert_eq!(
+            memberships.friend_groups_by_key["group_friend"],
+            ["usr_friend"]
+        );
+        assert_eq!(
+            memberships.friend_groups_by_key["local:local_friend"],
+            ["usr_local"]
+        );
+        assert_eq!(
+            memberships.world_groups_by_key["group_world"],
+            ["wrld_remote"]
+        );
+        assert_eq!(
+            memberships.world_groups_by_key["local:local_world"],
+            ["wrld_local"]
+        );
     }
 
     #[test]

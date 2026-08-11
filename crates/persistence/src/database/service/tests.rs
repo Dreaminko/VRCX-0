@@ -620,6 +620,29 @@ fn schema_bootstrap_does_not_cache_a_failed_run() -> Result<(), Error> {
 }
 
 #[test]
+fn schema_bootstrap_retries_until_stable() -> Result<(), Error> {
+    let dir = TestDir::new("schema-until-stable");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let mut runs = 0;
+
+    db.ensure_schema_until_stable("alpha", || {
+        runs += 1;
+        Ok(false)
+    })?;
+    db.ensure_schema_until_stable("alpha", || {
+        runs += 1;
+        Ok(true)
+    })?;
+    db.ensure_schema_until_stable("alpha", || {
+        runs += 1;
+        Ok(false)
+    })?;
+
+    assert_eq!(runs, 2);
+    Ok(())
+}
+
+#[test]
 fn schema_bootstrap_memo_does_not_survive_a_new_connection_generation() -> Result<(), Error> {
     let dir = TestDir::new("schema-once-generation");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;

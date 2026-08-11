@@ -956,23 +956,9 @@ impl DesktopRuntimeProfileExtension {
                                 BACKGROUND_OVERLAY_ACTIVITY_CONFIG_CADENCE_SECONDS,
                             );
                     }
-                    let (favorite_friend_groups_by_key, favorite_world_groups_by_key) =
-                        authenticated_runtime
-                            .snapshot()
-                            .favorites_baseline
-                            .as_ref()
-                            .and_then(|baseline| baseline.snapshot.as_ref())
-                            .map(|snapshot| {
-                                (
-                                    vrcx_0_runtime_host::favorite_group_membership_from_baseline(
-                                        snapshot,
-                                    ),
-                                    vrcx_0_runtime_host::favorite_world_group_membership_from_baseline(
-                                        snapshot,
-                                    ),
-                                )
-                            })
-                            .unwrap_or_default();
+                    let favorite_group_memberships = authenticated_runtime
+                        .favorite_group_memberships()
+                        .unwrap_or_default();
                     let tick_context = BackgroundTickContext {
                         db: &db,
                         web: &web,
@@ -987,8 +973,8 @@ impl DesktopRuntimeProfileExtension {
                         run_background_presence_tick(
                             &tick_context,
                             &mut presence_state,
-                            &favorite_friend_groups_by_key,
-                            &favorite_world_groups_by_key,
+                            &favorite_group_memberships.friend_groups_by_key,
+                            &favorite_group_memberships.world_groups_by_key,
                         )
                         .await;
                         presence_state.persist_cached(
@@ -1004,7 +990,7 @@ impl DesktopRuntimeProfileExtension {
                             &discord_rpc,
                             &mut discord_state,
                             &mut last_discord_output,
-                            &favorite_friend_groups_by_key,
+                            &favorite_group_memberships.friend_groups_by_key,
                         )
                         .await;
                         next_discord =

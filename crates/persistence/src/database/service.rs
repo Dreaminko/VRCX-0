@@ -197,6 +197,16 @@ impl DatabaseService {
     where
         F: FnOnce() -> Result<(), Error>,
     {
+        self.ensure_schema_until_stable(key, || {
+            ensure()?;
+            Ok(true)
+        })
+    }
+
+    pub(crate) fn ensure_schema_until_stable<F>(&self, key: &str, ensure: F) -> Result<(), Error>
+    where
+        F: FnOnce() -> Result<bool, Error>,
+    {
         let ensured = {
             let inner = self
                 .inner
@@ -219,11 +229,12 @@ impl DatabaseService {
         {
             return Ok(());
         }
-        ensure()?;
-        ensured
-            .lock()
-            .map_err(|error| Error::Database(error.to_string()))?
-            .insert(key.to_owned());
+        if ensure()? {
+            ensured
+                .lock()
+                .map_err(|error| Error::Database(error.to_string()))?
+                .insert(key.to_owned());
+        }
         Ok(())
     }
 

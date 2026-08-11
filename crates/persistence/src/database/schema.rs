@@ -8,29 +8,32 @@ use crate::ownership::{ensure_owner_table, COL_OWNER_ID};
 use crate::realtime::ensure_realtime_tables;
 use crate::Error;
 
+const GLOBAL_STORE_SCHEMA_KEY: &str = "global-store";
+
 pub(crate) fn ensure_global_store_tables(db: &DatabaseService) -> Result<(), Error> {
-    ensure_owner_table(db)?;
-    for sql in [
-        "CREATE TABLE IF NOT EXISTS cache_avatar (id TEXT PRIMARY KEY, added_at TEXT, author_id TEXT, author_name TEXT, created_at TEXT, description TEXT, image_url TEXT, name TEXT, release_status TEXT, thumbnail_image_url TEXT, updated_at TEXT, version INTEGER)",
-        "CREATE TABLE IF NOT EXISTS cache_world (id TEXT PRIMARY KEY, added_at TEXT, author_id TEXT, author_name TEXT, created_at TEXT, description TEXT, image_url TEXT, name TEXT, release_status TEXT, thumbnail_image_url TEXT, updated_at TEXT, version INTEGER)",
-        "CREATE TABLE IF NOT EXISTS favorite_world (id INTEGER PRIMARY KEY, created_at TEXT, world_id TEXT, group_name TEXT)",
-        "CREATE TABLE IF NOT EXISTS favorite_avatar (id INTEGER PRIMARY KEY, created_at TEXT, avatar_id TEXT, group_name TEXT)",
-        "CREATE TABLE IF NOT EXISTS favorite_friend (id INTEGER PRIMARY KEY, created_at TEXT, user_id TEXT, group_name TEXT, owner_id INTEGER NOT NULL DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS memos (user_id TEXT PRIMARY KEY, edited_at TEXT, memo TEXT)",
-        "CREATE TABLE IF NOT EXISTS world_memos (world_id TEXT PRIMARY KEY, edited_at TEXT, memo TEXT)",
-        "CREATE TABLE IF NOT EXISTS avatar_memos (avatar_id TEXT PRIMARY KEY, edited_at TEXT, memo TEXT)",
-        "CREATE TABLE IF NOT EXISTS avatar_tags (avatar_id TEXT NOT NULL, tag TEXT NOT NULL, color TEXT, PRIMARY KEY (avatar_id, tag))",
-    ] {
-        db.execute_non_query(sql, &Default::default())?;
-    }
-    add_column_if_missing(
-        db,
-        "favorite_friend",
-        COL_OWNER_ID,
-        "INTEGER NOT NULL DEFAULT 0",
-    )?;
-    ensure_favorite_unique_indexes(db)?;
-    Ok(())
+    db.ensure_schema_until_stable(GLOBAL_STORE_SCHEMA_KEY, || {
+        ensure_owner_table(db)?;
+        for sql in [
+            "CREATE TABLE IF NOT EXISTS cache_avatar (id TEXT PRIMARY KEY, added_at TEXT, author_id TEXT, author_name TEXT, created_at TEXT, description TEXT, image_url TEXT, name TEXT, release_status TEXT, thumbnail_image_url TEXT, updated_at TEXT, version INTEGER)",
+            "CREATE TABLE IF NOT EXISTS cache_world (id TEXT PRIMARY KEY, added_at TEXT, author_id TEXT, author_name TEXT, created_at TEXT, description TEXT, image_url TEXT, name TEXT, release_status TEXT, thumbnail_image_url TEXT, updated_at TEXT, version INTEGER)",
+            "CREATE TABLE IF NOT EXISTS favorite_world (id INTEGER PRIMARY KEY, created_at TEXT, world_id TEXT, group_name TEXT)",
+            "CREATE TABLE IF NOT EXISTS favorite_avatar (id INTEGER PRIMARY KEY, created_at TEXT, avatar_id TEXT, group_name TEXT)",
+            "CREATE TABLE IF NOT EXISTS favorite_friend (id INTEGER PRIMARY KEY, created_at TEXT, user_id TEXT, group_name TEXT, owner_id INTEGER NOT NULL DEFAULT 0)",
+            "CREATE TABLE IF NOT EXISTS memos (user_id TEXT PRIMARY KEY, edited_at TEXT, memo TEXT)",
+            "CREATE TABLE IF NOT EXISTS world_memos (world_id TEXT PRIMARY KEY, edited_at TEXT, memo TEXT)",
+            "CREATE TABLE IF NOT EXISTS avatar_memos (avatar_id TEXT PRIMARY KEY, edited_at TEXT, memo TEXT)",
+            "CREATE TABLE IF NOT EXISTS avatar_tags (avatar_id TEXT NOT NULL, tag TEXT NOT NULL, color TEXT, PRIMARY KEY (avatar_id, tag))",
+        ] {
+            db.execute_non_query(sql, &Default::default())?;
+        }
+        add_column_if_missing(
+            db,
+            "favorite_friend",
+            COL_OWNER_ID,
+            "INTEGER NOT NULL DEFAULT 0",
+        )?;
+        ensure_favorite_unique_indexes(db)
+    })
 }
 
 const FAVORITE_UNIQUE_INDEX_TABLES: [(&str, &str, &str); 2] = [
@@ -46,11 +49,12 @@ const FAVORITE_UNIQUE_INDEX_TABLES: [(&str, &str, &str); 2] = [
     ),
 ];
 
-fn ensure_favorite_unique_indexes(db: &DatabaseService) -> Result<(), Error> {
+fn ensure_favorite_unique_indexes(db: &DatabaseService) -> Result<bool, Error> {
+    let mut stable = true;
     for (table, column, index_stem) in FAVORITE_UNIQUE_INDEX_TABLES {
-        ensure_favorite_index(db, table, &format!("{column}, group_name"), index_stem)?;
+        stable &= ensure_favorite_index(db, table, &format!("{column}, group_name"), index_stem)?;
     }
-    ensure_favorite_index(
+    stable &= ensure_favorite_index(
         db,
         "favorite_friend",
         "owner_id, user_id, group_name",
@@ -60,7 +64,7 @@ fn ensure_favorite_unique_indexes(db: &DatabaseService) -> Result<(), Error> {
         "DROP INDEX IF EXISTS favorite_friend_user_id_group_idx",
         &Default::default(),
     )?;
-    Ok(())
+    Ok(stable)
 }
 
 fn ensure_favorite_index(
@@ -68,15 +72,15 @@ fn ensure_favorite_index(
     table: &str,
     columns: &str,
     index_stem: &str,
-) -> Result<(), Error> {
+) -> Result<bool, Error> {
     let unique_index = format!("{index_stem}_idx");
     let lookup_index = format!("{index_stem}_lookup_idx");
     if favorite_index_exists(db, &unique_index)? {
-        return Ok(());
+        return Ok(true);
     }
     if favorite_index_exists(db, &lookup_index)? {
         if favorite_duplicates_exist(db, table, columns)? {
-            return Ok(());
+            return Ok(false);
         }
         db.execute_non_query(
             &format!("CREATE UNIQUE INDEX IF NOT EXISTS {unique_index} ON {table} ({columns})"),
@@ -86,7 +90,7 @@ fn ensure_favorite_index(
             &format!("DROP INDEX IF EXISTS {lookup_index}"),
             &Default::default(),
         )?;
-        return Ok(());
+        return Ok(true);
     }
 
     if favorite_duplicates_exist(db, table, columns)? {
@@ -99,13 +103,14 @@ fn ensure_favorite_index(
             &format!("CREATE INDEX IF NOT EXISTS {lookup_index} ON {table} ({columns})"),
             &Default::default(),
         )?;
+        Ok(false)
     } else {
         db.execute_non_query(
             &format!("CREATE UNIQUE INDEX IF NOT EXISTS {unique_index} ON {table} ({columns})"),
             &Default::default(),
         )?;
+        Ok(true)
     }
-    Ok(())
 }
 
 fn favorite_duplicates_exist(
