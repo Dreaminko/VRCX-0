@@ -1846,7 +1846,6 @@
                 "world_groups_hint": "留空即可套用至任何收藏分組。",
                 "minimum_friends": "最少好友數",
                 "minimum_players": "最少用戶數",
-                "friend_user_ids": "好友用戶 ID",
                 "room_types": "房間類型",
                 "room_types_hint": "留空即可套用至任何房間類型。請讓會使你顯示為可加入的規則保持較小範圍。",
                 "no_custom_room_rules": "尚未設定自訂房間規則。",

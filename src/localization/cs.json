@@ -1848,7 +1848,6 @@
                 "world_groups_hint": "Ponechte prázdné pro libovolnou skupinu oblíbených.",
                 "minimum_friends": "Minimální počet přátel",
                 "minimum_players": "Minimální počet hráčů",
-                "friend_user_ids": "ID uživatelů přátel",
                 "room_types": "Typy místností",
                 "room_types_hint": "Ponechte prázdné pro libovolný typ místnosti. Pravidla se statusem otevřeným pro připojení by měla cílit na konkrétní typy.",
                 "no_custom_room_rules": "Nejsou nastavena žádná vlastní pravidla místnosti.",

@@ -1845,7 +1845,6 @@
                 "room_status_rules_description": "방, 월드, 친구에 따라 상태를 자동 변경합니다.",
                 "invite_request_auto_reply_description": "VRChat이(가) 실행되는 동안 가입을 요청하는 허용 목록에 있는 친구를 자동으로 초대합니다.",
                 "only_when_game_running_description": "VRChat이 실행되고 있지 않으면 이 규칙을 건너뜁니다.",
-                "friend_user_ids": "친구 사용자 IDs",
                 "automatic_replies_note": "VRChat 실행 중이고 현재 위치에서 초대를 보낼 수 있을 때만 동작합니다. 발신자별로 쿨다운이 있습니다."
             },
             "other": {

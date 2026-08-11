@@ -1837,7 +1837,6 @@
                 "world_groups_hint": "Laisser vide pour inclure tous les groupes de favoris.",
                 "minimum_friends": "Nombre minimum d'amis",
                 "minimum_players": "Nombre minimum d'utilisateurs",
-                "friend_user_ids": "ID utilisateur des amis",
                 "room_types": "Types d'instance",
                 "room_types_hint": "Laisser vide pour tout type d'instance. Les règles qui vous font apparaître comme rejoignable devraient rester limitées.",
                 "no_custom_room_rules": "Aucune règle d'instance personnalisée configurée.",

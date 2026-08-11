@@ -1846,7 +1846,6 @@
                 "world_groups_hint": "留空表示任意收藏分组均生效。",
                 "minimum_friends": "最少好友数",
                 "minimum_players": "最少玩家数",
-                "friend_user_ids": "好友用户 ID",
                 "room_types": "房间类型",
                 "room_types_hint": "留空表示任意房间类型。会让你看起来可被加入的规则应谨慎对待。",
                 "no_custom_room_rules": "尚未配置自定义房间规则。",

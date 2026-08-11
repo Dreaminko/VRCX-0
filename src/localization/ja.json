@@ -1842,7 +1842,6 @@
                 "world_groups_hint": "空のままにするとすべてのお気に入りグループが対象になります。",
                 "minimum_friends": "最小フレンド数",
                 "minimum_players": "最小プレイヤー数",
-                "friend_user_ids": "フレンドのユーザー ID",
                 "room_types": "ルームタイプ",
                 "room_types_hint": "空のままにすると任意のルームタイプに適用します。参加可能に見えるルールは対象タイプを限定してください。",
                 "no_custom_room_rules": "カスタムルームルールはまだ設定されていません。",

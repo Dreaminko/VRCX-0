@@ -6,6 +6,7 @@ import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
+import { useFriendRosterStore } from '@/state/friendRosterStore';
 import {
     Dialog,
     DialogContent,
@@ -224,6 +225,10 @@ export function PresenceRoomRulesDialog({
     const writeQueuesRef = useRef(new Map());
     const { groupOptions, worldGroupOptions, instanceOptions } =
         usePresenceOptions();
+    const friendsById = useFriendRosterStore((state) => state.friendsById);
+    const orderedFriendIds = useFriendRosterStore(
+        (state) => state.orderedFriendIds
+    );
     const [contextRules, setContextRules] = useState<ContextAutomationRule[]>(
         []
     );
@@ -304,6 +309,8 @@ export function PresenceRoomRulesDialog({
                     <div className="px-4 pb-4">
                         <ContextRulesTab
                             loading={loading}
+                            friendsById={friendsById}
+                            orderedFriendIds={orderedFriendIds}
                             groupOptions={groupOptions}
                             worldGroupOptions={worldGroupOptions}
                             instanceOptions={instanceOptions}

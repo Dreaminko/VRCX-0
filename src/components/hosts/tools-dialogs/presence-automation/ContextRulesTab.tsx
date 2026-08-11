@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
 import {
     Empty,
     EmptyDescription,
@@ -32,6 +33,7 @@ import {
     RuleListItem,
     RuleSummaryBadge
 } from './AutomationRuleLayout';
+import { FriendMultiSelect } from './FriendMultiSelect';
 import {
     contextPresetLabelKeyFromValue,
     contextPresetOptions,
@@ -58,25 +60,22 @@ const TITLE_FALLBACK_KEY = `${I18N_ROOT}.room_rule_default`;
 
 type ContextRulesTabProps = {
     contextRules: ContextAutomationRule[];
+    friendsById: FriendRosterById;
     groupOptions: PresenceOption[];
     instanceOptions: PresenceOption[];
     loading: boolean;
     onRulesChange: (rules: ContextAutomationRule[]) => unknown;
+    orderedFriendIds: string[];
     worldGroupOptions: PresenceOption[];
 };
-
-function parseUserIds(value: unknown) {
-    return String(value || '')
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-}
 
 export function ContextRulesTab({
     loading,
     groupOptions,
     worldGroupOptions,
     instanceOptions,
+    friendsById,
+    orderedFriendIds,
     contextRules,
     onRulesChange
 }: ContextRulesTabProps) {
@@ -374,23 +373,22 @@ export function ContextRulesTab({
                             {selectedRule.preset === 'withSelectedFriend' ? (
                                 <Field>
                                     <FieldLabel>
-                                        {t(`${I18N_ROOT}.friend_user_ids`)}
+                                        {t('common.affinity.friend')}
                                     </FieldLabel>
-                                    <Input
-                                        value={(
+                                    <FriendMultiSelect
+                                        idPrefix={selectedRule.id}
+                                        values={
                                             selectedRule.specificFriendIds || []
-                                        ).join(', ')}
+                                        }
+                                        friendsById={friendsById}
+                                        orderedFriendIds={orderedFriendIds}
                                         disabled={loading}
-                                        placeholder="usr_..., usr_..."
-                                        onChange={(event) =>
+                                        onChange={(specificFriendIds) =>
                                             update(
                                                 selectedRule.id,
                                                 (current) => ({
                                                     ...current,
-                                                    specificFriendIds:
-                                                        parseUserIds(
-                                                            event.target.value
-                                                        )
+                                                    specificFriendIds
                                                 })
                                             )
                                         }

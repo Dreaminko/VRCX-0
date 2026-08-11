@@ -1846,7 +1846,6 @@
                 "world_groups_hint": "Leave empty to match any favorite group.",
                 "minimum_friends": "Minimum friends",
                 "minimum_players": "Minimum players",
-                "friend_user_ids": "Friend user IDs",
                 "room_types": "Room types",
                 "room_types_hint": "Leave empty for any room type. Rules that set a joinable status should target specific types.",
                 "no_custom_room_rules": "No custom room rules configured.",

@@ -1846,7 +1846,6 @@
                 "world_groups_hint": "Déjalo vacío para incluir cualquier grupo de favoritos.",
                 "minimum_friends": "Mínimo de amigos",
                 "minimum_players": "Mínimo de jugadores",
-                "friend_user_ids": "ID de usuario de amigos",
                 "room_types": "Tipos de sala",
                 "room_types_hint": "Déjalo vacío para cualquier tipo de sala. Las reglas con estado abierto a unirse deberían limitarse a tipos específicos.",
                 "no_custom_room_rules": "No hay reglas de sala personalizadas configuradas.",
