@@ -265,6 +265,10 @@ pub(super) fn create_main_window(
 
     let main_window = builder.build()?;
     #[cfg(target_os = "windows")]
+    if let Ok(handle) = main_window.hwnd() {
+        vrcx_0_host_desktop::window_icon::apply_window_icon(handle.0 as isize);
+    }
+    #[cfg(target_os = "windows")]
     attach_window_chrome_state_events(&main_window);
     #[cfg(not(target_os = "windows"))]
     let _ = main_window;

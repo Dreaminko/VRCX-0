@@ -627,13 +627,11 @@ export function buildSameInstanceGroups(
     });
     const groups = buildSameInstanceFriendGroups(preparedRows, lastLocation, {
         includeCurrentUser: prefs.isShowCurrentUserInSameInstance !== false
-    }).map(
-        ({ location, friends, isCurrentInstance }): SameInstanceGroup => ({
-            location,
-            rows: friends,
-            isCurrentInstance
-        })
-    );
+    }).map(({ location, friends, isCurrentInstance }): SameInstanceGroup => ({
+        location,
+        rows: friends,
+        isCurrentInstance
+    }));
     const observedJoins = observedJoinsByFallbackMap.get(fallbackJoinTimes);
     for (const key of fallbackJoinTimes.keys()) {
         if (!activeFallbackKeys.has(key)) {

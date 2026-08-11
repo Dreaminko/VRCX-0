@@ -469,15 +469,11 @@ export function useFriendsLocationsPageDerivedState({
         const seen = new Set<string>();
         const sections: FriendsLocationsSection[] = [];
         const orderedRemoteGroups = favoriteFriendGroups
-            .map(
-                (group): FriendsLocationsFavoriteGroupDescriptor => ({
-                    key: normalizeId(group?.key),
-                    label:
-                        group?.displayName ||
-                        group?.name ||
-                        normalizeId(group?.key)
-                })
-            )
+            .map((group): FriendsLocationsFavoriteGroupDescriptor => ({
+                key: normalizeId(group?.key),
+                label:
+                    group?.displayName || group?.name || normalizeId(group?.key)
+            }))
             .filter(
                 (group) => group.key && selectedFavoriteGroupKeys.has(group.key)
             )
@@ -492,12 +488,10 @@ export function useFriendsLocationsPageDerivedState({
             ? localFriendFavoriteGroups
             : Object.keys(localFriendFavorites || {});
         const orderedLocalGroups = localGroupNames
-            .map(
-                (groupName): FriendsLocationsFavoriteGroupDescriptor => ({
-                    key: `local:${groupName}`,
-                    label: groupName
-                })
-            )
+            .map((groupName): FriendsLocationsFavoriteGroupDescriptor => ({
+                key: `local:${groupName}`,
+                label: groupName
+            }))
             .filter((group) => selectedFavoriteGroupKeys.has(group.key))
             .sort((left, right) =>
                 compareFavoriteGroups(
@@ -617,12 +611,10 @@ export function useFriendsLocationsPageDerivedState({
                 favoriteIds,
                 favoriteGroupLabelsByFriendId,
                 t
-            }).map(
-                (section): FriendsLocationsSection => ({
-                    ...section,
-                    cardContentMode: 'status'
-                })
-            );
+            }).map((section): FriendsLocationsSection => ({
+                ...section,
+                cardContentMode: 'status'
+            }));
         }
         if (!deferredSearchQuery.trim() && activeSegment === 'online') {
             const sameInstanceSections =
@@ -633,12 +625,10 @@ export function useFriendsLocationsPageDerivedState({
                           favoriteIds,
                           favoriteGroupLabelsByFriendId,
                           t
-                      }).map(
-                          (section): FriendsLocationsSection => ({
-                              ...section,
-                              cardContentMode: 'status'
-                          })
-                      )
+                      }).map((section): FriendsLocationsSection => ({
+                          ...section,
+                          cardContentMode: 'status'
+                      }))
                     : [];
             const remainingFriends = showSameInstanceInOnline
                 ? onlineWithoutSameInstanceFriends

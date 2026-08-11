@@ -245,18 +245,15 @@ export function InstanceHistoryPage({
     const targetOptions = useMemo(() => {
         const query = targetSearch.trim().toLowerCase();
         return knownUsers
-            .map(
-                (user): TargetOption => ({
-                    value: normalizeUserId(user?.id),
-                    label:
-                        normalizeUserId(user?.id) ===
-                        normalizeUserId(currentUserId)
-                            ? t('view.instance_history.label.self')
-                            : knownUserName(user) ||
-                              t('view.instance_history.label.unnamed_user'),
-                    user
-                })
-            )
+            .map((user): TargetOption => ({
+                value: normalizeUserId(user?.id),
+                label:
+                    normalizeUserId(user?.id) === normalizeUserId(currentUserId)
+                        ? t('view.instance_history.label.self')
+                        : knownUserName(user) ||
+                          t('view.instance_history.label.unnamed_user'),
+                user
+            }))
             .filter((option) => {
                 if (!option.value) {
                     return false;

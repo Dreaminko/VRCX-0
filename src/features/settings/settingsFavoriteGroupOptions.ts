@@ -16,12 +16,10 @@ export function buildRemoteFavoriteFriendGroupOptions(
         | undefined
 ) {
     return (favoriteFriendGroups || [])
-        .map(
-            (group): FavoriteFriendGroupOption => ({
-                value: group?.key || '',
-                label: group?.displayName || group?.name || group?.key || ''
-            })
-        )
+        .map((group): FavoriteFriendGroupOption => ({
+            value: group?.key || '',
+            label: group?.displayName || group?.name || group?.key || ''
+        }))
         .filter((group) => group.value);
 }
 
@@ -29,12 +27,10 @@ export function buildLocalFavoriteFriendGroupOptions(
     localFriendFavoriteGroups: readonly string[] | null | undefined
 ) {
     return (localFriendFavoriteGroups || [])
-        .map(
-            (groupName): FavoriteFriendGroupOption => ({
-                value: `local:${groupName}`,
-                label: groupName
-            })
-        )
+        .map((groupName): FavoriteFriendGroupOption => ({
+            value: `local:${groupName}`,
+            label: groupName
+        }))
         .filter((group) => group.value);
 }
 

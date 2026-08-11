@@ -141,15 +141,13 @@ export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
     const hiddenUserOptions = useMemo(() => {
         const query = hiddenUserSearch.trim().toLowerCase();
         return knownUsers
-            .map(
-                (user): UserOption => ({
-                    value: normalizeUserId(user.id),
-                    label:
-                        knownUserName(user) ||
-                        t('view.settings.social.hidden_feed.unknown_user'),
-                    user
-                })
-            )
+            .map((user): UserOption => ({
+                value: normalizeUserId(user.id),
+                label:
+                    knownUserName(user) ||
+                    t('view.settings.social.hidden_feed.unknown_user'),
+                user
+            }))
             .filter((option) => {
                 if (!option.value || hiddenUserIds.has(option.value)) {
                     return false;

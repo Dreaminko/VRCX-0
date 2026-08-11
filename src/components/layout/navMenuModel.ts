@@ -174,12 +174,10 @@ export function insertDashboardEntries(
                 !existingKeys.has(definition.key) &&
                 !hiddenSet.has(definition.key)
         )
-        .map(
-            (definition): NavLayoutItem => ({
-                type: 'item',
-                key: definition.key
-            })
-        );
+        .map((definition): NavLayoutItem => ({
+            type: 'item',
+            key: definition.key
+        }));
 
     if (!dashboardEntries.length) {
         return nextLayout;

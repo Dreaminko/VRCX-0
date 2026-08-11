@@ -24,3 +24,5 @@ pub mod vr_overlay;
 pub mod vrchat_ipc;
 pub mod vrchat_paths;
 pub mod vrchat_registry;
+#[cfg(windows)]
+pub mod window_icon;
