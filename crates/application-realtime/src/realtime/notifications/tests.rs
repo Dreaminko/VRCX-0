@@ -217,10 +217,7 @@ fn instance_closed_routes_to_v1_notification_batch() {
         output.projection.notification["type"],
         json!("instance.closed")
     );
-    assert_eq!(
-        output.projection.feed_entry["location"],
-        json!("wrld_1:123")
-    );
+    assert_eq!(output.feed_entry["location"], json!("wrld_1:123"));
     assert_eq!(output.persistence.notification_v1_upserts.len(), 1);
     assert!(apply_instance_closed_ws_message(7, &ws("notification", json!({}))).is_none());
 }

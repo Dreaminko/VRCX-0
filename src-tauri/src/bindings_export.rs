@@ -5,7 +5,7 @@ use vrcx_0_application::{
     AuthenticatedRuntimePhaseSnapshot, BackgroundImageProjection, CommunityThemeProjection,
     DataDirMigrationStatus, FavoriteImportStatus, GroupBanImportStatus,
     GroupModerationBatchProgress, MutualGraphFetchStatus, NoteExportStatus, ProfileBackupStatus,
-    ProfileRestoreProgress, SharedCollectionImportStatus,
+    ProfileRestoreProgress, RealtimeFeedProjection, SharedCollectionImportStatus,
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
@@ -68,6 +68,7 @@ struct BackendRuntimeEventPayloadMap {
     note_export_status: NoteExportStatus,
     friend_profile_load_status: FriendProfileLoadStatusPayload,
     realtime_friend_projection: FriendProjection,
+    realtime_feed_projection: RealtimeFeedProjection,
     realtime_user_projection: RealtimeUserProjection,
     realtime_entry_correction: RealtimeEntryCorrection,
     realtime_notification_projection: RealtimeNotificationProjection,
@@ -101,6 +102,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .typ::<ProfileRestoreProgress>()
         .typ::<RealtimeCurrentUserProjection>()
         .typ::<RealtimeEntryCorrection>()
+        .typ::<RealtimeFeedProjection>()
         .typ::<RealtimeInstanceClosedProjection>()
         .typ::<RealtimeInstanceQueueProjection>()
         .typ::<RealtimeNotificationProjection>()
@@ -269,8 +271,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::avatars::app__avatar_tags_patch,
             commands::local::feed::app__feed_persistence_set_disabled,
             commands::local::feed::app__avatar_feed_history_cleanup,
-            commands::local::feed::app__feed_live_rows_merge,
-            commands::local::feed::app__feed_read_model_query,
+            commands::local::feed::app__feed_latest_query,
+            commands::local::feed::app__feed_search_query,
             commands::local::feed::app__feed_rows_query,
             commands::local::game_log::app__game_log_entries_add,
             commands::local::game_log::app__game_log_persistence_set_disabled,

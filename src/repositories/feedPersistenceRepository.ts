@@ -1,12 +1,11 @@
-import type { FeedLiveEntry } from '@/domain/feed/feedLiveTypes';
 import {
     commands,
     type FeedFilter,
-    type FeedLiveRowsMergeInput,
+    type FeedLatestQueryInput,
     type FeedQueryMode,
-    type FeedReadModelQueryInput,
     type FeedRowOutput,
-    type FeedRowsQueryInput
+    type FeedRowsQueryInput,
+    type FeedSearchQueryInput
 } from '@/platform/tauri/bindings';
 import {
     DEFAULT_MAX_TABLE_SIZE,
@@ -15,8 +14,6 @@ import {
 import { normalizeString } from '@/shared/utils/string';
 
 import { normalizeUserTablePrefix } from './userSessionRepository';
-
-type FeedRowValue = Record<string, unknown>;
 
 export type FeedCursor = {
     createdAt: string;
@@ -38,28 +35,13 @@ interface FeedRowsQueryOptions {
     cursor?: FeedCursor | null;
 }
 
-interface FeedReadModelQueryOptions extends FeedRowsQueryOptions {
-    liveEntries?: FeedLiveEntry[];
-    minLiveSequence?: number;
-    favoritesOnly?: boolean;
-    favoriteUserIds?: string[];
-    excludedUserIds?: string[];
-    maxRows?: number;
-}
-
-interface FeedLiveRowsMergeOptions {
-    rows?: FeedRowValue[];
-    currentUserId?: string;
+interface FeedLatestQueryOptions {
+    userId: unknown;
     filters?: FeedFilter[];
-    search?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    favoritesOnly?: boolean;
     favoriteUserIds?: string[];
     scopedUserIds?: string[];
     excludedUserIds?: string[];
-    liveEntries?: FeedLiveEntry[];
-    minLiveSequence?: number;
+    favoritesOnly?: boolean;
     maxRows?: number;
 }
 
@@ -159,97 +141,45 @@ const feed = {
         dateTo: string = '',
         userId: unknown = '',
         excludedUserIds: string[] = [],
-        scopedUserIds: string[] = []
+        scopedUserIds: string[] = [],
+        favoritesOnly: boolean = false
     ) {
-        return queryFeedRows({
-            userId,
-            mode: 'search',
-            search,
-            filters,
-            vipList,
-            scopedUserIds,
-            excludedUserIds,
-            maxEntries,
-            dateFrom,
-            dateTo
-        });
-    },
-
-    async queryFeedReadModel({
-        userId,
-        mode,
-        search = '',
-        filters = [],
-        vipList = [],
-        scopedUserIds = [],
-        maxEntries = DEFAULT_MAX_TABLE_SIZE,
-        dateFrom = '',
-        dateTo = '',
-        liveEntries = [],
-        minLiveSequence = 0,
-        favoritesOnly = false,
-        favoriteUserIds = [],
-        excludedUserIds = [],
-        maxRows = maxEntries,
-        cursor = null
-    }: FeedReadModelQueryOptions) {
         await ensureFeedTablesForUser(userId);
         const query = {
             userId: normalizeString(userId),
-            mode,
             search,
             filters: normalizeFeedFilters(filters),
-            vipList: normalizeStringList(vipList),
+            favoriteUserIds: normalizeStringList(vipList),
             scopedUserIds: normalizeStringList(scopedUserIds),
-            maxEntries,
+            excludedUserIds: normalizeStringList(excludedUserIds),
+            favoritesOnly,
             dateFrom,
             dateTo,
-            cursor,
-            liveEntries: Array.isArray(liveEntries) ? liveEntries : [],
-            minLiveSequence,
-            favoritesOnly,
-            favoriteUserIds: Array.isArray(favoriteUserIds)
-                ? favoriteUserIds
-                : [],
-            excludedUserIds: normalizeStringList(excludedUserIds),
-            maxRows
-        } satisfies FeedReadModelQueryInput;
-        return commands.appFeedReadModelQuery(query);
+            maxRows: maxEntries
+        } satisfies FeedSearchQueryInput;
+        return commands.appFeedSearchQuery(query);
     },
 
-    async mergeFeedLiveRows({
-        rows = [],
-        currentUserId = '',
+    async queryFeedLatest({
+        userId,
         filters = [],
-        search = '',
-        dateFrom = '',
-        dateTo = '',
-        favoritesOnly = false,
         favoriteUserIds = [],
         scopedUserIds = [],
+        favoritesOnly = false,
         excludedUserIds = [],
-        liveEntries = [],
-        minLiveSequence = 0,
         maxRows = DEFAULT_MAX_TABLE_SIZE
-    }: FeedLiveRowsMergeOptions) {
+    }: FeedLatestQueryOptions) {
+        await ensureFeedTablesForUser(userId);
         const query = {
-            rows: Array.isArray(rows) ? rows : [],
-            currentUserId: normalizeString(currentUserId),
+            userId: normalizeString(userId),
             filters: normalizeFeedFilters(filters),
-            search,
-            dateFrom,
-            dateTo,
-            favoritesOnly,
-            favoriteUserIds: Array.isArray(favoriteUserIds)
-                ? favoriteUserIds
-                : [],
+            favoriteUserIds: normalizeStringList(favoriteUserIds),
             scopedUserIds: normalizeStringList(scopedUserIds),
+            favoritesOnly,
             excludedUserIds: normalizeStringList(excludedUserIds),
-            liveEntries: Array.isArray(liveEntries) ? liveEntries : [],
-            minLiveSequence,
             maxRows
-        } satisfies FeedLiveRowsMergeInput;
-        return commands.appFeedLiveRowsMerge(query);
+        } satisfies FeedLatestQueryInput;
+        return commands.appFeedLatestQuery(query);
     },
 
     async lookupFeedDatabase(

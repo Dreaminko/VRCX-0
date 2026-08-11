@@ -569,6 +569,7 @@ const initialState: RuntimeStoreState = {
         friendProfileLoadStatus: createRuntimeEventState(),
         realtimeWsStatus: createRuntimeEventState(),
         realtimeFriendProjection: createRuntimeEventState(),
+        realtimeFeedProjection: createRuntimeEventState(),
         realtimeNotificationProjection: createRuntimeEventState(),
         realtimeCurrentUserProjection: createRuntimeEventState(),
         realtimeInstanceClosedProjection: createRuntimeEventState(),

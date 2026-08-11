@@ -1,17 +1,6 @@
 import { act } from '@testing-library/react';
-import type { Mock } from 'vitest';
 
 import { useFeedLiveStore } from '@/state/feedLiveStore';
-import type { FeedLiveEntry } from '@/state/feedLiveStore';
-
-import type { FeedRow } from './feedTypes';
-
-export type MergeArgs = {
-    rows: FeedRow[];
-    minLiveSequence: number;
-    maxRows?: number;
-    liveEntries: FeedLiveEntry[];
-};
 
 export type Deferred<T> = {
     promise: Promise<T>;
@@ -34,14 +23,23 @@ export async function flush(times = 8): Promise<void> {
     }
 }
 
-export function mergeCallArgsOf(mergeLiveRows: Mock): MergeArgs[] {
-    return mergeLiveRows.mock.calls.map(
-        (call: unknown[]) => call[0] as MergeArgs
-    );
-}
-
-export function pushLiveEntry(id: string): void {
+export function pushLiveEntry(id: string, sequence?: number): void {
     act(() => {
-        useFeedLiveStore.getState().pushEntry({ id, type: 'Online' });
+        const state = useFeedLiveStore.getState();
+        state.pushEntries(
+            [
+                {
+                    sequence: sequence ?? state.version + 1,
+                    entry: {
+                        id,
+                        type: 'Online',
+                        userId: `usr_${id}`,
+                        displayName: id,
+                        created_at: `2026-08-11T00:00:${String(state.version).padStart(2, '0')}Z`
+                    }
+                }
+            ],
+            { ownerUserId: 'usr_self' }
+        );
     });
 }

@@ -87,7 +87,6 @@ describe('realtimePresenceService projection boundary', () => {
     });
 
     it('applies runtime friend projection without frontend persistence writes', async () => {
-        const { useFeedLiveStore } = await import('@/state/feedLiveStore');
         const { useFriendRosterStore } =
             await import('@/state/friendRosterStore');
         const { useRuntimeStore } = await import('@/state/runtimeStore');
@@ -136,11 +135,46 @@ describe('realtimePresenceService projection boundary', () => {
             activeFriends: [],
             offlineFriends: ['usr_friend']
         });
-        expect(useFeedLiveStore.getState().entries[0].entry).toMatchObject({
-            type: 'Online',
-            userId: 'usr_friend'
-        });
         expect(useShellStore.getState().notifiedMenus).toContain('friend-log');
+    });
+
+    it('applies the dedicated Rust Feed projection', async () => {
+        const { useFeedLiveStore } = await import('@/state/feedLiveStore');
+        const { handleRealtimeFeedProjection } =
+            await import('./realtimePresenceService');
+
+        await handleRealtimeFeedProjection({
+            generation: 7,
+            ownerUserId: 'usr_self',
+            upserts: [
+                {
+                    sequence: 11,
+                    entry: {
+                        type: 'Online',
+                        userId: 'usr_friend'
+                    }
+                }
+            ],
+            patches: []
+        });
+
+        expect(useFeedLiveStore.getState()).toMatchObject({
+            version: 11,
+            entries: [
+                {
+                    sequence: 11,
+                    ownerUserId: 'usr_self',
+                    entry: {
+                        type: 'Online',
+                        userId: 'usr_friend',
+                        ownerUserId: 'usr_self'
+                    }
+                }
+            ]
+        });
+        expect(serviceMocks.pushSharedFeedNotification).toHaveBeenCalledTimes(
+            1
+        );
     });
 
     it('bumps the friend-log revision so the active friend-log page refreshes in place', async () => {
@@ -517,7 +551,6 @@ describe('realtimePresenceService projection boundary', () => {
     });
 
     it('applies runtime instance-closed projection', async () => {
-        const { useFeedLiveStore } = await import('@/state/feedLiveStore');
         const { useShellStore } = await import('@/state/shellStore');
         const { useVrcNotificationStore } =
             await import('@/state/vrcNotificationStore');
@@ -530,18 +563,11 @@ describe('realtimePresenceService projection boundary', () => {
                 id: 'instance.closed:wrld_1:1',
                 type: 'instance.closed',
                 location: 'wrld_1:1'
-            },
-            feedEntry: {
-                id: 'instance.closed:wrld_1:1',
-                type: 'instance.closed'
             }
         });
 
         expect(useVrcNotificationStore.getState().rows[0]).toMatchObject({
             id: 'instance.closed:wrld_1:1'
-        });
-        expect(useFeedLiveStore.getState().entries[0].entry).toMatchObject({
-            type: 'instance.closed'
         });
         expect(useShellStore.getState().notifiedMenus).toContain(
             'notification'

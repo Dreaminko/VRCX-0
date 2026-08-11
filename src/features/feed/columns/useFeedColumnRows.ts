@@ -156,14 +156,12 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
     );
 
     const buildMergeOptions = useCallback<FeedLiveMergeOptionsBuilder>(
-        ({ liveEntries, minLiveSequence, rows }) => ({
+        ({ liveEntries, rows }) => ({
             rows,
             userId: currentUserId,
             filters: column.feedTypes,
             excludedFavoriteUserIds,
             favoriteUserIds,
-            liveEntries,
-            minLiveSequence,
             favoritesOnly: column.friendScope.kind === 'favorites',
             maxRows: Math.max(
                 rows.length + liveEntries.length,
@@ -206,52 +204,13 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
         liveSequenceRef.current = liveFeedSequenceAtRequestStart;
         const requestIsCurrent = () => requestIdRef.current === requestId;
 
-        if (feedPersistenceDisabled) {
-            setHasMore(false);
-            mergeFeedRowsWithLiveEntries({
-                buildMergeOptions,
-                minLiveSequence: 0,
-                requestIsCurrent,
-                rows: []
-            })
-                .then(async (result) => {
-                    if (!result) {
-                        return;
-                    }
-                    const commitResult = await prepareFeedRowsForCommit({
-                        buildMergeOptions,
-                        onMergeRound: () => {
-                            liveMergeRequestIdRef.current += 1;
-                        },
-                        requestIsCurrent,
-                        result
-                    });
-                    if (!commitResult) {
-                        return;
-                    }
-                    liveSequenceRef.current = commitResult.maxSequence;
-                    rowsRef.current = commitResult.rows;
-                    setRows(commitResult.rows);
-                    setLoadStatus('ready');
-                })
-                .catch(() => {
-                    if (requestIsCurrent()) {
-                        setLoadStatus('error');
-                    }
-                });
-            return;
-        }
-
         feedRepository
-            .queryFeedReadModel({
+            .queryFeedLatest({
                 userId: currentUserId,
                 filters: column.feedTypes,
                 excludedFavoriteUserIds,
                 favoriteUserIds,
-                liveEntries: [],
-                minLiveSequence: liveFeedSequenceAtRequestStart,
                 favoritesOnly: column.friendScope.kind === 'favorites',
-                maxEntries: FEED_COLUMN_PAGE_SIZE,
                 maxRows: FEED_COLUMN_PAGE_SIZE
             })
             .then(async (readModel) => {
@@ -259,8 +218,11 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
                     return;
                 }
                 const pageRows = readModel.rows;
-                cursorRef.current = resolveLastFeedCursor(pageRows);
-                setHasMore(pageRows.length >= FEED_COLUMN_PAGE_SIZE);
+                cursorRef.current = readModel.persistedCursor ?? null;
+                setHasMore(
+                    !feedPersistenceDisabled &&
+                        readModel.persistedHasMore === true
+                );
                 const merged = await mergeFeedRowsWithLiveEntries({
                     buildMergeOptions,
                     minLiveSequence: readModel.maxSequence,

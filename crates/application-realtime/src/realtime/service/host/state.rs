@@ -12,6 +12,7 @@ use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
+use super::feed::FeedLiveCache;
 use crate::realtime::current_user::RealtimeCurrentUserRuntime;
 use crate::realtime::friends::RealtimeFriendsRuntime;
 use crate::realtime::invite_automation::runtime::InviteAutomationState;
@@ -226,6 +227,8 @@ pub struct RealtimeHostRuntime {
     pub(super) user_query_cache: UserQueryCache,
     pub(super) world_cache: Arc<WorldCache>,
     pub(super) friend_owner_lock: Mutex<()>,
+    pub(super) feed_owner_lock: Mutex<()>,
+    pub(super) feed_live_cache: Mutex<FeedLiveCache>,
     pub(super) feed_persistence_disabled: AtomicBool,
     pub(super) notification_apply_lock: Arc<tokio::sync::Mutex<()>>,
     pub(super) friend_profile_bulk_load:

@@ -143,11 +143,22 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         projection.payload["patches"][0]["patch"]["pendingOffline"],
         false
     );
+    assert!(projection.payload["feedEntries"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    let feed_projection = events
+        .iter()
+        .find(|event| event.name == "realtimeFeedProjection")
+        .expect("confirmed offline refresh should emit a Feed projection");
     assert_eq!(
-        projection.payload["feedEntries"].as_array().unwrap().len(),
+        feed_projection.payload["upserts"].as_array().unwrap().len(),
         1
     );
-    assert_eq!(projection.payload["feedEntries"][0]["type"], "Offline");
+    assert_eq!(
+        feed_projection.payload["upserts"][0]["entry"]["type"],
+        "Offline"
+    );
     assert_eq!(
         runtime
             .runtime()
@@ -175,12 +186,9 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         FriendStatusVerdicts::default(),
     )?;
     let repeated_events = runtime.runtime().deps.event_bus.take_events_for_test();
-    assert!(repeated_events.iter().all(|event| {
-        event.name != "realtimeFriendProjection"
-            || event.payload["feedEntries"]
-                .as_array()
-                .is_some_and(Vec::is_empty)
-    }));
+    assert!(repeated_events
+        .iter()
+        .all(|event| event.name != "realtimeFeedProjection"));
     assert!(repeated_events.iter().all(|event| {
         event.name != "backendRuntimeTelemetry" || event.payload["kind"] != "wsPersisted"
     }));
@@ -1302,13 +1310,9 @@ fn active_baseline_trust_change_fans_out_after_atomic_persistence() -> Result<()
     let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let trust_entries = events
         .iter()
-        .filter(|event| event.name == "realtimeFriendProjection")
-        .flat_map(|event| {
-            event.payload["feedEntries"]
-                .as_array()
-                .into_iter()
-                .flatten()
-        })
+        .filter(|event| event.name == "realtimeFeedProjection")
+        .flat_map(|event| event.payload["upserts"].as_array().into_iter().flatten())
+        .map(|upsert| &upsert["entry"])
         .filter(|entry| entry["type"] == "TrustLevel")
         .collect::<Vec<_>>();
     assert_eq!(trust_entries.len(), 1);
@@ -1368,12 +1372,9 @@ fn active_baseline_uses_runtime_feed_persistence_state() -> Result<()> {
     let events = runtime.runtime().deps.event_bus.take_events_for_test();
     assert!(events
         .iter()
-        .filter(|event| event.name == "realtimeFriendProjection")
-        .flat_map(|event| event.payload["feedEntries"]
-            .as_array()
-            .into_iter()
-            .flatten())
-        .any(|entry| entry["type"] == "TrustLevel"));
+        .filter(|event| event.name == "realtimeFeedProjection")
+        .flat_map(|event| event.payload["upserts"].as_array().into_iter().flatten())
+        .any(|upsert| upsert["entry"]["type"] == "TrustLevel"));
     assert!(vrcx_0_persistence::feed::feed_rows_query(
         runtime.database(),
         feed_lookup_input(active_session.user_id),
@@ -1647,6 +1648,9 @@ fn friend_projection_clears_feed_entries_when_persistence_fails() -> Result<()> 
         projection.payload["feedEntries"].as_array().unwrap().len(),
         0
     );
+    assert!(events
+        .iter()
+        .all(|event| event.name != "realtimeFeedProjection"));
     assert!(events.iter().all(|event| {
         event.name != "backendRuntimeTelemetry" || event.payload["kind"] != "wsPersisted"
     }));
@@ -1697,8 +1701,16 @@ fn disabled_feed_persistence_keeps_projection_and_other_batch_writes() -> Result
         .iter()
         .find(|event| event.name == "realtimeFriendProjection")
         .expect("disabled persistence should still emit the live projection");
+    assert!(projection.payload["feedEntries"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    let feed_projection = events
+        .iter()
+        .find(|event| event.name == "realtimeFeedProjection")
+        .expect("disabled persistence should still emit the live Feed projection");
     assert_eq!(
-        projection.payload["feedEntries"].as_array().unwrap().len(),
+        feed_projection.payload["upserts"].as_array().unwrap().len(),
         5
     );
     assert_eq!(

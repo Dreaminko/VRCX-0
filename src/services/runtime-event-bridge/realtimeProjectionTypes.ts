@@ -1,9 +1,13 @@
 import type { UserProfileEntity } from '@/domain/entities/profileEntities';
-import type { FeedLiveEntryPayload } from '@/domain/feed/feedLiveTypes';
+import type {
+    FeedLiveEntryPayload,
+    FeedLivePatch
+} from '@/domain/feed/feedLiveTypes';
 import type {
     FriendProjection,
     RealtimeCurrentUserProjection,
     RealtimeEntryCorrection,
+    RealtimeFeedProjection,
     RealtimeInstanceClosedProjection,
     RealtimeNotificationProjection,
     RealtimeNotificationUpsert,
@@ -27,6 +31,17 @@ export type RealtimeEntryCorrectionPayload = Omit<
         worldName?: string;
         displayLocation?: string;
     };
+};
+
+export type RealtimeFeedProjectionPayload = Omit<
+    RealtimeFeedProjection,
+    'upserts' | 'patches'
+> & {
+    upserts?: Array<{
+        sequence: number;
+        entry: FeedLiveEntryPayload;
+    }>;
+    patches?: FeedLivePatch[];
 };
 
 export type RealtimeUserRecord = UserProfileEntity & {
@@ -81,8 +96,7 @@ export type RealtimeNotificationProjectionPayload = Omit<
 
 export type RealtimeInstanceClosedProjectionPayload = Omit<
     RealtimeInstanceClosedProjection,
-    'notification' | 'feedEntry'
+    'notification'
 > & {
     notification: NotificationRow;
-    feedEntry: FeedLiveEntryPayload;
 };

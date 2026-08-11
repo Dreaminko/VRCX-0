@@ -6,15 +6,13 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    queryFeedReadModel: vi.fn(),
-    mergeLiveRows: vi.fn()
+    queryFeedLatest: vi.fn()
 }));
 
 vi.mock('@/repositories/feedRepository', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@/repositories/feedRepository')>()),
     default: {
-        queryFeedReadModel: mocks.queryFeedReadModel,
-        mergeLiveRows: mocks.mergeLiveRows
+        queryFeedLatest: mocks.queryFeedLatest
     }
 }));
 
@@ -47,17 +45,8 @@ describe('DashboardFeedWidgetView', () => {
         expect(html).toContain('Feed unavailable');
     });
 
-    it('uses session live entries without querying history when persistence is disabled', async () => {
-        mocks.mergeLiveRows.mockImplementation(
-            async ({
-                liveEntries
-            }: {
-                liveEntries: Array<{ entry: object }>;
-            }) => ({
-                rows: liveEntries.map(({ entry }) => entry),
-                maxSequence: 1
-            })
-        );
+    it('loads the Rust cache and overlays session deltas when persistence is disabled', async () => {
+        mocks.queryFeedLatest.mockResolvedValue({ rows: [], maxSequence: 0 });
 
         render(
             <MemoryRouter>
@@ -87,9 +76,14 @@ describe('DashboardFeedWidgetView', () => {
             </MemoryRouter>
         );
 
-        await waitFor(() => expect(mocks.mergeLiveRows).toHaveBeenCalled());
+        await waitFor(() => expect(mocks.queryFeedLatest).toHaveBeenCalled());
 
-        expect(mocks.queryFeedReadModel).not.toHaveBeenCalled();
+        expect(mocks.queryFeedLatest).toHaveBeenCalledWith({
+            userId: 'usr_self',
+            filters: [],
+            maxRows: 100
+        });
+        expect(screen.getByText('Friend')).toBeTruthy();
         expect(
             screen.getByRole('img', {
                 name: 'Feed history is not being saved'

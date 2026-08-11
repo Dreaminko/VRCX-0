@@ -195,9 +195,9 @@ pub fn apply_instance_closed_ws_message(
     Some(RealtimeInstanceClosedOutput {
         projection: RealtimeInstanceClosedProjection {
             generation,
-            feed_entry: notification.clone(),
             notification: notification.clone(),
         },
+        feed_entry: notification.clone(),
         persistence: vrcx_0_persistence::realtime::RealtimePersistenceBatch {
             notification_v1_upserts: vec![notification],
             ..vrcx_0_persistence::realtime::RealtimePersistenceBatch::default()

@@ -116,7 +116,6 @@ pub struct RealtimeCurrentUserProjection {
 pub struct RealtimeInstanceClosedProjection {
     pub generation: u64,
     pub notification: Value,
-    pub feed_entry: Value,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]

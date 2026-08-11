@@ -1,8 +1,8 @@
-import type { FeedLiveEntryPayload } from '@/domain/feed/feedLiveTypes';
 import configRepository from '@/repositories/configRepository';
 import type {
     RealtimeCurrentUserProjectionPayload,
     RealtimeEntryCorrectionPayload,
+    RealtimeFeedProjectionPayload,
     RealtimeFriendProjectionPayload,
     RealtimeInstanceClosedProjectionPayload,
     RealtimeNotificationProjectionPayload,
@@ -128,15 +128,20 @@ function mergeCurrentUserProjectionSnapshot(
     return nextSnapshot;
 }
 
-function pushProjectionFeedEntries(entries: FeedLiveEntryPayload[]) {
-    const feedEntries = entries.filter(
-        (entry) => Object.keys(entry).length > 0
+function handleRealtimeFeedProjection(payload: RealtimeFeedProjectionPayload) {
+    const currentUserId = useRuntimeStore.getState().auth.currentUserId ?? '';
+    if (payload.ownerUserId !== currentUserId) {
+        return;
+    }
+    const upserts = (payload.upserts ?? []).filter(
+        (upsert) => Object.keys(upsert.entry).length > 0
     );
-    useFeedLiveStore.getState().pushEntries(feedEntries, {
-        ownerUserId: useRuntimeStore.getState().auth.currentUserId ?? undefined
+    useFeedLiveStore.getState().pushEntries(upserts, {
+        ownerUserId: payload.ownerUserId
     });
-    for (const feedEntry of feedEntries) {
-        pushSharedFeedNotification(feedEntry).catch((error: unknown) => {
+    useFeedLiveStore.getState().pushPatches(payload.patches ?? []);
+    for (const upsert of upserts) {
+        pushSharedFeedNotification(upsert.entry).catch((error: unknown) => {
             console.warn(
                 'Failed to publish realtime feed notification:',
                 error
@@ -219,8 +224,6 @@ function handleRealtimeFriendProjection(
         useFriendRosterStore.getState().applyFriendPatches(patchEntries);
     }
 
-    pushProjectionFeedEntries(payload.feedEntries ?? []);
-
     if (payload.friendLogChanged) {
         useShellStore.getState().notifyMenu('friend-log');
         useFriendLogStore.getState().bumpRevision();
@@ -286,9 +289,7 @@ function handleRealtimeEntryCorrection(
     if (!id || !Object.keys(payload.fields).length) {
         return;
     }
-    if (payload.stream === 'feed') {
-        useFeedLiveStore.getState().patchEntry(id, payload.fields);
-    } else if (payload.stream === 'notification') {
+    if (payload.stream === 'notification') {
         useVrcNotificationStore
             .getState()
             .patchNotification(id, payload.fields);
@@ -350,20 +351,12 @@ async function handleRealtimeInstanceClosedProjection(
     if (await shouldNotifyInstanceClosed()) {
         useShellStore.getState().notifyMenu('notification');
     }
-    useFeedLiveStore.getState().pushEntry(payload.feedEntry, {
-        ownerUserId: useRuntimeStore.getState().auth.currentUserId ?? undefined
-    });
-    pushSharedFeedNotification(notification).catch((error: unknown) => {
-        console.warn(
-            'Failed to publish instance-closed shared feed notification:',
-            error
-        );
-    });
 }
 
 export {
     handleRealtimeCurrentUserProjection,
     handleRealtimeEntryCorrection,
+    handleRealtimeFeedProjection,
     handleRealtimeFriendProjection,
     handleRealtimeInstanceClosedProjection,
     handleRealtimeNotificationProjection

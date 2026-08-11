@@ -3,11 +3,9 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { FeedReadModelResult } from '@/domain/feed/feedReadModelTypes';
-
 const mocks = vi.hoisted(() => ({
-    queryFeedReadModel: vi.fn(),
-    mergeLiveRows: vi.fn(),
+    queryFeedLatest: vi.fn(),
+    queryFeed: vi.fn(),
     getFriendLogCurrent: vi.fn(),
     getAllUserStats: vi.fn(),
     runtime: { auth: { currentUserId: 'usr_self' } },
@@ -22,14 +20,13 @@ const mocks = vi.hoisted(() => ({
         feedPersistenceDisabled: false,
         tableLimits: { maxTableSize: 100 }
     },
-    friendRoster: { lastLoadedAt: 0 },
     friendLog: { revision: 0 }
 }));
 
 vi.mock('@/repositories/feedRepository', () => ({
     default: {
-        queryFeedReadModel: mocks.queryFeedReadModel,
-        mergeLiveRows: mocks.mergeLiveRows
+        queryFeedLatest: mocks.queryFeedLatest,
+        queryFeed: mocks.queryFeed
     }
 }));
 
@@ -64,12 +61,6 @@ vi.mock('@/state/preferencesStore', () => ({
     )
 }));
 
-vi.mock('@/state/friendRosterStore', () => ({
-    useFriendRosterStore: <T>(
-        selector: (state: typeof mocks.friendRoster) => T
-    ): T => selector(mocks.friendRoster)
-}));
-
 vi.mock('@/state/friendLogStore', () => ({
     useFriendLogStore: <T>(selector: (state: typeof mocks.friendLog) => T): T =>
         selector(mocks.friendLog)
@@ -77,13 +68,7 @@ vi.mock('@/state/friendLogStore', () => ({
 
 import { useFeedLiveStore } from '@/state/feedLiveStore';
 
-import type { Deferred, MergeArgs } from './feedLiveMergeTestUtils';
-import {
-    createDeferred,
-    flush,
-    mergeCallArgsOf,
-    pushLiveEntry
-} from './feedLiveMergeTestUtils';
+import { createDeferred, flush, pushLiveEntry } from './feedLiveMergeTestUtils';
 import type { FeedFilterType, FeedRow } from './feedTypes';
 import { useFeedRows } from './useFeedRows';
 
@@ -97,20 +82,15 @@ type FeedRowsProps = {
     preferencesReady: boolean;
 };
 
-const ACTIVE_FILTERS: FeedFilterType[] = [];
-const SCOPED_USER_IDS: readonly string[] = [];
-
 const BASE_PROPS: FeedRowsProps = {
-    activeFilters: ACTIVE_FILTERS,
+    activeFilters: [],
     dateFrom: '',
     dateTo: '',
     deferredSearchQuery: '',
     favoritesOnly: false,
-    scopedUserIds: SCOPED_USER_IDS,
+    scopedUserIds: [],
     preferencesReady: true
 };
-
-const mergeCallArgs = () => mergeCallArgsOf(mocks.mergeLiveRows);
 
 function renderFeedRows() {
     return renderHook((props: FeedRowsProps) => useFeedRows(props), {
@@ -123,89 +103,12 @@ describe('useFeedRows', () => {
         vi.useFakeTimers();
         vi.clearAllMocks();
         mocks.preferences.feedPersistenceDisabled = false;
-        mocks.friendRoster.lastLoadedAt = 0;
         mocks.friendLog.revision = 0;
         useFeedLiveStore.getState().resetFeedLive();
         mocks.getFriendLogCurrent.mockResolvedValue([]);
         mocks.getAllUserStats.mockResolvedValue([]);
-        mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [],
-            maxSequence: 0
-        });
-        mocks.mergeLiveRows.mockImplementation(
-            async ({ rows, minLiveSequence }: MergeArgs) => ({
-                rows,
-                maxSequence: minLiveSequence
-            })
-        );
-    });
-
-    it('reloads friend log names only when the friend log revision changes', async () => {
-        const { rerender } = renderFeedRows();
-        await flush();
-
-        expect(mocks.getFriendLogCurrent).toHaveBeenCalledTimes(1);
-
-        mocks.friendRoster.lastLoadedAt += 1;
-        rerender(BASE_PROPS);
-        await flush();
-
-        expect(mocks.getFriendLogCurrent).toHaveBeenCalledTimes(1);
-
-        mocks.friendLog.revision += 1;
-        rerender(BASE_PROPS);
-        await flush();
-
-        expect(mocks.getFriendLogCurrent).toHaveBeenCalledTimes(2);
-    });
-
-    it('starts from session live entries without querying history when persistence is disabled', async () => {
-        mocks.preferences.feedPersistenceDisabled = true;
-        pushLiveEntry('live-only');
-        mocks.mergeLiveRows.mockImplementation(
-            async ({ liveEntries }: MergeArgs) => ({
-                rows: liveEntries.map(({ entry }) => entry),
-                maxSequence: 1
-            })
-        );
-
-        const { result } = renderFeedRows();
-        await flush();
-
-        expect(mocks.queryFeedReadModel).not.toHaveBeenCalled();
-        expect(mergeCallArgs()[0]).toEqual(
-            expect.objectContaining({ rows: [], minLiveSequence: 0 })
-        );
-        expect(result.current.rows).toEqual([
-            expect.objectContaining({ id: 'live-only' })
-        ]);
-        expect(result.current.loadStatus).toBe('ready');
-    });
-
-    it('clears disabled-session rows immediately when history loading resumes', async () => {
-        mocks.preferences.feedPersistenceDisabled = true;
-        pushLiveEntry('paused-entry');
-        mocks.mergeLiveRows.mockImplementation(
-            async ({ liveEntries }: MergeArgs) => ({
-                rows: liveEntries.map(({ entry }) => entry),
-                maxSequence: 1
-            })
-        );
-        const { result, rerender } = renderFeedRows();
-        await flush();
-        expect(result.current.rows).toHaveLength(1);
-
-        const historyQuery = createDeferred<FeedReadModelResult<FeedRow>>();
-        mocks.queryFeedReadModel.mockReturnValueOnce(historyQuery.promise);
-        useFeedLiveStore.getState().resetFeedLive();
-        mocks.preferences.feedPersistenceDisabled = false;
-        rerender(BASE_PROPS);
-
-        expect(result.current.rows).toEqual([]);
-
-        await act(async () => {
-            historyQuery.resolve({ rows: [], maxSequence: 0 });
-        });
+        mocks.queryFeedLatest.mockResolvedValue({ rows: [], maxSequence: 0 });
+        mocks.queryFeed.mockResolvedValue([]);
     });
 
     afterEach(() => {
@@ -213,157 +116,191 @@ describe('useFeedRows', () => {
         vi.useRealTimers();
     });
 
-    it('discards a full query result once the dependencies changed', async () => {
-        const staleQuery = createDeferred<FeedReadModelResult<FeedRow>>();
-        const freshQuery = createDeferred<FeedReadModelResult<FeedRow>>();
-        mocks.queryFeedReadModel
-            .mockReturnValueOnce(staleQuery.promise)
-            .mockReturnValueOnce(freshQuery.promise);
-
-        const { result, rerender } = renderFeedRows();
-
-        expect(result.current.loadStatus).toBe('running');
-
-        rerender({ ...BASE_PROPS, deferredSearchQuery: 'later' });
-
-        await act(async () => {
-            staleQuery.resolve({ rows: [{ userId: 'stale' }], maxSequence: 0 });
-        });
-        await flush();
-
-        expect(result.current.rows).toEqual([]);
-        expect(mocks.mergeLiveRows).not.toHaveBeenCalled();
-
-        await act(async () => {
-            freshQuery.resolve({ rows: [{ userId: 'fresh' }], maxSequence: 0 });
-        });
-        await flush();
-
-        expect(result.current.rows).toEqual([{ userId: 'fresh' }]);
-        expect(result.current.loadStatus).toBe('ready');
-        expect(mocks.queryFeedReadModel).toHaveBeenCalledTimes(2);
-    });
-
-    it('discards a live merge that a newer merge superseded', async () => {
-        mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ userId: 'base' }],
+    it('loads the latest snapshot and applies realtime rows without another IPC', async () => {
+        mocks.queryFeedLatest.mockResolvedValue({
+            rows: [{ userId: 'usr_base' }],
             maxSequence: 0
         });
-
         const { result } = renderFeedRows();
         await flush();
 
-        expect(result.current.rows).toEqual([{ userId: 'base' }]);
+        pushLiveEntry('live');
+        await flush();
 
-        const merges: Deferred<FeedReadModelResult<FeedRow>>[] = [];
-        mocks.mergeLiveRows.mockImplementation(() => {
-            const deferred = createDeferred<FeedReadModelResult<FeedRow>>();
-            merges.push(deferred);
-            return deferred.promise;
+        expect(result.current.rows.map((row) => row.userId)).toEqual([
+            'usr_live',
+            'usr_base'
+        ]);
+        expect(mocks.queryFeedLatest).toHaveBeenCalledTimes(1);
+        expect(mocks.queryFeed).not.toHaveBeenCalled();
+    });
+
+    it('applies a correction event even when no upsert remains in the frontend buffer', async () => {
+        mocks.queryFeedLatest.mockResolvedValue({
+            rows: [
+                {
+                    rowId: 1,
+                    sourceRank: 60,
+                    type: 'GPS',
+                    worldName: 'wrld_1'
+                }
+            ],
+            maxSequence: 0
         });
+        const { result } = renderFeedRows();
+        await flush();
 
-        pushLiveEntry('live-1');
+        act(() => {
+            useFeedLiveStore.getState().pushPatches([
+                {
+                    sequence: 1,
+                    id: 'row:GPS:60:1',
+                    fields: { worldName: 'Resolved World' }
+                }
+            ]);
+        });
+        await flush();
 
-        expect(merges).toHaveLength(1);
+        expect(result.current.rows[0].worldName).toBe('Resolved World');
+        expect(mocks.queryFeedLatest).toHaveBeenCalledTimes(1);
+    });
 
-        pushLiveEntry('live-2');
+    it('normalizes snake-case fields on realtime entries', async () => {
+        const { result } = renderFeedRows();
+        await flush();
+
+        act(() => {
+            useFeedLiveStore.getState().pushEntries(
+                [
+                    {
+                        sequence: 1,
+                        entry: {
+                            type: 'GPS',
+                            user_id: 'usr_snake',
+                            display_name: 'Snake Friend',
+                            createdAt: '2026-05-15T00:00:00Z',
+                            location: 'wrld_1:instance',
+                            world_name: 'Snake World',
+                            time: '1500'
+                        }
+                    }
+                ],
+                { ownerUserId: 'usr_self' }
+            );
+        });
+        await flush();
+
+        expect(result.current.rows[0]).toMatchObject({
+            userId: 'usr_snake',
+            displayName: 'Snake Friend',
+            worldName: 'Snake World',
+            time: 1500
+        });
+    });
+
+    it('keeps search results static while realtime entries continue arriving', async () => {
+        mocks.queryFeed.mockResolvedValue([{ userId: 'usr_search' }]);
+        const { result } = renderHook(
+            (props: FeedRowsProps) => useFeedRows(props),
+            {
+                initialProps: {
+                    ...BASE_PROPS,
+                    deferredSearchQuery: 'needle'
+                }
+            }
+        );
+        await flush();
+
+        pushLiveEntry('ignored-by-search');
         await act(async () => {
             vi.advanceTimersByTime(250);
         });
-
-        expect(merges).toHaveLength(2);
-
-        await act(async () => {
-            merges[0].resolve({
-                rows: [{ userId: 'stale-live' }],
-                maxSequence: 1
-            });
-        });
         await flush();
 
-        expect(result.current.rows).toEqual([{ userId: 'base' }]);
-
-        await act(async () => {
-            merges[1].resolve({
-                rows: [{ userId: 'fresh-live' }],
-                maxSequence: 2
-            });
-        });
-        await flush();
-
-        expect(result.current.rows).toEqual([{ userId: 'fresh-live' }]);
+        expect(result.current.rows).toEqual([{ userId: 'usr_search' }]);
+        expect(mocks.queryFeed).toHaveBeenCalledWith(
+            expect.objectContaining({ search: 'needle', maxEntries: 100 })
+        );
+        expect(mocks.queryFeedLatest).not.toHaveBeenCalled();
     });
 
-    it('skips the extra commit merge while the live version is already covered', async () => {
-        mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ userId: 'base' }],
-            maxSequence: 5
+    it('reloads the latest snapshot after search is cleared', async () => {
+        mocks.queryFeed.mockResolvedValue([{ userId: 'usr_search' }]);
+        mocks.queryFeedLatest.mockResolvedValue({
+            rows: [{ userId: 'usr_latest' }],
+            maxSequence: 4
         });
-        mocks.mergeLiveRows.mockImplementation(async ({ rows }: MergeArgs) => ({
-            rows,
-            maxSequence: 5
-        }));
-
-        const { result } = renderFeedRows();
+        const { result, rerender } = renderHook(
+            (props: FeedRowsProps) => useFeedRows(props),
+            {
+                initialProps: {
+                    ...BASE_PROPS,
+                    deferredSearchQuery: 'needle'
+                }
+            }
+        );
         await flush();
 
-        expect(result.current.rows).toEqual([{ userId: 'base' }]);
-        expect(mocks.mergeLiveRows).toHaveBeenCalledTimes(1);
+        rerender(BASE_PROPS);
+        await flush();
+
+        expect(result.current.rows).toEqual([{ userId: 'usr_latest' }]);
+        expect(mocks.queryFeedLatest).toHaveBeenCalledTimes(1);
     });
 
-    it('merges live entries from the committed high-water sequence', async () => {
-        mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ userId: 'base' }],
-            maxSequence: 5
-        });
-        mocks.mergeLiveRows.mockImplementation(async ({ rows }: MergeArgs) => ({
-            rows,
-            maxSequence: 5
-        }));
-
-        const { result } = renderFeedRows();
-        await flush();
-
-        mocks.mergeLiveRows.mockClear();
-        pushLiveEntry('live-1');
-        await flush();
-
-        expect(mergeCallArgs()).toHaveLength(1);
-        expect(mergeCallArgs()[0].minLiveSequence).toBe(5);
-        expect(mergeCallArgs()[0].maxRows).toBe(100);
-        expect(result.current.rows).toEqual([{ userId: 'base' }]);
-    });
-
-    it('keeps merging until the live version is caught up', async () => {
-        mocks.queryFeedReadModel.mockResolvedValue({
-            rows: [{ userId: 'base' }],
+    it('does not let a stale search response overwrite the resynced latest rows', async () => {
+        const search = createDeferred<FeedRow[]>();
+        mocks.queryFeed.mockReturnValue(search.promise);
+        mocks.queryFeedLatest.mockResolvedValue({
+            rows: [{ userId: 'usr_latest' }],
             maxSequence: 0
         });
+        const { result, rerender } = renderHook(
+            (props: FeedRowsProps) => useFeedRows(props),
+            {
+                initialProps: {
+                    ...BASE_PROPS,
+                    deferredSearchQuery: 'needle'
+                }
+            }
+        );
 
+        rerender(BASE_PROPS);
+        await flush();
+        await act(async () => {
+            search.resolve([{ userId: 'usr_stale' }]);
+        });
+        await flush();
+
+        expect(result.current.rows).toEqual([{ userId: 'usr_latest' }]);
+    });
+
+    it('uses the Rust latest snapshot when persistence is disabled', async () => {
+        mocks.preferences.feedPersistenceDisabled = true;
         const { result } = renderFeedRows();
         await flush();
 
-        mocks.mergeLiveRows.mockClear();
-        mocks.mergeLiveRows.mockImplementation(async () => {
-            if (mocks.mergeLiveRows.mock.calls.length === 1) {
-                await Promise.resolve();
-                useFeedLiveStore
-                    .getState()
-                    .pushEntry({ id: 'live-2', type: 'Online' });
-                return { rows: [{ userId: 'a' }], maxSequence: 1 };
-            }
-            return {
-                rows: [{ userId: 'a' }, { userId: 'b' }],
-                maxSequence: 2
-            };
-        });
+        expect(result.current.loadStatus).toBe('ready');
+        expect(mocks.queryFeedLatest).toHaveBeenCalledTimes(1);
+        expect(mocks.queryFeed).not.toHaveBeenCalled();
+    });
 
-        pushLiveEntry('live-1');
+    it('accepts restarted Rust sequences after the persistence mode changes', async () => {
+        mocks.queryFeedLatest.mockResolvedValue({ rows: [], maxSequence: 9 });
+        const { result, rerender } = renderFeedRows();
         await flush();
 
-        expect(mergeCallArgs().map((args) => args.minLiveSequence)).toEqual([
-            0, 1
+        useFeedLiveStore.getState().resetFeedLive();
+        mocks.preferences.feedPersistenceDisabled = true;
+        mocks.queryFeedLatest.mockResolvedValue({ rows: [], maxSequence: 0 });
+        rerender(BASE_PROPS);
+        await flush();
+
+        pushLiveEntry('restarted');
+        await flush();
+
+        expect(result.current.rows.map((row) => row.userId)).toEqual([
+            'usr_restarted'
         ]);
-        expect(result.current.rows).toEqual([{ userId: 'a' }, { userId: 'b' }]);
     });
 });

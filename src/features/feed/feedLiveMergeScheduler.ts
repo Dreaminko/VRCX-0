@@ -53,7 +53,6 @@ export function subscribeFeedLiveMerge(
     const unsubscribe = useFeedLiveStore.subscribe((state, previousState) => {
         if (
             state.version === previousState?.version ||
-            state.entries.length === 0 ||
             (shouldMerge && !shouldMerge(state))
         ) {
             return;

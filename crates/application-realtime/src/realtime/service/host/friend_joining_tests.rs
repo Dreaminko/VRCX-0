@@ -101,10 +101,7 @@ fn player_joining_only_reaches_overlay_for_current_instance_absent_player() -> R
     let events = runtime.runtime().deps.event_bus.take_events_for_test();
     assert!(events
         .iter()
-        .filter(|event| event.name == "realtimeFriendProjection")
-        .all(|event| event.payload["feedEntries"]
-            .as_array()
-            .is_some_and(Vec::is_empty)));
+        .all(|event| event.name != "realtimeFeedProjection"));
     Ok(())
 }
 
@@ -160,5 +157,8 @@ fn initial_traveling_baseline_emits_player_joining() -> Result<()> {
         .as_array()
         .unwrap()
         .is_empty());
+    assert!(events
+        .iter()
+        .all(|event| event.name != "realtimeFeedProjection"));
     Ok(())
 }

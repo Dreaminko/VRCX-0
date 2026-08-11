@@ -180,6 +180,59 @@ fn failed_world_name_warm_drains_pending_corrections_without_emit() -> Result<()
 }
 
 #[test]
+fn resolved_feed_world_name_patches_the_rust_cache_and_emits_feed_projection() -> Result<()> {
+    let (_dir, runtime, _active_session) =
+        runtime_with_active_session("world-warm-feed-correction")?;
+    runtime.runtime().emit_feed_entries(
+        7,
+        "usr_self",
+        vec![json!({
+            "type": "GPS",
+            "created_at": "2026-06-21T00:00:00.000Z",
+            "userId": "usr_location",
+            "location": "wrld_pending:123",
+            "worldName": "wrld_pending"
+        })],
+    );
+    runtime.runtime().deps.event_bus.take_events_for_test();
+    {
+        let mut state = runtime.runtime().state.lock().unwrap();
+        state
+            .world_enrichment
+            .inflight
+            .insert("wrld_pending".into());
+        state.world_enrichment.pending_corrections.insert(
+            "wrld_pending".into(),
+            vec![PendingEntryCorrection {
+                stream: RealtimeEntryCorrectionStream::Feed,
+                id: "GPS:2026-06-21T00:00:00.000Z:usr_location:wrld_pending:123:".into(),
+                location: "wrld_pending:123".into(),
+                group_name: String::new(),
+            }],
+        );
+    }
+
+    runtime
+        .runtime()
+        .resolve_pending_world_corrections("wrld_pending", Some("Resolved World"));
+
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
+    let projection = events
+        .iter()
+        .find(|event| event.name == "realtimeFeedProjection")
+        .expect("resolved Feed world should emit a Feed correction");
+    assert_eq!(projection.payload["patches"][0]["sequence"], 2);
+    assert_eq!(
+        projection.payload["patches"][0]["fields"]["worldName"],
+        "Resolved World"
+    );
+    assert!(events
+        .iter()
+        .all(|event| event.name != "realtimeEntryCorrection"));
+    Ok(())
+}
+
+#[test]
 fn notify_favorites_changed_emits_event_and_normalizes_vrc_plus_world() -> Result<()> {
     let (_dir, runtime, _active_session) = runtime_with_active_session("favorites-changed-notify")?;
 

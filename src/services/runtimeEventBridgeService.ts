@@ -404,6 +404,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'runtimeVrchatAuthFailure',
         'vrcStatus',
         'realtimeFriendProjection',
+        'realtimeFeedProjection',
         'realtimeUserProjection',
         'realtimeEntryCorrection',
         'realtimeNotificationProjection',

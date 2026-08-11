@@ -4,6 +4,7 @@ import type {
     FeedEntryPatch,
     FeedEntryPatchInput,
     FeedLiveEntry,
+    FeedLivePatch,
     FeedLiveEntryPayload
 } from '@/domain/feed/feedLiveTypes';
 import { normalizeString } from '@/shared/utils/string';
@@ -16,28 +17,31 @@ type FeedLivePushOptions = {
 interface FeedLiveStoreState {
     version: number;
     entries: FeedLiveEntry[];
-    pushEntry: (
-        entry: FeedLiveEntryPayload | null | undefined,
-        options?: FeedLivePushOptions
-    ) => void;
+    patches: FeedLivePatch[];
     pushEntries: (
         entries:
-            | readonly (FeedLiveEntryPayload | null | undefined)[]
+            | readonly (FeedLiveEntry | null | undefined)[]
             | null
             | undefined,
         options?: FeedLivePushOptions
     ) => void;
-    patchEntry: (
-        id: unknown,
-        fields: FeedEntryPatchInput | null | undefined
+    pushPatches: (
+        patches:
+            | readonly (FeedLivePatch | null | undefined)[]
+            | null
+            | undefined
     ) => void;
     resetFeedLive: () => void;
     trimEntries: () => void;
 }
 
-const initialState: Pick<FeedLiveStoreState, 'version' | 'entries'> = {
+const initialState: Pick<
+    FeedLiveStoreState,
+    'version' | 'entries' | 'patches'
+> = {
     version: 0,
-    entries: []
+    entries: [],
+    patches: []
 };
 
 const PERSISTED_FEED_LIVE_MAX_ENTRIES = 100;
@@ -67,7 +71,7 @@ export function feedEntryCorrectionId(row: FeedLiveEntryPayload): string {
     }
     const type = row?.type ?? '';
     const createdAt = row?.created_at ?? row?.createdAt ?? '';
-    const userId = row?.userId ?? row?.senderUserId ?? '';
+    const userId = row?.userId ?? row?.user_id ?? row?.senderUserId ?? '';
     const details = isRecord(row?.details) ? row.details : {};
     const location = row?.location ?? details.location ?? '';
     const message = row?.message ?? '';
@@ -91,61 +95,87 @@ function nonEmptyFeedPatch(fields: FeedEntryPatchInput): FeedEntryPatch {
     return patch;
 }
 
-export const useFeedLiveStore = create<FeedLiveStoreState>((set, get) => ({
+export const useFeedLiveStore = create<FeedLiveStoreState>((set) => ({
     ...initialState,
-    pushEntry(entry, options) {
-        get().pushEntries([entry], options);
-    },
     pushEntries(entries, { ownerUserId = '' }: FeedLivePushOptions = {}) {
         const validEntries = (Array.isArray(entries) ? entries : []).filter(
-            (entry): entry is FeedLiveEntryPayload => isRecord(entry)
+            (entry): entry is FeedLiveEntry =>
+                isRecord(entry) &&
+                typeof entry.sequence === 'number' &&
+                Number.isFinite(entry.sequence) &&
+                entry.sequence > 0 &&
+                isRecord(entry.entry)
         );
         if (!validEntries.length) {
             return;
         }
         const maxEntries = feedLiveMaxEntries();
         set((state) => {
-            const appended = validEntries.map((entry, index) => ({
-                sequence: state.version + index + 1,
-                ownerUserId,
-                entry: { ...entry, ownerUserId }
-            }));
+            const appended = validEntries
+                .filter((entry) => entry.sequence > state.version)
+                .map((entry) => ({
+                    sequence: entry.sequence,
+                    ownerUserId,
+                    entry: { ...entry.entry, ownerUserId }
+                }));
+            if (!appended.length) {
+                return state;
+            }
             return {
-                version: state.version + validEntries.length,
+                version: Math.max(
+                    state.version,
+                    ...appended.map((entry) => entry.sequence)
+                ),
                 entries: [...state.entries, ...appended].slice(-maxEntries)
             };
         });
     },
-    patchEntry(id, fields) {
-        const normalizedId = normalizeString(id);
-        if (!normalizedId || !isRecord(fields)) {
+    pushPatches(patches) {
+        const validPatches = (Array.isArray(patches) ? patches : []).filter(
+            (patch): patch is FeedLivePatch =>
+                isRecord(patch) &&
+                typeof patch.sequence === 'number' &&
+                Number.isFinite(patch.sequence) &&
+                patch.sequence > 0 &&
+                Boolean(normalizeString(patch.id)) &&
+                isRecord(patch.fields)
+        );
+        if (!validPatches.length) {
             return;
         }
         set((state) => {
-            let changed = false;
-            const entries = state.entries.map((entry) => {
-                if (feedEntryCorrectionId(entry.entry) !== normalizedId) {
-                    return entry;
-                }
-                const patch = nonEmptyFeedPatch(fields);
-                const nextEntry = {
-                    ...entry.entry,
-                    ...patch
-                };
-                changed = true;
-                return {
-                    ...entry,
-                    entry: nextEntry
-                };
-            });
-            if (!changed) {
+            const nextPatches = validPatches.filter(
+                (patch) => patch.sequence > state.version
+            );
+            if (!nextPatches.length) {
                 return state;
             }
-            const nextState = {
-                version: state.version + 1,
-                entries
+            let entries = state.entries;
+            for (const patchEntry of nextPatches) {
+                const normalizedId = normalizeString(patchEntry.id);
+                const patch = nonEmptyFeedPatch(patchEntry.fields);
+                entries = entries.map((entry) => {
+                    if (feedEntryCorrectionId(entry.entry) !== normalizedId) {
+                        return entry;
+                    }
+                    return {
+                        ...entry,
+                        entry: {
+                            ...entry.entry,
+                            ...patch
+                        }
+                    };
+                });
+            }
+            const maxEntries = feedLiveMaxEntries();
+            return {
+                version: Math.max(
+                    state.version,
+                    ...nextPatches.map((patch) => patch.sequence)
+                ),
+                entries,
+                patches: [...state.patches, ...nextPatches].slice(-maxEntries)
             };
-            return nextState;
         });
     },
     resetFeedLive() {
@@ -153,11 +183,20 @@ export const useFeedLiveStore = create<FeedLiveStoreState>((set, get) => ({
     },
     trimEntries() {
         const maxEntries = feedLiveMaxEntries();
-        set((state) =>
-            state.entries.length > maxEntries
-                ? { entries: state.entries.slice(-maxEntries) }
-                : state
-        );
+        set((state) => {
+            const entries = state.entries.slice(-maxEntries);
+            const patches = state.patches.slice(-maxEntries);
+            if (
+                entries.length === state.entries.length &&
+                patches.length === state.patches.length
+            ) {
+                return state;
+            }
+            return {
+                entries,
+                patches
+            };
+        });
     }
 }));
-export type { FeedLiveEntry, FeedLiveStoreState };
+export type { FeedLiveEntry, FeedLivePatch, FeedLiveStoreState };

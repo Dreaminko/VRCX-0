@@ -374,6 +374,7 @@ impl RealtimeHostRuntime {
         } = reconcile_outcome;
         self.apply_reconciled_friend_feed_entries_owned(
             &owner,
+            &active.session.user_id,
             result.generation,
             result.baseline_revision,
             feed_entries,

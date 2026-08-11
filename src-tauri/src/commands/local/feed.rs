@@ -5,8 +5,8 @@ use crate::state::AppState;
 use tauri::State;
 
 use vrcx_0_persistence::feed::{
-    FeedLiveRowsMergeInput, FeedReadModelOutput, FeedReadModelQueryInput, FeedRowOutput,
-    FeedRowsQueryInput,
+    FeedLatestQueryInput, FeedReadModelOutput, FeedRowOutput, FeedRowsQueryInput,
+    FeedSearchQueryInput,
 };
 
 #[tauri::command]
@@ -39,23 +39,28 @@ pub async fn app__avatar_feed_history_cleanup(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__feed_live_rows_merge(query: FeedLiveRowsMergeInput) -> FeedReadModelOutput {
-    vrcx_0_persistence::feed::feed_live_rows_merge(query)
+pub async fn app__feed_latest_query(
+    state: State<'_, AppState>,
+    query: FeedLatestQueryInput,
+) -> Result<FeedReadModelOutput, AppError> {
+    let realtime_runtime = state.realtime_runtime.clone();
+    tauri::async_runtime::spawn_blocking(move || realtime_runtime.query_feed_latest(query))
+        .await
+        .map_err(|error| AppError::Custom(format!("feed latest query task: {error}")))?
+        .map_err(AppError::from)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__feed_read_model_query(
+pub async fn app__feed_search_query(
     state: State<'_, AppState>,
-    query: FeedReadModelQueryInput,
-) -> Result<FeedReadModelOutput, AppError> {
-    let db = state.db.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        vrcx_0_persistence::feed::feed_read_model_query(db.as_ref(), query)
-    })
-    .await
-    .map_err(|error| AppError::Custom(format!("feed read model query task: {error}")))?
-    .map_err(AppError::from)
+    query: FeedSearchQueryInput,
+) -> Result<Vec<FeedRowOutput>, AppError> {
+    let realtime_runtime = state.realtime_runtime.clone();
+    tauri::async_runtime::spawn_blocking(move || realtime_runtime.query_feed_search(query))
+        .await
+        .map_err(|error| AppError::Custom(format!("feed search query task: {error}")))?
+        .map_err(AppError::from)
 }
 
 #[tauri::command]

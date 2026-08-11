@@ -54,6 +54,8 @@ impl RealtimeHostRuntime {
             user_query_cache: UserQueryCache::new(),
             world_cache,
             friend_owner_lock: Mutex::new(()),
+            feed_owner_lock: Mutex::new(()),
+            feed_live_cache: Mutex::new(super::feed::FeedLiveCache::default()),
             feed_persistence_disabled: AtomicBool::new(feed_persistence_disabled),
             notification_apply_lock: Arc::new(tokio::sync::Mutex::new(())),
             friend_profile_bulk_load: Mutex::new(
@@ -202,6 +204,7 @@ impl RealtimeHostRuntime {
         }
         self.apply_reconciled_friend_feed_entries_owned(
             &friend_owner,
+            &session.user_id,
             generation,
             baseline_revision,
             pending_feed_entries,
@@ -490,6 +493,7 @@ impl RealtimeHostRuntime {
         self.user_cache.clear();
         self.user_query_cache.clear();
         self.world_cache.clear_working();
+        self.reset_feed_live_cache();
 
         if let Some(output) = final_current_user_output {
             self.apply_current_user_output(output);

@@ -3,13 +3,15 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { FeedLiveEntry } from '@/domain/feed/feedLiveTypes';
+import type { FeedLiveEntry, FeedLivePatch } from '@/domain/feed/feedLiveTypes';
 import type { FeedReadModelResult } from '@/domain/feed/feedReadModelTypes';
 import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
 import { FeedPersistenceDisabledIndicator } from '@/features/feed/components/FeedPersistenceDisabledIndicator';
+import { mergeFeedRowsWithSnapshot } from '@/features/feed/feedLiveMerge';
 import type { FeedRow } from '@/features/feed/feedTypes';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { FEED_FILTER_TYPES } from '@/repositories/feedRepository';
+import type { FeedFilterType } from '@/repositories/feedRepository';
 import feedRepository from '@/repositories/feedRepository';
 import { normalizeString } from '@/shared/utils/string';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -53,6 +55,7 @@ type DashboardFeedWidgetViewProps = {
     currentUserId: string | null;
     addGameLogEventCount: number;
     liveFeedEntries: FeedLiveEntry[];
+    liveFeedPatches?: FeedLivePatch[];
     liveFeedVersion: number;
     remoteFavoriteFriendIds: unknown[];
     localFriendFavorites: unknown;
@@ -71,6 +74,7 @@ export function DashboardFeedWidgetView({
     currentUserId,
     addGameLogEventCount,
     liveFeedEntries,
+    liveFeedPatches = [],
     liveFeedVersion,
     remoteFavoriteFriendIds,
     localFriendFavorites,
@@ -81,6 +85,7 @@ export function DashboardFeedWidgetView({
     const lastLiveFeedSequenceRef = useRef(0);
     const liveFeedSnapshotRef = useRef({
         entries: liveFeedEntries,
+        patches: liveFeedPatches,
         version: liveFeedVersion
     });
     const rowsRef = useRef<FeedRow[]>([]);
@@ -89,8 +94,13 @@ export function DashboardFeedWidgetView({
     const [loadStatus, setLoadStatus] = useState('idle');
     const [detail, setDetail] = useState('');
 
-    const activeFilters = useMemo(
-        () => (Array.isArray(config.filters) ? config.filters : []),
+    const activeFilters = useMemo<FeedFilterType[]>(
+        () =>
+            (Array.isArray(config.filters) ? config.filters : []).filter(
+                (filter): filter is FeedFilterType =>
+                    typeof filter === 'string' &&
+                    FEED_FILTER_TYPES.includes(filter as FeedFilterType)
+            ),
         [config.filters]
     );
 
@@ -102,13 +112,14 @@ export function DashboardFeedWidgetView({
     useEffect(() => {
         liveFeedSnapshotRef.current = {
             entries: liveFeedEntries,
+            patches: liveFeedPatches,
             version: liveFeedVersion
         };
-    }, [liveFeedEntries, liveFeedVersion]);
+    }, [liveFeedEntries, liveFeedPatches, liveFeedVersion]);
 
     useEffect(() => {
         lastLiveFeedSequenceRef.current = liveFeedVersion;
-    }, [currentUserId]);
+    }, [currentUserId, feedPersistenceDisabled]);
 
     useEffect(() => {
         rowsRef.current = rows;
@@ -135,13 +146,17 @@ export function DashboardFeedWidgetView({
         let previousMaxSequence = minLiveSequence;
         while (requestIsCurrent()) {
             const liveFeedSnapshot = liveFeedSnapshotRef.current;
-            result = await feedRepository.mergeLiveRows({
-                rows: result.rows,
-                userId: currentUserId,
-                filters: activeFilters,
+            result = mergeFeedRowsWithSnapshot({
+                buildMergeOptions: ({ rows }) => ({
+                    rows,
+                    userId: currentUserId,
+                    filters: activeFilters,
+                    maxRows: FEED_WIDGET_MAX_ROWS
+                }),
                 liveEntries: liveFeedSnapshot.entries,
+                livePatches: liveFeedSnapshot.patches,
                 minLiveSequence: result.maxSequence,
-                maxRows: FEED_WIDGET_MAX_ROWS
+                rows: result.rows
             });
             if (!requestIsCurrent()) {
                 return null;
@@ -202,50 +217,10 @@ export function DashboardFeedWidgetView({
 
         const liveFeedSequenceAtRequestStart =
             liveFeedSnapshotRef.current.version;
-        if (feedPersistenceDisabled) {
-            mergeWidgetRowsWithLatestLive({
-                rows: [],
-                minLiveSequence: 0,
-                requestIsCurrent: () => active
-            })
-                .then(async (result) => {
-                    if (!active || !result) {
-                        return;
-                    }
-                    const commitResult = await prepareWidgetRowsForCommit({
-                        result,
-                        requestIsCurrent: () => active
-                    });
-                    if (!active || !commitResult) {
-                        return;
-                    }
-                    lastLiveFeedSequenceRef.current = commitResult.maxSequence;
-                    rowsRef.current = commitResult.rows;
-                    setRows(commitResult.rows);
-                    setLoadStatus('ready');
-                })
-                .catch((error: unknown) => {
-                    if (active) {
-                        setRows([]);
-                        setLoadStatus('error');
-                        setDetail(
-                            userFacingErrorMessage(
-                                error,
-                                'Failed to load feed widget.'
-                            )
-                        );
-                    }
-                });
-            return () => {
-                active = false;
-            };
-        }
         feedRepository
-            .queryFeedReadModel({
+            .queryFeedLatest({
                 userId: currentUserId,
                 filters: activeFilters,
-                liveEntries: [],
-                minLiveSequence: liveFeedSequenceAtRequestStart,
                 maxRows: FEED_WIDGET_MAX_ROWS
             })
             .then(async (result) => {
@@ -272,9 +247,7 @@ export function DashboardFeedWidgetView({
                     commitResult.maxSequence,
                     liveFeedSequenceAtRequestStart
                 );
-                if (maxSequence > lastLiveFeedSequenceRef.current) {
-                    lastLiveFeedSequenceRef.current = maxSequence;
-                }
+                lastLiveFeedSequenceRef.current = maxSequence;
 
                 rowsRef.current = commitResult.rows;
                 setRows(commitResult.rows);
@@ -305,7 +278,10 @@ export function DashboardFeedWidgetView({
 
     useEffect(() => {
         liveMergeRequestIdRef.current += 1;
-        if (!currentUserId || liveFeedEntries.length === 0) {
+        if (
+            !currentUserId ||
+            liveFeedVersion <= lastLiveFeedSequenceRef.current
+        ) {
             return;
         }
         const mergeRequestId = liveMergeRequestIdRef.current + 1;
@@ -338,7 +314,13 @@ export function DashboardFeedWidgetView({
                     )
                 );
             });
-    }, [activeFilters, currentUserId, liveFeedEntries, liveFeedVersion]);
+    }, [
+        activeFilters,
+        currentUserId,
+        liveFeedEntries,
+        liveFeedPatches,
+        liveFeedVersion
+    ]);
 
     const annotatedRows = useMemo(
         () =>
@@ -557,12 +539,14 @@ export function DashboardFeedWidget({
             addGameLogEventCount: state.runtimeEvents.addGameLogEvent.count
         }))
     );
-    const { liveFeedEntries, liveFeedVersion } = useFeedLiveStore(
-        useShallow((state) => ({
-            liveFeedEntries: state.entries,
-            liveFeedVersion: state.version
-        }))
-    );
+    const { liveFeedEntries, liveFeedPatches, liveFeedVersion } =
+        useFeedLiveStore(
+            useShallow((state) => ({
+                liveFeedEntries: state.entries,
+                liveFeedPatches: state.patches,
+                liveFeedVersion: state.version
+            }))
+        );
     const { remoteFavoriteFriendIds, localFriendFavorites } = useFavoriteStore(
         useShallow((state) => ({
             remoteFavoriteFriendIds: state.favoriteFriendIds,
@@ -581,6 +565,7 @@ export function DashboardFeedWidget({
             currentUserId={currentUserId}
             addGameLogEventCount={addGameLogEventCount}
             liveFeedEntries={liveFeedEntries}
+            liveFeedPatches={liveFeedPatches}
             liveFeedVersion={liveFeedVersion}
             remoteFavoriteFriendIds={remoteFavoriteFriendIds}
             localFriendFavorites={localFriendFavorites}

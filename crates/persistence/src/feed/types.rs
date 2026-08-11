@@ -34,7 +34,7 @@ impl FeedFilter {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, specta::Type)]
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedCursorInput {
     pub created_at: String,
@@ -68,76 +68,50 @@ pub struct FeedRowsQueryInput {
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct FeedLatestQueryInput {
+    pub user_id: String,
+    #[serde(default)]
+    pub filters: Vec<FeedFilter>,
+    #[serde(default)]
+    pub favorite_user_ids: Vec<String>,
+    #[serde(default)]
+    pub scoped_user_ids: Vec<String>,
+    #[serde(default)]
+    pub excluded_user_ids: Vec<String>,
+    #[serde(default)]
+    pub favorites_only: bool,
+    pub max_rows: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedSearchQueryInput {
+    pub user_id: String,
+    #[serde(default)]
+    pub search: String,
+    #[serde(default)]
+    pub filters: Vec<FeedFilter>,
+    #[serde(default)]
+    pub favorite_user_ids: Vec<String>,
+    #[serde(default)]
+    pub scoped_user_ids: Vec<String>,
+    #[serde(default)]
+    pub excluded_user_ids: Vec<String>,
+    #[serde(default)]
+    pub favorites_only: bool,
+    #[serde(default)]
+    pub date_from: String,
+    #[serde(default)]
+    pub date_to: String,
+    pub max_rows: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct FeedLiveEntryInput {
     pub sequence: i64,
     #[serde(default)]
     pub entry: RawJson,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct FeedReadModelQueryInput {
-    pub user_id: String,
-    pub mode: FeedQueryMode,
-    #[serde(default)]
-    pub search: String,
-    #[serde(default)]
-    pub filters: Vec<FeedFilter>,
-    #[serde(default)]
-    pub vip_list: Vec<String>,
-    #[serde(default)]
-    pub scoped_user_ids: Vec<String>,
-    #[serde(default)]
-    pub max_entries: i64,
-    #[serde(default)]
-    pub date_from: String,
-    #[serde(default)]
-    pub date_to: String,
-    #[serde(default)]
-    pub cursor: Option<FeedCursorInput>,
-    #[serde(default)]
-    pub live_entries: Vec<FeedLiveEntryInput>,
-    #[serde(default)]
-    pub min_live_sequence: i64,
-    #[serde(default)]
-    pub favorites_only: bool,
-    #[serde(default)]
-    pub favorite_user_ids: Vec<String>,
-    #[serde(default)]
-    pub excluded_user_ids: Vec<String>,
-    #[serde(default)]
-    pub max_rows: i64,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct FeedLiveRowsMergeInput {
-    #[serde(default)]
-    pub rows: Vec<RawJson>,
-    #[serde(default)]
-    pub current_user_id: String,
-    #[serde(default)]
-    pub filters: Vec<FeedFilter>,
-    #[serde(default)]
-    pub search: String,
-    #[serde(default)]
-    pub date_from: String,
-    #[serde(default)]
-    pub date_to: String,
-    #[serde(default)]
-    pub favorites_only: bool,
-    #[serde(default)]
-    pub favorite_user_ids: Vec<String>,
-    #[serde(default)]
-    pub scoped_user_ids: Vec<String>,
-    #[serde(default)]
-    pub excluded_user_ids: Vec<String>,
-    #[serde(default)]
-    pub live_entries: Vec<FeedLiveEntryInput>,
-    #[serde(default)]
-    pub min_live_sequence: i64,
-    #[serde(default)]
-    pub max_rows: i64,
 }
 
 #[derive(Debug, Serialize, specta::Type)]
@@ -145,6 +119,8 @@ pub struct FeedLiveRowsMergeInput {
 pub struct FeedReadModelOutput {
     pub rows: Vec<FeedRowOutput>,
     pub max_sequence: i64,
+    pub persisted_cursor: Option<FeedCursorInput>,
+    pub persisted_has_more: bool,
 }
 
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]

@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     ensureUserTables: vi.fn(),
     getInt: vi.fn(),
-    queryFeedReadModel: vi.fn()
+    queryFeedLatest: vi.fn(),
+    searchFeedDatabase: vi.fn()
 }));
 
 vi.mock('./configRepository', () => ({
@@ -14,7 +15,8 @@ vi.mock('./configRepository', () => ({
 
 vi.mock('./feedPersistenceRepository', () => ({
     default: {
-        queryFeedReadModel: mocks.queryFeedReadModel
+        queryFeedLatest: mocks.queryFeedLatest,
+        searchFeedDatabase: mocks.searchFeedDatabase
     }
 }));
 
@@ -36,24 +38,45 @@ describe('feedRepository', () => {
             userId: 'usr_feed_limit',
             userPrefix: 'usrfeedlimit'
         });
-        mocks.queryFeedReadModel.mockResolvedValue({
+        mocks.queryFeedLatest.mockResolvedValue({
             rows: [],
             maxSequence: 0
         });
+        mocks.searchFeedDatabase.mockResolvedValue([]);
     });
 
     it('honors an explicit persistence read limit', async () => {
-        await feedRepository.queryFeedReadModel({
+        await feedRepository.queryFeedLatest({
             userId: 'usr_feed_limit',
-            maxEntries: 80,
             maxRows: 80
         });
 
-        expect(mocks.queryFeedReadModel).toHaveBeenCalledWith(
+        expect(mocks.queryFeedLatest).toHaveBeenCalledWith(
             expect.objectContaining({
-                maxEntries: 80,
                 maxRows: 80
             })
         );
+    });
+
+    it('routes search through the dedicated persistence query', async () => {
+        await feedRepository.queryFeed({
+            userId: 'usr_feed_limit',
+            search: 'needle',
+            maxEntries: 80
+        });
+
+        expect(mocks.searchFeedDatabase).toHaveBeenCalledWith(
+            'needle',
+            [],
+            [],
+            80,
+            '',
+            '',
+            'usr_feed_limit',
+            [],
+            [],
+            false
+        );
+        expect(mocks.queryFeedLatest).not.toHaveBeenCalled();
     });
 });

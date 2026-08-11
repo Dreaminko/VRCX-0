@@ -306,13 +306,13 @@ pub use vrcx_0_application_realtime::{
     FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority, PendingOfflineTimerAction,
     RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeCurrentUserProjection,
     RealtimeEntryCorrection, RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream,
-    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
-    RealtimeFriendsRuntime, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
-    RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection, RealtimeInstanceQueueKind,
-    RealtimeInstanceQueueProjection, RealtimeNotificationOutput, RealtimeNotificationProjection,
-    RealtimeNotificationUpsert, RealtimeSessionContext, RealtimeStopRequest,
-    RealtimeTransportStartResult, RealtimeWsMessagePayload, RealtimeWsStatusPayload,
-    SyntheticFriendEventOutcome,
+    RealtimeFeedPatch, RealtimeFeedProjection, RealtimeFeedUpsert, RealtimeFriendApplyResult,
+    RealtimeFriendOutput, RealtimeFriendSnapshot, RealtimeFriendsRuntime, RealtimeHostRuntime,
+    RealtimeHostRuntimeDeps, RealtimeInstanceClosedOutput, RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueKind, RealtimeInstanceQueueProjection, RealtimeNotificationOutput,
+    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeSessionContext,
+    RealtimeStopRequest, RealtimeTransportStartResult, RealtimeWsMessagePayload,
+    RealtimeWsStatusPayload, SyntheticFriendEventOutcome,
 };
 
 pub use vrcx_0_application_core::Result;

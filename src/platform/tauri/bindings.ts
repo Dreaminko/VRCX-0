@@ -807,15 +807,15 @@ export const commands = {
             cutoffDate
         });
     },
-    async appFeedLiveRowsMerge(
-        query: FeedLiveRowsMergeInput
+    async appFeedLatestQuery(
+        query: FeedLatestQueryInput
     ): Promise<FeedReadModelOutput> {
-        return await TAURI_INVOKE('app__feed_live_rows_merge', { query });
+        return await TAURI_INVOKE('app__feed_latest_query', { query });
     },
-    async appFeedReadModelQuery(
-        query: FeedReadModelQueryInput
-    ): Promise<FeedReadModelOutput> {
-        return await TAURI_INVOKE('app__feed_read_model_query', { query });
+    async appFeedSearchQuery(
+        query: FeedSearchQueryInput
+    ): Promise<FeedRowOutput[]> {
+        return await TAURI_INVOKE('app__feed_search_query', { query });
     },
     async appFeedRowsQuery(
         query: FeedRowsQueryInput
@@ -3124,6 +3124,7 @@ export type BackendRuntimeEventPayloadMap = {
     noteExportStatus: NoteExportStatus;
     friendProfileLoadStatus: FriendProfileLoadStatusPayload;
     realtimeFriendProjection: FriendProjection;
+    realtimeFeedProjection: RealtimeFeedProjection;
     realtimeUserProjection: RealtimeUserProjection;
     realtimeEntryCorrection: RealtimeEntryCorrection;
     realtimeNotificationProjection: RealtimeNotificationProjection;
@@ -3779,44 +3780,21 @@ export type FeedFilter =
     | 'Avatar'
     | 'Online'
     | 'Offline';
-export type FeedLiveEntryInput = { sequence: number; entry?: RawJson };
-export type FeedLiveRowsMergeInput = {
-    rows?: RawJson[];
-    currentUserId?: string;
+export type FeedLatestQueryInput = {
+    userId: string;
     filters?: FeedFilter[];
-    search?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    favoritesOnly?: boolean;
     favoriteUserIds?: string[];
     scopedUserIds?: string[];
     excludedUserIds?: string[];
-    liveEntries?: FeedLiveEntryInput[];
-    minLiveSequence?: number;
-    maxRows?: number;
+    favoritesOnly?: boolean;
+    maxRows: number;
 };
 export type FeedQueryMode = 'search' | 'lookup' | 'instance';
 export type FeedReadModelOutput = {
     rows: FeedRowOutput[];
     maxSequence: number;
-};
-export type FeedReadModelQueryInput = {
-    userId: string;
-    mode: FeedQueryMode;
-    search?: string;
-    filters?: FeedFilter[];
-    vipList?: string[];
-    scopedUserIds?: string[];
-    maxEntries?: number;
-    dateFrom?: string;
-    dateTo?: string;
-    cursor?: FeedCursorInput | null;
-    liveEntries?: FeedLiveEntryInput[];
-    minLiveSequence?: number;
-    favoritesOnly?: boolean;
-    favoriteUserIds?: string[];
-    excludedUserIds?: string[];
-    maxRows?: number;
+    persistedCursor: FeedCursorInput | null;
+    persistedHasMore: boolean;
 };
 export type FeedRowOutput = {
     rowId?: number | null;
@@ -3860,6 +3838,18 @@ export type FeedRowsQueryInput = {
     dateFrom?: string;
     dateTo?: string;
     cursor?: FeedCursorInput | null;
+};
+export type FeedSearchQueryInput = {
+    userId: string;
+    search?: string;
+    filters?: FeedFilter[];
+    favoriteUserIds?: string[];
+    scopedUserIds?: string[];
+    excludedUserIds?: string[];
+    favoritesOnly?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+    maxRows: number;
 };
 export type FriendLogCurrentOutput = {
     userId: string;
@@ -5088,10 +5078,21 @@ export type RealtimeEntryCorrectionFields = {
     displayLocation?: string | null;
 };
 export type RealtimeEntryCorrectionStream = 'feed' | 'notification';
+export type RealtimeFeedPatch = {
+    sequence: number;
+    id: string;
+    fields: RealtimeEntryCorrectionFields;
+};
+export type RealtimeFeedProjection = {
+    generation: number;
+    ownerUserId: string;
+    upserts?: RealtimeFeedUpsert[];
+    patches?: RealtimeFeedPatch[];
+};
+export type RealtimeFeedUpsert = { sequence: number; entry: RawJson };
 export type RealtimeInstanceClosedProjection = {
     generation: number;
     notification: JsonValue;
-    feedEntry: JsonValue;
 };
 export type RealtimeInstanceQueueKind = 'update' | 'ready' | 'left';
 export type RealtimeInstanceQueueProjection = {

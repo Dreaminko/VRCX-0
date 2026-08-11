@@ -35,6 +35,7 @@ mod connection;
 mod current_user;
 mod enrichment;
 mod fanout;
+mod feed;
 #[cfg(test)]
 mod friend_baseline_tests;
 #[cfg(test)]

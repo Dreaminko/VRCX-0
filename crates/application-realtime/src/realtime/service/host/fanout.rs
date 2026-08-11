@@ -27,6 +27,7 @@ impl RealtimeHostRuntime {
         config_store::set_bool(self.deps.db.as_ref(), "feedPersistenceDisabled", disabled)?;
         self.feed_persistence_disabled
             .store(disabled, Ordering::Relaxed);
+        self.reset_feed_live_cache();
         Ok(())
     }
 
@@ -54,6 +55,7 @@ impl RealtimeHostRuntime {
     pub(super) fn apply_reconciled_friend_feed_entries_owned(
         self: &Arc<Self>,
         _owner: &FriendOwnerGuard<'_>,
+        owner_user_id: &str,
         generation: u64,
         baseline_revision: u64,
         feed_entries: Vec<Value>,
@@ -71,9 +73,11 @@ impl RealtimeHostRuntime {
         if let Some(activity_sink) = &self.deps.activity_sink {
             activity_sink.ingest_friend_projection(&projection);
         }
-        self.deps
-            .event_bus
-            .emit_realtime_friend_projection(projection);
+        self.emit_feed_entries(
+            generation,
+            owner_user_id,
+            std::mem::take(&mut projection.feed_entries),
+        );
     }
 
     pub(super) fn apply_friend_output_owned(
@@ -127,6 +131,7 @@ impl RealtimeHostRuntime {
         projection
             .feed_entries
             .retain(|entry| !is_player_joining_entry(entry));
+        let feed_entries = std::mem::take(&mut projection.feed_entries);
         if friend_note_changed {
             if let Some(sink) = &self.deps.friend_note_change_sink {
                 sink();
@@ -155,6 +160,7 @@ impl RealtimeHostRuntime {
         self.deps
             .event_bus
             .emit_realtime_friend_projection(projection);
+        self.emit_feed_entries(projection_generation, &output.owner_user_id, feed_entries);
 
         if let PendingOfflineTimerAction::Schedule {
             user_id,
@@ -323,7 +329,10 @@ impl RealtimeHostRuntime {
         output: RealtimeInstanceClosedOutput,
     ) {
         let mut projection = output.projection;
+        let mut feed_entry = output.feed_entry;
+        let generation = projection.generation;
         self.enrich_world_name(&mut projection.notification);
+        self.enrich_world_name(&mut feed_entry);
         if let Some(location) = projection
             .notification
             .get("location")
@@ -355,8 +364,8 @@ impl RealtimeHostRuntime {
         self.deps
             .event_bus
             .emit_realtime_instance_closed_projection(projection);
+        self.emit_feed_entries(generation, owner_user_id, vec![feed_entry]);
     }
-
 }
 
 fn is_player_joining_entry(entry: &Value) -> bool {

@@ -6,6 +6,7 @@ import { useSessionStore } from '@/state/sessionStore';
 import { handleRealtimeInstanceQueueProjection } from '../realtimeInstanceQueueService';
 import {
     handleRealtimeCurrentUserProjection,
+    handleRealtimeFeedProjection,
     handleRealtimeFriendProjection,
     handleRealtimeInstanceClosedProjection,
     handleRealtimeNotificationProjection,
@@ -22,6 +23,7 @@ type BackendRealtimeProjectionScope = {
 
 type BackendRealtimeProjectionEvent = RuntimeEvent<
     | 'realtimeFriendProjection'
+    | 'realtimeFeedProjection'
     | 'realtimeUserProjection'
     | 'realtimeNotificationProjection'
     | 'realtimeCurrentUserProjection'
@@ -106,6 +108,7 @@ function isRealtimeProjectionEvent(
 ): event is BackendRealtimeProjectionEvent {
     switch (event.name) {
         case 'realtimeFriendProjection':
+        case 'realtimeFeedProjection':
         case 'realtimeUserProjection':
         case 'realtimeNotificationProjection':
         case 'realtimeCurrentUserProjection':
@@ -134,6 +137,8 @@ function deliverBackendRealtimeProjectionEvent(
     useRuntimeStore.getState().recordRuntimeEvent(event.name, event.payload);
     if (event.name === 'realtimeFriendProjection') {
         handleRealtimeFriendProjection(event.payload);
+    } else if (event.name === 'realtimeFeedProjection') {
+        handleRealtimeFeedProjection(event.payload);
     } else if (event.name === 'realtimeUserProjection') {
         handleRealtimeUserCacheProjection(event.payload);
     } else if (event.name === 'realtimeNotificationProjection') {

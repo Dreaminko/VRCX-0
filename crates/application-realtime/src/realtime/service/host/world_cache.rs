@@ -208,16 +208,21 @@ impl RealtimeHostRuntime {
     fn emit_world_name_correction(&self, entry: PendingEntryCorrection, world_name: &str) {
         let display_location =
             resolved_display_location(&entry.location, world_name, &entry.group_name);
+        let fields = RealtimeEntryCorrectionFields {
+            display_name: None,
+            world_name: Some(world_name.to_string()),
+            display_location: (!display_location.is_empty()).then_some(display_location),
+        };
+        if entry.stream == crate::realtime::RealtimeEntryCorrectionStream::Feed {
+            self.emit_feed_patch(entry.id, fields);
+            return;
+        }
         self.deps
             .event_bus
             .emit_realtime_entry_correction(RealtimeEntryCorrection {
                 stream: entry.stream,
                 id: entry.id,
-                fields: RealtimeEntryCorrectionFields {
-                    display_name: None,
-                    world_name: Some(world_name.to_string()),
-                    display_location: (!display_location.is_empty()).then_some(display_location),
-                },
+                fields,
             });
     }
 }

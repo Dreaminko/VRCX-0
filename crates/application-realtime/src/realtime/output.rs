@@ -1,3 +1,4 @@
+use serde_json::Value;
 use vrcx_0_persistence::realtime::RealtimePersistenceBatch;
 
 use super::projection::{
@@ -54,5 +55,6 @@ pub struct RealtimeCurrentUserOutput {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RealtimeInstanceClosedOutput {
     pub projection: RealtimeInstanceClosedProjection,
+    pub feed_entry: Value,
     pub persistence: RealtimePersistenceBatch,
 }

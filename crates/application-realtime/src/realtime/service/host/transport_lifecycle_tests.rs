@@ -431,9 +431,19 @@ fn friend_ws_dispatch_fans_out_one_canonical_output() -> Result<()> {
                 Some("wsMessage" | "wsPersisted" | "gameLogPersisted")
             )
     }));
+    let mut frontend_projection = activity_projections[0].clone();
+    frontend_projection.feed_entries.clear();
     assert_eq!(
         frontend_projections[0].payload,
-        serde_json::to_value(&activity_projections[0]).expect("serialize activity projection")
+        serde_json::to_value(frontend_projection).expect("serialize frontend projection")
+    );
+    let feed_projection = events
+        .iter()
+        .find(|event| event.name == "realtimeFeedProjection")
+        .expect("friend Feed entry should use the dedicated projection");
+    assert_eq!(
+        feed_projection.payload["upserts"][0]["entry"]["type"],
+        "Friend"
     );
 
     let cached = runtime
@@ -557,12 +567,7 @@ fn pending_baseline_trust_feed_projects_once_after_start_without_rewriting() -> 
         .event_bus
         .take_events_for_test()
         .iter()
-        .all(|event| {
-            event.name != "realtimeFriendProjection"
-                || event.payload["feedEntries"]
-                    .as_array()
-                    .is_none_or(Vec::is_empty)
-        }));
+        .all(|event| { event.name != "realtimeFeedProjection" }));
     let history_count_before = vrcx_0_persistence::friends::friend_log_history_query(
         runtime.runtime().deps.db.as_ref(),
         vrcx_0_persistence::friends::FriendLogHistoryQueryInput {
@@ -590,14 +595,9 @@ fn pending_baseline_trust_feed_projects_once_after_start_without_rewriting() -> 
     let events = runtime.runtime().deps.event_bus.take_events_for_test();
     let trust_entries = events
         .iter()
-        .filter(|event| event.name == "realtimeFriendProjection")
-        .flat_map(|event| {
-            event.payload["feedEntries"]
-                .as_array()
-                .into_iter()
-                .flatten()
-        })
-        .filter(|entry| entry["type"] == "TrustLevel")
+        .filter(|event| event.name == "realtimeFeedProjection")
+        .flat_map(|event| event.payload["upserts"].as_array().into_iter().flatten())
+        .filter(|upsert| upsert["entry"]["type"] == "TrustLevel")
         .count();
     assert_eq!(trust_entries, 1);
     let history_count_after = vrcx_0_persistence::friends::friend_log_history_query(

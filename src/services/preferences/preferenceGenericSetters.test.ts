@@ -251,7 +251,9 @@ describe('preferenceGenericSetters', () => {
     });
 
     it('clears live Feed only after the backend persistence switch succeeds', async () => {
-        useFeedLiveStore.getState().pushEntry({ id: 'before-switch' });
+        useFeedLiveStore
+            .getState()
+            .pushEntries([{ sequence: 1, entry: { id: 'before-switch' } }]);
 
         await setFeedPersistenceDisabledPreference(true);
 
@@ -263,7 +265,9 @@ describe('preferenceGenericSetters', () => {
     });
 
     it('keeps the Feed preference and live entries when the backend switch fails', async () => {
-        useFeedLiveStore.getState().pushEntry({ id: 'kept' });
+        useFeedLiveStore
+            .getState()
+            .pushEntries([{ sequence: 1, entry: { id: 'kept' } }]);
         mocks.appFeedPersistenceSetDisabled.mockRejectedValueOnce(
             new Error('switch failed')
         );

@@ -7,6 +7,7 @@ import type {
 import type {
     RealtimeCurrentUserProjectionPayload,
     RealtimeEntryCorrectionPayload,
+    RealtimeFeedProjectionPayload,
     RealtimeFriendProjectionPayload,
     RealtimeInstanceClosedProjectionPayload,
     RealtimeNotificationProjectionPayload,
@@ -16,6 +17,7 @@ import type {
 type RealtimePayloadOverrides = {
     realtimeCurrentUserProjection: RealtimeCurrentUserProjectionPayload;
     realtimeEntryCorrection: RealtimeEntryCorrectionPayload;
+    realtimeFeedProjection: RealtimeFeedProjectionPayload;
     realtimeFriendProjection: RealtimeFriendProjectionPayload;
     realtimeInstanceClosedProjection: RealtimeInstanceClosedProjectionPayload;
     realtimeNotificationProjection: RealtimeNotificationProjectionPayload;
