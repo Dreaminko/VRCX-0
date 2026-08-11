@@ -6,7 +6,7 @@ use vrcx_0_core::user_facts::{
     merge_user_fact, normalize_user_id, user_fact_key, UserFact, UserFactMergeOptions,
 };
 
-const NON_FRIEND_CAPACITY: usize = 1000;
+const NON_FRIEND_CAPACITY: usize = 256;
 
 pub(crate) struct UserCacheRuntime {
     state: Mutex<UserCacheState>,
@@ -78,9 +78,7 @@ impl UserCacheRuntime {
 
         let mut state = self.lock();
         let result = merge_user_fact(state.users.get(&key), value, &options);
-        let pinned = options.is_friend
-            || options.is_current_user
-            || result.fact.fields.get("isFriend").and_then(Value::as_bool) == Some(true);
+        let pinned = is_pinned(&result.fact);
         let output = result.changed.then(|| UserCacheOutput {
             user: result.fact.to_object(),
         });
@@ -99,11 +97,16 @@ impl UserCacheRuntime {
         }
         let mut state = self.lock();
         let fact = state.users.get(&key)?.clone();
-        let pinned = fact.fields.get("isFriend").and_then(Value::as_bool) == Some(true);
+        let pinned = is_pinned(&fact);
         let object = fact.to_object();
         touch_lru(&mut state, &key, pinned);
         Some(object)
     }
+}
+
+fn is_pinned(fact: &UserFact) -> bool {
+    fact.fields.get("isFriend").and_then(Value::as_bool) == Some(true)
+        || fact.fields.get("isCurrentUser").and_then(Value::as_bool) == Some(true)
 }
 
 fn touch_lru(state: &mut UserCacheState, key: &str, pinned: bool) {
@@ -183,6 +186,30 @@ mod tests {
     }
 
     #[test]
+    fn default_non_friend_capacity_is_256() {
+        let cache = UserCacheRuntime::new();
+        for index in 0..=256 {
+            cache.record_user(
+                &json!({
+                    "id": format!("usr_{index}"),
+                    "displayName": format!("User {index}")
+                }),
+                opts(false),
+            );
+        }
+
+        assert!(cache
+            .get_user("https://api.example.test", "usr_0")
+            .is_none());
+        assert!(cache
+            .get_user("https://api.example.test", "usr_1")
+            .is_some());
+        assert!(cache
+            .get_user("https://api.example.test", "usr_256")
+            .is_some());
+    }
+
+    #[test]
     fn friends_are_pinned_and_never_evicted() {
         let cache = UserCacheRuntime::with_capacity(1);
         cache.record_user(
@@ -193,6 +220,27 @@ mod tests {
         cache.record_user(&json!({ "id": "usr_y", "displayName": "Y" }), opts(false));
         assert!(cache
             .get_user("https://api.example.test", "usr_friend")
+            .is_some());
+    }
+
+    #[test]
+    fn current_user_stays_pinned_after_a_cache_hit() {
+        let cache = UserCacheRuntime::with_capacity(1);
+        cache.record_user(
+            &json!({ "id": "usr_self", "displayName": "Self" }),
+            UserFactMergeOptions {
+                is_current_user: true,
+                ..opts(false)
+            },
+        );
+        assert!(cache
+            .get_user("https://api.example.test", "usr_self")
+            .is_some());
+        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), opts(false));
+        cache.record_user(&json!({ "id": "usr_y", "displayName": "Y" }), opts(false));
+
+        assert!(cache
+            .get_user("https://api.example.test", "usr_self")
             .is_some());
     }
 
