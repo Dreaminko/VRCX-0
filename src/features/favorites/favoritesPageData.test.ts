@@ -46,22 +46,15 @@ function buildWorldItems({
               }
             : {},
         remoteEntityDetailsStatus: 'ready',
-        worldDetailFallbacksById: worldDetailFallback
-            ? {
-                  wrld_favorite: {
-                      id: 'wrld_favorite',
-                      ...worldDetailFallback
+        worldDetailFallbacksById:
+            worldDetailFallback || cachedWorldDetail
+                ? {
+                      wrld_favorite: {
+                          id: 'wrld_favorite',
+                          ...(worldDetailFallback || cachedWorldDetail)
+                      }
                   }
-              }
-            : {},
-        localWorldDetailsById: cachedWorldDetail
-            ? {
-                  wrld_favorite: {
-                      id: 'wrld_favorite',
-                      ...cachedWorldDetail
-                  }
-              }
-            : {},
+                : {},
         remoteGroupLabelByKey: {
             'world:group_0': 'Worlds'
         },
@@ -583,7 +576,7 @@ describe('favorites page data helpers', () => {
             localWorldFavorites: {
                 Worlds: ['wrld_local']
             },
-            localWorldDetailsById: {
+            worldDetailFallbacksById: {
                 wrld_local: {
                     id: 'wrld_local',
                     name: 'Local World',
@@ -615,7 +608,7 @@ describe('favorites page data helpers', () => {
             localWorldFavorites: {
                 Worlds: ['wrld_local']
             },
-            localWorldDetailsById: {
+            worldDetailFallbacksById: {
                 wrld_local: {
                     id: 'wrld_local',
                     name: 'Local World',
@@ -639,7 +632,6 @@ describe('favorites page data helpers', () => {
             kind: 'world',
             localGroups: [{ key: 'Worlds', label: 'Worlds' }],
             localWorldFavorites: { Worlds: ['wrld_local'] },
-            localWorldDetailsById: {},
             worldDetailFallbacksById: {
                 wrld_local: {
                     id: 'wrld_local',

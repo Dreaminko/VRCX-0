@@ -10,6 +10,7 @@ interface FavoritePendingRevision {
 
 interface FavoriteRevisionStoreState {
     revision: number;
+    localWorldRevision: number;
     lastAttemptedRevision: number;
     pendingRemote: boolean;
     pendingUnknown: boolean;
@@ -22,6 +23,7 @@ interface FavoriteRevisionStoreState {
 
 const initialState = {
     revision: 0,
+    localWorldRevision: 0,
     lastAttemptedRevision: 0,
     pendingRemote: false,
     pendingUnknown: false
@@ -33,6 +35,10 @@ export const useFavoriteRevisionStore = create<FavoriteRevisionStoreState>(
         bumpRevision({ kind, remote }) {
             set((state) => ({
                 revision: state.revision + 1,
+                localWorldRevision:
+                    !remote && (kind === 'world' || kind === 'unknown')
+                        ? state.localWorldRevision + 1
+                        : state.localWorldRevision,
                 pendingRemote: state.pendingRemote || remote,
                 pendingUnknown: state.pendingUnknown || kind === 'unknown'
             }));
@@ -68,6 +74,7 @@ export const useFavoriteRevisionStore = create<FavoriteRevisionStoreState>(
                 const revision = state.revision + 1;
                 return {
                     revision,
+                    localWorldRevision: state.localWorldRevision + 1,
                     lastAttemptedRevision: revision,
                     pendingRemote: false,
                     pendingUnknown: false

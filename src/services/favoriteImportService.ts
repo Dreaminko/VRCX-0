@@ -18,36 +18,27 @@ type FavoriteRemoteGroupsKey =
     | 'favoriteAvatarGroups'
     | 'favoriteWorldGroups'
     | 'favoriteFriendGroups';
-type FavoriteLocalGroupsKey =
-    | 'localAvatarFavoriteGroups'
-    | 'localWorldFavoriteGroups'
-    | 'localFriendFavoriteGroups';
-
 interface FavoriteTypeConfig {
     label: string;
     regex: RegExp;
     remoteGroupsKey: FavoriteRemoteGroupsKey;
-    localGroupsKey: FavoriteLocalGroupsKey;
 }
 
 const TYPE_CONFIG: Record<FavoriteImportKind, FavoriteTypeConfig> = {
     avatar: {
         label: 'Avatar',
         regex: /avtr_[0-9A-Fa-f]{8}-(?:[0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}/g,
-        remoteGroupsKey: 'favoriteAvatarGroups',
-        localGroupsKey: 'localAvatarFavoriteGroups'
+        remoteGroupsKey: 'favoriteAvatarGroups'
     },
     world: {
         label: 'World',
         regex: /wrld_[0-9A-Fa-f]{8}-(?:[0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}/g,
-        remoteGroupsKey: 'favoriteWorldGroups',
-        localGroupsKey: 'localWorldFavoriteGroups'
+        remoteGroupsKey: 'favoriteWorldGroups'
     },
     friend: {
         label: 'Friend',
         regex: /usr_[0-9A-Fa-f]{8}-(?:[0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}/g,
-        remoteGroupsKey: 'favoriteFriendGroups',
-        localGroupsKey: 'localFriendFavoriteGroups'
+        remoteGroupsKey: 'favoriteFriendGroups'
     }
 };
 
@@ -79,16 +70,12 @@ function extractIds(type: FavoriteImportKind, input: unknown): string[] {
     );
 }
 
-function getFavoriteGroups(type: FavoriteImportKind | null) {
+function getRemoteFavoriteGroups(type: FavoriteImportKind | null) {
     if (!type) {
-        return { remoteGroups: [], localGroups: [] };
+        return [];
     }
     const config = TYPE_CONFIG[type];
-    const favoriteState = useFavoriteStore.getState();
-    return {
-        remoteGroups: favoriteState[config.remoteGroupsKey],
-        localGroups: favoriteState[config.localGroupsKey]
-    };
+    return useFavoriteStore.getState()[config.remoteGroupsKey];
 }
 
 function refreshFavoritesSnapshot() {
@@ -336,7 +323,7 @@ export async function importFavoriteImportRows(): Promise<void> {
     if (!type || state.rows.length === 0) {
         return;
     }
-    const { remoteGroups } = getFavoriteGroups(type);
+    const remoteGroups = getRemoteFavoriteGroups(type);
     const remoteGroup = state.remoteGroupName
         ? remoteGroups.find((group) => group.name === state.remoteGroupName) ||
           null
@@ -411,8 +398,4 @@ export function closeFavoriteImportDialog(): void {
 export function getFavoriteImportTypeConfig(type: unknown) {
     const normalized = normalizeType(type);
     return normalized ? TYPE_CONFIG[normalized] : null;
-}
-
-export function getFavoriteImportGroups(type: unknown) {
-    return getFavoriteGroups(normalizeType(type));
 }

@@ -34,16 +34,14 @@ pub struct FavoriteBaselineSnapshot {
     pub favorite_friend_groups: Vec<FavoriteGroupOutput>,
     pub favorite_world_groups: Vec<FavoriteGroupOutput>,
     pub favorite_avatar_groups: Vec<FavoriteGroupOutput>,
+    #[serde(skip_serializing)]
     pub local_world_favorites: BTreeMap<String, Vec<String>>,
     pub local_avatar_favorites: BTreeMap<String, Vec<String>>,
     pub local_friend_favorites: BTreeMap<String, Vec<String>>,
-    pub local_world_favorite_groups: Vec<String>,
     pub local_avatar_favorite_groups: Vec<String>,
     pub local_friend_favorite_groups: Vec<String>,
-    pub local_world_favorites_list: Vec<String>,
     pub local_avatar_favorites_list: Vec<String>,
     pub local_friend_favorites_list: Vec<String>,
-    pub local_world_details_by_id: BTreeMap<String, RawJson>,
     pub detail: String,
 }
 
@@ -64,7 +62,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn favorite_baseline_serializes_only_canonical_remote_favorite_index() {
+    fn favorite_baseline_serializes_only_frontend_owned_fields() {
         let snapshot = FavoriteBaselineSnapshot {
             remote_favorites_by_id: BTreeMap::from([(
                 "fav_record".into(),
@@ -73,6 +71,7 @@ mod tests {
                     "favoriteId": "wrld_target",
                 })),
             )]),
+            local_world_favorites: BTreeMap::from([("Worlds".into(), vec!["wrld_local".into()])]),
             ..Default::default()
         };
 
@@ -83,6 +82,7 @@ mod tests {
             "wrld_target"
         );
         assert!(serialized.get("remoteFavoritesByObjectId").is_none());
+        assert!(serialized.get("localWorldFavorites").is_none());
     }
 }
 

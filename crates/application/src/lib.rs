@@ -59,9 +59,9 @@ pub use collections::{
 pub use collections::{preview_shared_collection, ImportPreview};
 pub use favorites::{
     add_local_favorite, create_local_favorite_group, delete_local_favorite_entries,
-    delete_local_favorite_group, list_local_favorites, remove_local_favorite,
-    rename_local_favorite_entries, rename_local_favorite_group, FavoriteRow,
-    LocalFavoriteGroupWrite,
+    delete_local_favorite_group, get_local_favorite_snapshot, list_local_favorites,
+    remove_local_favorite, rename_local_favorite_entries, rename_local_favorite_group, FavoriteRow,
+    LocalFavoriteGroupWrite, LocalFavoriteSnapshot,
 };
 pub use favorites::{
     add_remote_favorite, clear_remote_favorite_group, delete_remote_favorite,
@@ -76,10 +76,6 @@ pub use favorites::{
     FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
 pub use favorites::{
-    hydrate_favorite_details, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
-    FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
-};
-pub use favorites::{
     persist_favorite_cache_snapshot, FavoriteCacheKind, FavoriteCacheSnapshotInput,
 };
 pub use favorites::{
@@ -87,6 +83,10 @@ pub use favorites::{
     FavoriteBulkRemoveInput, FavoriteBulkRemoveItem, FavoriteBulkRemoveItemResult,
     FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult, FavoriteBulkRemoveSource,
     FAVORITE_BULK_REMOVE_MAX_ITEMS,
+};
+pub use favorites::{
+    FavoriteDetailsHydrateInput, FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
+    FavoriteDetailsRuntime,
 };
 pub use favorites::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,

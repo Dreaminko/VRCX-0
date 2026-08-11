@@ -28,25 +28,15 @@ describe('favoriteLocalRefreshService', () => {
         mocks.getExplicitLocalFavoriteGroups.mockResolvedValue([]);
     });
 
-    it('rereads only the requested kind and writes it into the matching store slice', async () => {
-        mocks.getWorldFavorites.mockResolvedValue([
-            { created_at: '2026-01-01', worldId: 'wrld_1', groupName: 'Worlds' }
-        ]);
-        mocks.getExplicitLocalFavoriteGroups.mockResolvedValue(['Worlds']);
-        const { useFavoriteStore } = await import('@/state/favoriteStore');
+    it('leaves local world favorites out of the frontend store refresh path', async () => {
         const { refreshLocalFavoritesForKinds } =
             await import('./favoriteLocalRefreshService');
 
         await refreshLocalFavoritesForKinds(['world']);
 
-        expect(mocks.getWorldFavorites).toHaveBeenCalledTimes(1);
+        expect(mocks.getWorldFavorites).not.toHaveBeenCalled();
         expect(mocks.getAvatarFavorites).not.toHaveBeenCalled();
         expect(mocks.getFriendFavorites).not.toHaveBeenCalled();
-        expect(useFavoriteStore.getState()).toMatchObject({
-            localWorldFavorites: { Worlds: ['wrld_1'] },
-            localWorldFavoriteGroups: ['Worlds'],
-            localWorldFavoritesList: ['wrld_1']
-        });
     });
 
     it('deduplicates repeated kinds and refreshes each requested kind once', async () => {
@@ -62,7 +52,7 @@ describe('favoriteLocalRefreshService', () => {
 
     it('keeps the newest result when same-kind refreshes finish out of order', async () => {
         let resolveFirst: (rows: unknown[]) => void = () => undefined;
-        mocks.getWorldFavorites
+        mocks.getAvatarFavorites
             .mockImplementationOnce(
                 () =>
                     new Promise<unknown[]>((resolve) => {
@@ -72,7 +62,7 @@ describe('favoriteLocalRefreshService', () => {
             .mockResolvedValueOnce([
                 {
                     created_at: '2026-01-02',
-                    worldId: 'wrld_new',
+                    avatarId: 'avtr_new',
                     groupName: 'New'
                 }
             ]);
@@ -83,19 +73,19 @@ describe('favoriteLocalRefreshService', () => {
         const { refreshLocalFavoritesForKinds } =
             await import('./favoriteLocalRefreshService');
 
-        const first = refreshLocalFavoritesForKinds(['world']);
-        await refreshLocalFavoritesForKinds(['world']);
+        const first = refreshLocalFavoritesForKinds(['avatar']);
+        await refreshLocalFavoritesForKinds(['avatar']);
         resolveFirst([
             {
                 created_at: '2026-01-01',
-                worldId: 'wrld_old',
+                avatarId: 'avtr_old',
                 groupName: 'Old'
             }
         ]);
         await first;
 
-        expect(useFavoriteStore.getState().localWorldFavorites).toEqual({
-            New: ['wrld_new']
+        expect(useFavoriteStore.getState().localAvatarFavorites).toEqual({
+            New: ['avtr_new']
         });
     });
 

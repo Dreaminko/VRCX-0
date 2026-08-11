@@ -1,28 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    getArray: vi.fn(),
-    reload: vi.fn()
+    getArray: vi.fn()
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({ commands: {} }));
 vi.mock('./configRepository', () => ({
     default: {
-        getArray: mocks.getArray,
-        reload: mocks.reload
+        getArray: mocks.getArray
     }
 }));
 
-import {
-    getExplicitLocalFavoriteGroups,
-    getFreshExplicitLocalFavoriteGroups
-} from './favoritePersistenceRepository';
+import { getExplicitLocalFavoriteGroups } from './favoritePersistenceRepository';
 
 describe('favoritePersistenceRepository group realms', () => {
     beforeEach(() => {
         vi.resetAllMocks();
         mocks.getArray.mockResolvedValue([]);
-        mocks.reload.mockResolvedValue(undefined);
     });
 
     it('unions shared and account friend groups', async () => {
@@ -56,19 +50,6 @@ describe('favoritePersistenceRepository group realms', () => {
             getExplicitLocalFavoriteGroups('world', 'usr_a')
         ).resolves.toEqual(['Global']);
         expect(mocks.getArray).toHaveBeenCalledTimes(1);
-        expect(mocks.getArray).toHaveBeenCalledWith(
-            'localFavoriteWorldGroups',
-            []
-        );
-    });
-
-    it('reloads config before reading fresh groups', async () => {
-        mocks.getArray.mockResolvedValue(['Fresh']);
-
-        await expect(
-            getFreshExplicitLocalFavoriteGroups('world')
-        ).resolves.toEqual(['Fresh']);
-        expect(mocks.reload).toHaveBeenCalledOnce();
         expect(mocks.getArray).toHaveBeenCalledWith(
             'localFavoriteWorldGroups',
             []

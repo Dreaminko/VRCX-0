@@ -16,12 +16,40 @@ pub struct LocalFavoriteGroupWrite {
     pub affected: i64,
 }
 
+#[derive(Clone, Debug, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalFavoriteSnapshot {
+    pub favorites: Vec<FavoriteRow>,
+    pub group_names: Vec<String>,
+}
+
 pub fn list_local_favorites(
     db: &DatabaseService,
     owner_user_id: &str,
     kind: FavoriteEntityKind,
 ) -> Result<Vec<FavoriteRow>> {
     favorites::favorite_list(db, Some(owner_user_id), kind).map_err(Error::from)
+}
+
+pub fn get_local_favorite_snapshot(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    kind: FavoriteEntityKind,
+) -> Result<LocalFavoriteSnapshot> {
+    let favorites = list_local_favorites(db, owner_user_id, kind)?;
+    let mut group_names = read_config_string_array(db, local_group_config_key(kind))?;
+    if kind == FavoriteEntityKind::Friend && !owner_user_id.trim().is_empty() {
+        group_names.extend(read_config_string_array(
+            db,
+            &writable_group_config_key(kind, owner_user_id),
+        )?);
+        group_names.sort();
+        group_names.dedup();
+    }
+    Ok(LocalFavoriteSnapshot {
+        favorites,
+        group_names,
+    })
 }
 
 pub fn add_local_favorite(
@@ -274,6 +302,34 @@ mod tests {
         assert!(read_config_string_array(&db, "localFavoriteFriendGroups")
             .unwrap()
             .is_empty());
+    }
+
+    #[test]
+    fn local_world_snapshot_reads_favorites_and_explicit_groups_together() {
+        let dir = TestDir::new("world-snapshot");
+        let db = DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap();
+        write_config_string_array(
+            &db,
+            "localFavoriteWorldGroups",
+            &["Empty".into(), "Worlds".into()],
+        )
+        .unwrap();
+        favorite_add(
+            &db,
+            Some("usr_a"),
+            FavoriteEntityKind::World,
+            "wrld_1".into(),
+            "Worlds".into(),
+        )
+        .unwrap();
+
+        let snapshot =
+            get_local_favorite_snapshot(&db, "usr_a", FavoriteEntityKind::World).unwrap();
+
+        assert_eq!(snapshot.group_names, vec!["Empty", "Worlds"]);
+        assert_eq!(snapshot.favorites.len(), 1);
+        assert_eq!(snapshot.favorites[0].world_id.as_deref(), Some("wrld_1"));
+        assert_eq!(snapshot.favorites[0].group_name, "Worlds");
     }
 
     #[test]

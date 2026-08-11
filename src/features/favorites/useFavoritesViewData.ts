@@ -60,7 +60,6 @@ export function useFavoritesViewData({
     localAvatarFavorites,
     localFriendFavoriteGroups,
     localFriendFavorites,
-    localWorldDetailsById,
     localWorldFavoriteGroups,
     localWorldFavorites,
     remoteEntityDetails,
@@ -134,10 +133,6 @@ export function useFavoritesViewData({
         () => normalizeFavoriteDetailMap(remoteEntityDetails.data),
         [remoteEntityDetails.data]
     );
-    const normalizedLocalWorldDetailsById = useMemo(
-        () => normalizeFavoriteDetailMap(localWorldDetailsById),
-        [localWorldDetailsById]
-    );
     const normalizedWorldDetailFallbacksById = useMemo(
         () => normalizeFavoriteDetailMap(worldDetailFallbacksById),
         [worldDetailFallbacksById]
@@ -165,7 +160,6 @@ export function useFavoritesViewData({
             remoteEntityDetailsStatus: remoteEntityDetails.status,
             worldDetailFallbacksById: normalizedWorldDetailFallbacksById,
             avatarDetailFallbacksById: normalizedAvatarDetailFallbacksById,
-            localWorldDetailsById: normalizedLocalWorldDetailsById,
             remoteGroupLabelByKey,
             worldAvailabilityById,
             t
@@ -176,7 +170,6 @@ export function useFavoritesViewData({
         groupedFavoriteFriendIdsByGroupKey,
         knownUsersById,
         kind,
-        normalizedLocalWorldDetailsById,
         remoteEntityDetailsData,
         remoteEntityDetails.status,
         remoteFavoritesById,
@@ -197,7 +190,6 @@ export function useFavoritesViewData({
             localAvatarFavorites,
             localWorldFavorites,
             avatarDetailFallbacksById: normalizedAvatarDetailFallbacksById,
-            localWorldDetailsById: normalizedLocalWorldDetailsById,
             worldDetailFallbacksById: normalizedWorldDetailFallbacksById,
             friendsById,
             knownUsersById,
@@ -211,7 +203,6 @@ export function useFavoritesViewData({
         localAvatarFavorites,
         localFriendFavorites,
         localGroups,
-        normalizedLocalWorldDetailsById,
         normalizedAvatarDetailFallbacksById,
         normalizedWorldDetailFallbacksById,
         localWorldFavorites,

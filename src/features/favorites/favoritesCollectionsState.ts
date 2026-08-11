@@ -9,6 +9,7 @@ const EMPTY_OBJECT: Record<string, never> = {};
 type FavoritesCollectionsStoreSlice = Pick<
     FavoriteStore,
     | 'detail'
+    | 'lastLoadedAt'
     | 'favoriteAvatarGroups'
     | 'favoriteAvatarIds'
     | 'favoriteFriendGroups'
@@ -20,9 +21,6 @@ type FavoritesCollectionsStoreSlice = Pick<
     | 'localAvatarFavorites'
     | 'localFriendFavoriteGroups'
     | 'localFriendFavorites'
-    | 'localWorldDetailsById'
-    | 'localWorldFavoriteGroups'
-    | 'localWorldFavorites'
     | 'remoteFavoritesById'
 > & {
     loadStatus: string;
@@ -31,6 +29,12 @@ type FavoritesCollectionsStoreSlice = Pick<
 type FavoriteAvatarTagSource = {
     tags?: unknown[];
     type?: unknown;
+};
+
+type FavoriteRemoteGroupSource = {
+    type?: unknown;
+    favoriteId?: unknown;
+    $groupKey?: unknown;
 };
 
 function addNormalizedFavoriteIds(
@@ -120,6 +124,44 @@ export function buildFavoriteAvatarTags({
     );
 }
 
+export function buildFavoriteRemoteGroupEntityIds({
+    groupKey,
+    kind,
+    remoteFavoritesById = EMPTY_OBJECT
+}: {
+    groupKey: unknown;
+    kind: FavoriteKind;
+    remoteFavoritesById?: Record<string, unknown>;
+}): string[] {
+    const normalizedGroupKey = normalizeEntityId(groupKey);
+    if (!normalizedGroupKey || kind === 'friend') {
+        return [];
+    }
+
+    const ids = new Set<string>();
+    for (const value of Object.values(remoteFavoritesById)) {
+        if (!value || typeof value !== 'object') {
+            continue;
+        }
+        const favorite = value as FavoriteRemoteGroupSource;
+        const matchesKind =
+            kind === 'avatar'
+                ? favorite.type === 'avatar'
+                : favorite.type === 'world' || favorite.type === 'vrcPlusWorld';
+        if (
+            !matchesKind ||
+            normalizeEntityId(favorite.$groupKey) !== normalizedGroupKey
+        ) {
+            continue;
+        }
+        const favoriteId = normalizeEntityId(favorite.favoriteId);
+        if (favoriteId) {
+            ids.add(favoriteId);
+        }
+    }
+    return Array.from(ids);
+}
+
 export function selectFavoritesCollectionsState(kind: FavoriteKind) {
     return (state: FavoritesCollectionsStoreSlice) => {
         const isFriend = kind === 'friend';
@@ -129,6 +171,7 @@ export function selectFavoritesCollectionsState(kind: FavoriteKind) {
         return {
             favoriteLoadStatus: state.loadStatus,
             favoriteDetail: state.detail,
+            favoriteLastLoadedAt: state.lastLoadedAt,
             favoritesSortOrder: state.favoritesSortOrder,
             remoteFavoritesById:
                 isAvatar || isWorld ? state.remoteFavoritesById : EMPTY_OBJECT,
@@ -144,27 +187,18 @@ export function selectFavoritesCollectionsState(kind: FavoriteKind) {
             groupedFavoriteFriendIdsByGroupKey: isFriend
                 ? state.groupedFavoriteFriendIdsByGroupKey
                 : EMPTY_OBJECT,
-            localWorldFavorites: isWorld
-                ? state.localWorldFavorites
-                : EMPTY_OBJECT,
             localAvatarFavorites: isAvatar
                 ? state.localAvatarFavorites
                 : EMPTY_OBJECT,
             localFriendFavorites: isFriend
                 ? state.localFriendFavorites
                 : EMPTY_OBJECT,
-            localWorldFavoriteGroups: isWorld
-                ? state.localWorldFavoriteGroups
-                : EMPTY_ARRAY,
             localAvatarFavoriteGroups: isAvatar
                 ? state.localAvatarFavoriteGroups
                 : EMPTY_ARRAY,
             localFriendFavoriteGroups: isFriend
                 ? state.localFriendFavoriteGroups
                 : EMPTY_ARRAY,
-            localWorldDetailsById: isWorld
-                ? state.localWorldDetailsById
-                : EMPTY_OBJECT,
             favoriteWorldIds: isWorld ? state.favoriteWorldIds : EMPTY_ARRAY,
             favoriteAvatarIds: isAvatar ? state.favoriteAvatarIds : EMPTY_ARRAY
         };

@@ -1,4 +1,5 @@
 export type FavoriteKind = 'friend' | 'avatar' | 'world';
+export type StoredLocalFavoriteKind = Exclude<FavoriteKind, 'world'>;
 export type RemoteFavoriteKind = FavoriteKind | 'vrcPlusWorld' | (string & {});
 export type FavoriteVisibility =
     | 'public'
@@ -57,7 +58,7 @@ export type FavoriteSnapshot = Partial<
         favoriteLimits?: unknown;
     };
 export type LocalFavoriteGroupAction = {
-    kind: FavoriteKind;
+    kind: StoredLocalFavoriteKind;
     groupName: unknown;
 };
 export type LocalFavoriteAction = LocalFavoriteGroupAction & {
@@ -96,16 +97,12 @@ export type FavoriteStoreState = {
     favoriteFriendGroups: FavoriteGroup[];
     favoriteWorldGroups: FavoriteGroup[];
     favoriteAvatarGroups: FavoriteGroup[];
-    localWorldFavorites: FavoriteGroupMap;
     localAvatarFavorites: FavoriteGroupMap;
     localFriendFavorites: FavoriteGroupMap;
-    localWorldFavoriteGroups: string[];
     localAvatarFavoriteGroups: string[];
     localFriendFavoriteGroups: string[];
-    localWorldFavoritesList: string[];
     localAvatarFavoritesList: string[];
     localFriendFavoritesList: string[];
-    localWorldDetailsById: FavoriteDetailsById;
 };
 export type FavoriteStore = FavoriteStoreState & {
     setFavoritesLoading(currentUserId: unknown, detail?: string): void;
@@ -118,7 +115,7 @@ export type FavoriteStore = FavoriteStoreState & {
     renameLocalFavoriteGroup(action: RenameLocalFavoriteGroupAction): void;
     deleteLocalFavoriteGroup(action: LocalFavoriteGroupAction): void;
     setLocalFavoritesForKind(
-        kind: FavoriteKind,
+        kind: StoredLocalFavoriteKind,
         snapshot: LocalFavoritesForKindSnapshot
     ): void;
     removeRemoteFavorite(objectId: unknown): void;

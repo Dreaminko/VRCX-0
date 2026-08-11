@@ -41,6 +41,7 @@ export function useFavoritesBulkActions({
     currentEndpoint,
     kind,
     localGroups,
+    reloadLocalWorldFavorites,
     refreshFavorites,
     remoteFavoritesByObjectId,
     remoteGroups,
@@ -52,6 +53,7 @@ export function useFavoritesBulkActions({
     currentEndpoint: string;
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
+    reloadLocalWorldFavorites(): Promise<unknown>;
     refreshFavorites(options?: { silent?: boolean }): Promise<boolean>;
     remoteFavoritesByObjectId: Record<string, FavoriteRecord | undefined>;
     remoteGroups: FavoriteGroup[];
@@ -153,15 +155,23 @@ export function useFavoritesBulkActions({
                     if (!item) {
                         continue;
                     }
-                    if (item.source === 'local') {
+                    if (item.source === 'local' && item.kind !== 'world') {
                         removeLocalFavorite({
                             kind: item.kind,
                             entityId: item.id,
                             groupName: item.groupKey
                         });
-                    } else {
+                    } else if (item.source === 'remote') {
                         removeRemoteFavorite(item.id);
                     }
+                }
+                if (
+                    selectedContentItems.some(
+                        (item) =>
+                            item.source === 'local' && item.kind === 'world'
+                    )
+                ) {
+                    await reloadLocalWorldFavorites();
                 }
                 setSelectedKeys((current) =>
                     current.filter((key) => !removedKeys.has(key))

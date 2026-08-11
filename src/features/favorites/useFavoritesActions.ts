@@ -27,7 +27,7 @@ export function useFavoritesActions({
     kind,
     localGroups,
     newLocalGroupName,
-    refreshRemoteDetails,
+    reloadLocalWorldFavorites,
     remoteGroups,
     selectedContentItems,
     selectedGroupKey,
@@ -53,7 +53,7 @@ export function useFavoritesActions({
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
     newLocalGroupName: string;
-    refreshRemoteDetails(): void;
+    reloadLocalWorldFavorites(): Promise<unknown>;
     remoteGroups: FavoriteGroup[];
     selectedContentItems: FavoriteItem[];
     selectedGroupKey: string;
@@ -83,7 +83,7 @@ export function useFavoritesActions({
         currentUserSnapshot,
         kind,
         localGroups,
-        refreshRemoteDetails,
+        reloadLocalWorldFavorites,
         refreshing,
         removingFavoriteKeyRef,
         selectedGroupKey,
@@ -104,6 +104,7 @@ export function useFavoritesActions({
         kind,
         localGroups,
         newLocalGroupName,
+        reloadLocalWorldFavorites,
         refreshing,
         selectedContentItems,
         selectedSource,
@@ -118,6 +119,7 @@ export function useFavoritesActions({
         currentEndpoint,
         kind,
         localGroups,
+        reloadLocalWorldFavorites,
         refreshFavorites: collectionActions.refreshFavorites,
         remoteFavoritesByObjectId,
         remoteGroups,

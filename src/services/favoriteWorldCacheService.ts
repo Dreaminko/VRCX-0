@@ -1,4 +1,5 @@
 import { commands } from '@/platform/tauri/bindings';
+import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 
 import {
@@ -21,12 +22,14 @@ export async function cacheWorldDetails(
     });
 }
 
-function isFavoriteWorldId(id: string): boolean {
+async function isFavoriteWorldId(id: string): Promise<boolean> {
     const state = useFavoriteStore.getState();
-    return (
-        state.favoriteWorldIds.includes(id) ||
-        state.localWorldFavoritesList.includes(id)
-    );
+    if (state.favoriteWorldIds.includes(id)) {
+        return true;
+    }
+    const localFavorites =
+        await favoritePersistenceRepository.getWorldFavorites();
+    return localFavorites.some((row) => row.worldId === id);
 }
 
 export async function cacheFavoriteWorldDetails(
@@ -37,7 +40,10 @@ export async function cacheFavoriteWorldDetails(
         return false;
     }
     const id = normalizeFavoriteCacheEntityId(entity.id);
-    return id && isFavoriteWorldId(id) ? cacheWorldDetails(entity) : false;
+    if (!id || !(await isFavoriteWorldId(id))) {
+        return false;
+    }
+    return cacheWorldDetails(entity);
 }
 
 function reportWorldCacheError(error: unknown): void {

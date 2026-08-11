@@ -67,7 +67,7 @@ describe('world detail fallback helpers', () => {
         vi.clearAllMocks();
     });
 
-    it('only asks the DB for remote favorite worlds with no displayable detail source', async () => {
+    it('only asks Rust for worlds with no hydrated remote detail', async () => {
         const fallbackIds = getWorldDetailFallbackIds({
             worldIds: [
                 'wrld_remote',
@@ -76,9 +76,6 @@ describe('world detail fallback helpers', () => {
                 'wrld_missing'
             ],
             kind: 'world',
-            localWorldDetailsById: {
-                wrld_local: { name: 'Local Baseline World' }
-            },
             remoteEntityDetailsData: {
                 wrld_remote: { name: 'Remote World' }
             },
@@ -91,8 +88,12 @@ describe('world detail fallback helpers', () => {
 
         const fallbacks = await loadWorldDetailFallbacksById(fallbackIds);
 
-        expect(fallbackIds).toEqual(['wrld_fact', 'wrld_missing']);
-        expect(worldProfileRepository.getWorldProfile).toHaveBeenCalledTimes(2);
+        expect(fallbackIds).toEqual([
+            'wrld_fact',
+            'wrld_local',
+            'wrld_missing'
+        ]);
+        expect(worldProfileRepository.getWorldProfile).toHaveBeenCalledTimes(3);
         expect(worldProfileRepository.getWorldProfile).toHaveBeenCalledWith({
             worldId: 'wrld_missing'
         });
@@ -109,7 +110,7 @@ describe('world detail fallback helpers', () => {
             getWorldDetailFallbackIds({
                 worldIds: ['wrld_remote', 'wrld_local'],
                 kind: 'world',
-                localWorldDetailsById: {
+                remoteEntityDetailsData: {
                     wrld_remote: { name: 'Already Loaded' }
                 },
                 remoteEntityDetailsStatus: 'ready'

@@ -25,7 +25,7 @@ export function useFavoritesCollectionActions({
     currentUserSnapshot,
     kind,
     localGroups,
-    refreshRemoteDetails,
+    reloadLocalWorldFavorites,
     refreshing,
     removingFavoriteKeyRef,
     selectedGroupKey,
@@ -42,7 +42,7 @@ export function useFavoritesCollectionActions({
     currentUserSnapshot: CurrentUserSnapshotState | null;
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
-    refreshRemoteDetails(): void;
+    reloadLocalWorldFavorites(): Promise<unknown>;
     refreshing: boolean;
     removingFavoriteKeyRef: MutableRefObject<string>;
     selectedGroupKey: string;
@@ -88,12 +88,14 @@ export function useFavoritesCollectionActions({
         }
         setRefreshing(true);
         try {
-            refreshRemoteDetails();
             await bootstrapFavorites({
                 userId: currentUserId,
                 endpoint: currentEndpoint,
                 currentUserSnapshot
             });
+            if (kind === 'world') {
+                await reloadLocalWorldFavorites();
+            }
             if (kind === 'avatar') {
                 const rows = await avatarLocalRepository.getAvatarHistory(
                     currentUserId,
@@ -160,11 +162,15 @@ export function useFavoritesCollectionActions({
                 entityId: item.id,
                 groupName: item.groupKey
             });
-            removeLocalFavorite({
-                kind: item.kind,
-                entityId: item.id,
-                groupName: item.groupKey
-            });
+            if (item.kind === 'world') {
+                await reloadLocalWorldFavorites();
+            } else {
+                removeLocalFavorite({
+                    kind: item.kind,
+                    entityId: item.id,
+                    groupName: item.groupKey
+                });
+            }
             if (!silent) {
                 toast.success(
                     t('view.favorite.success.local_favorite_removed')
@@ -392,11 +398,15 @@ export function useFavoritesCollectionActions({
                 groupName: group.key,
                 newGroupName: nextName
             });
-            renameLocalFavoriteGroup({
-                kind,
-                groupName: group.key,
-                newGroupName: nextName
-            });
+            if (kind === 'world') {
+                await reloadLocalWorldFavorites();
+            } else {
+                renameLocalFavoriteGroup({
+                    kind,
+                    groupName: group.key,
+                    newGroupName: nextName
+                });
+            }
             if (selectedSource === 'local' && selectedGroupKey === group.key) {
                 setSelectedGroupKey(nextName);
             }
@@ -432,10 +442,14 @@ export function useFavoritesCollectionActions({
                 kind,
                 groupName: group.key
             });
-            deleteLocalFavoriteGroup({
-                kind,
-                groupName: group.key
-            });
+            if (kind === 'world') {
+                await reloadLocalWorldFavorites();
+            } else {
+                deleteLocalFavoriteGroup({
+                    kind,
+                    groupName: group.key
+                });
+            }
             if (selectedSource === 'local' && selectedGroupKey === group.key) {
                 setSelectedGroupKey('');
             }

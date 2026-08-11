@@ -1059,6 +1059,11 @@ export const commands = {
     async appFavoriteList(kind: FavoriteEntityKind): Promise<FavoriteRow[]> {
         return await TAURI_INVOKE('app__favorite_list', { kind });
     },
+    async appFavoriteLocalSnapshot(
+        kind: FavoriteEntityKind
+    ): Promise<LocalFavoriteSnapshot> {
+        return await TAURI_INVOKE('app__favorite_local_snapshot', { kind });
+    },
     async appMemoGetUser(userId: string): Promise<UserMemoOutput | null> {
         return await TAURI_INVOKE('app__memo_get_user', { userId });
     },
@@ -3576,16 +3581,12 @@ export type FavoriteBaselineSnapshot = {
     favoriteFriendGroups: FavoriteGroupOutput[];
     favoriteWorldGroups: FavoriteGroupOutput[];
     favoriteAvatarGroups: FavoriteGroupOutput[];
-    localWorldFavorites: Partial<{ [key in string]: string[] }>;
     localAvatarFavorites: Partial<{ [key in string]: string[] }>;
     localFriendFavorites: Partial<{ [key in string]: string[] }>;
-    localWorldFavoriteGroups: string[];
     localAvatarFavoriteGroups: string[];
     localFriendFavoriteGroups: string[];
-    localWorldFavoritesList: string[];
     localAvatarFavoritesList: string[];
     localFriendFavoritesList: string[];
-    localWorldDetailsById: Partial<{ [key in string]: RawJson }>;
     detail: string;
 };
 export type FavoriteBulkRemoveInput = {
@@ -3631,7 +3632,9 @@ export type FavoriteChangeScope = 'avatar' | 'world' | 'friend' | 'unknown';
 export type FavoriteDetailsHydrateInput = {
     kind: FavoriteDetailsHydrateKind;
     favoriteIds?: string[];
+    requestedIds?: string[];
     avatarTags?: string[];
+    refreshKey?: string;
 };
 export type FavoriteDetailsHydrateKind = 'avatar' | 'world';
 export type FavoriteDetailsHydrateOutput = {
@@ -4319,6 +4322,10 @@ export type LocalFavoriteInput = {
     kind: FavoriteEntityKind;
     entityId?: string;
     groupName?: string;
+};
+export type LocalFavoriteSnapshot = {
+    favorites: FavoriteRow[];
+    groupNames: string[];
 };
 export type LocalModerationOutput = {
     userId: string;

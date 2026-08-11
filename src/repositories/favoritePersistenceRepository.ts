@@ -141,14 +141,6 @@ async function getExplicitLocalFavoriteGroups(
     ]);
 }
 
-async function getFreshExplicitLocalFavoriteGroups(
-    kind: unknown,
-    currentUserId?: unknown
-) {
-    await configRepository.reload();
-    return getExplicitLocalFavoriteGroups(kind, currentUserId);
-}
-
 async function createLocalFavoriteGroup({
     kind,
     groupName
@@ -318,7 +310,6 @@ const favoritePersistenceRepository = Object.freeze({
     addFriendToLocalFavorites,
     addWorldToFavorites,
     getExplicitLocalFavoriteGroups,
-    getFreshExplicitLocalFavoriteGroups,
     createLocalFavoriteGroup,
     getWorldFavorites,
     getAvatarFavorites,
@@ -334,7 +325,6 @@ export {
     addFriendToLocalFavorites,
     addWorldToFavorites,
     getExplicitLocalFavoriteGroups,
-    getFreshExplicitLocalFavoriteGroups,
     createLocalFavoriteGroup,
     getWorldFavorites,
     getAvatarFavorites,

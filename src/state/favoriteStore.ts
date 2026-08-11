@@ -12,7 +12,6 @@ import {
     hasFavoriteStoreData,
     initialFavoriteStoreState,
     isObjectRecord,
-    normalizeFavoriteDetailsById,
     normalizeFavoriteGroupMap,
     normalizeFavoriteGroups,
     normalizeFavoriteRecordMap,
@@ -25,7 +24,6 @@ import {
     renameLocalFavoriteGroupState
 } from './favoriteStoreModel';
 import type {
-    FavoriteDetailsById,
     FavoriteGroupMap,
     FavoriteRecord,
     FavoriteStore
@@ -134,17 +132,11 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                 favoriteAvatarGroups,
                 remoteFavoritesById
             ),
-            localWorldFavorites: normalizeFavoriteGroupMap(
-                snapshot.localWorldFavorites
-            ),
             localAvatarFavorites: normalizeFavoriteGroupMap(
                 snapshot.localAvatarFavorites
             ),
             localFriendFavorites: normalizeFavoriteGroupMap(
                 snapshot.localFriendFavorites
-            ),
-            localWorldFavoriteGroups: normalizeStringArray(
-                snapshot.localWorldFavoriteGroups
             ),
             localAvatarFavoriteGroups: normalizeStringArray(
                 snapshot.localAvatarFavoriteGroups
@@ -152,17 +144,11 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
             localFriendFavoriteGroups: normalizeStringArray(
                 snapshot.localFriendFavoriteGroups
             ),
-            localWorldFavoritesList: normalizeStringArray(
-                snapshot.localWorldFavoritesList
-            ),
             localAvatarFavoritesList: normalizeStringArray(
                 snapshot.localAvatarFavoritesList
             ),
             localFriendFavoritesList: normalizeStringArray(
                 snapshot.localFriendFavoritesList
-            ),
-            localWorldDetailsById: normalizeFavoriteDetailsById(
-                snapshot.localWorldDetailsById
             )
         };
         set(nextState);
@@ -178,7 +164,7 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
     resetFavorites() {
         set(initialFavoriteStoreState);
     },
-    addLocalFavorite({ kind, groupName, entityId, entity }) {
+    addLocalFavorite({ kind, groupName, entityId }) {
         set((state) => {
             const normalizedGroupName = normalizeFavoriteStoreId(groupName);
             const normalizedEntityId = normalizeFavoriteStoreId(entityId);
@@ -238,39 +224,6 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                 };
             }
 
-            if (kind === 'world') {
-                const localWorldFavorites: FavoriteGroupMap = {
-                    ...state.localWorldFavorites,
-                    [normalizedGroupName]: Array.from(
-                        new Set([
-                            normalizedEntityId,
-                            ...(Array.isArray(
-                                state.localWorldFavorites[normalizedGroupName]
-                            )
-                                ? state.localWorldFavorites[normalizedGroupName]
-                                : [])
-                        ])
-                    )
-                };
-                return {
-                    ...state,
-                    localWorldFavorites,
-                    localWorldFavoriteGroups:
-                        getSortedLocalGroupNames(localWorldFavorites),
-                    localWorldFavoritesList:
-                        flattenFavoriteGroups(localWorldFavorites),
-                    localWorldDetailsById: isObjectRecord(entity)
-                        ? {
-                              ...state.localWorldDetailsById,
-                              [normalizedEntityId]: {
-                                  id: normalizedEntityId,
-                                  ...entity
-                              }
-                          }
-                        : state.localWorldDetailsById
-                };
-            }
-
             return state;
         });
     },
@@ -309,34 +262,6 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                 };
             }
 
-            if (kind === 'world') {
-                const localWorldFavorites = removeFromFavoriteGroups(
-                    state.localWorldFavorites,
-                    groupName,
-                    entityId
-                );
-                const localWorldFavoritesList =
-                    flattenFavoriteGroups(localWorldFavorites);
-                const localWorldDetailsById: FavoriteDetailsById = {
-                    ...state.localWorldDetailsById
-                };
-                const normalizedEntityId = normalizeFavoriteStoreId(entityId);
-                if (
-                    normalizedEntityId &&
-                    !localWorldFavoritesList.includes(normalizedEntityId)
-                ) {
-                    delete localWorldDetailsById[normalizedEntityId];
-                }
-                return {
-                    ...state,
-                    localWorldFavorites,
-                    localWorldFavoriteGroups:
-                        Object.keys(localWorldFavorites).sort(),
-                    localWorldFavoritesList,
-                    localWorldDetailsById
-                };
-            }
-
             return state;
         });
     },
@@ -365,19 +290,6 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                     localAvatarFavorites,
                     localAvatarFavoriteGroups:
                         getSortedLocalGroupNames(localAvatarFavorites)
-                };
-            }
-
-            if (kind === 'world') {
-                const localWorldFavorites = createLocalFavoriteGroupState(
-                    state.localWorldFavorites,
-                    groupName
-                );
-                return {
-                    ...state,
-                    localWorldFavorites,
-                    localWorldFavoriteGroups:
-                        getSortedLocalGroupNames(localWorldFavorites)
                 };
             }
 
@@ -418,22 +330,6 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                 };
             }
 
-            if (kind === 'world') {
-                const localWorldFavorites = renameLocalFavoriteGroupState(
-                    state.localWorldFavorites,
-                    groupName,
-                    newGroupName
-                );
-                return {
-                    ...state,
-                    localWorldFavorites,
-                    localWorldFavoriteGroups:
-                        getSortedLocalGroupNames(localWorldFavorites),
-                    localWorldFavoritesList:
-                        flattenFavoriteGroups(localWorldFavorites)
-                };
-            }
-
             return state;
         });
     },
@@ -466,21 +362,6 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                         getSortedLocalGroupNames(localAvatarFavorites),
                     localAvatarFavoritesList:
                         flattenFavoriteGroups(localAvatarFavorites)
-                };
-            }
-
-            if (kind === 'world') {
-                const localWorldFavorites = deleteLocalFavoriteGroupState(
-                    state.localWorldFavorites,
-                    groupName
-                );
-                return {
-                    ...state,
-                    localWorldFavorites,
-                    localWorldFavoriteGroups:
-                        getSortedLocalGroupNames(localWorldFavorites),
-                    localWorldFavoritesList:
-                        flattenFavoriteGroups(localWorldFavorites)
                 };
             }
 
@@ -605,15 +486,6 @@ export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
                     localAvatarFavorites: normalizedFavorites,
                     localAvatarFavoriteGroups: normalizedGroups,
                     localAvatarFavoritesList: normalizedList
-                };
-            }
-
-            if (kind === 'world') {
-                return {
-                    ...state,
-                    localWorldFavorites: normalizedFavorites,
-                    localWorldFavoriteGroups: normalizedGroups,
-                    localWorldFavoritesList: normalizedList
                 };
             }
 

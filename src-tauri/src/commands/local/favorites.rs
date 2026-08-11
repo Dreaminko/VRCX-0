@@ -5,7 +5,7 @@ use tauri::State;
 use crate::error::AppError;
 use crate::state::AppState;
 
-use vrcx_0_application::FavoriteRow;
+use vrcx_0_application::{FavoriteRow, LocalFavoriteSnapshot};
 use vrcx_0_application_core::{FavoriteEntityKind, FavoritesChangedPayload};
 
 #[tauri::command]
@@ -16,6 +16,17 @@ pub fn app__favorite_list(
 ) -> Result<Vec<FavoriteRow>, AppError> {
     let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
     vrcx_0_application::list_local_favorites(state.db.as_ref(), &owner_user_id, kind)
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__favorite_local_snapshot(
+    state: State<'_, AppState>,
+    kind: FavoriteEntityKind,
+) -> Result<LocalFavoriteSnapshot, AppError> {
+    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
+    vrcx_0_application::get_local_favorite_snapshot(state.db.as_ref(), &owner_user_id, kind)
         .map_err(AppError::from)
 }
 

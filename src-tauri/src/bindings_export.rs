@@ -311,6 +311,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::worlds::app__world_search,
             commands::local::worlds::app__world_get,
             commands::local::favorites::app__favorite_list,
+            commands::local::favorites::app__favorite_local_snapshot,
             commands::local::memos::app__memo_get_user,
             commands::local::memos::app__memo_list_users,
             commands::local::memos::app__memo_list_user_notes,

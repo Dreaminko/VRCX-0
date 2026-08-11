@@ -1,7 +1,6 @@
 import favoritePersistenceRepository, {
     type AvatarFavoriteRow,
-    type FriendFavoriteRow,
-    type WorldFavoriteRow
+    type FriendFavoriteRow
 } from '@/repositories/favoritePersistenceRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import type {
@@ -9,9 +8,8 @@ import type {
     FavoriteKind
 } from '@/state/favoriteStoreTypes';
 
-const refreshSequences: Record<FavoriteKind, number> = {
+const refreshSequences: Record<Exclude<FavoriteKind, 'world'>, number> = {
     friend: 0,
-    world: 0,
     avatar: 0
 };
 
@@ -36,17 +34,6 @@ function buildGroupMap<Row extends { groupName: string }>(
         }
     }
     return map;
-}
-
-async function readLocalWorldFavorites() {
-    const [rows, groups] = await Promise.all([
-        favoritePersistenceRepository.getWorldFavorites(),
-        favoritePersistenceRepository.getExplicitLocalFavoriteGroups('world')
-    ]);
-    return {
-        localFavorites: buildGroupMap<WorldFavoriteRow>(rows, 'worldId'),
-        localFavoriteGroups: groups
-    };
 }
 
 async function readLocalAvatarFavorites() {
@@ -74,15 +61,15 @@ async function readLocalFriendFavorites(currentUserId: string | null) {
     };
 }
 
-async function refreshLocalFavoritesForKind(kind: FavoriteKind): Promise<void> {
+async function refreshLocalFavoritesForKind(
+    kind: Exclude<FavoriteKind, 'world'>
+): Promise<void> {
     const sequence = ++refreshSequences[kind];
     const currentUserId = useFavoriteStore.getState().currentUserId;
     const snapshot =
-        kind === 'world'
-            ? await readLocalWorldFavorites()
-            : kind === 'avatar'
-              ? await readLocalAvatarFavorites()
-              : await readLocalFriendFavorites(currentUserId);
+        kind === 'avatar'
+            ? await readLocalAvatarFavorites()
+            : await readLocalFriendFavorites(currentUserId);
     const store = useFavoriteStore.getState();
     if (
         refreshSequences[kind] === sequence &&
@@ -95,7 +82,9 @@ async function refreshLocalFavoritesForKind(kind: FavoriteKind): Promise<void> {
 export async function refreshLocalFavoritesForKinds(
     kinds: Iterable<FavoriteKind>
 ): Promise<void> {
-    const uniqueKinds = Array.from(new Set(kinds));
+    const uniqueKinds = Array.from(new Set(kinds)).filter(
+        (kind): kind is Exclude<FavoriteKind, 'world'> => kind !== 'world'
+    );
     await Promise.all(
         uniqueKinds.map((kind) => refreshLocalFavoritesForKind(kind))
     );

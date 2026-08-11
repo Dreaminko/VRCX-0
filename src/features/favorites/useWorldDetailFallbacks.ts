@@ -13,7 +13,6 @@ import {
 type WorldDetailFallbackInput = {
     worldIds?: unknown;
     kind: unknown;
-    localWorldDetailsById?: DetailMap;
     remoteEntityDetailsData?: DetailMap;
     remoteEntityDetailsStatus?: unknown;
 };
@@ -24,13 +23,12 @@ const fetchWorldById = (worldId: string) =>
 export function getWorldDetailFallbackIds({
     worldIds,
     kind,
-    localWorldDetailsById,
     remoteEntityDetailsData,
     remoteEntityDetailsStatus
 }: WorldDetailFallbackInput): string[] {
     return getRemoteEntityCacheFallbackIds({
         entityIds: worldIds,
-        detailSources: [remoteEntityDetailsData, localWorldDetailsById],
+        detailSources: [remoteEntityDetailsData],
         isReady: kind === 'world' && remoteEntityDetailsStatus === 'ready'
     });
 }
@@ -52,7 +50,6 @@ export function useWorldDetailFallbacks(
         [
             input.worldIds,
             input.kind,
-            input.localWorldDetailsById,
             input.remoteEntityDetailsData,
             input.remoteEntityDetailsStatus
         ]

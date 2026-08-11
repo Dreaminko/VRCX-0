@@ -580,14 +580,11 @@ async fn build_favorites_baseline_inner(
         &mut favorite_groups,
     );
 
-    let local_world_details_by_id = BTreeMap::new();
-
-    let (local_world_favorites, local_world_favorite_groups, local_world_favorites_list) =
-        build_local_grouped_ids(
-            local_world_favorite_rows,
-            explicit_local_world_groups,
-            "Favorites",
-        );
+    let (local_world_favorites, _, local_world_favorites_list) = build_local_grouped_ids(
+        local_world_favorite_rows,
+        explicit_local_world_groups,
+        "Favorites",
+    );
     let (local_avatar_favorites, local_avatar_favorite_groups, local_avatar_favorites_list) =
         build_local_grouped_ids(
             local_avatar_favorite_rows,
@@ -645,13 +642,10 @@ async fn build_favorites_baseline_inner(
         local_world_favorites,
         local_avatar_favorites,
         local_friend_favorites,
-        local_world_favorite_groups,
         local_avatar_favorite_groups,
         local_friend_favorite_groups,
-        local_world_favorites_list,
         local_avatar_favorites_list,
         local_friend_favorites_list,
-        local_world_details_by_id,
         detail,
     };
 

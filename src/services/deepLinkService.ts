@@ -6,7 +6,6 @@ import type {
     SharedCollectionImportStatus
 } from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
-import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import shareCollectionRepository from '@/repositories/shareCollectionRepository';
 import { isCollectionShortcode } from '@/shared/constants/collectionShare';
 import { isAvatarId, isWorldId } from '@/shared/constants/vrchatIds';
@@ -233,10 +232,8 @@ async function importSharedCollectionFlow(collectionId: string): Promise<void> {
         }
         let existingGroups: string[];
         try {
-            existingGroups =
-                await favoritePersistenceRepository.getFreshExplicitLocalFavoriteGroups(
-                    'world'
-                );
+            existingGroups = (await commands.appFavoriteLocalSnapshot('world'))
+                .groupNames;
         } catch (error) {
             toast.error(
                 errorMessage(

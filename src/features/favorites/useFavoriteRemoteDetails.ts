@@ -21,7 +21,9 @@ type FavoriteRemoteDetailsById = Record<string, FavoriteRemoteEntityDetail>;
 interface UseFavoriteRemoteDetailsOptions {
     type: FavoriteRemoteDetailKind;
     favoriteIds?: unknown;
+    requestedIds?: unknown;
     avatarTags?: unknown;
+    cacheKey?: string;
     enabled?: boolean;
     refreshToken?: number;
 }
@@ -45,6 +47,14 @@ function subscribeToRemoteDetailsRefresh(listener: () => void) {
 
 function getRemoteDetailsRefreshGeneration() {
     return remoteDetailsRefreshGeneration;
+}
+
+function favoriteRemoteDetailsLoadingDetail(
+    type: FavoriteRemoteDetailKind
+): string {
+    return type === 'avatar'
+        ? 'Loading remote avatar details.'
+        : 'Loading remote world details.';
 }
 
 const inflightHydrations = new Map<
@@ -100,6 +110,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 interface RemoteDetailsState {
+    requestKey: string;
     status: string;
     detail: string;
     data: FavoriteRemoteDetailsById;
@@ -108,10 +119,12 @@ interface RemoteDetailsState {
 }
 
 function buildInitialState(
+    requestKey: string = '',
     status: string = 'idle',
     detail: string = ''
 ): RemoteDetailsState {
     return {
+        requestKey,
         status,
         detail,
         data: {},
@@ -199,10 +212,13 @@ function mapDetailsById(detailsById: unknown): FavoriteRemoteDetailsById {
 export function useFavoriteRemoteDetails({
     type,
     favoriteIds = [],
+    requestedIds = favoriteIds,
     avatarTags = [],
+    cacheKey = '',
     enabled = true,
     refreshToken = 0
 }: UseFavoriteRemoteDetailsOptions) {
+    const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
     const refreshGeneration = useSyncExternalStore(
         subscribeToRemoteDetailsRefresh,
@@ -212,45 +228,66 @@ export function useFavoriteRemoteDetails({
         () => normalizeValues(favoriteIds),
         [favoriteIds]
     );
+    const normalizedRequestedIds = useMemo(
+        () => normalizeValues(requestedIds),
+        [requestedIds]
+    );
     const normalizedTags = useMemo(
         () => normalizeValues(avatarTags),
         [avatarTags]
     );
     const requestKey = [
         type,
+        currentUserId || '',
         endpoint || '',
         normalizedIds.join('|'),
+        normalizedRequestedIds.join('|'),
         normalizedTags.join('|'),
+        cacheKey,
         String(refreshToken),
         String(refreshGeneration)
     ].join('::');
-    const hasIds = normalizedIds.length > 0;
+    const hasIds =
+        normalizedIds.length > 0 && normalizedRequestedIds.length > 0;
+    const refreshKey = [
+        cacheKey,
+        String(refreshToken),
+        String(refreshGeneration)
+    ].join('::');
     const [state, setState] = useState(() => buildInitialState());
     const requestParamsRef = useRef({
         ids: normalizedIds,
+        requestedIds: normalizedRequestedIds,
+        refreshKey,
         tags: normalizedTags
     });
-    requestParamsRef.current = { ids: normalizedIds, tags: normalizedTags };
+    requestParamsRef.current = {
+        ids: normalizedIds,
+        requestedIds: normalizedRequestedIds,
+        refreshKey,
+        tags: normalizedTags
+    };
 
     useEffect(() => {
         if (!enabled || !hasIds) {
-            setState(buildInitialState('ready'));
+            setState(buildInitialState(requestKey, 'ready'));
             return;
         }
 
         let active = true;
         setState(
             buildInitialState(
+                requestKey,
                 'running',
-                type === 'avatar'
-                    ? 'Loading remote avatar details.'
-                    : 'Loading remote world details.'
+                favoriteRemoteDetailsLoadingDetail(type)
             )
         );
         hydrateFavoriteDetails(requestKey, {
             kind: type,
             favoriteIds: requestParamsRef.current.ids,
-            avatarTags: type === 'avatar' ? requestParamsRef.current.tags : []
+            requestedIds: requestParamsRef.current.requestedIds,
+            avatarTags: type === 'avatar' ? requestParamsRef.current.tags : [],
+            refreshKey: requestParamsRef.current.refreshKey
         })
             .then((output) => {
                 if (!active) {
@@ -258,6 +295,7 @@ export function useFavoriteRemoteDetails({
                 }
                 const data = mapDetailsById(output.detailsById);
                 setState({
+                    requestKey,
                     status: 'ready',
                     detail:
                         type === 'avatar'
@@ -275,6 +313,7 @@ export function useFavoriteRemoteDetails({
                     return;
                 }
                 setState({
+                    requestKey,
                     status: 'error',
                     detail:
                         error instanceof Error
@@ -291,5 +330,12 @@ export function useFavoriteRemoteDetails({
         };
     }, [enabled, hasIds, requestKey, type]);
 
-    return state;
+    if (state.requestKey === requestKey) {
+        return state;
+    }
+    return buildInitialState(
+        requestKey,
+        enabled && hasIds ? 'running' : 'ready',
+        enabled && hasIds ? favoriteRemoteDetailsLoadingDetail(type) : ''
+    );
 }

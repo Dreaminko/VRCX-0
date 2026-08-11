@@ -4,6 +4,7 @@ import {
     buildFavoriteAvatarDetailIds,
     buildFavoriteAvatarTags,
     buildFavoriteFriendFactIds,
+    buildFavoriteRemoteGroupEntityIds,
     selectFavoritesCollectionsState
 } from './favoritesCollectionsState';
 
@@ -73,10 +74,51 @@ describe('favorites collections state helpers', () => {
         ).toEqual([]);
     });
 
+    it('selects world and VRC+ ids for one remote group', () => {
+        const remoteFavoritesById = {
+            one: {
+                type: 'world',
+                favoriteId: 'wrld_1',
+                $groupKey: 'world:worlds1'
+            },
+            two: {
+                type: 'world',
+                favoriteId: ' wrld_2 ',
+                $groupKey: 'world:worlds2'
+            },
+            three: {
+                type: 'vrcPlusWorld',
+                favoriteId: 'wrld_plus',
+                $groupKey: 'vrcPlusWorld:vrcPlusWorlds1'
+            },
+            avatar: {
+                type: 'avatar',
+                favoriteId: 'avtr_ignored',
+                $groupKey: 'world:worlds1'
+            }
+        };
+
+        expect(
+            buildFavoriteRemoteGroupEntityIds({
+                groupKey: ' world:worlds1 ',
+                kind: 'world',
+                remoteFavoritesById
+            })
+        ).toEqual(['wrld_1']);
+        expect(
+            buildFavoriteRemoteGroupEntityIds({
+                groupKey: 'vrcPlusWorld:vrcPlusWorlds1',
+                kind: 'world',
+                remoteFavoritesById
+            })
+        ).toEqual(['wrld_plus']);
+    });
+
     it('selects only the favorite state needed for the active kind', () => {
         const state = {
             loadStatus: 'ready',
             detail: '',
+            lastLoadedAt: '2026-08-11T00:00:00.000Z',
             favoritesSortOrder: ['fav_1'],
             remoteFavoritesById: { fav_1: { favoriteId: 'wrld_1' } },
             favoriteFriendGroups: [{ key: 'friend:group_0' }],
@@ -85,13 +127,10 @@ describe('favorites collections state helpers', () => {
             groupedFavoriteFriendIdsByGroupKey: {
                 'friend:group_0': ['usr_a']
             },
-            localWorldFavorites: { Worlds: ['wrld_1'] },
             localAvatarFavorites: { Avatars: ['avtr_1'] },
             localFriendFavorites: { Friends: ['usr_a'] },
-            localWorldFavoriteGroups: ['Worlds'],
             localAvatarFavoriteGroups: ['Avatars'],
             localFriendFavoriteGroups: ['Friends'],
-            localWorldDetailsById: { wrld_1: { name: 'World' } },
             favoriteWorldIds: ['wrld_1'],
             favoriteAvatarIds: ['avtr_1']
         };
@@ -102,14 +141,12 @@ describe('favorites collections state helpers', () => {
             favoriteAvatarGroups: [],
             remoteFavoritesById: {},
             localFriendFavorites: { Friends: ['usr_a'] },
-            localWorldFavorites: {},
             localAvatarFavorites: {}
         });
         expect(selectFavoritesCollectionsState('world')(state)).toMatchObject({
             favoriteFriendGroups: [],
             favoriteWorldGroups: [{ key: 'world:group_0' }],
-            remoteFavoritesById: { fav_1: { favoriteId: 'wrld_1' } },
-            localWorldDetailsById: { wrld_1: { name: 'World' } }
+            remoteFavoritesById: { fav_1: { favoriteId: 'wrld_1' } }
         });
     });
 });

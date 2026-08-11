@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { bumpFavoriteRemoteDetailsRefresh } from '@/features/favorites/useFavoriteRemoteDetails';
+import { useLocalWorldFavorites } from '@/features/favorites/useLocalWorldFavorites';
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
 import { persistAvatarDetails } from '@/services/favoriteAvatarCacheService';
@@ -90,9 +91,6 @@ function resolveLocalGroups(kind: FavoriteKind, state: FavoriteStore) {
     if (kind === 'avatar') {
         return state.localAvatarFavoriteGroups;
     }
-    if (kind === 'world') {
-        return state.localWorldFavoriteGroups;
-    }
     return EMPTY_LOCAL_GROUPS;
 }
 
@@ -102,9 +100,6 @@ function resolveLocalFavorites(kind: FavoriteKind, state: FavoriteStore) {
     }
     if (kind === 'avatar') {
         return state.localAvatarFavorites || {};
-    }
-    if (kind === 'world') {
-        return state.localWorldFavorites || {};
     }
     return EMPTY_FAVORITES;
 }
@@ -184,19 +179,33 @@ export function FavoriteActionMenu({
     const entityLabel = resolveFavoriteEntityLabel(entity, normalizedEntityId);
     const confirm = useModalStore((state) => state.confirm);
     const groups = useFavoriteStore((state) => resolveGroups(kind, state));
+    const localWorldFavorites = useLocalWorldFavorites(
+        kind === 'world' && Boolean(normalizedEntityId)
+    );
     const storedLocalGroups = useFavoriteStore((state) =>
         resolveLocalGroups(kind, state)
     );
-    const localFavorites = useFavoriteStore((state) =>
+    const storedLocalFavorites = useFavoriteStore((state) =>
         resolveLocalFavorites(kind, state)
     );
-    const localGroups = useMemo(
-        () =>
-            storedLocalGroups.length
-                ? storedLocalGroups
-                : Object.keys(localFavorites),
-        [storedLocalGroups, localFavorites]
-    );
+    const localFavorites =
+        kind === 'world'
+            ? localWorldFavorites.favoritesByGroup
+            : storedLocalFavorites;
+    const localGroups = useMemo(() => {
+        if (kind === 'world') {
+            return localWorldFavorites.groupNames;
+        }
+        if (storedLocalGroups.length) {
+            return storedLocalGroups;
+        }
+        return Object.keys(localFavorites);
+    }, [
+        kind,
+        localFavorites,
+        localWorldFavorites.groupNames,
+        storedLocalGroups
+    ]);
     const localFavoriteActive = useMemo(
         () =>
             localGroups.some((groupName) =>
@@ -329,12 +338,15 @@ export function FavoriteActionMenu({
                 entityId: normalizedEntityId,
                 groupName
             });
-            addLocalFavorite({
-                kind,
-                entityId: normalizedEntityId,
-                groupName,
-                entity: isRecord(entity) ? entity : null
-            });
+            if (kind === 'world') {
+                await localWorldFavorites.reload();
+            } else {
+                addLocalFavorite({
+                    kind,
+                    entityId: normalizedEntityId,
+                    groupName
+                });
+            }
             toast.success(t('view.favorite.label.local_favorite_added'));
         } catch (error) {
             toast.error(
@@ -363,11 +375,15 @@ export function FavoriteActionMenu({
                 entityId: normalizedEntityId,
                 groupName
             });
-            removeLocalFavorite({
-                kind,
-                entityId: normalizedEntityId,
-                groupName
-            });
+            if (kind === 'world') {
+                await localWorldFavorites.reload();
+            } else {
+                removeLocalFavorite({
+                    kind,
+                    entityId: normalizedEntityId,
+                    groupName
+                });
+            }
             toast.success(t('view.favorite.success.local_favorite_removed'));
         } catch (error) {
             toast.error(

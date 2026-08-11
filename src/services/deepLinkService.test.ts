@@ -21,11 +21,11 @@ const mocks = vi.hoisted(() => ({
                 import('@/platform/tauri/bindings').SharedCollectionImportStatus
             >
         >(),
+    appFavoriteLocalSnapshot: vi.fn(),
     eventHandlers: new Map<string, (payload: unknown) => void>(),
     prompt: vi.fn(),
     openAvatarDialog: vi.fn(),
     openWorldDialog: vi.fn(),
-    getFreshExplicitLocalFavoriteGroups: vi.fn(),
     previewSharedCollection: vi.fn(),
     toastSuccess: vi.fn(),
     toastError: vi.fn(),
@@ -43,6 +43,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appDrainPendingDeepLinks: mocks.appDrainPendingDeepLinks,
+        appFavoriteLocalSnapshot: mocks.appFavoriteLocalSnapshot,
         appSharedCollectionImportStart: mocks.appSharedCollectionImportStart,
         appSharedCollectionImportStatus: mocks.appSharedCollectionImportStatus
     }
@@ -59,13 +60,6 @@ vi.mock('@/platform/tauri/client', () => ({
 vi.mock('@/repositories/shareCollectionRepository', () => ({
     default: {
         previewSharedCollection: mocks.previewSharedCollection
-    }
-}));
-
-vi.mock('@/repositories/favoritePersistenceRepository', () => ({
-    default: {
-        getFreshExplicitLocalFavoriteGroups:
-            mocks.getFreshExplicitLocalFavoriteGroups
     }
 }));
 
@@ -132,7 +126,10 @@ describe('deepLinkService', () => {
         useWorldCollectionImportStore.getState().reset();
         mocks.appDrainPendingDeepLinks.mockResolvedValue([]);
         mocks.appSharedCollectionImportStatus.mockResolvedValue(importStatus());
-        mocks.getFreshExplicitLocalFavoriteGroups.mockResolvedValue([]);
+        mocks.appFavoriteLocalSnapshot.mockResolvedValue({
+            favorites: [],
+            groupNames: []
+        });
         mocks.subscribe.mockImplementation(async (name, handler) => {
             mocks.eventHandlers.set(name, handler);
             return name === 'deepLinkArrived'
@@ -264,9 +261,10 @@ describe('deepLinkService', () => {
             imported: 1,
             groupName: 'Renamed collection'
         });
-        mocks.getFreshExplicitLocalFavoriteGroups.mockResolvedValue([
-            'Scenic picks'
-        ]);
+        mocks.appFavoriteLocalSnapshot.mockResolvedValue({
+            favorites: [],
+            groupNames: ['Scenic picks']
+        });
         mocks.previewSharedCollection.mockResolvedValueOnce({
             title: 'Scenic picks',
             worldIds: [WORLD_ID]
@@ -299,9 +297,7 @@ describe('deepLinkService', () => {
         expect(mocks.toastError).toHaveBeenCalledWith(
             'deep_link.import_collection.prompt.name_already_exists:{"name":"Scenic picks"}'
         );
-        expect(mocks.getFreshExplicitLocalFavoriteGroups).toHaveBeenCalledTimes(
-            2
-        );
+        expect(mocks.appFavoriteLocalSnapshot).toHaveBeenCalledTimes(2);
         expect(mocks.prompt).toHaveBeenNthCalledWith(
             2,
             expect.objectContaining({ inputValue: 'Scenic picks' })
@@ -318,7 +314,7 @@ describe('deepLinkService', () => {
             reason: 'ok',
             value: 'Scenic picks'
         });
-        mocks.getFreshExplicitLocalFavoriteGroups.mockRejectedValueOnce(
+        mocks.appFavoriteLocalSnapshot.mockRejectedValueOnce(
             new Error('group lookup failed')
         );
 

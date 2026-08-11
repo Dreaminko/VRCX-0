@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { useLocalWorldFavorites } from '@/features/favorites/useLocalWorldFavorites';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
@@ -94,9 +95,7 @@ function usePresenceOptions() {
     const favoriteWorldGroups = useFavoriteStore(
         (state) => state.favoriteWorldGroups
     );
-    const localWorldFavoriteGroups = useFavoriteStore(
-        (state) => state.localWorldFavoriteGroups
-    );
+    const localWorldFavorites = useLocalWorldFavorites();
 
     const groupOptions = useMemo(
         () =>
@@ -110,9 +109,9 @@ function usePresenceOptions() {
         () =>
             createGroupOptions({
                 remoteGroups: favoriteWorldGroups,
-                localGroups: localWorldFavoriteGroups
+                localGroups: localWorldFavorites.groupNames
             }),
-        [favoriteWorldGroups, localWorldFavoriteGroups]
+        [favoriteWorldGroups, localWorldFavorites.groupNames]
     );
     const instanceOptions = useMemo(
         () => createInstanceOptions(instanceTypes, t),

@@ -82,18 +82,14 @@ function phaseSnapshot(
                 favoriteFriendGroups: [],
                 favoriteWorldGroups: [],
                 favoriteAvatarGroups: [],
-                localWorldFavorites: {},
                 localAvatarFavorites: {},
                 localFriendFavorites: {
                     Favorites: ['usr_friend']
                 },
-                localWorldFavoriteGroups: [],
                 localAvatarFavoriteGroups: [],
                 localFriendFavoriteGroups: ['Favorites'],
-                localWorldFavoritesList: [],
                 localAvatarFavoritesList: [],
                 localFriendFavoritesList: ['usr_friend'],
-                localWorldDetailsById: {},
                 detail: 'Favorites ready.'
             }
         },

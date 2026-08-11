@@ -8,9 +8,19 @@ import {
     cacheWorldDetails
 } from './favoriteWorldCacheService';
 
+const mocks = vi.hoisted(() => ({
+    getWorldFavorites: vi.fn()
+}));
+
 vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appFavoriteCacheSnapshot: vi.fn()
+    }
+}));
+
+vi.mock('@/repositories/favoritePersistenceRepository', () => ({
+    default: {
+        getWorldFavorites: mocks.getWorldFavorites
     }
 }));
 
@@ -18,6 +28,7 @@ describe('favoriteWorldCacheService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(commands.appFavoriteCacheSnapshot).mockResolvedValue(true);
+        mocks.getWorldFavorites.mockResolvedValue([]);
         useFavoriteStore.getState().resetFavorites();
     });
 
@@ -82,15 +93,17 @@ describe('favoriteWorldCacheService', () => {
         await expect(cacheFavoriteWorldDetails(world)).resolves.toBe(false);
         expect(commands.appFavoriteCacheSnapshot).not.toHaveBeenCalled();
 
-        useFavoriteStore.getState().addLocalFavorite({
-            kind: 'world',
-            groupName: 'Keep',
-            entityId: 'wrld_cached',
-            entity: world
-        });
+        mocks.getWorldFavorites.mockResolvedValue([
+            {
+                created_at: '2026-08-11T00:00:00Z',
+                groupName: 'Keep',
+                worldId: 'wrld_cached'
+            }
+        ]);
 
         await expect(cacheFavoriteWorldDetails(world)).resolves.toBe(true);
         expect(commands.appFavoriteCacheSnapshot).toHaveBeenCalledTimes(1);
+        expect(mocks.getWorldFavorites).toHaveBeenCalledTimes(2);
     });
 
     it('refreshes DB cache automatically for remote favorite worlds', async () => {
@@ -106,6 +119,7 @@ describe('favoriteWorldCacheService', () => {
         });
 
         await expect(cacheFavoriteWorldDetails(world)).resolves.toBe(true);
+        expect(mocks.getWorldFavorites).not.toHaveBeenCalled();
         expect(commands.appFavoriteCacheSnapshot).toHaveBeenCalledWith({
             kind: 'world',
             entity: world,

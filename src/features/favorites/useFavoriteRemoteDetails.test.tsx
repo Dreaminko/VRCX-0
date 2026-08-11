@@ -16,10 +16,18 @@ vi.mock('@/platform/tauri/bindings', () => ({
 
 vi.mock('@/state/runtimeStore', () => ({
     useRuntimeStore: <T,>(
-        selector: (state: { auth: { currentUserEndpoint: string } }) => T
+        selector: (state: {
+            auth: {
+                currentUserId: string;
+                currentUserEndpoint: string;
+            };
+        }) => T
     ): T =>
         selector({
-            auth: { currentUserEndpoint: 'https://api.vrchat.cloud' }
+            auth: {
+                currentUserId: 'usr_current',
+                currentUserEndpoint: 'https://api.vrchat.cloud'
+            }
         })
 }));
 
@@ -76,7 +84,9 @@ describe('useFavoriteRemoteDetails', () => {
         expect(mocks.appFavoriteDetailsHydrate).toHaveBeenCalledWith({
             kind: 'world',
             favoriteIds: ['wrld_1', 'wrld_2'],
-            avatarTags: []
+            requestedIds: ['wrld_1', 'wrld_2'],
+            avatarTags: [],
+            refreshKey: expect.any(String)
         });
         expect(result.current.data).toEqual({
             wrld_1: {
@@ -108,8 +118,89 @@ describe('useFavoriteRemoteDetails', () => {
         expect(mocks.appFavoriteDetailsHydrate).toHaveBeenCalledWith({
             kind: 'avatar',
             favoriteIds: ['avtr_1'],
-            avatarTags: ['one', 'two']
+            requestedIds: ['avtr_1'],
+            avatarTags: ['one', 'two'],
+            refreshKey: expect.any(String)
         });
+    });
+
+    it('requests only the active projection while keeping the full favorite id set', async () => {
+        const { result } = renderHook(() =>
+            useFavoriteRemoteDetails({
+                type: 'world',
+                favoriteIds: ['wrld_1', 'wrld_2', 'wrld_3'],
+                requestedIds: [' wrld_2 ', 'wrld_2']
+            })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ready');
+        });
+
+        expect(mocks.appFavoriteDetailsHydrate).toHaveBeenCalledWith({
+            kind: 'world',
+            favoriteIds: ['wrld_1', 'wrld_2', 'wrld_3'],
+            requestedIds: ['wrld_2'],
+            avatarTags: [],
+            refreshKey: expect.any(String)
+        });
+    });
+
+    it('does not expose the previous group while the next projection loads', async () => {
+        let resolveSecondHydrate: (() => void) | undefined;
+        mocks.appFavoriteDetailsHydrate
+            .mockResolvedValueOnce({
+                detailsById: {
+                    wrld_1: { id: 'wrld_1', name: 'World One' }
+                },
+                availabilityById: {},
+                cachedCount: 1,
+                fetchedAt: '2026-08-11T00:00:00.000Z'
+            })
+            .mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        resolveSecondHydrate = () =>
+                            resolve({
+                                detailsById: {
+                                    wrld_2: {
+                                        id: 'wrld_2',
+                                        name: 'World Two'
+                                    }
+                                },
+                                availabilityById: {},
+                                cachedCount: 0,
+                                fetchedAt: '2026-08-11T00:00:00.000Z'
+                            });
+                    })
+            );
+        const { rerender, result } = renderHook(
+            ({ requestedIds }: { requestedIds: string[] }) =>
+                useFavoriteRemoteDetails({
+                    type: 'world',
+                    favoriteIds: ['wrld_1', 'wrld_2'],
+                    requestedIds
+                }),
+            { initialProps: { requestedIds: ['wrld_1'] } }
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ready');
+        });
+        expect(result.current.data.wrld_1?.name).toBe('World One');
+
+        rerender({ requestedIds: ['wrld_2'] });
+
+        expect(result.current.status).toBe('running');
+        expect(result.current.data).toEqual({});
+        await waitFor(() => {
+            expect(resolveSecondHydrate).toBeTypeOf('function');
+        });
+        act(() => resolveSecondHydrate?.());
+        await waitFor(() => {
+            expect(result.current.status).toBe('ready');
+        });
+        expect(result.current.data.wrld_2?.name).toBe('World Two');
     });
 
     it('stays ready without calling the backend when disabled or without ids', async () => {

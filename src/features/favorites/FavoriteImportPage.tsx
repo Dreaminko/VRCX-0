@@ -53,6 +53,8 @@ import {
 import { Textarea } from '@/ui/shadcn/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
+import { useLocalWorldFavorites } from './useLocalWorldFavorites';
+
 type ImportKind = 'world' | 'avatar' | 'friend';
 type ImportLocation = 'remote' | 'local';
 
@@ -181,9 +183,6 @@ export function FavoriteImportPage() {
     const localAvatarFavoriteGroups = useFavoriteStore(
         (state) => state.localAvatarFavoriteGroups
     );
-    const localWorldFavoriteGroups = useFavoriteStore(
-        (state) => state.localWorldFavoriteGroups
-    );
     const localFriendFavoriteGroups = useFavoriteStore(
         (state) => state.localFriendFavoriteGroups
     );
@@ -191,6 +190,7 @@ export function FavoriteImportPage() {
     const [location, setLocation] = useState<ImportLocation>('remote');
 
     const activeKind = kind ?? 'world';
+    const localWorldFavorites = useLocalWorldFavorites(activeKind === 'world');
     const config = getFavoriteImportTypeConfig(activeKind);
 
     const { remoteGroups, localGroups } = useMemo(() => {
@@ -203,7 +203,7 @@ export function FavoriteImportPage() {
         if (activeKind === 'world') {
             return {
                 remoteGroups: favoriteWorldGroups,
-                localGroups: localWorldFavoriteGroups
+                localGroups: localWorldFavorites.groupNames
             };
         }
         return {
@@ -217,7 +217,7 @@ export function FavoriteImportPage() {
         favoriteWorldGroups,
         localAvatarFavoriteGroups,
         localFriendFavoriteGroups,
-        localWorldFavoriteGroups
+        localWorldFavorites.groupNames
     ]);
 
     const label = config?.label || 'Favorite';

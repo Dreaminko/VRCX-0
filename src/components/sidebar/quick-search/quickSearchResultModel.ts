@@ -69,7 +69,6 @@ type BuildQuickSearchResultsInput = {
     friendsById: unknown;
     knownFriendUsersById: unknown;
     remoteFavoritesByObjectId: unknown;
-    localWorldDetailsById: unknown;
     worldSearchDetailsById?: unknown;
     groupInstances: unknown;
 };
@@ -309,7 +308,6 @@ export function buildQuickSearchResults({
     friendsById,
     knownFriendUsersById,
     remoteFavoritesByObjectId,
-    localWorldDetailsById,
     worldSearchDetailsById,
     groupInstances
 }: BuildQuickSearchResultsInput): QuickSearchResults {
@@ -372,10 +370,7 @@ export function buildQuickSearchResults({
     }
 
     const remoteFavorites = recordValues(remoteFavoritesByObjectId);
-    const localWorlds = [
-        ...recordValues(localWorldDetailsById),
-        ...recordValues(worldSearchDetailsById)
-    ];
+    const localWorlds = recordValues(worldSearchDetailsById);
     const ownAvatars = buildEntityResults(catalog.ownAvatars, 'avatar', 'own');
     const ownWorlds = buildEntityResults(catalog.ownWorlds, 'world', 'own');
     const ownAvatarIds = new Set(ownAvatars.map((row) => row.id));

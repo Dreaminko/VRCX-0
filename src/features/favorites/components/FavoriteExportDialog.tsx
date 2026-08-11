@@ -43,6 +43,7 @@ type FavoriteExportDialogProps = {
     localGroups: FavoriteGroup[];
     remoteItemsByGroup: Record<string, FavoriteItem[]>;
     localItemsByGroup: Record<string, FavoriteItem[]>;
+    remoteDetailsStatus: string;
 };
 
 function FavoriteExportDialog({
@@ -52,7 +53,8 @@ function FavoriteExportDialog({
     remoteGroups,
     localGroups,
     remoteItemsByGroup,
-    localItemsByGroup
+    localItemsByGroup,
+    remoteDetailsStatus
 }: FavoriteExportDialogProps) {
     const { t } = useTranslation();
 
@@ -78,6 +80,9 @@ function FavoriteExportDialog({
         () => buildFavoriteExportCsv(items, kind, selectedFields),
         [items, kind, selectedFields]
     );
+    const remoteDetailsLoading =
+        kind !== 'friend' &&
+        (remoteDetailsStatus === 'idle' || remoteDetailsStatus === 'running');
 
     useEffect(() => {
         if (open) {
@@ -259,7 +264,11 @@ function FavoriteExportDialog({
                     </Button>
                     <Button
                         type="button"
-                        disabled={!items.length || !selectedFields.length}
+                        disabled={
+                            remoteDetailsLoading ||
+                            !items.length ||
+                            !selectedFields.length
+                        }
                         onClick={() => {
                             copyExportContent();
                         }}

@@ -44,6 +44,7 @@ export function useFavoritesItemActions({
     kind,
     localGroups,
     newLocalGroupName,
+    reloadLocalWorldFavorites,
     refreshing,
     selectedContentItems,
     selectedSource,
@@ -63,6 +64,7 @@ export function useFavoritesItemActions({
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
     newLocalGroupName: string;
+    reloadLocalWorldFavorites(): Promise<unknown>;
     refreshing: boolean;
     selectedContentItems: FavoriteItem[];
     selectedSource: FavoriteSource;
@@ -409,10 +411,14 @@ export function useFavoritesItemActions({
                 kind,
                 groupName: nextName
             });
-            createLocalFavoriteGroup({
-                kind,
-                groupName: nextName
-            });
+            if (kind === 'world') {
+                await reloadLocalWorldFavorites();
+            } else {
+                createLocalFavoriteGroup({
+                    kind,
+                    groupName: nextName
+                });
+            }
             setSelectedSource('local');
             setSelectedGroupKey(nextName);
             setCreatingLocalGroup(false);

@@ -6,6 +6,7 @@ describe('favoriteRevisionStore', () => {
     beforeEach(() => {
         useFavoriteRevisionStore.setState({
             revision: 0,
+            localWorldRevision: 0,
             lastAttemptedRevision: 0,
             pendingRemote: false,
             pendingUnknown: false
@@ -19,6 +20,17 @@ describe('favoriteRevisionStore', () => {
         store.bumpRevision({ kind: 'friend', remote: true });
 
         expect(useFavoriteRevisionStore.getState().revision).toBe(2);
+    });
+
+    it('increments the local world revision only for matching local changes', () => {
+        const store = useFavoriteRevisionStore.getState();
+
+        store.bumpRevision({ kind: 'world', remote: false });
+        store.bumpRevision({ kind: 'world', remote: true });
+        store.bumpRevision({ kind: 'avatar', remote: false });
+        store.bumpRevision({ kind: 'unknown', remote: false });
+
+        expect(useFavoriteRevisionStore.getState().localWorldRevision).toBe(2);
     });
 
     it('accumulates the remote flag across multiple bumps until consumed', () => {

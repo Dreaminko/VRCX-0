@@ -7,8 +7,8 @@ use crate::adapters::log_watcher::LogWatcherCompatBridge;
 use crate::deep_link::PendingDeepLinks;
 use crate::error::AppError;
 use vrcx_0_application::{
-    DatabaseUpgradeRuntime, FriendLogNameResolutionCoordinator, GroupModerationBatchCoordinator,
-    RemoteMutationGate, UserDialogTabCountsRuntime,
+    DatabaseUpgradeRuntime, FavoriteDetailsRuntime, FriendLogNameResolutionCoordinator,
+    GroupModerationBatchCoordinator, RemoteMutationGate, UserDialogTabCountsRuntime,
 };
 use vrcx_0_application_core::UpdaterPort;
 use vrcx_0_assistant::AssistantController;
@@ -24,6 +24,7 @@ pub struct AppState {
     pub log_watcher_compat_bridge: LogWatcherCompatBridge,
     pub pending_deep_links: PendingDeepLinks,
     pub database_upgrade: DatabaseUpgradeRuntime,
+    pub favorite_details: FavoriteDetailsRuntime,
     pub group_moderation_batches: GroupModerationBatchCoordinator,
     pub friend_log_name_resolutions: FriendLogNameResolutionCoordinator,
     pub remote_mutations: RemoteMutationGate,
@@ -72,6 +73,11 @@ impl AppState {
             runtime.runtime_context.diagnostics.clone(),
             runtime.runtime_context.background_jobs.clone(),
         );
+        let favorite_details = FavoriteDetailsRuntime::new(
+            runtime.db.clone(),
+            runtime.web.clone(),
+            runtime.runtime_context.auth_scope.clone(),
+        );
         let mcp_controller = McpServerController::new(McpRuntime::from_host(&runtime));
         let log_watcher_compat_bridge = LogWatcherCompatBridge::new();
 
@@ -81,6 +87,7 @@ impl AppState {
             log_watcher_compat_bridge,
             pending_deep_links: PendingDeepLinks::default(),
             database_upgrade,
+            favorite_details,
             group_moderation_batches: GroupModerationBatchCoordinator::default(),
             friend_log_name_resolutions: FriendLogNameResolutionCoordinator::default(),
             remote_mutations: RemoteMutationGate::default(),

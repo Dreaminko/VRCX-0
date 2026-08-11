@@ -18,8 +18,8 @@ pub use cache_policy::{
     persist_favorite_cache_snapshot, FavoriteCacheKind, FavoriteCacheSnapshotInput,
 };
 pub use favorite_details_hydrate::{
-    hydrate_favorite_details, FavoriteDetailsHydrateDeps, FavoriteDetailsHydrateInput,
-    FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
+    FavoriteDetailsHydrateInput, FavoriteDetailsHydrateKind, FavoriteDetailsHydrateOutput,
+    FavoriteDetailsRuntime,
 };
 pub use favorite_import::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
@@ -35,8 +35,9 @@ pub use favorite_transfer::{
 };
 pub use local_favorites::{
     add_local_favorite, create_local_favorite_group, delete_local_favorite_entries,
-    delete_local_favorite_group, list_local_favorites, remove_local_favorite,
-    rename_local_favorite_entries, rename_local_favorite_group, LocalFavoriteGroupWrite,
+    delete_local_favorite_group, get_local_favorite_snapshot, list_local_favorites,
+    remove_local_favorite, rename_local_favorite_entries, rename_local_favorite_group,
+    LocalFavoriteGroupWrite, LocalFavoriteSnapshot,
 };
 pub use remote_favorites::{
     add_remote_favorite, clear_remote_favorite_group, delete_remote_favorite,

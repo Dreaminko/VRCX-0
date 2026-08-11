@@ -76,7 +76,6 @@ describe('quick search result model', () => {
             friendsById: {},
             knownFriendUsersById: {},
             remoteFavoritesByObjectId: {},
-            localWorldDetailsById: {},
             groupInstances: []
         };
 
@@ -98,7 +97,6 @@ describe('quick search result model', () => {
             friendsById: {},
             knownFriendUsersById: {},
             remoteFavoritesByObjectId: {},
-            localWorldDetailsById: {},
             worldSearchDetailsById: {
                 wrld_cached: {
                     id: 'wrld_cached',

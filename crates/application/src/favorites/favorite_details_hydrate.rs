@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use futures_util::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio::sync::Mutex as AsyncMutex;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::{
     avatars::{avatar_cache_existing_ids, avatar_cache_upsert},
@@ -41,7 +43,11 @@ pub struct FavoriteDetailsHydrateInput {
     #[serde(default)]
     pub favorite_ids: Vec<String>,
     #[serde(default)]
+    pub requested_ids: Vec<String>,
+    #[serde(default)]
     pub avatar_tags: Vec<String>,
+    #[serde(default)]
+    pub refresh_key: String,
 }
 
 #[derive(Clone, Debug, Serialize, specta::Type)]
@@ -53,40 +59,220 @@ pub struct FavoriteDetailsHydrateOutput {
     pub fetched_at: String,
 }
 
-pub struct FavoriteDetailsHydrateDeps<'a> {
-    pub db: &'a DatabaseService,
-    pub web: &'a WebClient,
-    pub auth_scope: &'a RuntimeAuthScope,
-    pub expected_scope: RuntimeAuthScopeSnapshot,
+struct FavoriteDetailsHydrateDeps<'a> {
+    db: &'a DatabaseService,
+    web: &'a WebClient,
+    auth_scope: &'a RuntimeAuthScope,
+    expected_scope: RuntimeAuthScopeSnapshot,
 }
 
-pub async fn hydrate_favorite_details(
-    deps: &FavoriteDetailsHydrateDeps<'_>,
-    input: FavoriteDetailsHydrateInput,
-) -> Result<FavoriteDetailsHydrateOutput> {
-    let entities = match input.kind {
-        FavoriteDetailsHydrateKind::Avatar => {
-            fetch_favorite_avatar_entities(deps, &input.avatar_tags).await?
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct FavoriteWorldDetailsSnapshotKey {
+    current_user_id: String,
+    endpoint: String,
+    generation: u64,
+    favorite_ids: Vec<String>,
+    refresh_key: String,
+}
+
+#[derive(Clone, Debug)]
+struct FavoriteWorldDetailsSnapshot {
+    key: FavoriteWorldDetailsSnapshotKey,
+    details_by_id: HashMap<String, Value>,
+    availability_by_id: HashMap<String, String>,
+    fetched_at: String,
+}
+
+struct FavoriteDetailsRuntimeInner {
+    db: Arc<DatabaseService>,
+    web: Arc<WebClient>,
+    auth_scope: RuntimeAuthScope,
+    world_snapshot: Mutex<Option<Arc<FavoriteWorldDetailsSnapshot>>>,
+    world_sync_gate: AsyncMutex<()>,
+}
+
+#[derive(Clone)]
+pub struct FavoriteDetailsRuntime {
+    inner: Arc<FavoriteDetailsRuntimeInner>,
+}
+
+impl FavoriteDetailsRuntime {
+    pub fn new(
+        db: Arc<DatabaseService>,
+        web: Arc<WebClient>,
+        auth_scope: RuntimeAuthScope,
+    ) -> Self {
+        Self {
+            inner: Arc::new(FavoriteDetailsRuntimeInner {
+                db,
+                web,
+                auth_scope,
+                world_snapshot: Mutex::new(None),
+                world_sync_gate: AsyncMutex::new(()),
+            }),
         }
-        FavoriteDetailsHydrateKind::World => fetch_favorite_world_entities(deps).await?,
-    };
-    let mut details_by_id = filter_details_by_id(entities, &input.favorite_ids);
-    let availability_by_id = match input.kind {
-        FavoriteDetailsHydrateKind::Avatar => HashMap::new(),
-        FavoriteDetailsHydrateKind::World => {
-            probe_missing_world_details(deps, &input.favorite_ids, &mut details_by_id).await?
+    }
+
+    pub async fn hydrate(
+        &self,
+        input: FavoriteDetailsHydrateInput,
+        expected_scope: RuntimeAuthScopeSnapshot,
+    ) -> Result<FavoriteDetailsHydrateOutput> {
+        match input.kind {
+            FavoriteDetailsHydrateKind::Avatar => self.hydrate_avatar(input, expected_scope).await,
+            FavoriteDetailsHydrateKind::World => {
+                let requested_ids = input.requested_ids.clone();
+                let (snapshot, cached_count) = self.world_snapshot(input, expected_scope).await?;
+                Ok(project_world_snapshot(
+                    &snapshot,
+                    &requested_ids,
+                    cached_count,
+                ))
+            }
         }
-    };
-    let cached_count = persist_details(deps.db, input.kind, &details_by_id);
-    Ok(FavoriteDetailsHydrateOutput {
-        details_by_id: details_by_id
-            .into_iter()
-            .map(|(id, entity)| (id, RawJson::from(entity)))
-            .collect(),
-        availability_by_id,
+    }
+
+    async fn hydrate_avatar(
+        &self,
+        input: FavoriteDetailsHydrateInput,
+        expected_scope: RuntimeAuthScopeSnapshot,
+    ) -> Result<FavoriteDetailsHydrateOutput> {
+        let deps = FavoriteDetailsHydrateDeps {
+            db: self.inner.db.as_ref(),
+            web: self.inner.web.as_ref(),
+            auth_scope: &self.inner.auth_scope,
+            expected_scope,
+        };
+        let entities = fetch_favorite_avatar_entities(&deps, &input.avatar_tags).await?;
+        let details_by_id = filter_details_by_id(entities, &input.favorite_ids);
+        let cached_count = persist_avatar_details(deps.db, &details_by_id);
+        Ok(project_details(
+            &details_by_id,
+            &HashMap::new(),
+            &input.requested_ids,
+            cached_count,
+            Utc::now().to_rfc3339(),
+        ))
+    }
+
+    async fn world_snapshot(
+        &self,
+        input: FavoriteDetailsHydrateInput,
+        expected_scope: RuntimeAuthScopeSnapshot,
+    ) -> Result<(Arc<FavoriteWorldDetailsSnapshot>, u32)> {
+        let key = world_snapshot_key(&expected_scope, &input.favorite_ids, &input.refresh_key);
+        if let Some(snapshot) = self.cached_world_snapshot(&key) {
+            return Ok((snapshot, 0));
+        }
+
+        let _guard = self.inner.world_sync_gate.lock().await;
+        if let Some(snapshot) = self.cached_world_snapshot(&key) {
+            return Ok((snapshot, 0));
+        }
+
+        let deps = FavoriteDetailsHydrateDeps {
+            db: self.inner.db.as_ref(),
+            web: self.inner.web.as_ref(),
+            auth_scope: &self.inner.auth_scope,
+            expected_scope,
+        };
+        let entities = fetch_favorite_world_entities(&deps).await?;
+        let mut details_by_id = filter_details_by_id(entities, &key.favorite_ids);
+        let availability_by_id =
+            probe_missing_world_details(&deps, &key.favorite_ids, &mut details_by_id).await?;
+        let cached_count = persist_world_details(deps.db, &details_by_id);
+        ensure_scope_matches(&deps.auth_scope.snapshot(), &deps.expected_scope)?;
+        let snapshot = Arc::new(FavoriteWorldDetailsSnapshot {
+            key,
+            details_by_id,
+            availability_by_id,
+            fetched_at: Utc::now().to_rfc3339(),
+        });
+        *self
+            .inner
+            .world_snapshot
+            .lock()
+            .unwrap_or_else(|error| error.into_inner()) = Some(snapshot.clone());
+        Ok((snapshot, cached_count))
+    }
+
+    fn cached_world_snapshot(
+        &self,
+        key: &FavoriteWorldDetailsSnapshotKey,
+    ) -> Option<Arc<FavoriteWorldDetailsSnapshot>> {
+        self.inner
+            .world_snapshot
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+            .as_ref()
+            .filter(|snapshot| snapshot.key == *key)
+            .cloned()
+    }
+}
+
+fn world_snapshot_key(
+    expected_scope: &RuntimeAuthScopeSnapshot,
+    favorite_ids: &[String],
+    refresh_key: &str,
+) -> FavoriteWorldDetailsSnapshotKey {
+    let mut favorite_ids = normalize_ids(favorite_ids);
+    favorite_ids.sort_unstable();
+    FavoriteWorldDetailsSnapshotKey {
+        current_user_id: expected_scope.current_user_id.clone(),
+        endpoint: expected_scope.endpoint.clone(),
+        generation: expected_scope.generation,
+        favorite_ids,
+        refresh_key: refresh_key.trim().to_string(),
+    }
+}
+
+fn project_world_snapshot(
+    snapshot: &FavoriteWorldDetailsSnapshot,
+    requested_ids: &[String],
+    cached_count: u32,
+) -> FavoriteDetailsHydrateOutput {
+    project_details(
+        &snapshot.details_by_id,
+        &snapshot.availability_by_id,
+        requested_ids,
         cached_count,
-        fetched_at: Utc::now().to_rfc3339(),
-    })
+        snapshot.fetched_at.clone(),
+    )
+}
+
+fn project_details(
+    details_by_id: &HashMap<String, Value>,
+    availability_by_id: &HashMap<String, String>,
+    requested_ids: &[String],
+    cached_count: u32,
+    fetched_at: String,
+) -> FavoriteDetailsHydrateOutput {
+    let requested = normalize_ids(requested_ids)
+        .into_iter()
+        .collect::<HashSet<_>>();
+    FavoriteDetailsHydrateOutput {
+        details_by_id: details_by_id
+            .iter()
+            .filter(|(id, _)| requested.contains(*id))
+            .map(|(id, entity)| (id.clone(), RawJson::from(entity.clone())))
+            .collect(),
+        availability_by_id: availability_by_id
+            .iter()
+            .filter(|(id, _)| requested.contains(*id))
+            .map(|(id, availability)| (id.clone(), availability.clone()))
+            .collect(),
+        cached_count,
+        fetched_at,
+    }
+}
+
+fn normalize_ids(ids: &[String]) -> Vec<String> {
+    let mut seen = HashSet::new();
+    ids.iter()
+        .map(normalize_text)
+        .filter(|id| !id.is_empty())
+        .filter(|id| seen.insert(id.clone()))
+        .collect()
 }
 
 async fn probe_missing_world_details(
@@ -319,17 +505,6 @@ fn filter_details_by_id(entities: Vec<Value>, favorite_ids: &[String]) -> HashMa
         details_by_id.insert(id, entity);
     }
     details_by_id
-}
-
-fn persist_details(
-    db: &DatabaseService,
-    kind: FavoriteDetailsHydrateKind,
-    details_by_id: &HashMap<String, Value>,
-) -> u32 {
-    match kind {
-        FavoriteDetailsHydrateKind::Avatar => persist_avatar_details(db, details_by_id),
-        FavoriteDetailsHydrateKind::World => persist_world_details(db, details_by_id),
-    }
 }
 
 fn persist_avatar_details(db: &DatabaseService, details_by_id: &HashMap<String, Value>) -> u32 {
@@ -675,6 +850,64 @@ mod tests {
                 WorldProbeOutcome::Available(world, "private".to_string())
             );
         }
+    }
+
+    #[test]
+    fn world_snapshot_key_normalizes_membership_order_and_refresh_scope() {
+        let scope = RuntimeAuthScopeSnapshot {
+            current_user_id: "usr_current".into(),
+            endpoint: "https://api.example.test/api/1".into(),
+            generation: 7,
+            active: true,
+        };
+
+        let left = world_snapshot_key(
+            &scope,
+            &[" wrld_2 ".into(), "wrld_1".into(), "wrld_2".into()],
+            " baseline:1 ",
+        );
+        let right = world_snapshot_key(&scope, &["wrld_1".into(), "wrld_2".into()], "baseline:1");
+
+        assert_eq!(left, right);
+        assert_eq!(left.favorite_ids, vec!["wrld_1", "wrld_2"]);
+    }
+
+    #[test]
+    fn world_snapshot_projects_only_requested_details_and_availability() {
+        let snapshot = FavoriteWorldDetailsSnapshot {
+            key: FavoriteWorldDetailsSnapshotKey {
+                current_user_id: "usr_current".into(),
+                endpoint: "endpoint".into(),
+                generation: 1,
+                favorite_ids: vec!["wrld_1".into(), "wrld_2".into()],
+                refresh_key: "refresh".into(),
+            },
+            details_by_id: HashMap::from([
+                ("wrld_1".into(), json!({ "id": "wrld_1", "name": "One" })),
+                ("wrld_2".into(), json!({ "id": "wrld_2", "name": "Two" })),
+            ]),
+            availability_by_id: HashMap::from([
+                ("wrld_1".into(), "public".into()),
+                ("wrld_2".into(), "private".into()),
+                ("wrld_deleted".into(), "deleted".into()),
+            ]),
+            fetched_at: "2026-08-11T00:00:00Z".into(),
+        };
+
+        let output =
+            project_world_snapshot(&snapshot, &[" wrld_2 ".into(), "wrld_deleted".into()], 2);
+
+        assert_eq!(output.details_by_id.len(), 1);
+        assert!(output.details_by_id.contains_key("wrld_2"));
+        assert_eq!(
+            output.availability_by_id,
+            HashMap::from([
+                ("wrld_2".into(), "private".into()),
+                ("wrld_deleted".into(), "deleted".into()),
+            ])
+        );
+        assert_eq!(output.cached_count, 2);
+        assert_eq!(output.fetched_at, "2026-08-11T00:00:00Z");
     }
 
     #[test]

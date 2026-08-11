@@ -8,6 +8,7 @@ import {
 } from '@/shared/utils/invite';
 import { useFavoriteRevisionStore } from '@/state/favoriteRevisionStore';
 
+import { normalizeFavoriteSearchValue } from './favoritesItems';
 import { resolveFavoritePresenceLocation } from './favoritesPageData';
 import type { FavoriteKind } from './favoritesTypes';
 import { useFavoritesActions } from './useFavoritesActions';
@@ -69,13 +70,19 @@ export function buildFavoriteGateTarget(item: {
 export function useFavoritesPageController({ kind }: { kind: FavoriteKind }) {
     const filters = useFavoritesFilters({ kind });
     const runtime = useFavoritesRuntime();
+    const [exportDialogOpen, setExportDialogOpen] = useState(false);
+    const loadAllRemoteDetails =
+        exportDialogOpen ||
+        normalizeFavoriteSearchValue(filters.searchQuery).length >= 3;
     const collections = useFavoritesCollectionsState({
         currentEndpoint: runtime.currentEndpoint,
         currentUserId: runtime.currentUserId,
-        kind
+        kind,
+        loadAllRemoteDetails,
+        selectedGroupKey: filters.selectedGroupKey,
+        selectedSource: filters.selectedSource
     });
     const layout = useFavoritesLayoutPreferences(kind);
-    const [exportDialogOpen, setExportDialogOpen] = useState(false);
     const [creatingLocalGroup, setCreatingLocalGroup] = useState(false);
     const [newLocalGroupName, setNewLocalGroupName] = useState('');
     const viewData = useFavoritesViewData({
@@ -135,8 +142,9 @@ export function useFavoritesPageController({ kind }: { kind: FavoriteKind }) {
         kind,
         localGroups: viewData.localGroups,
         newLocalGroupName,
+        reloadLocalWorldFavorites:
+            collections.actionInputs.reloadLocalWorldFavorites,
         remoteGroups: viewData.remoteGroups,
-        refreshRemoteDetails: collections.actionInputs.refreshRemoteDetails,
         selectedContentItems: selection.selectedContentItems,
         selectedGroupKey: filters.selectedGroupKey,
         selectedSource: filters.selectedSource,

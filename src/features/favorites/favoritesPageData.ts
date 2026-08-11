@@ -402,7 +402,6 @@ export function buildFavoriteRemoteItemsByGroup({
     remoteEntityDetailsStatus,
     worldDetailFallbacksById = {},
     avatarDetailFallbacksById = {},
-    localWorldDetailsById = {},
     remoteGroupLabelByKey,
     worldAvailabilityById = {},
     t
@@ -419,7 +418,6 @@ export function buildFavoriteRemoteItemsByGroup({
     remoteEntityDetailsStatus?: string;
     worldDetailFallbacksById?: FavoriteDetailMap;
     avatarDetailFallbacksById?: FavoriteDetailMap;
-    localWorldDetailsById?: FavoriteDetailMap;
     remoteGroupLabelByKey?: Record<string, string | undefined>;
     worldAvailabilityById?: Record<string, string | undefined>;
     t: unknown;
@@ -476,10 +474,10 @@ export function buildFavoriteRemoteItemsByGroup({
 
         if (kind === 'world') {
             liveDetail = hasDisplayableEntityDetail(detail) ? detail : null;
-            fallbackDetail = firstDisplayableDetail([
-                worldDetailFallbacksById[favoriteId],
-                localWorldDetailsById[favoriteId]
-            ]);
+            const worldFallback = worldDetailFallbacksById[favoriteId];
+            fallbackDetail = hasDisplayableEntityDetail(worldFallback)
+                ? worldFallback
+                : null;
         } else {
             const isHiddenRemoteAvatar =
                 hasDisplayableEntityDetail(detail) &&
@@ -567,7 +565,6 @@ export function buildFavoriteLocalItemsByGroup({
     localAvatarFavorites,
     localWorldFavorites,
     avatarDetailFallbacksById = {},
-    localWorldDetailsById,
     worldDetailFallbacksById = {},
     friendsById,
     knownUsersById = {},
@@ -580,7 +577,6 @@ export function buildFavoriteLocalItemsByGroup({
     localAvatarFavorites?: FavoriteGroupSourceMap;
     localWorldFavorites?: FavoriteGroupSourceMap;
     avatarDetailFallbacksById?: FavoriteDetailMap;
-    localWorldDetailsById?: FavoriteDetailMap;
     worldDetailFallbacksById?: FavoriteDetailMap;
     friendsById?: FavoriteProfileMap;
     knownUsersById?: FavoriteProfileMap;
@@ -617,7 +613,9 @@ export function buildFavoriteLocalItemsByGroup({
     const localFavorites =
         kind === 'avatar' ? localAvatarFavorites : localWorldFavorites;
     const localDetailsById =
-        kind === 'avatar' ? avatarDetailFallbacksById : localWorldDetailsById;
+        kind === 'avatar'
+            ? avatarDetailFallbacksById
+            : worldDetailFallbacksById;
 
     for (const group of localGroups) {
         const ids = Array.isArray(localFavorites?.[group.key])
@@ -625,10 +623,9 @@ export function buildFavoriteLocalItemsByGroup({
             : [];
         const items: FavoriteItem[] = ids.map((entityId, index) => {
             const normalizedId = normalizeEntityId(entityId);
-            const detail = localDetailsById?.[normalizedId] ||
-                (kind === 'world'
-                    ? worldDetailFallbacksById[normalizedId]
-                    : undefined) || { id: normalizedId };
+            const detail = localDetailsById?.[normalizedId] || {
+                id: normalizedId
+            };
             const playerCount = favoritePlayerCount(detail);
             const imagePair = favoriteImagePair(detail);
             return {
