@@ -4,7 +4,7 @@ use vrcx_0_application_activity::{
     OverlayActivityDelivery, OverlayActivitySink, OverlayActivitySnapshot,
 };
 use vrcx_0_application_core::{
-    HostSessionRuntime, ImageCache, TaskSupervisor, WebClient, WorldCache,
+    HostSessionRuntime, ImageCache, RuntimeAuthScope, TaskSupervisor, WebClient, WorldCache,
 };
 use vrcx_0_host_desktop::tts::TtsEngine;
 use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
@@ -16,12 +16,13 @@ use vrcx_0_runtime_host::notification::{
     RealtimeUserImageResolverSlot, RenderedNotification, UserImageCache,
 };
 
-use super::desktop::{send_desktop_notification, DesktopNotifier};
+use super::desktop::{send_desktop_notification, DesktopNotificationAction, DesktopNotifier};
 use super::overlay_transport::OverlayNotificationTransport;
 use super::tts::send_tts_notification;
 
 pub struct NotificationDispatcher {
     session: HostSessionRuntime,
+    auth_scope: RuntimeAuthScope,
     config: ConfigRepository,
     db: Arc<DatabaseService>,
     image_cache: Arc<ImageCache>,
@@ -37,6 +38,7 @@ pub struct NotificationDispatcher {
 
 pub struct NotificationDispatcherDeps {
     pub session: HostSessionRuntime,
+    pub auth_scope: RuntimeAuthScope,
     pub config: ConfigRepository,
     pub db: Arc<DatabaseService>,
     pub image_cache: Arc<ImageCache>,
@@ -53,6 +55,7 @@ impl NotificationDispatcher {
     pub fn new(deps: NotificationDispatcherDeps) -> Self {
         Self {
             session: deps.session,
+            auth_scope: deps.auth_scope,
             config: deps.config,
             db: deps.db,
             image_cache: deps.image_cache,
@@ -79,14 +82,8 @@ impl OverlayActivitySink for NotificationDispatcher {
             return;
         }
         let locale = load_notification_locale(&self.config);
-        let realtime_context = self.session.snapshot().realtime_context;
-        let endpoint = realtime_context
-            .as_ref()
-            .map(|context| context.endpoint.clone())
-            .unwrap_or_default();
-        let current_user_id = realtime_context
-            .map(|context| context.current_user_id)
-            .unwrap_or_default();
+        let (endpoint, current_user_id) =
+            notification_session_identity(&self.session, &self.auth_scope);
         let world_cache = Arc::clone(&self.world_cache);
         let image_cache = Arc::clone(&self.image_cache);
         let overlay_transport = Arc::clone(&self.overlay_transport);
@@ -136,6 +133,10 @@ impl OverlayActivitySink for NotificationDispatcher {
             }
             let render =
                 render_delivery(&delivery, locale, preferences.show_instance_id_in_location);
+            let desktop_action = DesktopNotificationAction::open_user_profile(
+                &current_user_id,
+                &delivery.entry.actor_user_id,
+            );
             dispatch_local_notification(
                 &delivery,
                 &preferences,
@@ -147,6 +148,7 @@ impl OverlayActivitySink for NotificationDispatcher {
                 db.as_ref(),
                 desktop.as_ref(),
                 tts.as_ref(),
+                desktop_action.as_ref(),
             )
             .await;
         });
@@ -165,6 +167,7 @@ async fn dispatch_local_notification(
     db: &DatabaseService,
     desktop: &dyn DesktopNotifier,
     tts: &dyn TtsEngine,
+    desktop_action: Option<&DesktopNotificationAction>,
 ) {
     if plan.tts {
         send_tts_notification(tts, db, delivery, render, preferences, locale);
@@ -178,9 +181,24 @@ async fn dispatch_local_notification(
     let local_image = local_image.as_deref();
 
     if plan.desktop {
-        send_desktop_notification(desktop, render, preferences, local_image);
+        send_desktop_notification(desktop, render, preferences, local_image, desktop_action);
     }
     overlay_transport.send(plan, render, preferences, local_image);
+}
+
+fn notification_session_identity(
+    session: &HostSessionRuntime,
+    auth_scope: &RuntimeAuthScope,
+) -> (String, String) {
+    let auth_scope = auth_scope.snapshot();
+    if auth_scope.active {
+        return (auth_scope.endpoint, auth_scope.current_user_id);
+    }
+    session
+        .snapshot()
+        .realtime_context
+        .map(|context| (context.endpoint, context.current_user_id))
+        .unwrap_or_default()
 }
 
 fn load_game_state(

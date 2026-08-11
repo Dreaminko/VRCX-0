@@ -5,6 +5,7 @@ use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
     OverlayActivityDelivery, OverlayActivityEntry, OverlayActivityText,
 };
+use vrcx_0_application_core::{HostRealtimeSessionContext, HostSessionRuntime, RuntimeAuthScope};
 use vrcx_0_i18n::OverlayMessage;
 use vrcx_0_persistence::{memos::memo_save_user, DatabaseService};
 use vrcx_0_runtime_host::notification::{
@@ -13,6 +14,50 @@ use vrcx_0_runtime_host::notification::{
 };
 
 use crate::notification::tts::notification_tts_text;
+
+use super::notification_session_identity;
+
+#[test]
+fn notification_identity_uses_active_auth_scope_after_realtime_context_is_cleared() {
+    let session = HostSessionRuntime::new();
+    session.set_realtime_context(HostRealtimeSessionContext::new(
+        "usr_old".into(),
+        "https://old.example/api/1".into(),
+        "wss://old.example".into(),
+    ));
+    let auth_scope = RuntimeAuthScope::new();
+    auth_scope.set(
+        "usr_12345678-1234-1234-1234-1234567890ab",
+        "https://api.vrchat.cloud/api/1",
+    );
+    session.clear_realtime_context();
+
+    assert_eq!(
+        notification_session_identity(&session, &auth_scope),
+        (
+            "https://api.vrchat.cloud/api/1".into(),
+            "usr_12345678-1234-1234-1234-1234567890ab".into(),
+        )
+    );
+}
+
+#[test]
+fn notification_identity_falls_back_to_realtime_context_before_auth_scope_is_active() {
+    let session = HostSessionRuntime::new();
+    session.set_realtime_context(HostRealtimeSessionContext::new(
+        "usr_realtime".into(),
+        "https://realtime.example/api/1".into(),
+        "wss://realtime.example".into(),
+    ));
+
+    assert_eq!(
+        notification_session_identity(&session, &RuntimeAuthScope::new()),
+        (
+            "https://realtime.example/api/1".into(),
+            "usr_realtime".into(),
+        )
+    );
+}
 
 #[test]
 fn notification_tts_note_mode_replaces_only_first_title() {

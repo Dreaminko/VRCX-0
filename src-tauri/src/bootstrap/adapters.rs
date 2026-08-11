@@ -24,7 +24,7 @@ use vrcx_0_application_core::{
 use vrcx_0_application_core::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
 use vrcx_0_core::{proxy::with_remote_dns, realtime::RealtimeWsStatusPayload};
 use vrcx_0_host_desktop::host_capabilities::{is_host_capability_available, HostCapability};
-use vrcx_0_runtime_host_desktop::notification::DesktopNotifier;
+use vrcx_0_runtime_host_desktop::notification::{DesktopNotificationAction, DesktopNotifier};
 use vrcx_0_runtime_host_desktop::RuntimeHostActions;
 
 use crate::state::AppState;
@@ -77,7 +77,21 @@ impl DesktopNotifier for TauriDesktopNotifier {
         body: Option<&str>,
         image: Option<&str>,
         play_sound: bool,
+        action: Option<&DesktopNotificationAction>,
     ) -> Result<(), String> {
+        #[cfg(windows)]
+        if let Some(action) = action {
+            return show_actionable_windows_notification(
+                &self.app_handle,
+                title,
+                body,
+                play_sound,
+                action.clone(),
+            );
+        }
+
+        #[cfg(not(windows))]
+        let _ = action;
         let mut notification = self.app_handle.notification().builder();
         notification = notification.title(title);
         if let Some(body) = body {
@@ -94,6 +108,56 @@ impl DesktopNotifier for TauriDesktopNotifier {
             .show()
             .map_err(|error| format!("notification: {error}"))
     }
+}
+
+#[cfg(windows)]
+fn show_actionable_windows_notification(
+    app: &tauri::AppHandle,
+    title: &str,
+    body: Option<&str>,
+    play_sound: bool,
+    action: DesktopNotificationAction,
+) -> Result<(), String> {
+    use tauri_winrt_notification::{Sound, Toast};
+
+    let app_id = windows_notification_app_id(app)?;
+    let app_handle = app.clone();
+    let mut notification = Toast::new(&app_id)
+        .title(title)
+        .sound(play_sound.then_some(Sound::Default))
+        .on_activated(move |_| {
+            crate::desktop_notification_activation::queue_desktop_notification_activation(
+                &app_handle,
+                action.clone(),
+            );
+            Ok(())
+        });
+    if let Some(body) = body {
+        notification = notification.text2(body);
+    }
+    notification
+        .show()
+        .map_err(|error| format!("notification: {error}"))
+}
+
+#[cfg(windows)]
+fn windows_notification_app_id(app: &tauri::AppHandle) -> Result<String, String> {
+    use tauri_winrt_notification::Toast;
+
+    let executable = tauri::utils::platform::current_exe()
+        .map_err(|error| format!("notification executable: {error}"))?;
+    let executable_directory = executable
+        .parent()
+        .ok_or_else(|| "notification executable directory is unavailable".to_string())?
+        .display()
+        .to_string()
+        .to_ascii_lowercase();
+    if executable_directory.ends_with("\\target\\debug")
+        || executable_directory.ends_with("\\target\\release")
+    {
+        return Ok(Toast::POWERSHELL_APP_ID.to_string());
+    }
+    Ok(app.config().identifier.clone())
 }
 
 pub fn emit_to_main_window_if_visible<S>(

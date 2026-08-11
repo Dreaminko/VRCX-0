@@ -17,7 +17,9 @@ use vrcx_0_runtime_host::notification::{
     decide_notification_plan, AuthWebhookEvent, AuthWebhookEventKind,
     NotificationDeliveryCondition, NotificationDeliveryGameState, NotificationDeliveryPreferences,
 };
-use vrcx_0_runtime_host_desktop::notification::{DesktopNotifier, DesktopNotifierSlot};
+use vrcx_0_runtime_host_desktop::notification::{
+    DesktopNotificationAction, DesktopNotifier, DesktopNotifierSlot,
+};
 
 #[test]
 fn vr_delivery_requires_steamvr_and_enabled_channels() {
@@ -59,12 +61,22 @@ fn vr_delivery_requires_steamvr_and_enabled_channels() {
 fn desktop_notifier_slot_noops_until_tauri_injects_notifier() {
     let slot = DesktopNotifierSlot::default();
 
-    slot.show("Title", Some("Body"), None, true).unwrap();
+    slot.show("Title", Some("Body"), None, true, None).unwrap();
 
     let recorder = Arc::new(RecordingDesktopNotifier::default());
     slot.set(recorder.clone());
-    slot.show("Title", Some("Body"), Some("image.png"), true)
-        .unwrap();
+    let action = DesktopNotificationAction {
+        owner_user_id: "usr_12345678-1234-1234-1234-1234567890ab".into(),
+        user_id: "usr_abcdefab-cdef-abcd-efab-cdefabcdefab".into(),
+    };
+    slot.show(
+        "Title",
+        Some("Body"),
+        Some("image.png"),
+        true,
+        Some(&action),
+    )
+    .unwrap();
 
     assert_eq!(
         recorder.entries.lock().unwrap().as_slice(),
@@ -73,6 +85,7 @@ fn desktop_notifier_slot_noops_until_tauri_injects_notifier() {
             body: Some("Body".into()),
             image: Some("image.png".into()),
             play_sound: true,
+            action: Some(action),
         }]
     );
 }
@@ -202,6 +215,7 @@ struct DesktopNotificationRecord {
     body: Option<String>,
     image: Option<String>,
     play_sound: bool,
+    action: Option<DesktopNotificationAction>,
 }
 
 #[derive(Default)]
@@ -216,6 +230,7 @@ impl DesktopNotifier for RecordingDesktopNotifier {
         body: Option<&str>,
         image: Option<&str>,
         play_sound: bool,
+        action: Option<&DesktopNotificationAction>,
     ) -> Result<(), String> {
         self.entries
             .lock()
@@ -225,6 +240,7 @@ impl DesktopNotifier for RecordingDesktopNotifier {
                 body: body.map(str::to_string),
                 image: image.map(str::to_string),
                 play_sound,
+                action: action.cloned(),
             });
         Ok(())
     }

@@ -41,6 +41,7 @@ impl DesktopRuntimeServices {
         let notification_sink: Arc<dyn OverlayActivitySink> =
             Arc::new(NotificationDispatcher::new(NotificationDispatcherDeps {
                 session: data.session.clone(),
+                auth_scope: data.auth_scope.clone(),
                 config: data.config.clone(),
                 db: Arc::clone(&data.db),
                 image_cache: Arc::clone(&data.image_cache),

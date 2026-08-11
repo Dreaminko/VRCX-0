@@ -140,6 +140,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::background_mode::app__backend_runtime_combined_snapshot_get,
             commands::application::background_mode::app__ensure_main_window,
             commands::application::deep_link::app__drain_pending_deep_links,
+            commands::application::desktop_notification::app__take_pending_desktop_notification_activation,
             commands::application::deep_link::app__deep_link_registration_status,
             commands::application::deep_link::app__deep_link_registration_repair,
             commands::application::share_collection::app__share_collection_create,

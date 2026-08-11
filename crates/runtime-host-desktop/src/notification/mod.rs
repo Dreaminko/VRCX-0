@@ -7,5 +7,5 @@ mod tts;
 #[cfg(any(windows, target_os = "linux"))]
 mod xs_overlay;
 
-pub use desktop::{DesktopNotifier, DesktopNotifierSlot};
+pub use desktop::{DesktopNotificationAction, DesktopNotifier, DesktopNotifierSlot};
 pub use dispatcher::{NotificationDispatcher, NotificationDispatcherDeps};

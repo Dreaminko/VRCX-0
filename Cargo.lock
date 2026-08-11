@@ -8887,6 +8887,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "tauri-specta",
+ "tauri-winrt-notification",
  "thiserror 2.0.20",
  "tokio",
  "tracing",

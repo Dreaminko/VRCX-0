@@ -148,6 +148,11 @@ export const commands = {
     async appDrainPendingDeepLinks(): Promise<DeepLinkAction[]> {
         return await TAURI_INVOKE('app__drain_pending_deep_links');
     },
+    async appTakePendingDesktopNotificationActivation(): Promise<DesktopNotificationActivation | null> {
+        return await TAURI_INVOKE(
+            'app__take_pending_desktop_notification_activation'
+        );
+    },
     async appDeepLinkRegistrationStatus(): Promise<boolean | null> {
         return await TAURI_INVOKE('app__deep_link_registration_status');
     },
@@ -3472,6 +3477,7 @@ export type DeepLinkAction =
     | { type: 'openWorld'; worldId: string }
     | { type: 'openAvatar'; avatarId: string }
     | { type: 'importCollection'; collectionId: string };
+export type DesktopNotificationActivation = { userId: string };
 export type EmptyEventPayload = Record<string, never>;
 export type Entity = { kind: string; id: string; displayName: string };
 export type ExternalApiAvatarSearchInput = { url?: string; vrcxId?: string };

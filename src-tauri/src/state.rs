@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use crate::adapters::log_watcher::LogWatcherCompatBridge;
 use crate::deep_link::PendingDeepLinks;
+use crate::desktop_notification_activation::PendingDesktopNotificationActivations;
 use crate::error::AppError;
 use vrcx_0_application::{
     DatabaseUpgradeRuntime, FavoriteDetailsRuntime, FriendLogNameResolutionCoordinator,
@@ -23,6 +24,7 @@ pub struct AppState {
     pub mcp_controller: McpServerController,
     pub log_watcher_compat_bridge: LogWatcherCompatBridge,
     pub pending_deep_links: PendingDeepLinks,
+    pub pending_desktop_notification_activations: PendingDesktopNotificationActivations,
     pub database_upgrade: DatabaseUpgradeRuntime,
     pub favorite_details: FavoriteDetailsRuntime,
     pub group_moderation_batches: GroupModerationBatchCoordinator,
@@ -78,10 +80,8 @@ impl AppState {
             runtime.web.clone(),
             runtime.runtime_context.auth_scope.clone(),
         );
-        let mcp_controller = McpServerController::new(McpRuntime::from_host(
-            &runtime,
-            McpCaller::ExternalServer,
-        ));
+        let mcp_controller =
+            McpServerController::new(McpRuntime::from_host(&runtime, McpCaller::ExternalServer));
         let log_watcher_compat_bridge = LogWatcherCompatBridge::new();
 
         Ok(Self {
@@ -89,6 +89,8 @@ impl AppState {
             mcp_controller,
             log_watcher_compat_bridge,
             pending_deep_links: PendingDeepLinks::default(),
+            pending_desktop_notification_activations:
+                PendingDesktopNotificationActivations::default(),
             database_upgrade,
             favorite_details,
             group_moderation_batches: GroupModerationBatchCoordinator::default(),

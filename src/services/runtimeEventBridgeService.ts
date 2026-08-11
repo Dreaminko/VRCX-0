@@ -26,6 +26,10 @@ import {
     initializeCommunityThemes
 } from './community-theme/installedThemes';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
+import {
+    bindDesktopNotificationActivationEvents,
+    takePendingDesktopNotificationActivation
+} from './desktopNotificationActivationService';
 import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { handleGroupBanImportStatusEvent } from './groupBanImportService';
@@ -488,7 +492,11 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     await hydrateAncillaryRuntimeState();
     try {
         unsubscribers.push(await bindDeepLinkEvents());
-        await drainPendingDeepLinks();
+        unsubscribers.push(await bindDesktopNotificationActivationEvents());
+        await Promise.all([
+            drainPendingDeepLinks(),
+            takePendingDesktopNotificationActivation()
+        ]);
     } catch (error) {
         resetBackendRealtimeProjectionState();
         resetAuthenticatedRuntimeMirror();

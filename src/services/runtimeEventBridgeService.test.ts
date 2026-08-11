@@ -36,6 +36,9 @@ const mocks = vi.hoisted(() => ({
     bindDeepLinkEvents: vi.fn<() => Promise<() => void>>(),
     drainPendingDeepLinks: vi.fn<() => Promise<void>>(),
     deepLinkUnsubscribe: vi.fn(),
+    bindDesktopNotificationActivationEvents: vi.fn<() => Promise<() => void>>(),
+    takePendingDesktopNotificationActivation: vi.fn<() => Promise<void>>(),
+    desktopNotificationActivationUnsubscribe: vi.fn(),
     handleRuntimeAuthFailure: vi.fn(),
     resumeFrontendSessionFromBackendRuntime:
         vi.fn<(snapshot: unknown) => Promise<boolean>>()
@@ -116,6 +119,13 @@ vi.mock('./backendRuntimeSessionResumeService', () => ({
 vi.mock('./deepLinkService', () => ({
     bindDeepLinkEvents: mocks.bindDeepLinkEvents,
     drainPendingDeepLinks: mocks.drainPendingDeepLinks
+}));
+
+vi.mock('./desktopNotificationActivationService', () => ({
+    bindDesktopNotificationActivationEvents:
+        mocks.bindDesktopNotificationActivationEvents,
+    takePendingDesktopNotificationActivation:
+        mocks.takePendingDesktopNotificationActivation
 }));
 
 vi.mock('./authSessionRecoveryService', () => ({
@@ -418,6 +428,12 @@ describe('runtimeEventBridgeService', () => {
         mocks.handleGameRunningUpdate.mockResolvedValue(undefined);
         mocks.bindDeepLinkEvents.mockResolvedValue(mocks.deepLinkUnsubscribe);
         mocks.drainPendingDeepLinks.mockResolvedValue(undefined);
+        mocks.bindDesktopNotificationActivationEvents.mockResolvedValue(
+            mocks.desktopNotificationActivationUnsubscribe
+        );
+        mocks.takePendingDesktopNotificationActivation.mockResolvedValue(
+            undefined
+        );
         mocks.resumeFrontendSessionFromBackendRuntime.mockResolvedValue(false);
         mocks.initializeBackgroundImage.mockResolvedValue(undefined);
         mocks.initializeCommunityThemes.mockResolvedValue(undefined);
@@ -632,12 +648,18 @@ describe('runtimeEventBridgeService', () => {
         expect(mocks.handleRuntimeAuthFailure).not.toHaveBeenCalled();
     });
 
-    it('drains pending deep links after backend runtime snapshot hydration', async () => {
+    it('drains pending shell actions after backend runtime snapshot hydration', async () => {
         const calls: string[] = [];
         mocks.bindDeepLinkEvents.mockImplementation(async () => {
             calls.push('bind-deep-link-events');
             return mocks.deepLinkUnsubscribe;
         });
+        mocks.bindDesktopNotificationActivationEvents.mockImplementation(
+            async () => {
+                calls.push('bind-desktop-notification-events');
+                return mocks.desktopNotificationActivationUnsubscribe;
+            }
+        );
         mocks.getBackendRuntimeCombinedSnapshot.mockImplementation(async () => {
             calls.push('get-backend-snapshot');
             return createBackendRuntimeCombinedSnapshot();
@@ -651,6 +673,11 @@ describe('runtimeEventBridgeService', () => {
         mocks.drainPendingDeepLinks.mockImplementation(async () => {
             calls.push('drain-deep-links');
         });
+        mocks.takePendingDesktopNotificationActivation.mockImplementation(
+            async () => {
+                calls.push('take-desktop-notification-activation');
+            }
+        );
 
         await bindRuntimeEvents();
 
@@ -658,9 +685,14 @@ describe('runtimeEventBridgeService', () => {
             'get-backend-snapshot',
             'hydrate-backend-snapshot',
             'bind-deep-link-events',
-            'drain-deep-links'
+            'bind-desktop-notification-events',
+            'drain-deep-links',
+            'take-desktop-notification-activation'
         ]);
         expect(mocks.drainPendingDeepLinks).toHaveBeenCalledTimes(1);
+        expect(
+            mocks.takePendingDesktopNotificationActivation
+        ).toHaveBeenCalledTimes(1);
     });
 
     it('hydrates the community theme after runtime events are subscribed', async () => {
@@ -803,6 +835,9 @@ describe('runtimeEventBridgeService', () => {
 
         expect(runtimeUnsubscribe).toHaveBeenCalledTimes(40);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
+        expect(
+            mocks.desktopNotificationActivationUnsubscribe
+        ).toHaveBeenCalledTimes(1);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(useUserFactsStore.getState().usersByKey).toEqual({});
     });

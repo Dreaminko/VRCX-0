@@ -4,6 +4,7 @@ pub mod bindings_export;
 mod bootstrap;
 mod commands;
 mod deep_link;
+mod desktop_notification_activation;
 mod error;
 mod localization;
 #[cfg(target_os = "macos")]
