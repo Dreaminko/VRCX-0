@@ -16,11 +16,8 @@ import {
     resolveMyAvatarPerformanceLabel,
     resolveMyAvatarTagBadgeStyle
 } from '../myAvatarsDisplay';
-import type {
-    MyAvatarAction,
-    MyAvatarActionHandler,
-    MyAvatarRow
-} from '../myAvatarsTypes';
+import type { MyAvatarRow } from '../myAvatarsTypes';
+import type { MyAvatarsTableMeta } from '../useMyAvatarsTableMeta';
 import {
     AvatarActionsDropdown,
     PlatformBadges,
@@ -29,15 +26,15 @@ import {
 } from './MyAvatarsViewParts';
 
 type MyAvatarsColumnsOptions = {
-    onAvatarAction: MyAvatarActionHandler;
     savingTagsAvatarId: string;
+    tableMeta: MyAvatarsTableMeta;
     updatingAvatarId: string;
     uploadingImageAvatarId: string;
 };
 
 export function useMyAvatarsColumns({
-    onAvatarAction,
     savingTagsAvatarId,
+    tableMeta,
     updatingAvatarId,
     uploadingImageAvatarId
 }: MyAvatarsColumnsOptions) {
@@ -393,12 +390,7 @@ export function useMyAvatarsColumns({
                             avatar={row.original}
                             isActive={row.original?.id === currentAvatarId}
                             isUpdating={isUpdating}
-                            onAction={(
-                                action: MyAvatarAction,
-                                avatar: MyAvatarRow
-                            ) => {
-                                onAvatarAction(action, avatar);
-                            }}
+                            onAction={tableMeta.onAvatarAction}
                         />
                     );
                 }
@@ -406,8 +398,8 @@ export function useMyAvatarsColumns({
         ],
         [
             currentAvatarId,
-            onAvatarAction,
             savingTagsAvatarId,
+            tableMeta,
             t,
             updatingAvatarId,
             uploadingImageAvatarId

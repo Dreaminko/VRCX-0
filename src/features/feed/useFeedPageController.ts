@@ -82,7 +82,7 @@ export function useFeedPageController() {
         onPaginationChange: tableModel.setPagination,
         autoResetPageIndex: false,
         enableColumnResizing: true,
-        columnResizeMode: 'onChange',
+        columnResizeMode: 'onEnd',
         getRowId: (row) => getFeedRowId(row),
         getRowCanExpand: (row) => canExpandFeedRow(row.original),
         meta: {

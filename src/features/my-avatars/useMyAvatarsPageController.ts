@@ -7,6 +7,7 @@ import { useMyAvatarsDialogState } from './useMyAvatarsDialogState';
 import { useMyAvatarsFilters } from './useMyAvatarsFilters';
 import { useMyAvatarsGridVirtualization } from './useMyAvatarsGridVirtualization';
 import { useMyAvatarsRows } from './useMyAvatarsRows';
+import { useMyAvatarsTableMeta } from './useMyAvatarsTableMeta';
 import { useMyAvatarsTableState } from './useMyAvatarsTableState';
 import { useMyAvatarsViewData } from './useMyAvatarsViewData';
 
@@ -42,9 +43,10 @@ export function useMyAvatarsPageController() {
         setImageCropRequest: dialogs.setImageCropRequest,
         setManageTagsAvatar: dialogs.setManageTagsAvatar
     });
+    const tableMeta = useMyAvatarsTableMeta(actions.handleAvatarAction);
     const columns = useMyAvatarsColumns({
-        onAvatarAction: actions.handleAvatarAction,
         savingTagsAvatarId: actions.savingTagsAvatarId,
+        tableMeta,
         updatingAvatarId: actions.updatingAvatarId,
         uploadingImageAvatarId: actions.uploadingImageAvatarId
     });
@@ -67,7 +69,7 @@ export function useMyAvatarsPageController() {
             columnVisibility: tableState.initialColumnVisibility
         },
         enableColumnResizing: true,
-        columnResizeMode: 'onChange',
+        columnResizeMode: 'onEnd',
         meta: {
             columnOrderLocked: tableState.columnOrderLocked,
             setColumnOrderLocked: tableState.setColumnOrderLocked
