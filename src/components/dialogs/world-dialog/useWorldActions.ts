@@ -9,12 +9,12 @@ import {
 import { assetBundleRepository } from '@/repositories/assetBundleRepository';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { copyTextToClipboard } from '@/services/clipboardService';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
 import { persistFavoriteWorldDetails } from '@/services/favoriteWorldCacheService';
 import { openFolderAndSelectItem } from '@/services/shellIntegrationService';
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
 
 import type { WorldWorldSideData } from './useWorldDialogData';
 import type { useWorldDialogRuntimeState } from './useWorldDialogRuntimeState';
@@ -76,6 +76,9 @@ export function useWorldActions({
     setAuthBootstrap
 }: UseWorldActionsInput) {
     const { t } = useTranslation();
+    const sdkUnityVersion = useVrchatConfigStore((state) =>
+        String(state.snapshot?.sdkUnityVersion || '')
+    );
 
     async function copyUnavailableWorldId() {
         if (!profileWorldId) {
@@ -287,15 +290,9 @@ export function useWorldActions({
         actionStatusRef.current = 'cache';
         setActionStatus('cache');
         try {
-            const configResponse = await vrchatAuthRepository
-                .getConfig()
-                .catch((): null => null);
-            if (!isCurrentWorldTarget(targetWorldId, targetEndpoint)) {
-                return;
-            }
             const args = resolveWorldAssetBundleArgs(
                 targetWorld,
-                String(configResponse?.json?.sdkUnityVersion || '')
+                sdkUnityVersion
             );
             if (!args) {
                 toast.error(
@@ -309,7 +306,10 @@ export function useWorldActions({
                 args.variant,
                 args.variantVersion
             );
-            const cache = await readWorldCacheInfo(targetWorld);
+            const cache = await readWorldCacheInfo(
+                targetWorld,
+                sdkUnityVersion
+            );
             if (!isCurrentWorldTarget(targetWorldId, targetEndpoint)) {
                 return;
             }

@@ -5,7 +5,6 @@ import type { ComponentProps, PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    getConfig: vi.fn(),
     getFileAnalysis: vi.fn(),
     getInstance: vi.fn(),
     getWorldProfile: vi.fn(),
@@ -24,12 +23,6 @@ vi.mock('@/lib/worldAssetBundle', async () => {
         readWorldCacheInfo: mocks.readWorldCacheInfo
     };
 });
-
-vi.mock('@/repositories/vrchatAuthRepository', () => ({
-    default: {
-        getConfig: mocks.getConfig
-    }
-}));
 
 vi.mock('@/repositories/vrchatInstanceRepository', () => ({
     default: {
@@ -103,18 +96,21 @@ vi.mock('@/ui/shadcn/button', () => ({
     )
 }));
 
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
+
 import { PlayerListWorldHeader } from './PlayerListWorldHeader';
 
 describe('PlayerListWorldHeader', () => {
     beforeEach(() => {
-        mocks.getConfig.mockReset();
         mocks.getFileAnalysis.mockReset();
         mocks.getInstance.mockReset();
         mocks.getWorldProfile.mockReset();
         mocks.openImagePreview.mockReset();
         mocks.readWorldCacheInfo.mockReset();
 
-        mocks.getConfig.mockResolvedValue({ json: {} });
+        useVrchatConfigStore.getState().setSnapshot({
+            sdkUnityVersion: '2022.3.22f1'
+        });
         mocks.getFileAnalysis.mockResolvedValue({});
         mocks.getInstance.mockResolvedValue({
             json: { capacity: 100 }
@@ -131,7 +127,10 @@ describe('PlayerListWorldHeader', () => {
         });
     });
 
-    afterEach(cleanup);
+    afterEach(() => {
+        cleanup();
+        useVrchatConfigStore.getState().reset();
+    });
 
     it('prefers the current instance capacity over the world capacity', async () => {
         render(

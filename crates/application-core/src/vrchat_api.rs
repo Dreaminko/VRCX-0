@@ -87,7 +87,7 @@ pub mod notifications {
 
 pub mod search {
     pub use vrcx_0_vrchat_client::search::{
-        search_config_get_input, search_groups_get_input, search_groups_strict_get_input,
+        search_groups_get_input, search_groups_strict_get_input,
         search_instance_short_name_get_input, search_users_get_input, search_worlds_get_input,
     };
 }

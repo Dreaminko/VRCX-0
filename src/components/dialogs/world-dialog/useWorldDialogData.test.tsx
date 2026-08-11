@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 
 import { renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    getCachedConfig: vi.fn(),
     getFileAnalysisForUnityPackages: vi.fn(),
     getPreviousInstancesByWorldId: vi.fn(),
     getUserGroups: vi.fn(),
@@ -41,9 +40,6 @@ vi.mock('@/repositories/groupProfileRepository', () => ({
 vi.mock('@/repositories/memoPersistenceRepository', () => ({
     default: { getWorldMemo: mocks.getWorldMemo }
 }));
-vi.mock('@/repositories/vrchatAuthRepository', () => ({
-    default: { getCachedConfig: mocks.getCachedConfig }
-}));
 vi.mock('@/repositories/worldProfileRepository', () => ({
     default: {
         normalize: (world: Record<string, unknown>) => ({ ...world }),
@@ -55,19 +51,24 @@ vi.mock('@/services/favoriteWorldCacheService', () => ({
     persistFavoriteWorldDetails: mocks.persistFavoriteWorldDetails
 }));
 
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
+
 import { useWorldDialogData } from './useWorldDialogData';
 
 describe('useWorldDialogData', () => {
-    it('reuses the cached config version for world cache inspection', async () => {
+    beforeEach(() => {
+        useVrchatConfigStore.getState().setSnapshot({
+            sdkUnityVersion: '2022.3.22f1'
+        });
+    });
+
+    it('uses the session config version for world cache inspection', async () => {
         const world = {
             id: 'wrld_test',
             updatedAt: '2026-08-11T00:00:00.000Z',
             version: 3,
             unityPackages: []
         };
-        mocks.getCachedConfig.mockResolvedValue({
-            json: { sdkUnityVersion: '2022.3.22f1' }
-        });
         mocks.getFileAnalysisForUnityPackages.mockResolvedValue({});
         mocks.getPreviousInstancesByWorldId.mockResolvedValue([]);
         mocks.getUserGroups.mockResolvedValue([]);
@@ -99,6 +100,5 @@ describe('useWorldDialogData', () => {
             sdkUnityVersion: '2022.3.22f1',
             endpoint: 'https://api.example.test'
         });
-        expect(mocks.getCachedConfig).toHaveBeenCalledTimes(1);
     });
 });

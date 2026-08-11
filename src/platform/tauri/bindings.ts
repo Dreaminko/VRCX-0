@@ -1296,6 +1296,9 @@ export const commands = {
     async appVrchatAuthConfigGet(): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_auth_config_get');
     },
+    async appVrchatAuthConfigRefresh(): Promise<HttpApiExecuteResponse> {
+        return await TAURI_INVOKE('app__vrchat_auth_config_refresh');
+    },
     async appVrchatAuthAutoLoginStart(
         input: AutoLoginStartInput
     ): Promise<AutoLoginOutcome> {
@@ -1956,11 +1959,6 @@ export const commands = {
         input: VrchatNotificationSendInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_request_invite_send', { input });
-    },
-    async appVrchatSearchConfigGet(
-        input: VrchatSearchParamsInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_search_config_get', { input });
     },
     async appVrchatSearchGroupsGet(
         input: VrchatSearchParamsInput

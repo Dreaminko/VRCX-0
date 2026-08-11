@@ -11,6 +11,7 @@ import { useSessionStore } from '@/state/sessionStore';
 import { beginAuthAttempt, isAuthAttemptSupersededError } from './authAttempt';
 import { recordCurrentUserSnapshot } from './domainIngestionService';
 import { bootstrapAuthenticatedSession } from './sessionBootstrapService';
+import { loadVrchatConfigSnapshot } from './vrchatConfigService';
 
 type CurrentUserSnapshot = Record<string, unknown>;
 
@@ -92,6 +93,15 @@ async function getBackendFrontendSessionSnapshot(
     return commands
         .appGetBackendRuntimeFrontendSessionSnapshot(includeCurrentUserSnapshot)
         .catch((): null => null);
+}
+
+async function restoreVrchatConfigSnapshot(): Promise<void> {
+    await loadVrchatConfigSnapshot().catch((error: unknown) => {
+        console.warn(
+            'Failed to restore the VRChat config snapshot from the backend runtime:',
+            error
+        );
+    });
 }
 
 function buildCurrentUserSnapshotForResume({
@@ -222,6 +232,7 @@ export async function resumeFrontendSessionFromBackendRuntime(
             currentUserSnapshot
         });
         recordCurrentUserSnapshot(currentUserSnapshot, { endpoint });
+        await restoreVrchatConfigSnapshot();
         return true;
     }
 
@@ -242,6 +253,7 @@ export async function resumeFrontendSessionFromBackendRuntime(
         currentUserSnapshot
     });
     recordCurrentUserSnapshot(currentUserSnapshot, { endpoint });
+    await restoreVrchatConfigSnapshot();
 
     try {
         await bootstrapAuthenticatedSession(currentUserSnapshot, attempt);

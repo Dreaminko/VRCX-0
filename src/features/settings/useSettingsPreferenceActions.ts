@@ -7,6 +7,7 @@ import {
     consumeSystemFontsUnavailableWarning,
     loadSystemFonts
 } from '@/services/systemFontsService';
+import { loadVrchatConfigSnapshot } from '@/services/vrchatConfigService';
 import type { OverlayActivityTypeDefinition } from '@/shared/constants/overlayActivityFilters';
 import type {
     PreferencesSnapshot,
@@ -168,7 +169,6 @@ type SettingsPreferenceActionsDeps = {
         getState(): Pick<PreferencesStoreState, 'proxyServer' | 'tableLimits'>;
     };
     vrchatAuthRepository: {
-        getConfig(): Promise<{ json: unknown }>;
         getOnlineVisits(): Promise<{ json: unknown }>;
     };
 };
@@ -525,12 +525,8 @@ export function useSettingsPreferenceActions({
     }
     async function refreshConfigTreeData() {
         try {
-            const response = await vrchatAuthRepository.getConfig();
-            setConfigTreeData(
-                response.json && typeof response.json === 'object'
-                    ? (response.json as Record<string, unknown>)
-                    : {}
-            );
+            const snapshot = await loadVrchatConfigSnapshot({ force: true });
+            setConfigTreeData(snapshot || {});
         } catch (error) {
             toast.error(
                 error instanceof Error

@@ -86,12 +86,6 @@ export const entityQueryPolicies = Object.freeze({
         retry: 1,
         refetchOnWindowFocus: false
     }),
-    apiConfig: Object.freeze({
-        staleTime: 60 * MINUTE_MS,
-        gcTime: 240 * MINUTE_MS,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
     fileObject: Object.freeze({
         staleTime: 60 * SECOND_MS,
         gcTime: 300 * SECOND_MS,
@@ -242,7 +236,6 @@ export const queryKeys = Object.freeze({
             ['analysis', fileId, Number(version), String(variant || '')],
             endpoint
         ),
-    apiConfig: (endpoint: unknown = '') => withEndpoint(['config'], endpoint),
     file: (fileId: unknown, endpoint: unknown = '') =>
         withEndpoint(['file', fileId], endpoint),
     avatarStyles: (endpoint: unknown = '') =>

@@ -9,10 +9,10 @@ import configRepository from '@/repositories/configRepository';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
 import myAvatarRepository from '@/repositories/myAvatarRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { onPreferenceChanged } from '@/shared/events/preferenceEvents';
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
 
 import { resolveTabValue } from './userDialogRows';
 import {
@@ -161,8 +161,9 @@ export function useUserDialogTabData({
     const [groupSort, setGroupSort] = useState(
         isCurrentUser ? 'inGame' : 'alphabetical'
     );
-    const [vrchatConfigConstants, setVrchatConfigConstants] =
-        useState<unknown>(null);
+    const vrchatConfigConstants = useVrchatConfigStore(
+        (state) => state.snapshot?.constants ?? null
+    );
     const profileUserId = typeof profile.id === 'string' ? profile.id : '';
     const effectiveAvatarReleaseStatus =
         profileUserId === currentUserId ? avatarReleaseStatus : 'all';
@@ -523,25 +524,6 @@ export function useUserDialogTabData({
         profileUserId,
         reloadToken
     ]);
-
-    useEffect(() => {
-        let active = true;
-        vrchatAuthRepository
-            .getCachedConfig({ endpoint: currentEndpoint })
-            .then((response) => {
-                if (active) {
-                    setVrchatConfigConstants(response?.json?.constants || null);
-                }
-            })
-            .catch(() => {
-                if (active) {
-                    setVrchatConfigConstants(null);
-                }
-            });
-        return () => {
-            active = false;
-        };
-    }, [currentEndpoint]);
 
     useEffect(() => {
         if (activeTab === 'worlds') {

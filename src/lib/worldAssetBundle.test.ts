@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    checkVRChatCache: vi.fn(),
-    getConfig: vi.fn()
+    checkVRChatCache: vi.fn()
 }));
 
 vi.mock('@/repositories/assetBundleRepository', () => ({
@@ -11,12 +10,6 @@ vi.mock('@/repositories/assetBundleRepository', () => ({
     },
     default: {
         checkVRChatCache: mocks.checkVRChatCache
-    }
-}));
-
-vi.mock('@/repositories/vrchatAuthRepository', () => ({
-    default: {
-        getConfig: mocks.getConfig
     }
 }));
 

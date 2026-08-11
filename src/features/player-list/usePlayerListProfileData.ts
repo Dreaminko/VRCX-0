@@ -1,13 +1,13 @@
 import { useQueries } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { queryKeys } from '@/lib/entityQueryCache';
 import { useKnownUserFacts } from '@/lib/useKnownUser';
 import userProfileRepository from '@/repositories/userProfileRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import vrchatFriendRepository from '@/repositories/vrchatFriendRepository';
 import { normalizeString } from '@/shared/utils/string';
 import { normalizeLanguageOptionsFromConfig } from '@/shared/utils/userLanguage';
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
 
 import { resolvePlayerRowUserId } from './playerListRows';
 import type {
@@ -15,7 +15,6 @@ import type {
     PlayerListSourceRow
 } from './playerListTypes';
 
-type LanguageOption = { key: string; value: string };
 type ProfileQueryResult = { data?: unknown };
 
 function buildPlayerProfileIds(
@@ -70,39 +69,15 @@ export function usePlayerListProfileData({
     currentUserId?: unknown;
     playerSourceRows: PlayerListSourceRow[];
 }) {
-    const [languageOptions, setLanguageOptions] = useState<LanguageOption[]>(
-        []
-    );
-
-    useEffect(() => {
-        let active = true;
-        setLanguageOptions([]);
-
-        vrchatAuthRepository
-            .getConfig()
-            .then((response) => {
-                if (!active) {
-                    return;
-                }
-
-                setLanguageOptions(
-                    normalizeLanguageOptionsFromConfig(response.json)
-                );
-            })
-            .catch(() => {
-                if (active) {
-                    setLanguageOptions([]);
-                }
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [currentUserEndpoint]);
-
+    const vrchatConfig = useVrchatConfigStore((state) => state.snapshot);
     const languageOptionsMap = useMemo(
-        () => new Map(languageOptions.map((option) => [option.key, option])),
-        [languageOptions]
+        () =>
+            new Map(
+                normalizeLanguageOptionsFromConfig(vrchatConfig).map(
+                    (option) => [option.key, option] as const
+                )
+            ),
+        [vrchatConfig]
     );
     const playerProfileIds = useMemo(
         () => buildPlayerProfileIds(playerSourceRows, currentUserId),

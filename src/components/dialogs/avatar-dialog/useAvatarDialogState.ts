@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import type { AvatarProfileRecord } from '@/domain/entities/profileEntities';
 import { getFileAnalysisForUnityPackages } from '@/lib/fileAnalysis';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { getCurrentAvatarLiveWearTime } from '@/services/avatarWearTimeService';
 import { enrichEntityDialogHistory } from '@/services/dialogService';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
@@ -13,6 +12,7 @@ import { getAvailablePlatforms } from '@/shared/utils/avatarPlatform';
 import { useDialogStore } from '@/state/dialogStore';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
 
 import { avatarGalleryImageUrl, defaultAvatarSideData } from './avatarAssets';
 import { readAvatarCacheInfo } from './avatarCacheAdapter';
@@ -37,6 +37,9 @@ export function useAvatarDialogState({
     seedData = null
 }: AvatarDialogInput) {
     const { t } = useTranslation();
+    const sdkUnityVersion = useVrchatConfigStore((state) =>
+        String(state.snapshot?.sdkUnityVersion || '')
+    );
 
     const normalizedAvatarId = normalizeEntityId(avatarId);
     const currentEndpoint = useRuntimeStore(
@@ -148,23 +151,17 @@ export function useAvatarDialogState({
         }));
 
         Promise.allSettled([
-            vrchatAuthRepository.getConfig(),
             avatarProfileRepository.getAvatarGallery({
                 avatarId: avatar.id
             })
-        ]).then(([configResult, galleryResult]) => {
+        ]).then(([galleryResult]) => {
             if (!active) {
                 return;
             }
-            const sdkUnityVersion = String(
-                configResult.status === 'fulfilled'
-                    ? configResult.value?.json?.sdkUnityVersion || ''
-                    : ''
-            );
             const galleryRows =
                 galleryResult.status === 'fulfilled' ? galleryResult.value : [];
             return Promise.allSettled([
-                readAvatarCacheInfo(avatar),
+                readAvatarCacheInfo(avatar, sdkUnityVersion),
                 getFileAnalysisForUnityPackages({
                     unityPackages: avatar.unityPackages,
                     sdkUnityVersion,
@@ -194,7 +191,13 @@ export function useAvatarDialogState({
         return () => {
             active = false;
         };
-    }, [avatar?.id, avatar?.updated_at, avatar?.version, currentEndpoint]);
+    }, [
+        avatar?.id,
+        avatar?.updated_at,
+        avatar?.version,
+        currentEndpoint,
+        sdkUnityVersion
+    ]);
 
     useEffect(() => {
         let active = true;

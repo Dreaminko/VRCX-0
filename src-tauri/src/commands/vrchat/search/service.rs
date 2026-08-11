@@ -2,8 +2,8 @@
 
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::search::{
-    search_config_get_input, search_groups_get_input, search_groups_strict_get_input,
-    search_instance_short_name_get_input, search_users_get_input, search_worlds_get_input,
+    search_groups_get_input, search_groups_strict_get_input, search_instance_short_name_get_input,
+    search_users_get_input, search_worlds_get_input,
 };
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
@@ -21,21 +21,6 @@ async fn execute_search_api(
 ) -> Result<VrchatApiResponse, AppError> {
     super::super::execute::execute_vrchat_api(state, command, detail, input, VrchatScope::Vrchat)
         .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_search_config_get(
-    state: State<'_, AppState>,
-    input: VrchatSearchParamsInput,
-) -> Result<VrchatApiResponse, AppError> {
-    execute_search_api(
-        state,
-        "app__vrchat_search_config_get",
-        "Searching config.",
-        search_config_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.params),
-    )
-    .await
 }
 
 #[tauri::command]

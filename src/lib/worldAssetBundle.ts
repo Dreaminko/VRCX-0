@@ -1,5 +1,4 @@
 import { assetBundleRepository } from '@/repositories/assetBundleRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { compareUnityVersion } from '@/shared/utils/avatar';
 import {
     extractFileId,
@@ -126,22 +125,9 @@ export function resolveWorldAssetBundleArgs(
 
 export async function readWorldCacheInfo(
     world: WorldRecord | null | undefined,
-    sdkUnityVersion?: string
+    sdkUnityVersion: string
 ): Promise<WorldCacheInfo> {
-    let resolvedSdkUnityVersion = sdkUnityVersion;
-    if (typeof resolvedSdkUnityVersion !== 'string') {
-        const configResponse = await vrchatAuthRepository
-            .getConfig()
-            .catch(
-                (): Awaited<
-                    ReturnType<typeof vrchatAuthRepository.getConfig>
-                > | null => null
-            );
-        resolvedSdkUnityVersion = String(
-            configResponse?.json?.sdkUnityVersion || ''
-        );
-    }
-    const args = resolveWorldAssetBundleArgs(world, resolvedSdkUnityVersion);
+    const args = resolveWorldAssetBundleArgs(world, sdkUnityVersion);
     if (!args) {
         return defaultWorldCacheInfo();
     }

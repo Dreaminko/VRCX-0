@@ -127,10 +127,25 @@ pub async fn app__vrchat_auth_session_end(
 pub async fn app__vrchat_auth_config_get(
     state: State<'_, AppState>,
 ) -> Result<VrchatApiResponse, AppError> {
+    if let Some(response) = state
+        .web
+        .vrchat_config_snapshot(VRCHAT_API_DEFAULT_ENDPOINT)
+    {
+        return Ok(response);
+    }
+    app__vrchat_auth_config_refresh(state).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__vrchat_auth_config_refresh(
+    state: State<'_, AppState>,
+) -> Result<VrchatApiResponse, AppError> {
+    state.web.clear_vrchat_config_snapshot();
     execute_auth_api(
         state,
-        "app__vrchat_auth_config_get",
-        "Getting VRChat config.",
+        "app__vrchat_auth_config_refresh",
+        "Refreshing VRChat config.",
         config_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into()),
     )
     .await

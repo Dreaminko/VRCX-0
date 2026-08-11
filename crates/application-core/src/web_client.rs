@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use vrcx_0_integrations::external_api::{
     self, ExternalApiExecuteResponse, ExternalApiScope, ExternalHttpRequestInput,
@@ -7,12 +7,27 @@ use vrcx_0_integrations::external_api::{
 use vrcx_0_persistence::cookies;
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
-use vrcx_0_vrchat_client::http_api::{self, ApiScope, HttpApiExecuteResponse, HttpApiRequestInput};
+use vrcx_0_vrchat_client::http_api::{
+    self, normalize_vrchat_api_endpoint, ApiScope, HttpApiExecuteResponse, HttpApiRequestInput,
+};
 use vrcx_0_vrchat_client::image_fetcher::ImageFetcher;
 use vrcx_0_vrchat_client::realtime::RealtimeConnectionOptions;
 use vrcx_0_vrchat_client::web_client::{self as transport, WebExecuteRequest};
 
 use crate::Result;
+
+fn vrchat_config_request_endpoint(input: &HttpApiRequestInput, scope: ApiScope) -> Option<String> {
+    if scope != ApiScope::Vrchat
+        || input.path.as_deref() != Some("config")
+        || input
+            .query_params
+            .as_ref()
+            .is_some_and(|params| !params.is_empty())
+    {
+        return None;
+    }
+    Some(normalize_vrchat_api_endpoint(input.endpoint.as_deref()))
+}
 
 pub struct RealtimeAuthTokenFetch {
     pub response: HttpApiExecuteResponse,
@@ -23,6 +38,41 @@ pub struct WebClient {
     inner: transport::WebClient,
     realtime_origin: String,
     image_fetcher: Arc<ImageFetcher>,
+    vrchat_config: VrchatConfigCache,
+}
+
+struct VrchatConfigSnapshot {
+    endpoint: String,
+    response: HttpApiExecuteResponse,
+}
+
+#[derive(Default)]
+struct VrchatConfigCache {
+    snapshot: Mutex<Option<VrchatConfigSnapshot>>,
+}
+
+impl VrchatConfigCache {
+    fn get(&self, endpoint: &str) -> Option<HttpApiExecuteResponse> {
+        let endpoint = normalize_vrchat_api_endpoint(Some(endpoint));
+        self.snapshot.lock().ok().and_then(|snapshot| {
+            snapshot
+                .as_ref()
+                .filter(|snapshot| snapshot.endpoint == endpoint)
+                .map(|snapshot| snapshot.response.clone())
+        })
+    }
+
+    fn store(&self, endpoint: String, response: HttpApiExecuteResponse) {
+        if let Ok(mut snapshot) = self.snapshot.lock() {
+            *snapshot = Some(VrchatConfigSnapshot { endpoint, response });
+        }
+    }
+
+    fn clear(&self) {
+        if let Ok(mut snapshot) = self.snapshot.lock() {
+            *snapshot = None;
+        }
+    }
 }
 
 impl WebClient {
@@ -45,6 +95,7 @@ impl WebClient {
             inner,
             realtime_origin,
             image_fetcher,
+            vrchat_config: VrchatConfigCache::default(),
         })
     }
 
@@ -133,9 +184,30 @@ impl WebClient {
         scope: ApiScope,
         db: &DatabaseService,
     ) -> Result<HttpApiExecuteResponse> {
+        let vrchat_config_endpoint = vrchat_config_request_endpoint(&input, scope);
+        if let Some(response) = vrchat_config_endpoint
+            .as_deref()
+            .and_then(|endpoint| self.vrchat_config.get(endpoint))
+        {
+            return Ok(response);
+        }
         let request = self.build_api_request(input, scope)?;
         let (status, data) = self.execute(request).await?;
-        self.finish_api_request(status, data, db)
+        let response = self.finish_api_request(status, data, db)?;
+        if response.status == 200 {
+            if let Some(endpoint) = vrchat_config_endpoint {
+                self.vrchat_config.store(endpoint, response.clone());
+            }
+        }
+        Ok(response)
+    }
+
+    pub fn vrchat_config_snapshot(&self, endpoint: &str) -> Option<HttpApiExecuteResponse> {
+        self.vrchat_config.get(endpoint)
+    }
+
+    pub fn clear_vrchat_config_snapshot(&self) {
+        self.vrchat_config.clear();
     }
 
     pub async fn fetch_realtime_auth_token(
@@ -232,5 +304,62 @@ fn external_request_to_transport(request: ExternalWebExecuteRequest) -> WebExecu
         body: request.body,
         upload: vrcx_0_vrchat_client::web_client::WebUploadMode::None,
         response_body_limit: request.response_body_limit,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use serde_json::json;
+    use vrcx_0_vrchat_client::auth::config_get_input;
+
+    use super::*;
+
+    #[test]
+    fn config_snapshot_matching_is_limited_to_plain_vrchat_config_gets() {
+        let input = config_get_input("https://api.example.test/api/1/".into());
+        assert_eq!(
+            vrchat_config_request_endpoint(&input, ApiScope::Vrchat).as_deref(),
+            Some("https://api.example.test/api/1")
+        );
+        assert_eq!(
+            vrchat_config_request_endpoint(&input, ApiScope::VrchatMedia),
+            None
+        );
+
+        let mut queried_input = input.clone();
+        queried_input.query_params = Some(HashMap::from([("x".into(), json!(1))]));
+        assert_eq!(
+            vrchat_config_request_endpoint(&queried_input, ApiScope::Vrchat),
+            None
+        );
+
+        let mut other_input = input;
+        other_input.path = Some("auth/user".into());
+        assert_eq!(
+            vrchat_config_request_endpoint(&other_input, ApiScope::Vrchat),
+            None
+        );
+    }
+
+    #[test]
+    fn config_cache_is_endpoint_scoped_and_explicitly_cleared() {
+        let cache = VrchatConfigCache::default();
+        let response = http_api::execute_response(200, r#"{"sdkUnityVersion":"test"}"#.into());
+
+        cache.store("https://api.example.test/api/1".into(), response.clone());
+
+        assert_eq!(
+            cache
+                .get("https://api.example.test/api/1/")
+                .map(|snapshot| snapshot.data),
+            Some(response.data)
+        );
+        assert!(cache.get("https://api.other.test/api/1").is_none());
+
+        cache.clear();
+
+        assert!(cache.get("https://api.example.test/api/1").is_none());
     }
 }

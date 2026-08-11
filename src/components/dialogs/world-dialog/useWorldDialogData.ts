@@ -7,9 +7,9 @@ import { readWorldCacheInfo } from '@/lib/worldAssetBundle';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { persistFavoriteWorldDetails } from '@/services/favoriteWorldCacheService';
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
 
 import {
     defaultWorldSideData,
@@ -51,6 +51,9 @@ export function useWorldDialogData({
     memoRevisionRef
 }: UseWorldDialogDataInput) {
     const { t } = useTranslation();
+    const sdkUnityVersion = useVrchatConfigStore((state) =>
+        String(state.snapshot?.sdkUnityVersion || '')
+    );
     const [world, setWorld] = useState(() =>
         seedData ? worldProfileRepository.normalize(seedData) : null
     );
@@ -127,22 +130,14 @@ export function useWorldDialogData({
 
         const targetWorldId = world.id;
         const targetEndpoint = currentEndpoint;
-        vrchatAuthRepository
-            .getCachedConfig({ endpoint: targetEndpoint })
-            .catch((): null => null)
-            .then((configResponse) => {
-                const sdkUnityVersion = String(
-                    configResponse?.json?.sdkUnityVersion || ''
-                );
-                return Promise.allSettled([
-                    readWorldCacheInfo(world, sdkUnityVersion),
-                    getFileAnalysisForUnityPackages({
-                        unityPackages: world.unityPackages,
-                        sdkUnityVersion,
-                        endpoint: targetEndpoint
-                    })
-                ]);
+        Promise.allSettled([
+            readWorldCacheInfo(world, sdkUnityVersion),
+            getFileAnalysisForUnityPackages({
+                unityPackages: world.unityPackages,
+                sdkUnityVersion,
+                endpoint: targetEndpoint
             })
+        ])
             .then(([cacheResult, fileAnalysisResult]) => {
                 if (
                     active &&
@@ -172,7 +167,13 @@ export function useWorldDialogData({
         return () => {
             active = false;
         };
-    }, [currentEndpoint, world?.id, world?.updatedAt, world?.version]);
+    }, [
+        currentEndpoint,
+        sdkUnityVersion,
+        world?.id,
+        world?.updatedAt,
+        world?.version
+    ]);
 
     useEffect(() => {
         let active = true;

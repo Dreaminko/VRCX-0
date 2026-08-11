@@ -171,7 +171,6 @@ export function GroupDialogTabbedView({
             : firstArray(group.gallery, group.photos);
     const isPrivateGroup = group.privacy === 'private';
     const languageRows = useGroupDialogLanguageRows({
-        currentEndpoint,
         group
     });
     const canSetVisibility = group.privacy === 'default';

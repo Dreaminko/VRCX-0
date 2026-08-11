@@ -4,13 +4,13 @@ import { toast } from 'sonner';
 import { assetBundleRepository } from '@/repositories/assetBundleRepository';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import mediaRepository from '@/repositories/mediaRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { openFolderAndSelectItem } from '@/services/shellIntegrationService';
 import {
     readFileAsBase64,
     validateImageUploadFile,
     withUploadTimeout
 } from '@/shared/utils/imageUpload';
+import { useVrchatConfigStore } from '@/state/vrchatConfigStore';
 
 import { avatarGalleryImageUrl, resolveAssetBundleArgs } from './avatarAssets';
 import { readAvatarCacheInfo } from './avatarCacheAdapter';
@@ -183,13 +183,10 @@ export function createAvatarCacheActions({
         if (actionStatusRef.current !== 'idle') {
             return;
         }
-        const configResponse = await vrchatAuthRepository
-            .getConfig()
-            .catch((): null => null);
-        const args = resolveAssetBundleArgs(
-            avatar,
-            String(configResponse?.json?.sdkUnityVersion || '')
+        const sdkUnityVersion = String(
+            useVrchatConfigStore.getState().snapshot?.sdkUnityVersion || ''
         );
+        const args = resolveAssetBundleArgs(avatar, sdkUnityVersion);
         if (!args) {
             toast.error(
                 t('dialog.avatar.error.avatar_cache_location_unavailable')
@@ -205,7 +202,7 @@ export function createAvatarCacheActions({
                 args.variant,
                 args.variantVersion
             );
-            const cache = await readAvatarCacheInfo(avatar);
+            const cache = await readAvatarCacheInfo(avatar, sdkUnityVersion);
             setAvatarSideData((current) => ({ ...current, cache }));
             setAvatar((current) =>
                 current ? { ...current, $isCached: cache.inCache } : current

@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
     buildAvatarWearSnapshotUpdate: vi.fn(),
     recordCurrentUserSnapshot: vi.fn(),
     resetDomainFacts: vi.fn(),
+    loadVrchatConfigSnapshot: vi.fn(),
+    resetVrchatConfigSnapshot: vi.fn(),
     t: vi.fn(),
     bootstrapAuthenticatedSession: vi.fn(),
     confirm: vi.fn(),
@@ -60,6 +62,11 @@ vi.mock('./i18nService', () => ({
     default: {
         t: mocks.t
     }
+}));
+
+vi.mock('./vrchatConfigService', () => ({
+    loadVrchatConfigSnapshot: mocks.loadVrchatConfigSnapshot,
+    resetVrchatConfigSnapshot: mocks.resetVrchatConfigSnapshot
 }));
 
 vi.mock('./sessionBootstrapService', () => ({
@@ -214,6 +221,7 @@ describe('authExecutionService characterization', () => {
                 Promise.resolve(values?.name ? `${key}:${values.name}` : key)
         );
         mocks.bootstrapAuthenticatedSession.mockResolvedValue(undefined);
+        mocks.loadVrchatConfigSnapshot.mockResolvedValue({});
         mocks.confirm.mockResolvedValue({ ok: true });
         mocks.otpPrompt.mockResolvedValue({ ok: true, value: '123456' });
     });
@@ -249,6 +257,7 @@ describe('authExecutionService characterization', () => {
             currentUserWebsocket: 'wss://pipeline.vrchat.cloud'
         });
         expect(useSessionStore.getState().sessionPhase).toBe('authenticating');
+        expect(mocks.loadVrchatConfigSnapshot).toHaveBeenCalledTimes(1);
         expect(mocks.bootstrapAuthenticatedSession).toHaveBeenCalledWith(
             user(),
             expect.any(Number)
@@ -404,6 +413,7 @@ describe('authExecutionService characterization', () => {
         );
         expect(useRuntimeStore.getState().auth.currentUserId).toBe(null);
         expect(useSessionStore.getState().sessionPhase).toBe('signed_out');
+        expect(mocks.resetVrchatConfigSnapshot).toHaveBeenCalled();
         expect(mocks.toastSuccess).toHaveBeenCalledWith(
             'message.auth.logout_greeting:Self'
         );

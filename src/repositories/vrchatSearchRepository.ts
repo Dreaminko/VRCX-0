@@ -6,10 +6,6 @@ import {
     unwrapVrchatResponse
 } from './vrchatRequest';
 
-export type SearchConfigJson = Record<string, unknown> & {
-    dynamicWorldRows?: unknown;
-};
-
 export type SearchEntityJson = Record<string, unknown> & {
     id: string;
 };
@@ -69,18 +65,6 @@ function unwrapVrchatSearchResponse<TJson = unknown>(
         params,
         ...extra
     };
-}
-
-async function getConfig(params: QueryParams = {}) {
-    const normalizedParams = normalizeParams(params);
-    const response = await commands.appVrchatSearchConfigGet({
-        params: normalizedParams
-    });
-    return unwrapVrchatSearchResponse<SearchConfigJson>(
-        response,
-        'config',
-        normalizedParams
-    );
 }
 
 async function getWorlds(params: QueryParams = {}, option?: unknown) {
@@ -167,7 +151,6 @@ async function getInstanceFromShortName(shortName: unknown) {
 }
 
 const vrchatSearchRepository = Object.freeze({
-    getConfig,
     getWorlds,
     getWorldById,
     getUsers,
@@ -177,7 +160,6 @@ const vrchatSearchRepository = Object.freeze({
 });
 
 export {
-    getConfig,
     getWorlds,
     getWorldById,
     getUsers,

@@ -6,13 +6,6 @@ use crate::http_api::{
     encode_path_segment, get_input, normalize_text, require_text, HttpApiError, HttpApiRequestInput,
 };
 
-pub fn search_config_get_input(
-    endpoint: String,
-    params: HashMap<String, Value>,
-) -> HttpApiRequestInput {
-    get_input(endpoint, "config", params)
-}
-
 pub fn search_worlds_get_input(
     endpoint: String,
     params: HashMap<String, Value>,
@@ -76,10 +69,6 @@ mod tests {
     fn search_routes_keep_original_paths_and_query_params() {
         let params = HashMap::from([("search".to_string(), json!("query"))]);
         let cases = [
-            (
-                search_config_get_input(ENDPOINT.into(), params.clone()),
-                "config",
-            ),
             (
                 search_worlds_get_input(ENDPOINT.into(), params.clone(), None),
                 "worlds",

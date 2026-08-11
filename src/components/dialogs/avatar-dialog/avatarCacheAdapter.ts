@@ -1,13 +1,11 @@
 import { assetBundleRepository } from '@/repositories/assetBundleRepository';
-import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 
 import { defaultAvatarSideData, resolveAssetBundleArgs } from './avatarAssets';
 
-export async function readAvatarCacheInfo(avatar: unknown) {
-    const configResponse = await vrchatAuthRepository
-        .getConfig()
-        .catch((): null => null);
-    const sdkUnityVersion = String(configResponse?.json?.sdkUnityVersion || '');
+export async function readAvatarCacheInfo(
+    avatar: unknown,
+    sdkUnityVersion: string
+) {
     const args = resolveAssetBundleArgs(avatar, sdkUnityVersion);
     if (!args) {
         return defaultAvatarSideData().cache;

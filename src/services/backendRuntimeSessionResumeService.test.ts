@@ -15,7 +15,8 @@ const mocks = vi.hoisted(() => ({
             ) => Promise<BackendRuntimeFrontendSessionSnapshot | null>
         >(),
     recordCurrentUserSnapshot: vi.fn(),
-    bootstrapAuthenticatedSession: vi.fn()
+    bootstrapAuthenticatedSession: vi.fn(),
+    loadVrchatConfigSnapshot: vi.fn()
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({
@@ -32,6 +33,10 @@ vi.mock('./domainIngestionService', () => ({
 
 vi.mock('./sessionBootstrapService', () => ({
     bootstrapAuthenticatedSession: mocks.bootstrapAuthenticatedSession
+}));
+
+vi.mock('./vrchatConfigService', () => ({
+    loadVrchatConfigSnapshot: mocks.loadVrchatConfigSnapshot
 }));
 
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -133,6 +138,7 @@ describe('backendRuntimeSessionResumeService', () => {
                 })
         );
         mocks.bootstrapAuthenticatedSession.mockResolvedValue(undefined);
+        mocks.loadVrchatConfigSnapshot.mockResolvedValue({});
         setCurrentBackendRuntime();
     });
 
@@ -259,6 +265,7 @@ describe('backendRuntimeSessionResumeService', () => {
             nextFrontendSession.currentUserSnapshot,
             { endpoint: nextEndpoint }
         );
+        expect(mocks.loadVrchatConfigSnapshot).toHaveBeenCalledTimes(1);
         expect(mocks.bootstrapAuthenticatedSession).not.toHaveBeenCalled();
         expect(
             mocks.appGetBackendRuntimeFrontendSessionSnapshot.mock.calls
@@ -283,6 +290,7 @@ describe('backendRuntimeSessionResumeService', () => {
             frontendSession().currentUserSnapshot,
             { endpoint: ENDPOINT }
         );
+        expect(mocks.loadVrchatConfigSnapshot).toHaveBeenCalledTimes(1);
         expect(mocks.bootstrapAuthenticatedSession).toHaveBeenCalledWith(
             frontendSession().currentUserSnapshot,
             expect.any(Number)

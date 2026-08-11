@@ -34,6 +34,7 @@ impl RuntimeHostState {
     }
 
     pub async fn start_login_session(&self, input: LoginSessionStartInput) -> LoginSessionState {
+        self.web.clear_vrchat_config_snapshot();
         self.runtime_context
             .login_session
             .start(
@@ -47,6 +48,7 @@ impl RuntimeHostState {
     }
 
     pub async fn start_auto_login(&self, input: AutoLoginStartInput) -> Result<AutoLoginOutcome> {
+        self.web.clear_vrchat_config_snapshot();
         self.runtime_context
             .login_session
             .auto_login_start(
@@ -175,6 +177,7 @@ impl RuntimeHostState {
         endpoint_override: Option<String>,
         snapshot: SavedAuthSnapshot,
     ) -> std::result::Result<AuthenticatedRuntimeSession, NonInteractiveAuthError> {
+        self.web.clear_vrchat_config_snapshot();
         let saved_record = saved_credential_session_data(self.runtime_context.config(), &user_id)
             .map_err(|error| NonInteractiveAuthError::Failed(error.to_string()))?;
         let (saved_endpoint, websocket, saved_cookies) = saved_record.map_or_else(
