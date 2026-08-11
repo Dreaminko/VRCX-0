@@ -1,20 +1,20 @@
 use rusqlite::types::Value as SqlValue;
 
-pub(super) fn json_to_sql(val: &serde_json::Value) -> Box<dyn rusqlite::types::ToSql> {
+pub(super) fn json_to_sql(val: &serde_json::Value) -> SqlValue {
     match val {
-        serde_json::Value::Null => Box::new(rusqlite::types::Null),
-        serde_json::Value::Bool(b) => Box::new(if *b { 1i64 } else { 0i64 }),
+        serde_json::Value::Null => SqlValue::Null,
+        serde_json::Value::Bool(b) => SqlValue::Integer(if *b { 1 } else { 0 }),
         serde_json::Value::Number(n) => {
             if let Some(i) = n.as_i64() {
-                Box::new(i)
+                SqlValue::Integer(i)
             } else if let Some(f) = n.as_f64() {
-                Box::new(f)
+                SqlValue::Real(f)
             } else {
-                Box::new(n.to_string())
+                SqlValue::Text(n.to_string())
             }
         }
-        serde_json::Value::String(s) => Box::new(s.clone()),
-        other => Box::new(other.to_string()),
+        serde_json::Value::String(s) => SqlValue::Text(s.clone()),
+        other => SqlValue::Text(other.to_string()),
     }
 }
 
@@ -55,28 +55,12 @@ fn base64_encode(data: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use rusqlite::types::{ToSqlOutput, ValueRef};
-
     use super::*;
-
-    fn sql_value(v: &dyn rusqlite::types::ToSql) -> SqlValue {
-        match v.to_sql().unwrap() {
-            ToSqlOutput::Borrowed(value_ref) => match value_ref {
-                ValueRef::Null => SqlValue::Null,
-                ValueRef::Integer(i) => SqlValue::Integer(i),
-                ValueRef::Real(f) => SqlValue::Real(f),
-                ValueRef::Text(t) => SqlValue::Text(String::from_utf8_lossy(t).into_owned()),
-                ValueRef::Blob(b) => SqlValue::Blob(b.to_vec()),
-            },
-            ToSqlOutput::Owned(value) => value,
-            other => panic!("unexpected ToSqlOutput variant: {other:?}"),
-        }
-    }
 
     #[test]
     fn json_to_sql_maps_null_to_sql_null() {
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!(null))),
+            json_to_sql(&serde_json::json!(null)),
             SqlValue::Null
         );
     }
@@ -84,11 +68,11 @@ mod tests {
     #[test]
     fn json_to_sql_maps_bools_to_zero_or_one() {
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!(true))),
+            json_to_sql(&serde_json::json!(true)),
             SqlValue::Integer(1)
         );
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!(false))),
+            json_to_sql(&serde_json::json!(false)),
             SqlValue::Integer(0)
         );
     }
@@ -96,11 +80,11 @@ mod tests {
     #[test]
     fn json_to_sql_keeps_integers_as_integers_and_floats_as_reals() {
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!(42))),
+            json_to_sql(&serde_json::json!(42)),
             SqlValue::Integer(42)
         );
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!(1.5))),
+            json_to_sql(&serde_json::json!(1.5)),
             SqlValue::Real(1.5)
         );
     }
@@ -109,7 +93,7 @@ mod tests {
     fn json_to_sql_degrades_integers_beyond_i64_range_to_a_float_approximation() {
         let huge = serde_json::from_str::<serde_json::Value>("18446744073709551616").unwrap();
         assert_eq!(
-            sql_value(&*json_to_sql(&huge)),
+            json_to_sql(&huge),
             SqlValue::Real(18446744073709551616.0)
         );
     }
@@ -117,7 +101,7 @@ mod tests {
     #[test]
     fn json_to_sql_passes_strings_through_unquoted() {
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!("usr_alice"))),
+            json_to_sql(&serde_json::json!("usr_alice")),
             SqlValue::Text("usr_alice".into())
         );
     }
@@ -125,11 +109,11 @@ mod tests {
     #[test]
     fn json_to_sql_stringifies_arrays_and_objects_as_json_text() {
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!([1, 2]))),
+            json_to_sql(&serde_json::json!([1, 2])),
             SqlValue::Text("[1,2]".into())
         );
         assert_eq!(
-            sql_value(&*json_to_sql(&serde_json::json!({"a": 1}))),
+            json_to_sql(&serde_json::json!({"a": 1})),
             SqlValue::Text("{\"a\":1}".into())
         );
     }

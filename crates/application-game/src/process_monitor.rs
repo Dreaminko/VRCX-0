@@ -30,25 +30,31 @@ pub trait GameProcessMonitorActions: Send + 'static {
     fn on_steamvr_changed(&mut self, _steamvr_running: bool) {}
 }
 
+struct ProcessMonitorShared {
+    game_running: AtomicBool,
+    observed_game_running: AtomicBool,
+    steamvr_running: AtomicBool,
+    started: AtomicBool,
+    stop_requested: AtomicBool,
+    generation: AtomicU64,
+}
+
 pub struct ProcessMonitor {
-    game_running: Arc<AtomicBool>,
-    observed_game_running: Arc<AtomicBool>,
-    steamvr_running: Arc<AtomicBool>,
-    started: Arc<AtomicBool>,
-    stop_requested: Arc<AtomicBool>,
-    generation: Arc<AtomicU64>,
+    shared: Arc<ProcessMonitorShared>,
     handle: Mutex<Option<JoinHandle<()>>>,
 }
 
 impl ProcessMonitor {
     pub fn new() -> Self {
         Self {
-            game_running: Arc::new(AtomicBool::new(false)),
-            observed_game_running: Arc::new(AtomicBool::new(false)),
-            steamvr_running: Arc::new(AtomicBool::new(false)),
-            started: Arc::new(AtomicBool::new(false)),
-            stop_requested: Arc::new(AtomicBool::new(false)),
-            generation: Arc::new(AtomicU64::new(0)),
+            shared: Arc::new(ProcessMonitorShared {
+                game_running: AtomicBool::new(false),
+                observed_game_running: AtomicBool::new(false),
+                steamvr_running: AtomicBool::new(false),
+                started: AtomicBool::new(false),
+                stop_requested: AtomicBool::new(false),
+                generation: AtomicU64::new(0),
+            }),
             handle: Mutex::new(None),
         }
     }
@@ -60,34 +66,29 @@ impl ProcessMonitor {
         game_process_sinks: Vec<Arc<dyn GameProcessEventSink>>,
     ) {
         if self
+            .shared
             .started
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
-            && !self.stop_requested.load(Ordering::Acquire)
+            && !self.shared.stop_requested.load(Ordering::Acquire)
         {
             tracing::debug!("process monitor is already active");
             return;
         }
-        let generation = self.generation.fetch_add(1, Ordering::AcqRel) + 1;
-        self.stop_requested.store(false, Ordering::Release);
-
-        let game = Arc::clone(&self.game_running);
-        let observed_game = Arc::clone(&self.observed_game_running);
-        let steamvr = Arc::clone(&self.steamvr_running);
-        let started = Arc::clone(&self.started);
-        let stop_requested = Arc::clone(&self.stop_requested);
-        let current_generation = Arc::clone(&self.generation);
+        let generation = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
+        self.shared.stop_requested.store(false, Ordering::Release);
+        let shared = Arc::clone(&self.shared);
 
         let handle = std::thread::spawn(move || {
             let mut actions = actions;
             let mut first_poll = true;
             let mut consecutive_game_misses = 0;
 
-            while !stop_requested.load(Ordering::Acquire)
-                && current_generation.load(Ordering::Acquire) == generation
+            while !shared.stop_requested.load(Ordering::Acquire)
+                && shared.generation.load(Ordering::Acquire) == generation
             {
                 let status = actions.detect();
-                let prev_game = observed_game.load(Ordering::Relaxed);
+                let prev_game = shared.observed_game_running.load(Ordering::Relaxed);
                 let game_found = resolve_debounced_game_running(
                     status.is_game_running,
                     prev_game,
@@ -95,9 +96,13 @@ impl ProcessMonitor {
                 );
                 let steamvr_found = status.is_steamvr_running;
 
-                observed_game.store(game_found, Ordering::Relaxed);
-                game.store(game_found, Ordering::Relaxed);
-                let prev_steamvr = steamvr.swap(steamvr_found, Ordering::Relaxed);
+                shared
+                    .observed_game_running
+                    .store(game_found, Ordering::Relaxed);
+                shared.game_running.store(game_found, Ordering::Relaxed);
+                let prev_steamvr = shared
+                    .steamvr_running
+                    .swap(steamvr_found, Ordering::Relaxed);
                 let previous = GameProcessStatus {
                     is_game_running: prev_game,
                     is_steamvr_running: prev_steamvr,
@@ -136,13 +141,13 @@ impl ProcessMonitor {
                 }
 
                 crate::sleep_interruptibly(Duration::from_secs(1), || {
-                    !stop_requested.load(Ordering::Acquire)
-                        && current_generation.load(Ordering::Acquire) == generation
+                    !shared.stop_requested.load(Ordering::Acquire)
+                        && shared.generation.load(Ordering::Acquire) == generation
                 });
             }
 
-            if current_generation.load(Ordering::Acquire) == generation {
-                started.store(false, Ordering::Release);
+            if shared.generation.load(Ordering::Acquire) == generation {
+                shared.started.store(false, Ordering::Release);
             }
         });
         if let Ok(mut current) = self.handle.lock() {
@@ -156,24 +161,24 @@ impl ProcessMonitor {
     }
 
     pub fn stop(&self) {
-        self.generation.fetch_add(1, Ordering::AcqRel);
-        self.stop_requested.store(true, Ordering::Release);
-        self.started.store(false, Ordering::Release);
+        self.shared.generation.fetch_add(1, Ordering::AcqRel);
+        self.shared.stop_requested.store(true, Ordering::Release);
+        self.shared.started.store(false, Ordering::Release);
         if let Ok(mut handle) = self.handle.lock() {
             if let Some(handle) = handle.take() {
                 let _ = handle.join();
             }
         }
-        self.game_running.store(false, Ordering::Release);
-        self.steamvr_running.store(false, Ordering::Release);
+        self.shared.game_running.store(false, Ordering::Release);
+        self.shared.steamvr_running.store(false, Ordering::Release);
     }
 
     pub fn is_game_running(&self) -> bool {
-        self.game_running.load(Ordering::Relaxed)
+        self.shared.game_running.load(Ordering::Relaxed)
     }
 
     pub fn is_steamvr_running(&self) -> bool {
-        self.steamvr_running.load(Ordering::Relaxed)
+        self.shared.steamvr_running.load(Ordering::Relaxed)
     }
 }
 
@@ -462,8 +467,8 @@ mod tests {
     #[test]
     fn stop_clears_process_state_before_a_later_restart() {
         let monitor = ProcessMonitor::new();
-        monitor.game_running.store(true, Ordering::Relaxed);
-        monitor.steamvr_running.store(true, Ordering::Relaxed);
+        monitor.shared.game_running.store(true, Ordering::Relaxed);
+        monitor.shared.steamvr_running.store(true, Ordering::Relaxed);
 
         monitor.stop();
 

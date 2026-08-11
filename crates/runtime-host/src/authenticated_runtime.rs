@@ -52,8 +52,7 @@ pub struct AuthenticatedRuntimeDeps {
 
 #[derive(Clone)]
 pub struct AuthenticatedRuntimeOrchestrator {
-    state: Arc<Mutex<AuthenticatedRuntimeState>>,
-    generation: Arc<AtomicU64>,
+    shared: Arc<AuthenticatedRuntimeShared>,
     db: Arc<DatabaseService>,
     web: Arc<WebClient>,
     event_bus: RuntimeEventBus,
@@ -62,6 +61,11 @@ pub struct AuthenticatedRuntimeOrchestrator {
     session: HostSessionRuntime,
     realtime_runtime: Arc<RealtimeHostRuntime>,
     favorites_sink: Option<RuntimeHostFavoritesCallback>,
+}
+
+struct AuthenticatedRuntimeShared {
+    state: Mutex<AuthenticatedRuntimeState>,
+    generation: AtomicU64,
 }
 
 #[derive(Default)]
@@ -82,8 +86,10 @@ struct FriendBaselineMetadata {
 impl AuthenticatedRuntimeOrchestrator {
     pub fn new(deps: AuthenticatedRuntimeDeps) -> Self {
         Self {
-            state: Arc::new(Mutex::new(AuthenticatedRuntimeState::default())),
-            generation: Arc::new(AtomicU64::new(0)),
+            shared: Arc::new(AuthenticatedRuntimeShared {
+                state: Mutex::new(AuthenticatedRuntimeState::default()),
+                generation: AtomicU64::new(0),
+            }),
             db: deps.db,
             web: deps.web,
             event_bus: deps.event_bus,
@@ -191,7 +197,7 @@ impl AuthenticatedRuntimeOrchestrator {
         }
 
         self.realtime_runtime.stop(RealtimeStopRequest::default());
-        let run_id = self.generation.fetch_add(1, Ordering::AcqRel) + 1;
+        let run_id = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
         let snapshot = AuthenticatedRuntimePhaseSnapshot {
             run_id,
             auth_scope_generation: scope.generation,
@@ -223,7 +229,7 @@ impl AuthenticatedRuntimeOrchestrator {
         ) {
             return previous;
         }
-        let run_id = self.generation.fetch_add(1, Ordering::AcqRel) + 1;
+        let run_id = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
         self.realtime_runtime.stop(RealtimeStopRequest::default());
         let snapshot = AuthenticatedRuntimePhaseSnapshot {
             run_id,
@@ -746,7 +752,7 @@ impl AuthenticatedRuntimeOrchestrator {
         stop_token: &TaskStopToken,
     ) -> bool {
         !stop_token.is_stop_requested()
-            && self.generation.load(Ordering::Acquire) == run_id
+            && self.shared.generation.load(Ordering::Acquire) == run_id
             && self.auth_scope.snapshot().generation_matches(scope)
             && matches!(
                 self.lock_state().phase.phase,
@@ -884,7 +890,8 @@ impl AuthenticatedRuntimeOrchestrator {
     }
 
     fn lock_state(&self) -> MutexGuard<'_, AuthenticatedRuntimeState> {
-        self.state
+        self.shared
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }

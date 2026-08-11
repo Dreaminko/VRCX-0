@@ -25,8 +25,12 @@ const MAX_RECENT_MEDIA_IDS: usize = 100;
 
 #[derive(Clone)]
 pub struct InstanceMediaQueue {
-    gate: Arc<tokio::sync::Mutex<()>>,
-    recent_ids: Arc<Mutex<VecDeque<String>>>,
+    inner: Arc<InstanceMediaQueueInner>,
+}
+
+struct InstanceMediaQueueInner {
+    gate: tokio::sync::Mutex<()>,
+    recent_ids: Mutex<VecDeque<String>>,
 }
 
 #[derive(Clone)]
@@ -41,8 +45,10 @@ pub struct InstanceMediaDeps {
 impl InstanceMediaQueue {
     pub fn new() -> Self {
         Self {
-            gate: Arc::new(tokio::sync::Mutex::new(())),
-            recent_ids: Arc::new(Mutex::new(VecDeque::with_capacity(MAX_RECENT_MEDIA_IDS))),
+            inner: Arc::new(InstanceMediaQueueInner {
+                gate: tokio::sync::Mutex::new(()),
+                recent_ids: Mutex::new(VecDeque::with_capacity(MAX_RECENT_MEDIA_IDS)),
+            }),
         }
     }
 
@@ -55,7 +61,7 @@ impl InstanceMediaQueue {
             return Ok(());
         }
 
-        let _guard = self.gate.lock().await;
+        let _guard = self.inner.gate.lock().await;
         tokio::task::spawn_blocking(|| std::thread::sleep(INSTANCE_MEDIA_SAVE_INTERVAL))
             .await
             .map_err(|error| Error::Custom(format!("instance media delay task: {error}")))?;
@@ -66,7 +72,7 @@ impl InstanceMediaQueue {
         if id.trim().is_empty() {
             return true;
         }
-        let mut recent = self.recent_ids.lock().unwrap();
+        let mut recent = self.inner.recent_ids.lock().unwrap();
         if recent.iter().any(|value| value == id) {
             return true;
         }

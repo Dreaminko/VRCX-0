@@ -111,13 +111,17 @@ impl GroupBanImportActions for VrchatGroupBanImportActions {
 
 #[derive(Clone)]
 pub struct GroupBanImportRuntime {
-    inner: Arc<Mutex<GroupBanImportRuntimeInner>>,
-    generation: Arc<AtomicU64>,
+    shared: Arc<GroupBanImportRuntimeShared>,
     actions: Arc<dyn GroupBanImportActions>,
     event_bus: RuntimeEventBus,
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
     interval: Duration,
+}
+
+struct GroupBanImportRuntimeShared {
+    state: Mutex<GroupBanImportRuntimeInner>,
+    generation: AtomicU64,
 }
 
 #[derive(Default)]
@@ -139,8 +143,10 @@ impl GroupBanImportRuntime {
         auth_scope: RuntimeAuthScope,
     ) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(GroupBanImportRuntimeInner::default())),
-            generation: Arc::new(AtomicU64::new(0)),
+            shared: Arc::new(GroupBanImportRuntimeShared {
+                state: Mutex::new(GroupBanImportRuntimeInner::default()),
+                generation: AtomicU64::new(0),
+            }),
             actions,
             event_bus,
             tasks,
@@ -179,7 +185,7 @@ impl GroupBanImportRuntime {
                     "Another group ban import is already active.".into(),
                 ));
             }
-            let generation = self.generation.fetch_add(1, Ordering::AcqRel) + 1;
+            let generation = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
             let status = GroupBanImportStatus {
                 run_id: format!("group-ban-{}-{generation}", Utc::now().timestamp_millis()),
                 status: GroupBanImportState::Running,
@@ -316,7 +322,8 @@ impl GroupBanImportRuntime {
     }
 
     fn lock_inner(&self) -> std::sync::MutexGuard<'_, GroupBanImportRuntimeInner> {
-        self.inner
+        self.shared
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }

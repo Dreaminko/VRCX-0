@@ -118,13 +118,13 @@ pub struct RuntimeHostState {
     pub launched_from_autostart: bool,
     pub(super) profile_extension: Option<Arc<dyn RuntimeHostProfileExtension>>,
     pub(super) backend_starting: AtomicBool,
-    pub(super) background_auth_recovery_running: Arc<AtomicBool>,
+    pub(super) background_auth_recovery_running: AtomicBool,
     pub(super) social_maintenance_running: Arc<AtomicBool>,
     pub(super) activity_warmup_generation: Arc<AtomicU64>,
     pub(super) background_group_instances_refresh_running: Arc<AtomicBool>,
     pub(super) backend_frontend_session: Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
     pub(super) authenticated_session_maintenance:
-        Arc<Mutex<Option<AuthenticatedSessionMaintenanceOutcome>>>,
+        Mutex<Option<AuthenticatedSessionMaintenanceOutcome>>,
     pub(super) _profile_lock: ProfileLock,
 }
 
@@ -581,12 +581,12 @@ impl RuntimeHostStateBuilder {
             launched_from_autostart: self.launched_from_autostart,
             profile_extension,
             backend_starting: AtomicBool::new(false),
-            background_auth_recovery_running: Arc::new(AtomicBool::new(false)),
+            background_auth_recovery_running: AtomicBool::new(false),
             social_maintenance_running: Arc::new(AtomicBool::new(false)),
             activity_warmup_generation: Arc::new(AtomicU64::new(0)),
             background_group_instances_refresh_running: Arc::new(AtomicBool::new(false)),
             backend_frontend_session: Arc::new(Mutex::new(None)),
-            authenticated_session_maintenance: Arc::new(Mutex::new(None)),
+            authenticated_session_maintenance: Mutex::new(None),
             _profile_lock: self.profile_lock,
         })
     }

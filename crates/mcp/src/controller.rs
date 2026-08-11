@@ -21,7 +21,7 @@ pub struct McpServerController {
     runtime: McpRuntime,
     handle: tokio::sync::Mutex<Option<McpServerHandle>>,
     active_connections: Arc<AtomicU32>,
-    last_error: Arc<Mutex<Option<String>>>,
+    last_error: Mutex<Option<String>>,
 }
 
 struct McpServerHandle {
@@ -37,7 +37,7 @@ impl McpServerController {
             runtime,
             handle: tokio::sync::Mutex::new(None),
             active_connections: Arc::new(AtomicU32::new(0)),
-            last_error: Arc::new(Mutex::new(None)),
+            last_error: Mutex::new(None),
         }
     }
 

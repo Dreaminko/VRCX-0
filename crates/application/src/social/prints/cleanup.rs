@@ -62,10 +62,15 @@ pub struct PrintCleanupDeps {
     pub event_bus: RuntimeEventBus,
 }
 
+#[derive(Default)]
+struct PrintCleanupQueueInner {
+    gate: tokio::sync::Mutex<()>,
+    pending: AtomicBool,
+}
+
 #[derive(Clone, Default)]
 pub struct PrintCleanupQueue {
-    gate: Arc<tokio::sync::Mutex<()>>,
-    pending: Arc<AtomicBool>,
+    inner: Arc<PrintCleanupQueueInner>,
 }
 
 impl PrintCleanupQueue {
@@ -79,15 +84,17 @@ impl PrintCleanupQueue {
         deps: PrintCleanupDeps,
         trigger: PrintCleanupTrigger,
     ) {
-        if trigger.user_id.trim().is_empty() || self.pending.swap(true, Ordering::AcqRel) {
+        if trigger.user_id.trim().is_empty()
+            || self.inner.pending.swap(true, Ordering::AcqRel)
+        {
             return;
         }
 
         let queue = self.clone();
         tasks.spawn(async move {
             tokio::time::sleep(PRINT_CLEANUP_DEBOUNCE).await;
-            let _guard = queue.gate.lock().await;
-            queue.pending.store(false, Ordering::Release);
+            let _guard = queue.inner.gate.lock().await;
+            queue.inner.pending.store(false, Ordering::Release);
             if let Err(error) = run_print_auto_cleanup(&deps, &trigger).await {
                 tracing::warn!(
                     reason = %trigger.reason,

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 use vrcx_0_application_core::WebClient;
 use vrcx_0_integrations::external_api::ExternalApiScope;
@@ -83,8 +81,8 @@ fn override_or_config(
 }
 
 pub async fn translate_text(
-    db: &Arc<DatabaseService>,
-    web: &Arc<WebClient>,
+    db: &DatabaseService,
+    web: &WebClient,
     input: TranslationTranslateInput,
 ) -> Result<TranslationDispatch> {
     let overrides = input.overrides.unwrap_or_default();

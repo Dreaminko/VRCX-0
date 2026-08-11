@@ -104,8 +104,12 @@ impl OverlayFavoriteGroups {
 
 #[derive(Clone)]
 pub struct OverlayActivityRuntime {
-    pub(super) state: Arc<Mutex<OverlayActivityState>>,
-    sink: Arc<Mutex<Option<Arc<dyn OverlayActivitySink>>>>,
+    pub(super) inner: Arc<OverlayActivityRuntimeInner>,
+}
+
+pub(super) struct OverlayActivityRuntimeInner {
+    pub(super) state: Mutex<OverlayActivityState>,
+    sink: Mutex<Option<Arc<dyn OverlayActivitySink>>>,
 }
 
 pub trait OverlayActivitySink: Send + Sync {
@@ -160,8 +164,10 @@ impl Default for OverlayActivityRuntime {
 impl OverlayActivityRuntime {
     pub fn new() -> Self {
         Self {
-            state: Arc::new(Mutex::new(OverlayActivityState::default())),
-            sink: Arc::new(Mutex::new(None)),
+            inner: Arc::new(OverlayActivityRuntimeInner {
+                state: Mutex::new(OverlayActivityState::default()),
+                sink: Mutex::new(None),
+            }),
         }
     }
 
@@ -173,7 +179,7 @@ impl OverlayActivityRuntime {
 
     pub fn set_filters(&self, filters: OverlayActivityFilters) {
         let snapshot = {
-            let Ok(mut state) = self.state.lock() else {
+            let Ok(mut state) = self.inner.state.lock() else {
                 return;
             };
             if state.filters == filters {
@@ -193,13 +199,13 @@ impl OverlayActivityRuntime {
     where
         S: OverlayActivitySink + 'static,
     {
-        if let Ok(mut current) = self.sink.lock() {
+        if let Ok(mut current) = self.inner.sink.lock() {
             *current = Some(Arc::new(sink));
         }
     }
 
     pub fn set_favorite_groups(&self, favorite_groups: OverlayFavoriteGroups) {
-        if let Ok(mut state) = self.state.lock() {
+        if let Ok(mut state) = self.inner.state.lock() {
             state.favorite_groups = favorite_groups;
         }
     }
@@ -209,7 +215,7 @@ impl OverlayActivityRuntime {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        if let Ok(mut state) = self.state.lock() {
+        if let Ok(mut state) = self.inner.state.lock() {
             state.friend_user_ids = user_ids
                 .into_iter()
                 .map(|user_id| normalize_id(user_id.as_ref()))
@@ -229,7 +235,7 @@ impl OverlayActivityRuntime {
             .map(|user_id| normalize_id(user_id.as_ref()))
             .filter(|user_id| !user_id.is_empty())
             .collect::<HashSet<_>>();
-        if let Ok(mut state) = self.state.lock() {
+        if let Ok(mut state) = self.inner.state.lock() {
             if state.current_instance_location != location {
                 state.joined_delivery_coverage.clear();
             }
@@ -244,7 +250,7 @@ impl OverlayActivityRuntime {
     }
 
     pub fn set_delivery_armed(&self, armed: bool) {
-        if let Ok(mut state) = self.state.lock() {
+        if let Ok(mut state) = self.inner.state.lock() {
             if armed {
                 state.live_since.get_or_insert_with(Utc::now);
             } else {
@@ -256,7 +262,7 @@ impl OverlayActivityRuntime {
 
     pub fn clear_runtime_state(&self) {
         let snapshot = {
-            let Ok(mut state) = self.state.lock() else {
+            let Ok(mut state) = self.inner.state.lock() else {
                 return;
             };
             state.favorite_groups = OverlayFavoriteGroups::default();
@@ -279,7 +285,7 @@ impl OverlayActivityRuntime {
         candidate: OverlayActivityCandidate,
     ) -> Option<OverlayActivityEntry> {
         let (entry, snapshot, delivery) = {
-            let mut state = self.state.lock().ok()?;
+            let mut state = self.inner.state.lock().ok()?;
             let definition = known_definition_for_type(&candidate.activity_type)?;
 
             let source_id = normalize_source_id(&candidate);
@@ -390,21 +396,22 @@ impl OverlayActivityRuntime {
     }
 
     pub fn snapshot(&self) -> OverlayActivitySnapshot {
-        let Ok(state) = self.state.lock() else {
+        let Ok(state) = self.inner.state.lock() else {
             return OverlayActivitySnapshot::default();
         };
         snapshot_from_state(&state)
     }
 
     pub fn filters(&self) -> OverlayActivityFilters {
-        self.state
+        self.inner
+            .state
             .lock()
             .map(|state| state.filters.clone())
             .unwrap_or_default()
     }
 
     pub(super) fn insert_friend_user_id(&self, user_id: String) {
-        if let Ok(mut state) = self.state.lock() {
+        if let Ok(mut state) = self.inner.state.lock() {
             let user_id = normalize_id(&user_id);
             if !user_id.is_empty() {
                 state.friend_user_ids.insert(user_id);
@@ -413,20 +420,20 @@ impl OverlayActivityRuntime {
     }
 
     pub(super) fn remove_friend_user_id(&self, user_id: &str) {
-        if let Ok(mut state) = self.state.lock() {
+        if let Ok(mut state) = self.inner.state.lock() {
             state.friend_user_ids.remove(&normalize_id(user_id));
         }
     }
 
     fn emit_snapshot(&self, snapshot: OverlayActivitySnapshot) {
-        let sink = self.sink.lock().ok().and_then(|sink| sink.clone());
+        let sink = self.inner.sink.lock().ok().and_then(|sink| sink.clone());
         if let Some(sink) = sink {
             sink.emit_overlay_activity_snapshot(snapshot);
         }
     }
 
     fn emit_delivery(&self, delivery: OverlayActivityDelivery) {
-        let sink = self.sink.lock().ok().and_then(|sink| sink.clone());
+        let sink = self.inner.sink.lock().ok().and_then(|sink| sink.clone());
         if let Some(sink) = sink {
             sink.emit_overlay_activity_delivery(delivery);
         }

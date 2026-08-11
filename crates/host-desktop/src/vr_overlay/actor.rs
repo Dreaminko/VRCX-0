@@ -312,8 +312,8 @@ fn run_actor<B>(
 
 fn run_tick_if_due<B>(
     backend: &mut B,
-    status: &Arc<Mutex<OverlayServiceStatus>>,
-    runtime_quit_at: &Arc<Mutex<Option<Instant>>>,
+    status: &Mutex<OverlayServiceStatus>,
+    runtime_quit_at: &Mutex<Option<Instant>>,
     last_tick_at: &mut Instant,
     tick_interval: Duration,
 ) -> bool
@@ -329,8 +329,8 @@ where
 
 fn run_tick<B>(
     backend: &mut B,
-    status: &Arc<Mutex<OverlayServiceStatus>>,
-    runtime_quit_at: &Arc<Mutex<Option<Instant>>>,
+    status: &Mutex<OverlayServiceStatus>,
+    runtime_quit_at: &Mutex<Option<Instant>>,
 ) -> bool
 where
     B: OverlayBackend,
@@ -354,7 +354,7 @@ where
     }
 }
 
-fn actor_is_running(status: &Arc<Mutex<OverlayServiceStatus>>) -> bool {
+fn actor_is_running(status: &Mutex<OverlayServiceStatus>) -> bool {
     status
         .lock()
         .map(|status| status.phase == OverlayServicePhase::Running)
@@ -364,7 +364,7 @@ fn actor_is_running(status: &Arc<Mutex<OverlayServiceStatus>>) -> bool {
 fn handle_command<B>(
     backend: &mut B,
     command: OverlayServiceCommand,
-    status: &Arc<Mutex<OverlayServiceStatus>>,
+    status: &Mutex<OverlayServiceStatus>,
     interaction_active: &mut bool,
 ) -> Result<(), OverlayCommandError>
 where
@@ -453,7 +453,7 @@ fn validate_frame(frame: &RgbaFrame) -> Result<(), OverlayCommandError> {
 }
 
 fn record_backend_error(
-    status: &Arc<Mutex<OverlayServiceStatus>>,
+    status: &Mutex<OverlayServiceStatus>,
     error: String,
 ) -> OverlayCommandError {
     update_status(status, OverlayServicePhase::Error, Some(error.clone()));
@@ -461,7 +461,7 @@ fn record_backend_error(
 }
 
 fn update_status(
-    status: &Arc<Mutex<OverlayServiceStatus>>,
+    status: &Mutex<OverlayServiceStatus>,
     phase: OverlayServicePhase,
     last_error: Option<String>,
 ) {

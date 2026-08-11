@@ -146,14 +146,18 @@ impl Default for FavoriteImportStatus {
 
 #[derive(Clone)]
 pub struct FavoriteImportRuntime {
-    inner: Arc<Mutex<FavoriteImportRuntimeInner>>,
-    generation: Arc<AtomicU64>,
+    shared: Arc<FavoriteImportRuntimeShared>,
     db: Arc<DatabaseService>,
     web: Arc<WebClient>,
     world_cache: Arc<WorldCache>,
     event_bus: RuntimeEventBus,
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
+}
+
+struct FavoriteImportRuntimeShared {
+    state: Mutex<FavoriteImportRuntimeInner>,
+    generation: AtomicU64,
 }
 
 #[derive(Default)]
@@ -179,8 +183,10 @@ impl FavoriteImportRuntime {
         auth_scope: RuntimeAuthScope,
     ) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(FavoriteImportRuntimeInner::default())),
-            generation: Arc::new(AtomicU64::new(0)),
+            shared: Arc::new(FavoriteImportRuntimeShared {
+                state: Mutex::new(FavoriteImportRuntimeInner::default()),
+                generation: AtomicU64::new(0),
+            }),
             db,
             web,
             world_cache,
@@ -206,7 +212,7 @@ impl FavoriteImportRuntime {
                     "Another favorite import is already active.".into(),
                 ));
             }
-            let generation = self.generation.fetch_add(1, Ordering::AcqRel) + 1;
+            let generation = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
             let status = FavoriteImportStatus {
                 run_id: format!("favorite-{}-{generation}", Utc::now().timestamp_millis()),
                 status: FavoriteImportState::Running,
@@ -627,7 +633,8 @@ impl FavoriteImportRuntime {
     }
 
     fn lock_inner(&self) -> std::sync::MutexGuard<'_, FavoriteImportRuntimeInner> {
-        self.inner
+        self.shared
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }

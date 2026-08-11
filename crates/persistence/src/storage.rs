@@ -105,7 +105,7 @@ fn debounce_saver(
     }
 }
 
-fn do_save(data: &Arc<RwLock<HashMap<String, String>>>, path: &Path) {
+fn do_save(data: &RwLock<HashMap<String, String>>, path: &Path) {
     let data = data.read().unwrap();
     match serde_json::to_string_pretty(&*data) {
         Ok(json) => {

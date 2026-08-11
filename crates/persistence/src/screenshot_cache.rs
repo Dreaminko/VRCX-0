@@ -49,9 +49,13 @@ pub struct ScreenshotThumbnailCacheEntry {
 
 #[derive(Clone)]
 pub struct MetadataCacheDb {
-    conn: Arc<Mutex<Connection>>,
-    scan_status: Arc<Mutex<ScreenshotLibraryScanStatus>>,
-    scan_running: Arc<AtomicBool>,
+    inner: Arc<MetadataCacheDbInner>,
+}
+
+struct MetadataCacheDbInner {
+    conn: Mutex<Connection>,
+    scan_status: Mutex<ScreenshotLibraryScanStatus>,
+    scan_running: AtomicBool,
 }
 
 impl MetadataCacheDb {
@@ -126,14 +130,16 @@ impl MetadataCacheDb {
             .join("ScreenshotThumbs");
         normalize_thumbnail_cache_paths(&mut conn, &thumbnail_dir)?;
         Ok(Self {
-            conn: Arc::new(Mutex::new(conn)),
-            scan_status: Arc::new(Mutex::new(ScreenshotLibraryScanStatus::default())),
-            scan_running: Arc::new(AtomicBool::new(false)),
+            inner: Arc::new(MetadataCacheDbInner {
+                conn: Mutex::new(conn),
+                scan_status: Mutex::new(ScreenshotLibraryScanStatus::default()),
+                scan_running: AtomicBool::new(false),
+            }),
         })
     }
 
     pub fn is_cached(&self, file_path: &str) -> bool {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         conn.query_row(
             "SELECT 1 FROM cache WHERE file_path = ?1 LIMIT 1",
             [file_path],
@@ -143,7 +149,7 @@ impl MetadataCacheDb {
     }
 
     pub fn get_metadata(&self, file_path: &str) -> Option<String> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         conn.query_row(
             "SELECT metadata FROM cache WHERE file_path = ?1 LIMIT 1",
             [file_path],
@@ -154,7 +160,7 @@ impl MetadataCacheDb {
     }
 
     pub fn bulk_add(&self, entries: &[(String, Option<String>)]) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let tx = match conn.unchecked_transaction() {
             Ok(t) => t,
             Err(_) => return,
@@ -175,26 +181,27 @@ impl MetadataCacheDb {
     }
 
     pub fn scan_status(&self) -> ScreenshotLibraryScanStatus {
-        self.scan_status.lock().unwrap().clone()
+        self.inner.scan_status.lock().unwrap().clone()
     }
 
     pub fn set_scan_status(&self, status: ScreenshotLibraryScanStatus) {
-        *self.scan_status.lock().unwrap() = status;
+        *self.inner.scan_status.lock().unwrap() = status;
     }
 
     pub fn try_begin_scan(&self) -> bool {
-        self.scan_running
+        self.inner
+            .scan_running
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
             .is_ok()
     }
 
     pub fn finish_scan(&self, status: ScreenshotLibraryScanStatus) {
         self.set_scan_status(status);
-        self.scan_running.store(false, Ordering::SeqCst);
+        self.inner.scan_running.store(false, Ordering::SeqCst);
     }
 
     pub fn library_file_states(&self, root: &str) -> HashMap<String, ScreenshotLibraryCachedState> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let mut stmt = match conn.prepare(
             "SELECT path, size_bytes, modified_at, index_version
              FROM screenshot_files
@@ -235,7 +242,7 @@ impl MetadataCacheDb {
         entries: &[ScreenshotLibraryEntry],
         prune_missing: bool,
     ) -> Result<usize> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let tx = conn.unchecked_transaction().map_err(|error| {
             Error::Database(format!("start screenshot index transaction: {error}"))
         })?;
@@ -329,7 +336,7 @@ impl MetadataCacheDb {
 
     #[doc(hidden)]
     pub fn mark_library_entry_stale_for_test(&self, path: &str) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         conn.execute(
             "UPDATE screenshot_files SET index_version = 0, metadata_json = NULL WHERE path = ?1",
             [path],
@@ -339,7 +346,7 @@ impl MetadataCacheDb {
     }
 
     pub fn screenshot_folder_tree_for_root(&self, root_path: &str) -> Result<ScreenshotFolderTree> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let mut direct_counts: HashMap<String, usize> = HashMap::new();
         let mut latest_modified_by_folder: HashMap<String, i64> = HashMap::new();
         let mut stmt = conn
@@ -465,7 +472,7 @@ impl MetadataCacheDb {
         root_path: &str,
         folder_path: &str,
     ) -> Result<Vec<ScreenshotLibraryImage>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let mut stmt = conn
             .prepare(
                 "SELECT path, folder_path, file_name, size_bytes, modified_at, created_at,
@@ -489,7 +496,7 @@ impl MetadataCacheDb {
         root_path: &str,
         world_id: &str,
     ) -> Result<Vec<ScreenshotLibraryImage>> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let mut stmt = conn
             .prepare(
                 "SELECT path, folder_path, file_name, size_bytes, modified_at, created_at,
@@ -514,7 +521,7 @@ impl MetadataCacheDb {
         size_bytes: i64,
         modified_at: i64,
     ) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let now = now_unix_seconds();
         let _ = conn.execute(
             "INSERT INTO screenshot_thumbnail_cache (
@@ -532,7 +539,7 @@ impl MetadataCacheDb {
     }
 
     pub fn thumbnail_cache_entries(&self) -> Vec<ScreenshotThumbnailCacheEntry> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let mut stmt = match conn.prepare(
             "SELECT thumb_path, source_path, cache_key, size_bytes, modified_at, last_used_at
              FROM screenshot_thumbnail_cache",
@@ -560,7 +567,7 @@ impl MetadataCacheDb {
         &self,
         source_path: &str,
     ) -> Vec<ScreenshotThumbnailCacheEntry> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let mut stmt = match conn.prepare(
             "SELECT thumb_path, source_path, cache_key, size_bytes, modified_at, last_used_at
              FROM screenshot_thumbnail_cache
@@ -593,7 +600,7 @@ impl MetadataCacheDb {
     }
 
     pub fn delete_thumbnail_cache_record(&self, thumb_path: &str) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let _ = conn.execute(
             "DELETE FROM screenshot_thumbnail_cache WHERE thumb_path = ?1",
             [thumb_path],
@@ -601,7 +608,7 @@ impl MetadataCacheDb {
     }
 
     pub fn clear_all(&self) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.inner.conn.lock().unwrap();
         let _ = conn.execute("DELETE FROM cache", []);
         let _ = conn.execute("DELETE FROM screenshot_files", []);
         let _ = conn.execute("DELETE FROM screenshot_thumbnail_cache", []);

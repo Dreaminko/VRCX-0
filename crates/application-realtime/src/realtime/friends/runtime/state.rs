@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard};
 
 use chrono::Utc;
 use serde_json::{json, Value};
@@ -85,9 +85,9 @@ pub(super) struct RealtimeFriendState {
     pub(super) recent_gps: HashMap<String, RecentGps>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct RealtimeFriendsRuntime {
-    state: Arc<Mutex<RealtimeFriendState>>,
+    state: Mutex<RealtimeFriendState>,
 }
 
 impl RealtimeFriendsRuntime {

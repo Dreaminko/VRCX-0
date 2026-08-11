@@ -47,10 +47,15 @@ pub struct RuntimeBackgroundJobSnapshot {
     pub failure_count: u64,
 }
 
+#[derive(Default)]
+struct RuntimeBackgroundJobsInner {
+    jobs: Mutex<BTreeMap<String, RuntimeBackgroundJobSnapshot>>,
+    database_optimize_started: AtomicBool,
+}
+
 #[derive(Clone, Default)]
 pub struct RuntimeBackgroundJobs {
-    inner: Arc<Mutex<BTreeMap<String, RuntimeBackgroundJobSnapshot>>>,
-    database_optimize_started: Arc<AtomicBool>,
+    inner: Arc<RuntimeBackgroundJobsInner>,
 }
 
 #[derive(Default)]
@@ -76,7 +81,7 @@ impl RuntimeBackgroundJobs {
         let name = name.into();
         let owner = owner.into();
         let detail = detail.into();
-        match self.inner.lock() {
+        match self.inner.jobs.lock() {
             Ok(mut jobs) => {
                 jobs.entry(name.clone())
                     .and_modify(|job| {
@@ -168,7 +173,7 @@ impl RuntimeBackgroundJobs {
     }
 
     pub fn snapshot(&self) -> Vec<RuntimeBackgroundJobSnapshot> {
-        match self.inner.lock() {
+        match self.inner.jobs.lock() {
             Ok(jobs) => jobs.values().cloned().collect(),
             Err(error) => {
                 tracing::warn!("failed to lock runtime background jobs: {error}");
@@ -189,7 +194,11 @@ impl RuntimeBackgroundJobs {
             return;
         }
 
-        if self.database_optimize_started.swap(true, Ordering::AcqRel) {
+        if self
+            .inner
+            .database_optimize_started
+            .swap(true, Ordering::AcqRel)
+        {
             self.register_job(
                 DATABASE_OPTIMIZE_JOB,
                 "rust",
@@ -287,7 +296,7 @@ impl RuntimeBackgroundJobs {
         failed: bool,
     ) {
         let detail = detail.into();
-        match self.inner.lock() {
+        match self.inner.jobs.lock() {
             Ok(mut jobs) => {
                 let job =
                     jobs.entry(name.to_string())

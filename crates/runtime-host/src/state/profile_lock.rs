@@ -13,11 +13,11 @@ pub(super) struct ProfileLock {
     inner: Mutex<Option<ProfileLockGuard>>,
 }
 
-pub(super) struct BackendStartGuard<'a> {
+pub(super) struct AtomicFlagGuard<'a> {
     flag: &'a AtomicBool,
 }
 
-impl<'a> BackendStartGuard<'a> {
+impl<'a> AtomicFlagGuard<'a> {
     pub(super) fn try_acquire(flag: &'a AtomicBool) -> Option<Self> {
         flag.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .ok()
@@ -25,17 +25,17 @@ impl<'a> BackendStartGuard<'a> {
     }
 }
 
-impl Drop for BackendStartGuard<'_> {
+impl Drop for AtomicFlagGuard<'_> {
     fn drop(&mut self) {
         self.flag.store(false, Ordering::Release);
     }
 }
 
-pub(super) struct AtomicFlagGuard {
+pub(super) struct SharedAtomicFlagGuard {
     flag: Arc<AtomicBool>,
 }
 
-impl AtomicFlagGuard {
+impl SharedAtomicFlagGuard {
     pub(super) fn try_acquire(flag: &Arc<AtomicBool>) -> Option<Self> {
         flag.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .ok()
@@ -45,7 +45,7 @@ impl AtomicFlagGuard {
     }
 }
 
-impl Drop for AtomicFlagGuard {
+impl Drop for SharedAtomicFlagGuard {
     fn drop(&mut self) {
         self.flag.store(false, Ordering::Release);
     }

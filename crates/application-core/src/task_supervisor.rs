@@ -38,12 +38,17 @@ impl TaskStopToken {
     }
 }
 
+#[derive(Default)]
+struct TaskSupervisorInner {
+    executor: Mutex<Option<Arc<dyn RuntimeTaskExecutor>>>,
+    task_handles: Mutex<Vec<Box<dyn RuntimeTaskHandle>>>,
+    fallback_threads: Mutex<Vec<std::thread::JoinHandle<()>>>,
+    stop_tokens: Mutex<Vec<Arc<AtomicBool>>>,
+}
+
 #[derive(Clone, Default)]
 pub struct TaskSupervisor {
-    executor: Arc<Mutex<Option<Arc<dyn RuntimeTaskExecutor>>>>,
-    task_handles: Arc<Mutex<Vec<Box<dyn RuntimeTaskHandle>>>>,
-    fallback_threads: Arc<Mutex<Vec<std::thread::JoinHandle<()>>>>,
-    stop_tokens: Arc<Mutex<Vec<Arc<AtomicBool>>>>,
+    inner: Arc<TaskSupervisorInner>,
 }
 
 impl TaskSupervisor {
@@ -55,7 +60,7 @@ impl TaskSupervisor {
     where
         E: RuntimeTaskExecutor + 'static,
     {
-        match self.executor.lock() {
+        match self.inner.executor.lock() {
             Ok(mut current) => {
                 *current = Some(Arc::new(executor));
             }
@@ -64,7 +69,7 @@ impl TaskSupervisor {
     }
 
     pub fn has_executor(&self) -> bool {
-        match self.executor.lock() {
+        match self.inner.executor.lock() {
             Ok(executor) => executor.is_some(),
             Err(error) => {
                 tracing::warn!("failed to lock runtime task executor: {error}");
@@ -80,7 +85,7 @@ impl TaskSupervisor {
         self.join_finished_task_handles();
         self.join_finished_fallback_tasks();
 
-        let executor = match self.executor.lock() {
+        let executor = match self.inner.executor.lock() {
             Ok(executor) => executor.clone(),
             Err(error) => {
                 tracing::warn!("failed to lock runtime task executor: {error}");
@@ -89,7 +94,7 @@ impl TaskSupervisor {
         };
         if let Some(executor) = executor {
             let handle = executor.spawn(Box::pin(task));
-            match self.task_handles.lock() {
+            match self.inner.task_handles.lock() {
                 Ok(mut handles) => {
                     handles.retain(|handle| !handle.is_finished());
                     handles.push(handle);
@@ -117,7 +122,7 @@ impl TaskSupervisor {
             }
         };
 
-        match self.fallback_threads.lock() {
+        match self.inner.fallback_threads.lock() {
             Ok(mut handles) => handles.push(handle),
             Err(error) => tracing::warn!("failed to track runtime task fallback thread: {error}"),
         }
@@ -129,7 +134,7 @@ impl TaskSupervisor {
         Fut: Future<Output = ()> + Send + 'static,
     {
         let stop_requested = Arc::new(AtomicBool::new(false));
-        match self.stop_tokens.lock() {
+        match self.inner.stop_tokens.lock() {
             Ok(mut tokens) => {
                 tokens
                     .retain(|token| Arc::strong_count(token) > 1 && !token.load(Ordering::Acquire));
@@ -145,7 +150,7 @@ impl TaskSupervisor {
         F: FnOnce(TaskStopToken) + Send + 'static,
     {
         let stop_requested = Arc::new(AtomicBool::new(false));
-        match self.stop_tokens.lock() {
+        match self.inner.stop_tokens.lock() {
             Ok(mut tokens) => {
                 tokens
                     .retain(|token| Arc::strong_count(token) > 1 && !token.load(Ordering::Acquire));
@@ -169,7 +174,7 @@ impl TaskSupervisor {
             }
         };
 
-        match self.fallback_threads.lock() {
+        match self.inner.fallback_threads.lock() {
             Ok(mut handles) => handles.push(handle),
             Err(error) => tracing::warn!("failed to track runtime managed thread: {error}"),
         }
@@ -179,7 +184,7 @@ impl TaskSupervisor {
         const GRACE_PERIOD: Duration = Duration::from_millis(200);
         let deadline = Instant::now() + GRACE_PERIOD;
 
-        match self.stop_tokens.lock() {
+        match self.inner.stop_tokens.lock() {
             Ok(tokens) => {
                 for token in tokens.iter() {
                     token.store(true, Ordering::Release);
@@ -192,7 +197,7 @@ impl TaskSupervisor {
     }
 
     fn join_finished_task_handles(&self) {
-        let Ok(mut handles) = self.task_handles.lock() else {
+        let Ok(mut handles) = self.inner.task_handles.lock() else {
             return;
         };
 
@@ -208,7 +213,7 @@ impl TaskSupervisor {
     }
 
     fn finish_or_abort_tracked_tasks(&self, deadline: Instant) {
-        wait_until_deadline(deadline, || match self.task_handles.lock() {
+        wait_until_deadline(deadline, || match self.inner.task_handles.lock() {
             Ok(handles) => handles.iter().all(|handle| handle.is_finished()),
             Err(error) => {
                 tracing::warn!("failed to inspect runtime task handles: {error}");
@@ -216,7 +221,7 @@ impl TaskSupervisor {
             }
         });
 
-        let Ok(mut handles) = self.task_handles.lock() else {
+        let Ok(mut handles) = self.inner.task_handles.lock() else {
             return;
         };
         for mut handle in handles.drain(..) {
@@ -229,7 +234,7 @@ impl TaskSupervisor {
     }
 
     pub fn join_finished_fallback_tasks(&self) {
-        let Ok(mut handles) = self.fallback_threads.lock() else {
+        let Ok(mut handles) = self.inner.fallback_threads.lock() else {
             return;
         };
 
@@ -247,7 +252,7 @@ impl TaskSupervisor {
     }
 
     fn join_fallback_threads(&self, deadline: Instant) {
-        wait_until_deadline(deadline, || match self.fallback_threads.lock() {
+        wait_until_deadline(deadline, || match self.inner.fallback_threads.lock() {
             Ok(handles) => handles.iter().all(std::thread::JoinHandle::is_finished),
             Err(error) => {
                 tracing::warn!("failed to inspect runtime fallback threads: {error}");
@@ -255,7 +260,7 @@ impl TaskSupervisor {
             }
         });
 
-        let Ok(mut handles) = self.fallback_threads.lock() else {
+        let Ok(mut handles) = self.inner.fallback_threads.lock() else {
             return;
         };
         let mut pending = Vec::new();
@@ -347,6 +352,11 @@ mod tests {
         supervisor.stop_all();
 
         assert!(stopped.load(Ordering::Acquire));
-        assert!(supervisor.fallback_threads.lock().unwrap().is_empty());
+        assert!(supervisor
+            .inner
+            .fallback_threads
+            .lock()
+            .unwrap()
+            .is_empty());
     }
 }

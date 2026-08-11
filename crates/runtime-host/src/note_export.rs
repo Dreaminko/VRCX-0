@@ -17,13 +17,17 @@ use crate::{Error, Result};
 
 #[derive(Clone)]
 pub struct NoteExportRuntime {
-    inner: Arc<Mutex<NoteExportRuntimeInner>>,
-    generation: Arc<AtomicU64>,
+    shared: Arc<NoteExportRuntimeShared>,
     db: Arc<DatabaseService>,
     web: Arc<WebClient>,
     event_bus: RuntimeEventBus,
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
+}
+
+struct NoteExportRuntimeShared {
+    state: Mutex<NoteExportRuntimeInner>,
+    generation: AtomicU64,
 }
 
 #[derive(Default)]
@@ -42,8 +46,10 @@ impl NoteExportRuntime {
         auth_scope: RuntimeAuthScope,
     ) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(NoteExportRuntimeInner::default())),
-            generation: Arc::new(AtomicU64::new(0)),
+            shared: Arc::new(NoteExportRuntimeShared {
+                state: Mutex::new(NoteExportRuntimeInner::default()),
+                generation: AtomicU64::new(0),
+            }),
             db,
             web,
             event_bus,
@@ -73,7 +79,7 @@ impl NoteExportRuntime {
                     "Another note export is already active.".into(),
                 ));
             }
-            let generation = self.generation.fetch_add(1, Ordering::AcqRel) + 1;
+            let generation = self.shared.generation.fetch_add(1, Ordering::AcqRel) + 1;
             let status = NoteExportStatus {
                 run_id: format!("note-export-{}-{generation}", Utc::now().timestamp_millis()),
                 status: NoteExportState::Running,
@@ -208,7 +214,8 @@ impl NoteExportRuntime {
     }
 
     fn lock_inner(&self) -> std::sync::MutexGuard<'_, NoteExportRuntimeInner> {
-        self.inner
+        self.shared
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }

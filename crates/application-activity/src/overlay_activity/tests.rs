@@ -632,7 +632,8 @@ fn delivery_fires_for_missed_event_after_live_session_started() {
     runtime.set_delivery_armed(true);
 
     let now = chrono::Utc::now();
-    runtime.state.lock().unwrap().live_since = Some(now - chrono::Duration::seconds(120));
+    runtime.inner.state.lock().unwrap().live_since =
+        Some(now - chrono::Duration::seconds(120));
 
     let mut missed = candidate("friendRequest", "usr_missed");
     missed.created_at = (now - chrono::Duration::seconds(90)).to_rfc3339();

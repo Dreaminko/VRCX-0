@@ -1,5 +1,5 @@
 use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -131,13 +131,11 @@ impl Default for AssistantRuntimeSelection {
     }
 }
 
-#[derive(Clone)]
 pub struct EndpointStore {
     config: ConfigRepository,
     custom_proxy_url: Option<String>,
-    // Serializes read-modify-write of the endpoints blob across concurrent writers.
-    write_lock: Arc<Mutex<()>>,
-    migrated: Arc<AtomicBool>,
+    write_lock: Mutex<()>,
+    migrated: AtomicBool,
 }
 
 impl EndpointStore {
@@ -145,8 +143,8 @@ impl EndpointStore {
         Self {
             config,
             custom_proxy_url,
-            write_lock: Arc::new(Mutex::new(())),
-            migrated: Arc::new(AtomicBool::new(false)),
+            write_lock: Mutex::new(()),
+            migrated: AtomicBool::new(false),
         }
     }
 

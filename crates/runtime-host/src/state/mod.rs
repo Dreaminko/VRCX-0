@@ -56,7 +56,7 @@ pub use frontend_session::{
 use frontend_session::{
     session_slot_matches, update_backend_frontend_session_user_filtered_if_session_matches,
 };
-use profile_lock::{AtomicFlagGuard, BackendStartGuard};
+use profile_lock::{AtomicFlagGuard, SharedAtomicFlagGuard};
 #[cfg(test)]
 use runtime_host_state::web_ua_app_version;
 pub use runtime_host_state::{

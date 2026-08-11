@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use super::{
     current_user_from_cookie, run_background_group_instance_refresh, AuthenticatedRuntimeSession,
     BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, BackendRuntimeTelemetryKind,
-    BackendStartGuard, BackgroundTickContext, CliLoginPrompt, NonInteractiveAuthError,
+    AtomicFlagGuard, BackgroundTickContext, CliLoginPrompt, NonInteractiveAuthError,
     PrintCleanupDeps, PrintCleanupTrigger, Result, RuntimeHostProfile, RuntimeHostState,
 };
 
@@ -142,7 +142,7 @@ impl RuntimeHostState {
                 ));
             }
         }
-        let Some(_start_guard) = BackendStartGuard::try_acquire(&self.backend_starting) else {
+        let Some(_start_guard) = AtomicFlagGuard::try_acquire(&self.backend_starting) else {
             return Ok(self.backend_runtime.snapshot());
         };
         let current = self.backend_runtime.snapshot();

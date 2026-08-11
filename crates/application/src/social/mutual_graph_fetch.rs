@@ -84,9 +84,13 @@ impl MutualGraphFetchState {
 
 #[derive(Clone)]
 pub struct MutualGraphFetchRuntime {
-    inner: Arc<Mutex<MutualGraphFetchInner>>,
-    next_run_id: Arc<AtomicU64>,
+    shared: Arc<MutualGraphFetchShared>,
     event_bus: RuntimeEventBus,
+}
+
+struct MutualGraphFetchShared {
+    state: Mutex<MutualGraphFetchInner>,
+    next_run_id: AtomicU64,
 }
 
 struct MutualGraphFetchInner {
@@ -236,17 +240,20 @@ impl MutualGraphFetchRuntime {
 
     pub fn with_event_bus(event_bus: RuntimeEventBus) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(MutualGraphFetchInner {
-                status: idle_status(),
-                cancel_flag: None,
-            })),
-            next_run_id: Arc::new(AtomicU64::new(1)),
+            shared: Arc::new(MutualGraphFetchShared {
+                state: Mutex::new(MutualGraphFetchInner {
+                    status: idle_status(),
+                    cancel_flag: None,
+                }),
+                next_run_id: AtomicU64::new(1),
+            }),
             event_bus,
         }
     }
 
     pub fn status(&self) -> MutualGraphFetchStatus {
-        self.inner
+        self.shared
+            .state
             .lock()
             .map(|inner| inner.status.clone())
             .unwrap_or_else(|_| idle_status())
@@ -270,9 +277,9 @@ impl MutualGraphFetchRuntime {
         }
 
         let cancel_flag = Arc::new(AtomicBool::new(false));
-        let run_id = self.next_run_id.fetch_add(1, Ordering::AcqRel);
+        let run_id = self.shared.next_run_id.fetch_add(1, Ordering::AcqRel);
         let status = {
-            let mut inner = self.inner.lock().map_err(|error| {
+            let mut inner = self.shared.state.lock().map_err(|error| {
                 Error::Custom(format!("mutual graph fetch lock poisoned: {error}"))
             })?;
             if inner.status.status.is_active() {
@@ -330,7 +337,7 @@ impl MutualGraphFetchRuntime {
     pub fn cancel(&self, input: MutualGraphFetchCancelInput) -> Result<MutualGraphFetchStatus> {
         let owner_user_id = normalize_id(&input.owner_user_id);
         let status = {
-            let mut inner = self.inner.lock().map_err(|error| {
+            let mut inner = self.shared.state.lock().map_err(|error| {
                 Error::Custom(format!("mutual graph fetch lock poisoned: {error}"))
             })?;
             if !inner.status.status.is_active() {
@@ -533,7 +540,7 @@ impl MutualGraphFetchRuntime {
         let now = now_iso();
         let mut output = idle_status();
         let mut emitted = None;
-        if let Ok(mut inner) = self.inner.lock() {
+        if let Ok(mut inner) = self.shared.state.lock() {
             if inner.status.run_id == run_id {
                 inner.status.status = state;
                 inner.status.cancel_requested = false;
@@ -557,7 +564,7 @@ impl MutualGraphFetchRuntime {
     where
         F: FnOnce(&mut MutualGraphFetchStatus),
     {
-        let status = if let Ok(mut inner) = self.inner.lock() {
+        let status = if let Ok(mut inner) = self.shared.state.lock() {
             if inner.status.run_id != run_id {
                 return;
             }
@@ -1100,7 +1107,7 @@ mod tests {
         let runtime = MutualGraphFetchRuntime::with_event_bus(event_bus.clone());
         let cancel_flag = Arc::new(AtomicBool::new(false));
         {
-            let mut inner = runtime.inner.lock().unwrap();
+            let mut inner = runtime.shared.state.lock().unwrap();
             inner.status = MutualGraphFetchStatus {
                 run_id: 7,
                 revision: 1,
@@ -1130,7 +1137,7 @@ mod tests {
         let event_bus = RuntimeEventBus::new();
         let runtime = MutualGraphFetchRuntime::with_event_bus(event_bus.clone());
         {
-            let mut inner = runtime.inner.lock().unwrap();
+            let mut inner = runtime.shared.state.lock().unwrap();
             inner.status = MutualGraphFetchStatus {
                 run_id: 7,
                 revision: 1,
@@ -1167,7 +1174,7 @@ mod tests {
         let runtime = MutualGraphFetchRuntime::with_event_bus(event_bus);
         let cancel_flag = Arc::new(AtomicBool::new(false));
         {
-            let mut inner = runtime.inner.lock().unwrap();
+            let mut inner = runtime.shared.state.lock().unwrap();
             inner.status = MutualGraphFetchStatus {
                 run_id: 7,
                 revision: 1,

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use serde_json::{json, Map, Value};
 use vrcx_0_core::json::text_of;
@@ -21,9 +21,9 @@ use super::state::{
 };
 use super::utils::{has_remote_current_user_presence, map_from_json, normalize_id, EventTime};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct RealtimeCurrentUserRuntime {
-    state: Arc<Mutex<RealtimeCurrentUserState>>,
+    state: Mutex<RealtimeCurrentUserState>,
 }
 
 impl RealtimeCurrentUserRuntime {

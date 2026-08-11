@@ -541,7 +541,7 @@ fn execute_on_connection(
     let param_refs: Vec<(&str, &dyn ToSql)> = param_names
         .iter()
         .zip(params.iter())
-        .map(|(name, val)| (name.as_str(), val.as_ref()))
+        .map(|(name, val)| (name.as_str(), val as &dyn ToSql))
         .collect();
 
     let col_count = stmt.column_count();
@@ -579,7 +579,7 @@ fn execute_non_query_on_connection(
     let param_refs: Vec<(&str, &dyn ToSql)> = param_names
         .iter()
         .zip(params.iter())
-        .map(|(name, val)| (name.as_str(), val.as_ref()))
+        .map(|(name, val)| (name.as_str(), val as &dyn ToSql))
         .collect();
 
     let affected = stmt
@@ -598,7 +598,7 @@ fn statement_param_names(stmt: &Statement<'_>) -> Vec<String> {
 fn statement_param_values(
     param_names: &[String],
     args: &HashMap<String, serde_json::Value>,
-) -> Result<Vec<Box<dyn ToSql>>, Error> {
+) -> Result<Vec<SqlValue>, Error> {
     param_names
         .iter()
         .map(|name| {
