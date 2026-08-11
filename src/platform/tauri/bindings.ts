@@ -3583,7 +3583,6 @@ export type FavoriteBaselineSnapshot = {
     favoriteLimits: RawJson;
     favoritesSortOrder: string[];
     remoteFavoritesById: Partial<{ [key in string]: RawJson }>;
-    remoteFavoritesByObjectId: Partial<{ [key in string]: RawJson }>;
     favoriteFriendIds: string[];
     groupedFavoriteFriendIdsByGroupKey: Partial<{ [key in string]: string[] }>;
     favoriteWorldIds: string[];

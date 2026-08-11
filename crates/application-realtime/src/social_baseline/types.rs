@@ -25,7 +25,6 @@ pub struct FavoriteBaselineSnapshot {
     pub favorite_limits: RawJson,
     pub favorites_sort_order: Vec<String>,
     pub remote_favorites_by_id: BTreeMap<String, RawJson>,
-    pub remote_favorites_by_object_id: BTreeMap<String, RawJson>,
     pub favorite_friend_ids: Vec<String>,
     pub grouped_favorite_friend_ids_by_group_key: BTreeMap<String, Vec<String>>,
     pub favorite_world_ids: Vec<String>,
@@ -55,6 +54,35 @@ impl FavoriteBaselineSnapshot {
 
     pub fn into_value(self) -> Value {
         serde_json::to_value(self).expect("favorite baseline snapshot must serialize")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn favorite_baseline_serializes_only_canonical_remote_favorite_index() {
+        let snapshot = FavoriteBaselineSnapshot {
+            remote_favorites_by_id: BTreeMap::from([(
+                "fav_record".into(),
+                RawJson::from(json!({
+                    "id": "fav_record",
+                    "favoriteId": "wrld_target",
+                })),
+            )]),
+            ..Default::default()
+        };
+
+        let serialized = snapshot.to_value();
+
+        assert_eq!(
+            serialized["remoteFavoritesById"]["fav_record"]["favoriteId"],
+            "wrld_target"
+        );
+        assert!(serialized.get("remoteFavoritesByObjectId").is_none());
     }
 }
 

@@ -72,7 +72,6 @@ function phaseSnapshot(
                 currentUserId: 'usr_self',
                 favoriteLimits: {},
                 remoteFavoritesById: {},
-                remoteFavoritesByObjectId: {},
                 favoritesSortOrder: [],
                 favoriteFriendIds: ['usr_friend'],
                 groupedFavoriteFriendIdsByGroupKey: {},

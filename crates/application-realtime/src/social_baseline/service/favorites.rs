@@ -44,18 +44,13 @@ impl FavoriteGroupSets {
     }
 }
 
-#[derive(Clone, Debug, Default)]
 struct RemoteFavoriteRef {
-    id: String,
-    favorite_id: String,
     group_key: String,
     raw: Value,
 }
 
-#[derive(Clone, Debug, Default)]
 struct RemoteFavoriteSnapshot {
     remote_favorites_by_id: BTreeMap<String, RemoteFavoriteRef>,
-    remote_favorites_by_object_id: BTreeMap<String, RemoteFavoriteRef>,
     favorites_sort_order: Vec<String>,
     favorite_friend_ids: Vec<String>,
     favorite_world_ids: Vec<String>,
@@ -349,7 +344,6 @@ fn build_remote_favorite_snapshot(
     friend_roster: &FriendRosterView<'_>,
 ) -> RemoteFavoriteSnapshot {
     let mut remote_favorites_by_id = BTreeMap::new();
-    let mut remote_favorites_by_object_id = BTreeMap::new();
     let mut favorites_sort_order = Vec::new();
     let mut favorite_friend_ids = Vec::new();
     let mut favorite_world_ids = Vec::new();
@@ -368,13 +362,10 @@ fn build_remote_favorite_snapshot(
         let type_name = object_field_normalized(&favorite, &["type"]);
         let group_key = object_field_string(&favorite, &["$groupKey"]);
         let remote_ref = RemoteFavoriteRef {
-            id: id.clone(),
-            favorite_id: favorite_id.clone(),
             group_key: group_key.clone(),
             raw: favorite,
         };
-        remote_favorites_by_id.insert(id, remote_ref.clone());
-        remote_favorites_by_object_id.insert(favorite_id.clone(), remote_ref);
+        remote_favorites_by_id.insert(id, remote_ref);
         favorites_sort_order.push(favorite_id.clone());
 
         match type_name.as_str() {
@@ -400,7 +391,6 @@ fn build_remote_favorite_snapshot(
 
     RemoteFavoriteSnapshot {
         remote_favorites_by_id,
-        remote_favorites_by_object_id,
         favorites_sort_order,
         favorite_friend_ids,
         favorite_world_ids,
@@ -453,27 +443,12 @@ fn build_local_grouped_ids(
     (groups, groups_list, unique_values(list))
 }
 
-fn remote_favorite_refs_to_json(
-    favorites: &BTreeMap<String, RemoteFavoriteRef>,
+fn remote_favorite_refs_into_json(
+    favorites: BTreeMap<String, RemoteFavoriteRef>,
 ) -> BTreeMap<String, RawJson> {
     favorites
-        .iter()
-        .map(|(key, favorite)| {
-            debug_assert_eq!(favorite.id, *key);
-            (key.clone(), RawJson::from(favorite.raw.clone()))
-        })
-        .collect()
-}
-
-fn remote_favorite_refs_by_object_id_to_json(
-    favorites: &BTreeMap<String, RemoteFavoriteRef>,
-) -> BTreeMap<String, RawJson> {
-    favorites
-        .iter()
-        .map(|(key, favorite)| {
-            debug_assert_eq!(favorite.favorite_id, *key);
-            (key.clone(), RawJson::from(favorite.raw.clone()))
-        })
+        .into_iter()
+        .map(|(key, favorite)| (key, RawJson::from(favorite.raw)))
         .collect()
 }
 
@@ -653,11 +628,8 @@ async fn build_favorites_baseline_inner(
         current_user_id: user_id.clone(),
         favorite_limits: RawJson::from(favorite_limits),
         favorites_sort_order: remote_snapshot.favorites_sort_order,
-        remote_favorites_by_id: remote_favorite_refs_to_json(
-            &remote_snapshot.remote_favorites_by_id,
-        ),
-        remote_favorites_by_object_id: remote_favorite_refs_by_object_id_to_json(
-            &remote_snapshot.remote_favorites_by_object_id,
+        remote_favorites_by_id: remote_favorite_refs_into_json(
+            remote_snapshot.remote_favorites_by_id,
         ),
         favorite_friend_ids: remote_snapshot.favorite_friend_ids,
         grouped_favorite_friend_ids_by_group_key: remote_snapshot
