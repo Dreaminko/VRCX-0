@@ -30,12 +30,15 @@ pub struct PendingDesktopNotificationActivations {
 
 #[derive(Default)]
 struct PendingDesktopNotificationActivationState {
+    #[cfg(any(windows, test))]
     generation: u64,
+    #[cfg(any(windows, test))]
     scheduled: Option<DesktopNotificationAction>,
     ready: Option<DesktopNotificationAction>,
 }
 
 impl PendingDesktopNotificationActivations {
+    #[cfg(any(windows, test))]
     pub fn replace(&self, action: DesktopNotificationAction) -> u64 {
         let Ok(mut state) = self.state.lock() else {
             return 0;
@@ -46,6 +49,7 @@ impl PendingDesktopNotificationActivations {
         state.generation
     }
 
+    #[cfg(any(windows, test))]
     pub fn promote_if_latest(&self, generation: u64) -> bool {
         let Ok(mut state) = self.state.lock() else {
             return false;
