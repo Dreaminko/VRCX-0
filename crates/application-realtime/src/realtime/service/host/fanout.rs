@@ -138,16 +138,8 @@ impl RealtimeHostRuntime {
             }
         }
         if !projection.patches.is_empty() {
-            let values: Vec<Value> = projection
-                .patches
-                .iter()
-                .map(|patch| {
-                    serde_json::to_value(&patch.patch)
-                        .expect("FriendRecord contains only JSON-serializable fields")
-                })
-                .collect();
-            self.record_users_into_cache(
-                &values,
+            let changed = self.collect_friend_record_cache_changes(
+                projection.patches.iter().map(|patch| &patch.patch),
                 &UserFactMergeOptions {
                     endpoint: self.active_endpoint(),
                     source: "realtime".into(),
@@ -156,6 +148,7 @@ impl RealtimeHostRuntime {
                     ..Default::default()
                 },
             );
+            self.emit_user_cache_changes(changed);
         }
         self.deps
             .event_bus

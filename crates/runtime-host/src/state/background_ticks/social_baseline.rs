@@ -3,13 +3,15 @@ use std::{collections::HashMap, sync::Arc};
 use serde_json::Value;
 use vrcx_0_application_core::{BackgroundCapabilitySession, FriendProjection, RuntimeEventBus};
 use vrcx_0_application_realtime::{
-    build_favorites_baseline_from_friend_records, build_synced_friend_roster_baseline,
+    build_favorites_baseline_from_friend_ids, build_synced_friend_roster_baseline,
     RealtimeHostRuntime, SocialBaselineDeps, SocialFavoritesBaselineRequest,
     SocialFriendRosterBaselineInput,
 };
 use vrcx_0_core::json::RawJson;
 
-use crate::authenticated_runtime::favorite_group_membership_from_baseline;
+use crate::authenticated_runtime::{
+    favorite_group_membership_from_baseline, friend_ids_by_roster_id_from_records,
+};
 use crate::AuthenticatedRuntimeOrchestrator;
 
 use super::super::{
@@ -69,20 +71,21 @@ pub(in crate::state) async fn run_social_baseline_refresh_core(
             favorites: Ok(None),
         });
     };
+    let friend_ids_by_roster_id = friend_ids_by_roster_id_from_records(friends_by_id);
     if output.friend_log_changed {
         event_bus.emit_realtime_friend_projection(FriendProjection {
             friend_log_changed: true,
             ..FriendProjection::new(0, 0)
         });
     }
-    let favorites = match build_favorites_baseline_from_friend_records(
+    let favorites = match build_favorites_baseline_from_friend_ids(
         deps,
         SocialFavoritesBaselineRequest {
             user_id: session.current_user_id.clone(),
             endpoint: session.endpoint.clone(),
             current_user_snapshot: RawJson::from(session.current_user_snapshot.clone()),
         },
-        &friends_by_id,
+        &friend_ids_by_roster_id,
     )
     .await
     {

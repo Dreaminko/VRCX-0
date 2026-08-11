@@ -854,3 +854,38 @@ async fn cached_user_response_does_not_revert_display_name() -> Result<()> {
     );
     Ok(())
 }
+
+#[tokio::test]
+async fn cached_non_object_user_response_is_returned_verbatim() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("friend-profile-cached-non-object")?;
+    let canned = std::sync::Arc::new(VrchatApiResponse {
+        status: 200,
+        data: " 42 ".into(),
+    });
+    runtime
+        .runtime()
+        .user_query_cache
+        .get_or_fetch(
+            UserQueryKind::LiveNonFriend,
+            &active_session.endpoint,
+            "usr_non_object",
+            async move { Ok(canned) },
+        )
+        .await
+        .expect("priming the user query cache should succeed");
+
+    let response = runtime
+        .runtime()
+        .get_user_via_cache(
+            active_session.endpoint,
+            "usr_non_object".into(),
+            false,
+            false,
+            Some(false),
+        )
+        .await?;
+
+    assert_eq!(response.data, " 42 ");
+    Ok(())
+}

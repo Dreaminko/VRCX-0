@@ -14,6 +14,7 @@ use crate::realtime::{
     UserQueryOptions,
 };
 use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
+use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 
 const FRIEND_PROFILE_REFETCH_THROTTLE_MS: i64 = 10_000;
@@ -153,30 +154,39 @@ impl RealtimeHostRuntime {
             });
     }
 
-    pub(super) fn record_users_into_cache(&self, values: &[Value], options: &UserFactMergeOptions) {
-        let mut changed = Vec::new();
-        for value in values {
-            if let Some(output) = self.user_cache.record_user(value, options) {
-                changed.push(output.user);
-            }
-        }
-        self.emit_user_cache_changes(changed);
+    pub(super) fn collect_friend_record_cache_changes<'a>(
+        &self,
+        records: impl IntoIterator<Item = &'a FriendRecord>,
+        options: &UserFactMergeOptions,
+    ) -> Vec<serde_json::Map<String, Value>> {
+        records
+            .into_iter()
+            .filter_map(|record| {
+                let value = serde_json::to_value(record)
+                    .expect("FriendRecord contains only JSON-serializable fields");
+                self.user_cache
+                    .record_user(&value, options)
+                    .map(|output| output.user)
+            })
+            .collect()
     }
 
     pub(super) fn record_baseline_friends_into_cache(&self) {
-        let Some(seed) = self.friends.user_cache_seed() else {
+        let Some(changed) = self.friends.with_user_cache_records(|endpoint, records| {
+            self.collect_friend_record_cache_changes(
+                records.values(),
+                &UserFactMergeOptions {
+                    endpoint: endpoint.to_string(),
+                    source: "friend".into(),
+                    received_at: chrono::Utc::now().to_rfc3339(),
+                    is_friend: true,
+                    ..Default::default()
+                },
+            )
+        }) else {
             return;
         };
-        self.record_users_into_cache(
-            &seed.values,
-            &UserFactMergeOptions {
-                endpoint: seed.endpoint,
-                source: "friend".into(),
-                received_at: chrono::Utc::now().to_rfc3339(),
-                is_friend: true,
-                ..Default::default()
-            },
-        );
+        self.emit_user_cache_changes(changed);
     }
 
     pub fn ingest_user_facts(&self, entries: Vec<Value>) {
@@ -289,16 +299,30 @@ impl RealtimeHostRuntime {
                 .invalidate(options.kind, &endpoint, &user_id)
                 .await;
         }
-        if fetched.load(Ordering::SeqCst) {
-            self.ingest_user_get_response(&endpoint, &user_id, &response, refresh_expectation);
-        }
         let mut value = (*response).clone();
         if (200..300).contains(&value.status) {
-            if let Ok(Value::Object(mut object)) = serde_json::from_str::<Value>(&value.data) {
-                vrcx_0_core::user_facts::apply_derived_fields(&mut object);
-                if let Ok(data) = serde_json::to_string(&Value::Object(object)) {
-                    value.data = data;
+            let was_fetched = fetched.load(Ordering::SeqCst);
+            match serde_json::from_str::<Value>(&value.data) {
+                Ok(mut profile) => {
+                    if was_fetched {
+                        self.ingest_user_get_profile(
+                            &endpoint,
+                            &user_id,
+                            &profile,
+                            refresh_expectation,
+                        );
+                    }
+                    if let Some(object) = profile.as_object_mut() {
+                        vrcx_0_core::user_facts::apply_derived_fields(object);
+                        if let Ok(data) = serde_json::to_string(&profile) {
+                            value.data = data;
+                        }
+                    }
                 }
+                Err(error) if was_fetched => {
+                    tracing::warn!("getUser response json decode failed: {error}");
+                }
+                Err(_) => {}
             }
         }
         Ok(value)
@@ -333,23 +357,13 @@ impl RealtimeHostRuntime {
             .await;
     }
 
-    fn ingest_user_get_response(
+    fn ingest_user_get_profile(
         self: &Arc<Self>,
         endpoint: &str,
         requested_user_id: &str,
-        response: &VrchatApiResponse,
+        profile: &Value,
         expectation: Option<FriendProfileRefreshExpectation>,
     ) {
-        if !(200..300).contains(&response.status) {
-            return;
-        }
-        let profile = match serde_json::from_str::<Value>(&response.data) {
-            Ok(profile) => profile,
-            Err(error) => {
-                tracing::warn!("getUser response json decode failed: {error}");
-                return;
-            }
-        };
         let profile_user_id = json_string_field(profile.get("id"));
         if profile_user_id != requested_user_id {
             tracing::warn!(
@@ -359,14 +373,14 @@ impl RealtimeHostRuntime {
             );
             return;
         }
-        self.record_user_profile(endpoint, &profile);
+        self.record_user_profile(endpoint, profile);
         let Some(expectation) = expectation else {
             return;
         };
         if let Err(error) = self.apply_friend_profile_refresh(
             endpoint.to_string(),
             requested_user_id.to_string(),
-            profile,
+            profile.clone(),
             expectation,
         ) {
             tracing::warn!(

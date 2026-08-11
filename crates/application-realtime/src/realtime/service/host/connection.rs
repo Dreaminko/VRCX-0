@@ -31,6 +31,11 @@ use super::state::{
 };
 use super::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};
 
+enum RealtimeFriendBaselineStart {
+    Supplied(HashMap<String, FriendRecord>),
+    PendingOrPreserved,
+}
+
 impl RealtimeHostRuntime {
     pub fn new(deps: RealtimeHostRuntimeDeps) -> Self {
         let (cancel_tx, _) = watch::channel(0);
@@ -118,13 +123,53 @@ impl RealtimeHostRuntime {
         current_user_snapshot: serde_json::Value,
         friends_by_id: HashMap<String, FriendRecord>,
     ) -> Result<RealtimeTransportStartResult> {
+        self.start_with_friend_baseline(
+            user_id,
+            endpoint,
+            websocket,
+            client_run_id,
+            current_user_snapshot,
+            RealtimeFriendBaselineStart::Supplied(friends_by_id),
+        )
+    }
+
+    pub fn start_from_friend_baseline(
+        self: &Arc<Self>,
+        user_id: String,
+        endpoint: String,
+        websocket: String,
+        client_run_id: u64,
+        current_user_snapshot: serde_json::Value,
+    ) -> Result<RealtimeTransportStartResult> {
+        self.start_with_friend_baseline(
+            user_id,
+            endpoint,
+            websocket,
+            client_run_id,
+            current_user_snapshot,
+            RealtimeFriendBaselineStart::PendingOrPreserved,
+        )
+    }
+
+    fn start_with_friend_baseline(
+        self: &Arc<Self>,
+        user_id: String,
+        endpoint: String,
+        websocket: String,
+        client_run_id: u64,
+        current_user_snapshot: serde_json::Value,
+        baseline_start: RealtimeFriendBaselineStart,
+    ) -> Result<RealtimeTransportStartResult> {
         let session = RealtimeSessionContext::new(user_id, endpoint, websocket);
         if session.user_id.is_empty() {
             return Err(Error::Custom(
                 "Runtime realtime transport requires an authenticated user.".into(),
             ));
         }
-        let mut friends_by_id = friends_by_id;
+        let mut supplied_friends = match baseline_start {
+            RealtimeFriendBaselineStart::Supplied(friends_by_id) => Some(friends_by_id),
+            RealtimeFriendBaselineStart::PendingOrPreserved => None,
+        };
         let mut pending_feed_entries = Vec::new();
         let mut pending_projection = FriendProjection::new(0, 0);
         let friend_owner = self.lock_friend_owner();
@@ -149,15 +194,10 @@ impl RealtimeHostRuntime {
                 .state
                 .lock()
                 .map_err(|error| Error::Custom(format!("realtime state lock: {error}")))?;
-            state.connection.active_context = Some(ActiveRealtimeContext {
-                session: session.clone(),
-                generation,
-                client_run_id,
-                session_generation,
-            });
+            let mut pending_friends = None;
             if let Some(pending) = state.friend_baseline.pending.take() {
                 if pending.session == session {
-                    friends_by_id = pending.friends_by_id;
+                    pending_friends = Some(pending.friends_by_id);
                     pending_feed_entries = pending.feed_entries;
                     pending_projection = pending.projection;
                 }
@@ -167,18 +207,43 @@ impl RealtimeHostRuntime {
             state.world_enrichment.inflight.clear();
             state.world_enrichment.pending_corrections.clear();
             state.automation.invite.clear_all();
-            self.friends.clear();
-            let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
-            self.friends.set_baseline(
-                FriendRosterBaseline {
-                    current_user_id: session.user_id.clone(),
-                    endpoint: session.endpoint.clone(),
-                    websocket: session.websocket.clone(),
-                    friends_by_id,
-                },
+            let friend_user_ids = if let Some(friends_by_id) =
+                pending_friends.or_else(|| supplied_friends.take())
+            {
+                self.friends.clear();
+                let friend_user_ids = friends_by_id.keys().cloned().collect::<Vec<_>>();
+                self.friends.set_baseline(
+                    FriendRosterBaseline {
+                        current_user_id: session.user_id.clone(),
+                        endpoint: session.endpoint.clone(),
+                        websocket: session.websocket.clone(),
+                        friends_by_id,
+                    },
+                    generation,
+                    0,
+                );
+                friend_user_ids
+            } else {
+                let Some(friend_user_ids) = self
+                    .friends
+                    .restart_preserving_baseline(&session, generation)
+                else {
+                    self.deps
+                        .session
+                        .clear_realtime_context_if_generation(session_generation);
+                    return Err(Error::Custom(
+                        "Realtime transport requires a pending or preserved friend baseline."
+                            .into(),
+                    ));
+                };
+                friend_user_ids
+            };
+            state.connection.active_context = Some(ActiveRealtimeContext {
+                session: session.clone(),
                 generation,
-                0,
-            );
+                client_run_id,
+                session_generation,
+            });
             self.set_activity_friend_user_ids(friend_user_ids);
             self.current_user.set_snapshot(
                 session.user_id.clone(),

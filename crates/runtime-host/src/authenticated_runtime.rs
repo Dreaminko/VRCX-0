@@ -13,7 +13,7 @@ use vrcx_0_application_core::{
     RuntimeVrchatAuthFailurePayload, TaskStopToken, TaskSupervisor, WebClient,
 };
 use vrcx_0_application_realtime::{
-    build_favorites_baseline_from_friend_records, build_synced_friend_roster_baseline,
+    build_favorites_baseline_from_friend_ids, build_synced_friend_roster_baseline,
     FavoriteBaselineSnapshot, RealtimeFriendRosterSnapshot, RealtimeHostRuntime,
     RealtimeStopRequest, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
     RealtimeTransportTermination, SocialBaselineDeps, SocialFavoritesBaselineOutput,
@@ -54,6 +54,23 @@ pub struct AuthenticatedRuntimeDeps {
 pub struct FavoriteGroupMemberships {
     pub friend_groups_by_key: HashMap<String, Vec<String>>,
     pub world_groups_by_key: HashMap<String, Vec<String>>,
+}
+
+pub(crate) fn friend_ids_by_roster_id_from_records(
+    friends_by_id: HashMap<String, FriendRecord>,
+) -> HashMap<String, String> {
+    friends_by_id
+        .into_iter()
+        .map(|(roster_id, friend)| {
+            let friend_id = friend.id.trim().to_string();
+            let friend_id = if friend_id.is_empty() {
+                roster_id.clone()
+            } else {
+                friend_id
+            };
+            (roster_id, friend_id)
+        })
+        .collect()
 }
 
 #[derive(Clone)]
@@ -270,7 +287,7 @@ impl AuthenticatedRuntimeOrchestrator {
         run_id: u64,
         stop_token: TaskStopToken,
     ) {
-        let Some(friends_by_id) = self
+        let Some(friend_ids_by_roster_id) = self
             .run_friend_baseline(&session, &scope, run_id, &stop_token)
             .await
         else {
@@ -280,16 +297,14 @@ impl AuthenticatedRuntimeOrchestrator {
             return;
         }
 
-        let favorites =
-            self.run_favorites_baseline(&session, &scope, run_id, &stop_token, &friends_by_id);
-        let realtime_friends = friends_by_id.clone();
-        let realtime = self.run_realtime_with_rebaseline(
+        let favorites = self.run_favorites_baseline(
             &session,
             &scope,
             run_id,
             &stop_token,
-            realtime_friends,
+            &friend_ids_by_roster_id,
         );
+        let realtime = self.run_realtime_with_rebaseline(&session, &scope, run_id, &stop_token);
         tokio::join!(favorites, realtime);
     }
 
@@ -299,7 +314,6 @@ impl AuthenticatedRuntimeOrchestrator {
         scope: &RuntimeAuthScopeSnapshot,
         run_id: u64,
         stop_token: &TaskStopToken,
-        mut friends_by_id: HashMap<String, FriendRecord>,
     ) {
         let mut attempt: u32 = 1;
         let mut roster_stale = false;
@@ -311,7 +325,6 @@ impl AuthenticatedRuntimeOrchestrator {
                     run_id,
                     stop_token,
                     attempt,
-                    friends_by_id.clone(),
                 )
                 .await;
             let (reason, probe_auth) = match termination {
@@ -383,16 +396,15 @@ impl AuthenticatedRuntimeOrchestrator {
                     .try_friend_baseline(session, scope, run_id, stop_token, attempt)
                     .await
                 {
-                    Ok(Some(fresh)) => {
+                    Ok(Some(friend_ids_by_roster_id)) => {
                         self.trail(
                             "rebaselined",
                             json!({
                                 "runId": run_id,
                                 "attempt": attempt,
-                                "friends": fresh.len(),
+                                "friends": friend_ids_by_roster_id.len(),
                             }),
                         );
-                        friends_by_id = fresh;
                         roster_stale = false;
                     }
                     Ok(None) => {
@@ -422,14 +434,14 @@ impl AuthenticatedRuntimeOrchestrator {
         scope: &RuntimeAuthScopeSnapshot,
         run_id: u64,
         stop_token: &TaskStopToken,
-    ) -> Option<HashMap<String, FriendRecord>> {
+    ) -> Option<HashMap<String, String>> {
         let mut attempt = 1;
         loop {
             match self
                 .try_friend_baseline(session, scope, run_id, stop_token, attempt)
                 .await
             {
-                Ok(Some(friends_by_id)) => return Some(friends_by_id),
+                Ok(Some(friend_ids_by_roster_id)) => return Some(friend_ids_by_roster_id),
                 Ok(None) => return None,
                 Err(error) => {
                     let delay = retry_delay_seconds(attempt);
@@ -456,7 +468,7 @@ impl AuthenticatedRuntimeOrchestrator {
         run_id: u64,
         stop_token: &TaskStopToken,
         attempt: u32,
-    ) -> Result<Option<HashMap<String, FriendRecord>>> {
+    ) -> Result<Option<HashMap<String, String>>> {
         if !self.is_active(run_id, scope, stop_token) {
             return Ok(None);
         }
@@ -477,7 +489,10 @@ impl AuthenticatedRuntimeOrchestrator {
         .and_then(|baseline| {
             let output = baseline.output;
             match baseline.friends_by_id {
-                Some(friends_by_id) => Ok((output, friends_by_id)),
+                Some(friends_by_id) => Ok((
+                    output,
+                    friend_ids_by_roster_id_from_records(friends_by_id),
+                )),
                 None => Err(Error::Custom(if output.detail.trim().is_empty() {
                     "Friend roster baseline was stale.".into()
                 } else {
@@ -490,7 +505,7 @@ impl AuthenticatedRuntimeOrchestrator {
         }
 
         match result {
-            Ok((mut output, friends_by_id)) => {
+            Ok((mut output, friend_ids_by_roster_id)) => {
                 if output.detail.trim().is_empty() {
                     output.detail = format!(
                         "Friend roster baseline loaded for {}.",
@@ -498,7 +513,7 @@ impl AuthenticatedRuntimeOrchestrator {
                     );
                 }
                 self.update_friend_baseline(run_id, attempt, output);
-                Ok(Some(friends_by_id))
+                Ok(Some(friend_ids_by_roster_id))
             }
             Err(error) => {
                 self.emit_auth_failure_if_needed(scope, "runtime/social-baseline/friends", &error);
@@ -513,7 +528,7 @@ impl AuthenticatedRuntimeOrchestrator {
         scope: &RuntimeAuthScopeSnapshot,
         run_id: u64,
         stop_token: &TaskStopToken,
-        friends_by_id: &HashMap<String, FriendRecord>,
+        friend_ids_by_roster_id: &HashMap<String, String>,
     ) {
         let mut attempt = 1;
         loop {
@@ -521,14 +536,14 @@ impl AuthenticatedRuntimeOrchestrator {
                 return;
             }
             self.set_step_running(run_id, RuntimeStep::Favorites, attempt);
-            let result = build_favorites_baseline_from_friend_records(
+            let result = build_favorites_baseline_from_friend_ids(
                 self.social_baseline_deps(),
                 SocialFavoritesBaselineRequest {
                     user_id: session.user_id.clone(),
                     endpoint: session.endpoint.clone(),
                     current_user_snapshot: RawJson::from(session.current_user.clone()),
                 },
-                friends_by_id,
+                friend_ids_by_roster_id,
             )
             .await;
             if !self.is_active(run_id, scope, stop_token) {
@@ -577,20 +592,18 @@ impl AuthenticatedRuntimeOrchestrator {
         run_id: u64,
         stop_token: &TaskStopToken,
         attempt: u32,
-        friends_by_id: HashMap<String, FriendRecord>,
     ) -> Option<RealtimeTransportTermination> {
         if !self.is_active(run_id, scope, stop_token) {
             return None;
         }
         self.set_step_running(run_id, RuntimeStep::Realtime, attempt);
         let mut lifecycle = self.realtime_runtime.subscribe_transport_lifecycle();
-        let result = match self.realtime_runtime.start(
+        let result = match self.realtime_runtime.start_from_friend_baseline(
             session.user_id.clone(),
             session.endpoint.clone(),
             session.websocket.clone(),
             run_id,
             session.current_user.clone(),
-            friends_by_id,
         ) {
             Ok(result) => result,
             Err(error) => {
@@ -1159,6 +1172,23 @@ mod tests {
             groups,
             HashMap::from([("local:Friends".to_string(), vec!["usr_one".to_string()])])
         );
+    }
+
+    #[test]
+    fn compact_friend_ids_preserve_record_ids_and_fall_back_to_roster_keys() {
+        let friend_ids = friend_ids_by_roster_id_from_records(HashMap::from([
+            (
+                "roster_one".to_string(),
+                FriendRecord {
+                    id: " usr_one ".into(),
+                    ..FriendRecord::default()
+                },
+            ),
+            ("usr_two".to_string(), FriendRecord::default()),
+        ]));
+
+        assert_eq!(friend_ids["roster_one"], "usr_one");
+        assert_eq!(friend_ids["usr_two"], "usr_two");
     }
 
     #[test]

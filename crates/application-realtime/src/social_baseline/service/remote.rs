@@ -90,7 +90,10 @@ where
         let build_request = build_request.clone();
         async move {
             let json = execute_vrchat_json_page_request(deps, build_request(n, offset)).await?;
-            Ok(json.as_array().cloned().unwrap_or_default())
+            Ok(match json {
+                Value::Array(rows) => rows,
+                _ => Vec::new(),
+            })
         }
     })
     .await

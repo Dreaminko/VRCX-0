@@ -47,11 +47,6 @@ pub(crate) struct FriendBaselineEffects {
     pub(crate) confirmed_feed_entries: Vec<Value>,
 }
 
-pub(crate) struct FriendUserCacheSeed {
-    pub(crate) endpoint: String,
-    pub(crate) values: Vec<Value>,
-}
-
 pub(crate) enum SyntheticFriendEvent {
     Delete { user_id: String },
     TrustedAdd { user_id: String, profile: Value },
@@ -364,22 +359,51 @@ impl RealtimeFriendsRuntime {
         should_clear
     }
 
+    pub(crate) fn restart_preserving_baseline(
+        &self,
+        session: &RealtimeSessionContext,
+        generation: u64,
+    ) -> Option<Vec<String>> {
+        let mut state = self.lock_state();
+        {
+            let baseline = state.baseline.as_ref()?;
+            if baseline.current_user_id != session.user_id
+                || baseline.endpoint != session.endpoint
+                || baseline.websocket != session.websocket
+            {
+                return None;
+            }
+        }
+        let pending_offline = std::mem::take(&mut state.pending_offline);
+        let baseline = state
+            .baseline
+            .as_mut()
+            .expect("friend baseline was validated while holding the state lock");
+        baseline.generation = generation;
+        baseline.baseline_revision = 0;
+        for user_id in pending_offline.keys() {
+            if let Some(record) = baseline.friends_by_id.get_mut(user_id) {
+                record.extra.remove("pendingOffline");
+            }
+        }
+        let friend_user_ids = baseline.friends_by_id.keys().cloned().collect();
+        state.generation = state.generation.max(generation);
+        state.recent_gps.clear();
+        state.friend_state_sequence_by_user.clear();
+        Some(friend_user_ids)
+    }
+
     pub fn snapshot(&self) -> Option<RealtimeFriendSnapshot> {
         self.lock_state().baseline.clone()
     }
 
-    pub(crate) fn user_cache_seed(&self) -> Option<FriendUserCacheSeed> {
+    pub(crate) fn with_user_cache_records<R>(
+        &self,
+        visit: impl FnOnce(&str, &HashMap<String, FriendRecord>) -> R,
+    ) -> Option<R> {
         let state = self.lock_state();
         let baseline = state.baseline.as_ref()?;
-        let values = baseline
-            .friends_by_id
-            .values()
-            .map(|record| serde_json::to_value(record).unwrap_or(Value::Null))
-            .collect();
-        Some(FriendUserCacheSeed {
-            endpoint: baseline.endpoint.clone(),
-            values,
-        })
+        Some(visit(&baseline.endpoint, &baseline.friends_by_id))
     }
 
     pub fn roster_snapshot(

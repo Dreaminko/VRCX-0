@@ -141,7 +141,10 @@ mod friends;
 mod remote;
 
 use favorites::CurrentUserSnapshotView;
-pub use favorites::{build_favorites_baseline, build_favorites_baseline_from_friend_records};
+pub use favorites::{
+    build_favorites_baseline, build_favorites_baseline_from_friend_ids,
+    build_favorites_baseline_from_friend_records,
+};
 #[cfg(test)]
 pub(crate) use friends::friend_log_relationship_candidates;
 pub use friends::{

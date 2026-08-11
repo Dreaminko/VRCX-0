@@ -288,6 +288,7 @@ fn count_favorite_groups(
 enum FriendRosterView<'a> {
     Raw(&'a Value),
     Typed(&'a HashMap<String, FriendRecord>),
+    Ids(&'a HashMap<String, String>),
 }
 
 impl<'a> FriendRosterView<'a> {
@@ -301,6 +302,10 @@ impl<'a> FriendRosterView<'a> {
             Self::Typed(friends_by_id) => friends_by_id
                 .get(favorite_id)
                 .map(|friend| friend.id.trim().to_string())
+                .unwrap_or_default(),
+            Self::Ids(friend_ids_by_roster_id) => friend_ids_by_roster_id
+                .get(favorite_id)
+                .map(|friend_id| friend_id.trim().to_string())
                 .unwrap_or_default(),
         };
         if object_id.is_empty() {
@@ -492,6 +497,19 @@ pub async fn build_favorites_baseline_from_friend_records(
     friends_by_id: &HashMap<String, FriendRecord>,
 ) -> Result<SocialFavoritesBaselineOutput> {
     build_favorites_baseline_inner(deps, request, FriendRosterView::Typed(friends_by_id)).await
+}
+
+pub async fn build_favorites_baseline_from_friend_ids(
+    deps: SocialBaselineDeps,
+    request: SocialFavoritesBaselineRequest,
+    friend_ids_by_roster_id: &HashMap<String, String>,
+) -> Result<SocialFavoritesBaselineOutput> {
+    build_favorites_baseline_inner(
+        deps,
+        request,
+        FriendRosterView::Ids(friend_ids_by_roster_id),
+    )
+    .await
 }
 
 async fn build_favorites_baseline_inner(

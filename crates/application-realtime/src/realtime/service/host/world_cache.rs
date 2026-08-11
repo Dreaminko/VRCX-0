@@ -131,6 +131,7 @@ impl RealtimeHostRuntime {
                     return;
                 }
             };
+            prune_expired_world_name_fetches(&mut state.world_enrichment.fetches, now_ms);
             let mut fetch_ids = Vec::new();
             for pending in candidates {
                 let recent = state
@@ -227,6 +228,15 @@ impl RealtimeHostRuntime {
     }
 }
 
+fn prune_expired_world_name_fetches(
+    fetches: &mut std::collections::HashMap<String, i64>,
+    now_ms: i64,
+) {
+    fetches.retain(|_, last_ms| {
+        now_ms.saturating_sub(*last_ms) < WORLD_NAME_FETCH_THROTTLE_MS
+    });
+}
+
 fn string_value(value: &Value, key: &str) -> String {
     value
         .get(key)
@@ -234,4 +244,29 @@ fn string_value(value: &Value, key: &str) -> String {
         .map(str::trim)
         .map(ToString::to_string)
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn world_fetch_throttle_prunes_expired_entries_and_keeps_recent_ones() {
+        let now_ms = 1_000_000;
+        let mut fetches = HashMap::from([
+            (
+                "wrld_expired".to_string(),
+                now_ms - WORLD_NAME_FETCH_THROTTLE_MS,
+            ),
+            ("wrld_recent".to_string(), now_ms - 1),
+            ("wrld_future".to_string(), now_ms + 1),
+        ]);
+
+        prune_expired_world_name_fetches(&mut fetches, now_ms);
+
+        assert!(!fetches.contains_key("wrld_expired"));
+        assert!(fetches.contains_key("wrld_recent"));
+        assert!(fetches.contains_key("wrld_future"));
+    }
 }
