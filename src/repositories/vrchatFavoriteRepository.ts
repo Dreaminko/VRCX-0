@@ -1,11 +1,11 @@
 import { commands, type VrchatFavoriteType } from '@/platform/tauri/bindings';
 
+import { collectPages } from './pagination';
 import { unwrapVrchatResponse } from './vrchatRequest';
 
 const FAVORITE_GROUPS_PAGE_SIZE = 50;
 const FAVORITE_DETAIL_PAGE_SIZE = 300;
 
-type RequestPayload = Record<string, unknown>;
 type VrchatApiResult = {
     status: number;
     data: unknown;
@@ -19,10 +19,6 @@ interface FavoritePagingInput {
 interface FavoriteWorldsInput extends FavoritePagingInput {
     ownerId?: string;
     userId?: string;
-    tag?: string;
-}
-
-interface FavoriteAvatarsInput extends FavoritePagingInput {
     tag?: string;
 }
 
@@ -137,84 +133,19 @@ async function getAllFavoriteWorlds({
     userId = '',
     tag = ''
 }: FavoriteWorldsInput = {}) {
-    const worlds = [];
-
-    for (let offset = 0; ; offset += FAVORITE_DETAIL_PAGE_SIZE) {
-        const response = await getFavoriteWorlds({
-            n: FAVORITE_DETAIL_PAGE_SIZE,
-            offset,
-            ownerId,
-            userId,
-            tag
-        });
-        const page = Array.isArray(response.json) ? response.json : [];
-        worlds.push(...page);
-
-        if (page.length < FAVORITE_DETAIL_PAGE_SIZE) {
-            break;
-        }
-    }
-
-    return worlds;
-}
-
-async function getFavoriteAvatars({
-    n = FAVORITE_DETAIL_PAGE_SIZE,
-    offset = 0,
-    tag
-}: FavoriteAvatarsInput = {}) {
-    const response = await commands.appVrchatFavoriteAvatarsGet({
-        n,
-        offset,
-        tag: typeof tag === 'string' ? tag.trim() : ''
-    });
-    return unwrapVrchatFavoriteResponse(
-        response,
-        'avatars/favorites',
-        'VRChat favorite request failed'
-    );
-}
-
-async function getAllFavoriteAvatars({ tags = [] }: { tags?: unknown[] } = {}) {
-    const avatars = [];
-    const seenIds = new Set();
-    const normalizedTags = Array.from(
-        new Set(
-            (Array.isArray(tags) ? tags : [])
-                .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
-                .filter(Boolean)
-        )
-    );
-    const tagQueue = normalizedTags.length > 0 ? normalizedTags : [undefined];
-
-    for (const tag of tagQueue) {
-        for (let offset = 0; ; offset += FAVORITE_DETAIL_PAGE_SIZE) {
-            const response = await getFavoriteAvatars({
-                n: FAVORITE_DETAIL_PAGE_SIZE,
+    return collectPages(
+        async ({ n, offset }) => {
+            const response = await getFavoriteWorlds({
+                n,
                 offset,
+                ownerId,
+                userId,
                 tag
             });
-            const page = Array.isArray(response.json) ? response.json : [];
-
-            for (const avatar of page) {
-                const avatarId =
-                    typeof avatar?.id === 'string'
-                        ? avatar.id.trim()
-                        : String(avatar?.id ?? '').trim();
-                if (!avatarId || seenIds.has(avatarId)) {
-                    continue;
-                }
-                seenIds.add(avatarId);
-                avatars.push(avatar);
-            }
-
-            if (page.length < FAVORITE_DETAIL_PAGE_SIZE) {
-                break;
-            }
-        }
-    }
-
-    return avatars;
+            return Array.isArray(response.json) ? response.json : [];
+        },
+        { pageSize: FAVORITE_DETAIL_PAGE_SIZE }
+    );
 }
 
 async function getFavoriteGroups({
@@ -237,23 +168,13 @@ async function getFavoriteGroups({
 async function getAllFavoriteGroups({
     ownerId = ''
 }: { ownerId?: string } = {}) {
-    const groups = [];
-
-    for (let offset = 0; ; offset += FAVORITE_GROUPS_PAGE_SIZE) {
-        const response = await getFavoriteGroups({
-            n: FAVORITE_GROUPS_PAGE_SIZE,
-            offset,
-            ownerId
-        });
-        const page = Array.isArray(response.json) ? response.json : [];
-        groups.push(...page);
-
-        if (page.length < FAVORITE_GROUPS_PAGE_SIZE) {
-            break;
-        }
-    }
-
-    return groups;
+    return collectPages(
+        async ({ n, offset }) => {
+            const response = await getFavoriteGroups({ n, offset, ownerId });
+            return Array.isArray(response.json) ? response.json : [];
+        },
+        { pageSize: FAVORITE_GROUPS_PAGE_SIZE }
+    );
 }
 
 async function saveFavoriteGroup({
@@ -276,17 +197,6 @@ async function saveFavoriteGroup({
         throw new Error(
             'VrchatFavoriteRepository.saveFavoriteGroup requires ownerId, type, and group.'
         );
-    }
-
-    const payload: RequestPayload = {
-        type: normalizedType,
-        group: normalizedGroup
-    };
-    if (typeof displayName === 'string') {
-        payload.displayName = displayName;
-    }
-    if (typeof visibility === 'string') {
-        payload.visibility = visibility;
     }
 
     const response = await commands.appVrchatFavoriteGroupSave({
@@ -339,7 +249,6 @@ const vrchatFavoriteRepository = Object.freeze({
     addFavorite,
     deleteFavorite,
     getAllFavoriteWorlds,
-    getAllFavoriteAvatars,
     getAllFavoriteGroups,
     saveFavoriteGroup,
     clearFavoriteGroup
@@ -349,7 +258,6 @@ export {
     addFavorite,
     deleteFavorite,
     getAllFavoriteWorlds,
-    getAllFavoriteAvatars,
     getAllFavoriteGroups,
     saveFavoriteGroup,
     clearFavoriteGroup

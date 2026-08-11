@@ -14,6 +14,7 @@ struct FakeActions {
     boop_rows: Vec<BoopNotificationRow>,
     fail_remote: Option<(String, i32)>,
     fail_expire_ids: Vec<String>,
+    resolved_world_name: Option<String>,
 }
 
 impl FakeActions {
@@ -23,6 +24,7 @@ impl FakeActions {
             boop_rows: Vec::new(),
             fail_remote: None,
             fail_expire_ids: Vec::new(),
+            resolved_world_name: None,
         }
     }
 
@@ -51,6 +53,11 @@ fn call_key(call: &NotificationChainRemoteCall) -> String {
             receiver_user_id,
             params,
         } => format!("inviteSend:{receiver_user_id}:{params}"),
+        NotificationChainRemoteCall::InviteSendPhoto {
+            receiver_user_id,
+            params,
+            ..
+        } => format!("inviteSendPhoto:{receiver_user_id}:{params}"),
         NotificationChainRemoteCall::BoopSend { user_id, emoji_id } => {
             format!("boopSend:{user_id}:{emoji_id}")
         }
@@ -59,6 +66,10 @@ fn call_key(call: &NotificationChainRemoteCall) -> String {
 
 impl NotificationChainActions for FakeActions {
     fn ensure_scope(&self, _owner_user_id: &str, _endpoint: &str) -> Result<()> {
+        Ok(())
+    }
+
+    fn ensure_active_scope(&self, _endpoint: &str) -> Result<()> {
         Ok(())
     }
 
@@ -89,6 +100,13 @@ impl NotificationChainActions for FakeActions {
         }
         self.state.lock().unwrap().expired.push(id);
         Ok(())
+    }
+
+    fn resolve_world_name<'a>(
+        &'a self,
+        _world_id: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+        Box::pin(async move { self.resolved_world_name.clone() })
     }
 
     fn query_boop_rows(&self) -> Result<Vec<BoopNotificationRow>> {
@@ -420,7 +438,6 @@ async fn request_invite_accept_sends_invite_with_rsvp_then_cleans_up() {
             target: target("notif", 1),
             instance_id: "wrld_1:1234".into(),
             world_id: "wrld_1".into(),
-            world_name: String::new(),
         },
     )
     .await
@@ -436,6 +453,37 @@ async fn request_invite_accept_sends_invite_with_rsvp_then_cleans_up() {
 }
 
 #[tokio::test]
+async fn instance_invite_resolves_world_name_and_keeps_optional_fields() {
+    let mut actions = FakeActions::new();
+    actions.resolved_world_name = Some("Resolved World".into());
+
+    let outcome = send_instance_invite_notification(
+        &actions,
+        NotificationInstanceInviteInput {
+            endpoint: String::new(),
+            receiver_user_id: "usr_receiver".into(),
+            instance_id: "wrld_1:1234".into(),
+            world_id: "wrld_1".into(),
+            world_name: String::new(),
+            message_slot: Some(4),
+            image_data: String::new(),
+            rsvp: Some(true),
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(outcome.status, NotificationActionStatus::Applied);
+    assert!(!outcome.sent_photo);
+    let calls = actions.remote_calls();
+    assert_eq!(calls.len(), 1);
+    assert!(calls[0].starts_with("inviteSend:usr_receiver:"));
+    assert!(calls[0].contains("\"worldName\":\"Resolved World\""));
+    assert!(calls[0].contains("\"messageSlot\":4"));
+    assert!(calls[0].contains("\"rsvp\":true"));
+}
+
+#[tokio::test]
 async fn request_invite_accept_without_location_still_cleans_up() {
     let actions = FakeActions::new();
     let outcome = accept_request_invite_notification(
@@ -446,7 +494,6 @@ async fn request_invite_accept_without_location_still_cleans_up() {
             target: target("notif", 1),
             instance_id: String::new(),
             world_id: "wrld_1".into(),
-            world_name: String::new(),
         },
     )
     .await
@@ -468,7 +515,6 @@ async fn request_invite_send_failure_skips_cleanup() {
             target: target("notif", 1),
             instance_id: "wrld_1:1234".into(),
             world_id: "wrld_1".into(),
-            world_name: "World".into(),
         },
     )
     .await

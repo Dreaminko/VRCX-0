@@ -20,18 +20,11 @@ import {
 } from '@/shared/utils/userTransforms';
 import { DEFAULT_VRCHAT_API_ENDPOINT } from '@/shared/vrchatEndpoint';
 
-import { collectPages } from './pagination';
-import { VRCHAT_API_DEFAULT_PAGE_SIZE } from './paginationConstants';
 import { unwrapVrchatResponse } from './vrchatRequest';
 
 type VrchatApiResult = {
     status: number;
     data: unknown;
-};
-
-type UserMutualCounts = {
-    friends: number;
-    groups: number;
 };
 
 type UserFriendStatus = {
@@ -91,11 +84,6 @@ interface UserAppearanceProfileInput extends UserEndpointInput {
 
 interface UserGroupsInput extends UserEndpointInput {
     force?: boolean;
-}
-
-interface MutualFriendsInput extends UserEndpointInput {
-    n?: number;
-    offset?: number;
 }
 
 interface CurrentUserUpdateInput extends UserEndpointInput {
@@ -330,39 +318,6 @@ async function getUserAppearanceProfile({
     });
 }
 
-async function getMutualCounts({ userId }: UserEndpointInput) {
-    const normalizedUserId =
-        typeof userId === 'string'
-            ? userId.trim()
-            : String(userId ?? '').trim();
-    if (!normalizedUserId) {
-        throw new Error(
-            'UserProfileRepository.getMutualCounts requires a user id.'
-        );
-    }
-
-    return fetchCachedData({
-        queryKey: queryKeys.mutualCounts(
-            normalizedUserId,
-            DEFAULT_VRCHAT_API_ENDPOINT
-        ),
-        policy: entityQueryPolicies.mutualCounts,
-        queryFn: async () => {
-            const response = await commands.appVrchatUserMutualCountsGet({
-                userId: normalizedUserId
-            });
-            const json = unwrapVrchatUserResponse<UserMutualCounts>(
-                response,
-                `users/${encodeURIComponent(normalizedUserId)}/mutuals`
-            ).json;
-            return {
-                friends: Number(json?.friends) || 0,
-                groups: Number(json?.groups) || 0
-            };
-        }
-    });
-}
-
 async function getUserGroups({ userId }: UserEndpointInput) {
     const normalizedUserId =
         typeof userId === 'string'
@@ -424,37 +379,21 @@ async function getRepresentedGroup({ userId, force = false }: UserGroupsInput) {
     });
 }
 
-async function getMutualFriends({
-    userId,
-    n = VRCHAT_API_DEFAULT_PAGE_SIZE,
-    offset = 0
-}: MutualFriendsInput) {
+async function getAllMutualFriends({ userId }: UserEndpointInput) {
     const normalizedUserId =
         typeof userId === 'string'
             ? userId.trim()
             : String(userId ?? '').trim();
     if (!normalizedUserId) {
         throw new Error(
-            'UserProfileRepository.getMutualFriends requires a user id.'
+            'UserProfileRepository.getAllMutualFriends requires a user id.'
         );
     }
 
-    const response = await commands.appVrchatUserMutualFriendsGet({
-        userId: normalizedUserId,
-        n,
-        offset
+    const rows = await commands.appUserMutualFriendsListGet({
+        userId: normalizedUserId
     });
-    const json = unwrapVrchatUserResponse<UserMutualFriendRow[]>(
-        response,
-        `users/${encodeURIComponent(normalizedUserId)}/mutuals/friends`
-    ).json;
-    return Array.isArray(json) ? json : [];
-}
-
-async function getAllMutualFriends({ userId }: UserEndpointInput) {
-    return collectPages(({ n, offset }) =>
-        getMutualFriends({ userId, n, offset })
-    );
+    return Array.isArray(rows) ? (rows as UserMutualFriendRow[]) : [];
 }
 
 async function updateCurrentUser({
@@ -619,8 +558,6 @@ const userProfileRepository = Object.freeze({
     getUserAppearanceProfile,
     getUserGroups,
     getRepresentedGroup,
-    getMutualCounts,
-    getMutualFriends,
     getAllMutualFriends,
     updateCurrentUserProfile,
     updateCurrentUser,
@@ -636,8 +573,6 @@ export {
     getUserAppearanceProfile,
     getUserGroups,
     getRepresentedGroup,
-    getMutualCounts,
-    getMutualFriends,
     getAllMutualFriends,
     updateCurrentUserProfile,
     updateCurrentUser,

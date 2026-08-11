@@ -104,12 +104,6 @@ export const entityQueryPolicies = Object.freeze({
         retry: 1,
         refetchOnWindowFocus: false
     }),
-    mutualCounts: Object.freeze({
-        staleTime: 15 * MINUTE_MS,
-        gcTime: 60 * MINUTE_MS,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
     userDialogTabCounts: Object.freeze({
         staleTime: 0,
         gcTime: 10 * MINUTE_MS,
@@ -158,8 +152,6 @@ function stableParams(params: unknown = {}): Record<string, unknown> {
 export const queryKeys = Object.freeze({
     user: (userId: unknown, endpoint: unknown = '') =>
         withEndpoint(['user', userId], endpoint),
-    mutualCounts: (userId: unknown, endpoint: unknown = '') =>
-        withEndpoint(['user', userId, 'mutualCounts'], endpoint),
     userAppearanceProfile: (userId: unknown, endpoint: unknown = '') =>
         withEndpoint(['user', userId, 'appearanceProfile'], endpoint),
     userGroups: (userId: unknown, endpoint: unknown = '') =>

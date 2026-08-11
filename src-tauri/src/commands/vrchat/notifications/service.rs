@@ -1,23 +1,18 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
+use vrcx_0_application as media_upload;
 use vrcx_0_application_core::vrchat_api::notifications::{
-    boop_send_input, invite_photo_input, invite_response_photo_input, invite_response_send_input,
-    invite_send_input, notification_accept_friend_request_input, notification_hide_remote_input,
-    notification_respond_input, request_invite_photo_input, request_invite_send_input,
+    boop_send_input, request_invite_photo_input, request_invite_send_input,
 };
+use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
+use super::types::{
+    VrchatBoopInput, VrchatNotificationPhotoSendInput, VrchatNotificationSendInput,
+};
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_application as media_upload;
-use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
-
-use super::types::{
-    VrchatBoopInput, VrchatInviteResponseInput, VrchatInviteResponsePhotoInput,
-    VrchatNotificationHideInput, VrchatNotificationIdInput, VrchatNotificationPhotoSendInput,
-    VrchatNotificationRespondInput, VrchatNotificationSendInput,
-};
 
 async fn execute_notification_api(
     state: State<'_, AppState>,
@@ -41,148 +36,6 @@ async fn execute_media_api(
         detail,
         input,
         VrchatScope::VrchatMedia,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_notification_accept_friend_request(
-    state: State<'_, AppState>,
-    input: VrchatNotificationIdInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (id, request) =
-        notification_accept_friend_request_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.id)?;
-    execute_notification_api(
-        state,
-        "app__vrchat_notification_accept_friend_request",
-        format!("Accepting friend request notification {id}."),
-        request,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_notification_hide_remote(
-    state: State<'_, AppState>,
-    input: VrchatNotificationHideInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (id, request) = notification_hide_remote_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.id,
-        input.version,
-        input.type_name,
-        input.sender_user_id,
-    )?;
-    execute_notification_api(
-        state,
-        "app__vrchat_notification_hide_remote",
-        format!("Hiding notification {id}."),
-        request,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_notification_respond(
-    state: State<'_, AppState>,
-    input: VrchatNotificationRespondInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (id, request) = notification_respond_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.id,
-        input.response_type,
-        input.response_data,
-    )?;
-    execute_notification_api(
-        state,
-        "app__vrchat_notification_respond",
-        format!("Responding to notification {id}."),
-        request,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_invite_response_send(
-    state: State<'_, AppState>,
-    input: VrchatInviteResponseInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (id, request) = invite_response_send_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.id,
-        input.response_slot,
-    )?;
-    execute_notification_api(
-        state,
-        "app__vrchat_invite_response_send",
-        format!("Sending invite response for {id}."),
-        request,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_invite_response_photo_send(
-    state: State<'_, AppState>,
-    input: VrchatInviteResponsePhotoInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (id, request) = invite_response_photo_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.id,
-        input.response_slot,
-        input.image_data,
-    )?;
-    execute_media_api(
-        state,
-        "app__vrchat_invite_response_photo_send",
-        format!("Sending invite response photo for {id}."),
-        media_upload::prepare_media_upload_request(request)?,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_invite_send(
-    state: State<'_, AppState>,
-    input: VrchatNotificationSendInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (receiver_user_id, request) = invite_send_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.receiver_user_id,
-        input.params,
-    )?;
-    execute_notification_api(
-        state,
-        "app__vrchat_invite_send",
-        format!("Sending invite to {receiver_user_id}."),
-        request,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_invite_photo_send(
-    state: State<'_, AppState>,
-    input: VrchatNotificationPhotoSendInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (receiver_user_id, request) = invite_photo_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.receiver_user_id,
-        input.params,
-        input.image_data,
-    )?;
-    execute_media_api(
-        state,
-        "app__vrchat_invite_photo_send",
-        format!("Sending invite photo to {receiver_user_id}."),
-        media_upload::prepare_media_upload_request(request)?,
     )
     .await
 }

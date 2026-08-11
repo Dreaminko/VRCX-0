@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const commandMocks = vi.hoisted(() => ({
     appNotificationListQuery: vi.fn(),
-    appNotificationAddV1: vi.fn(),
-    appVrchatNotificationHideRemote: vi.fn(),
-    appVrchatNotificationRespond: vi.fn()
+    appNotificationAddV1: vi.fn()
 }));
 
 const configMocks = vi.hoisted(() => ({
@@ -16,17 +14,8 @@ vi.mock('./configRepository', () => ({ default: configMocks }));
 
 import {
     addNotificationToDatabase,
-    hideRemoteNotification,
-    queryNotifications,
-    sendNotificationResponse
+    queryNotifications
 } from './notificationPersistenceRepository';
-
-function httpResponse(status = 200, data: unknown = { ok: true }) {
-    return {
-        status,
-        data: typeof data === 'string' ? data : JSON.stringify(data)
-    };
-}
 
 describe('notificationPersistenceRepository', () => {
     beforeEach(() => {
@@ -37,12 +26,6 @@ describe('notificationPersistenceRepository', () => {
         );
         commandMocks.appNotificationListQuery.mockResolvedValue([]);
         commandMocks.appNotificationAddV1.mockResolvedValue(undefined);
-        commandMocks.appVrchatNotificationHideRemote.mockResolvedValue(
-            httpResponse()
-        );
-        commandMocks.appVrchatNotificationRespond.mockResolvedValue(
-            httpResponse()
-        );
     });
 
     it('uses the bounded default list query and normalizes nested row data', async () => {
@@ -139,36 +122,5 @@ describe('notificationPersistenceRepository', () => {
             })
         ).rejects.toThrow('missing required field');
         expect(commandMocks.appNotificationAddV1).not.toHaveBeenCalled();
-    });
-
-    it('uses the sender deletion path for ignored friend requests', async () => {
-        await hideRemoteNotification({
-            id: ' notification_1 ',
-            version: 1,
-            type: 'ignoredFriendRequest',
-            senderUserId: ' usr_sender '
-        });
-
-        expect(
-            commandMocks.appVrchatNotificationHideRemote
-        ).toHaveBeenCalledWith({
-            id: 'notification_1',
-            version: 1,
-            type: 'ignoredFriendRequest',
-            senderUserId: 'usr_sender'
-        });
-    });
-
-    it('treats an expired notification response as an idempotent no-op', async () => {
-        commandMocks.appVrchatNotificationRespond.mockResolvedValueOnce(
-            httpResponse(404, { error: { message: 'Not Found' } })
-        );
-
-        await expect(
-            sendNotificationResponse({
-                id: 'notification_1',
-                responseType: 'accept'
-            })
-        ).resolves.toBeNull();
     });
 });

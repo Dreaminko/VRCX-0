@@ -3,8 +3,9 @@
 use tauri::State;
 use vrcx_0_application::{
     self as social_mutation, SocialFriendMutationInput, SocialFriendMutationOutcome,
-    SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput, SocialMutationDeps,
-    SocialUnfriendBatchInput, SocialUnfriendBatchResult,
+    SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput,
+    SocialFriendRequestNotificationAcceptOutput, SocialMutationDeps, SocialUnfriendBatchInput,
+    SocialUnfriendBatchResult,
 };
 use vrcx_0_application_core::RuntimeOperationStatus;
 
@@ -170,19 +171,31 @@ pub async fn app__social_friend_request_cancel(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__social_friend_request_accept(
+pub async fn app__social_friend_request_notification_accept(
     state: State<'_, AppState>,
     input: SocialFriendRequestAcceptInput,
-) -> Result<SocialFriendMutationOutcome, AppError> {
-    let command = "app__social_friend_request_accept";
+) -> Result<SocialFriendRequestNotificationAcceptOutput, AppError> {
+    let command = "app__social_friend_request_notification_accept";
+    let target_user_id = input.target_user_id.clone();
     state.runtime_context.diagnostics.record_command(
         command,
         RuntimeOperationStatus::Running,
-        format!("Accepting friend request from {}.", input.target_user_id),
+        format!("Accepting friend request from {target_user_id}."),
     );
 
-    let result = social_mutation::accept_friend_request(deps(&state), input).await;
-    record_outcome(&state, command, &result);
+    let result = social_mutation::accept_friend_request_notification(deps(&state), input).await;
+    match &result {
+        Ok(output) => state.runtime_context.diagnostics.record_command(
+            command,
+            RuntimeOperationStatus::Ok,
+            format!("target={target_user_id} status={:?}", output.status),
+        ),
+        Err(error) => state.runtime_context.diagnostics.record_command(
+            command,
+            RuntimeOperationStatus::Error,
+            error.to_string(),
+        ),
+    }
 
     Ok(result?)
 }

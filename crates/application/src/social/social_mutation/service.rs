@@ -6,6 +6,7 @@ use vrcx_0_persistence::friends::{
     FriendLogCurrentEntryInput, FriendLogDeleteOptionsInput, FriendLogHistoryEntryInput,
     FriendLogUpsertOptionsInput,
 };
+use vrcx_0_persistence::notifications::notification_expire;
 use vrcx_0_vrchat_client::friends::{
     friend_delete_input, friend_request_cancel_input, friend_request_send_input,
 };
@@ -22,7 +23,8 @@ use vrcx_0_application_realtime::{
 
 use super::types::{
     SocialFriendMutationInput, SocialFriendMutationOutcome, SocialFriendRequestAcceptInput,
-    SocialFriendRequestCancelInput, SocialMutationDeps,
+    SocialFriendRequestCancelInput, SocialFriendRequestNotificationAcceptOutput,
+    SocialFriendRequestNotificationAcceptStatus, SocialMutationDeps,
 };
 
 pub async fn unfriend(
@@ -151,6 +153,32 @@ pub async fn accept_friend_request(
         &input.target_display_name,
         profile,
     ))
+}
+
+pub async fn accept_friend_request_notification(
+    deps: SocialMutationDeps<'_>,
+    input: SocialFriendRequestAcceptInput,
+) -> Result<SocialFriendRequestNotificationAcceptOutput> {
+    let owner_user_id = normalize_text(&input.owner_user_id);
+    let notification_id = normalize_text(&input.notification_id);
+    let outcome = match accept_friend_request(deps, input).await {
+        Ok(outcome) => Some(outcome),
+        Err(error) if is_not_found_error(&error) => None,
+        Err(error) => return Err(error),
+    };
+    notification_expire(deps.db, owner_user_id, notification_id)?;
+    Ok(SocialFriendRequestNotificationAcceptOutput {
+        status: if outcome.is_some() {
+            SocialFriendRequestNotificationAcceptStatus::Accepted
+        } else {
+            SocialFriendRequestNotificationAcceptStatus::NotFound
+        },
+        outcome,
+    })
+}
+
+fn is_not_found_error(error: &Error) -> bool {
+    error.to_string().trim_end().ends_with("(404)")
 }
 
 pub(in crate::social) fn apply_unfriend_locally(

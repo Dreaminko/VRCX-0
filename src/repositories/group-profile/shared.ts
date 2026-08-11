@@ -229,7 +229,7 @@ export function responsePage<TRow = unknown>(json: unknown, key = '') {
 
 export async function collectPages<TRow = unknown>(
     fetchPage: (page: PageRequest) => Promise<TRow[]>,
-    { pageSize, maxPages = Number.POSITIVE_INFINITY }: CollectPagesOptions = {}
+    options: CollectPagesOptions = {}
 ) {
-    return collectBoundedPages(fetchPage, { pageSize, maxPages });
+    return collectBoundedPages(fetchPage, options);
 }

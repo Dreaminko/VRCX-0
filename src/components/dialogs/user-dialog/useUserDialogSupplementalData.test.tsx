@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     getFriendLogHistory: vi.fn(),
     getRepresentedGroup: vi.fn(),
-    getMutualCounts: vi.fn(),
     getUserStats: vi.fn()
 }));
 
@@ -18,7 +17,6 @@ vi.mock('@/repositories/gameLogRepository', () => ({
 }));
 vi.mock('@/repositories/userProfileRepository', () => ({
     default: {
-        getMutualCounts: mocks.getMutualCounts,
         getRepresentedGroup: mocks.getRepresentedGroup
     }
 }));
@@ -58,7 +56,6 @@ describe('useUserDialogSupplementalData', () => {
             mock.mockResolvedValue([]);
         }
         mocks.getUserStats.mockResolvedValue({});
-        mocks.getMutualCounts.mockResolvedValue({});
         mocks.getRepresentedGroup.mockResolvedValue(null);
     });
 

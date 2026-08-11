@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { cn } from '@/lib/utils';
 import { commands } from '@/platform/tauri/bindings';
-import avatarProfileRepository from '@/repositories/avatarProfileRepository';
+import myAvatarRepository from '@/repositories/myAvatarRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
@@ -31,9 +31,16 @@ import { Textarea } from '@/ui/shadcn/textarea';
 export { AvatarDetailsDialog } from './AvatarDetailsDialog';
 
 type OwnAvatar = Awaited<
-    ReturnType<typeof avatarProfileRepository.getAllAvatarsByUser>
+    ReturnType<typeof myAvatarRepository.getMyAvatars>
 >[number];
-type EditableAvatar = Partial<OwnAvatar> & { id?: string };
+type EditableAvatar = Partial<OwnAvatar> & {
+    id?: string;
+    imageUrl?: string;
+    name?: string;
+    releaseStatus?: string;
+    tags?: string[];
+    thumbnailImageUrl?: string;
+};
 
 const contentTagOptions = [
     { value: 'content_horror', label: 'Horror' },
@@ -155,15 +162,11 @@ function AvatarOwnerRow({
 export function AvatarContentTagsDialog({
     open,
     avatar,
-    currentUserId,
-    endpoint,
     onOpenChange,
     onSavedCurrentAvatar
 }: {
     open: boolean;
     avatar: EditableAvatar | null;
-    currentUserId: string | null;
-    endpoint?: string | null;
     onOpenChange(open: boolean): void;
     onSavedCurrentAvatar(avatar: OwnAvatar): void;
 }) {
@@ -190,12 +193,8 @@ export function AvatarContentTagsDialog({
             contentTagsCsv(Array.isArray(avatar.tags) ? avatar.tags : [])
         );
         setLoading(true);
-        avatarProfileRepository
-            .getAllAvatarsByUser({
-                userId: currentUserId,
-                user: 'me',
-                releaseStatus: 'all'
-            })
+        myAvatarRepository
+            .getMyAvatars()
             .then((rows) => {
                 if (active) {
                     setOwnAvatars(mergeAvatars(avatar, rows));
@@ -222,7 +221,7 @@ export function AvatarContentTagsDialog({
         return () => {
             active = false;
         };
-    }, [avatar, currentUserId, endpoint, open]);
+    }, [avatar, open]);
 
     function toggleBuiltInTag(tag: string) {
         const nextTags = new Set(selectedTags);

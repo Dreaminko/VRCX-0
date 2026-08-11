@@ -1,7 +1,6 @@
 import { commands } from '@/platform/tauri/bindings';
 import notificationPersistenceRepository from '@/repositories/notificationPersistenceRepository';
 import type { QueryParams } from '@/repositories/vrchatRequest';
-import vrchatSearchRepository from '@/repositories/vrchatSearchRepository';
 
 interface SendInviteToLocationInput {
     receiverUserId?: unknown;
@@ -72,42 +71,27 @@ export async function sendInviteToLocation({
         return null;
     }
 
-    const normalizedWorldName = normalizeText(worldName);
-    const worldResponse = normalizedWorldName
-        ? null
-        : await vrchatSearchRepository.getWorldById(normalizedWorldId);
-    const params: QueryParams = {
-        instanceId: normalizedInstanceId,
-        worldId: normalizedWorldId,
-        worldName:
-            normalizedWorldName ||
-            normalizeText(worldResponse?.json?.name) ||
-            normalizedWorldId
-    };
-    if (typeof rsvp === 'boolean') {
-        params.rsvp = rsvp;
-    }
     const normalizedMessageSlot = Number.parseInt(
         String(messageSlot ?? ''),
         10
     );
-    if (Number.isFinite(normalizedMessageSlot)) {
-        params.messageSlot = normalizedMessageSlot;
-    }
-
-    const normalizedImageData = normalizeText(imageData);
-    if (normalizedImageData) {
-        return notificationPersistenceRepository.sendInvitePhoto({
-            receiverUserId: normalizedReceiverUserId,
-            params,
-            imageData: normalizedImageData
-        });
-    }
-
-    return notificationPersistenceRepository.sendInvite({
+    const outcome = await commands.appNotificationInstanceInviteSend({
         receiverUserId: normalizedReceiverUserId,
-        params
+        instanceId: normalizedInstanceId,
+        worldId: normalizedWorldId,
+        worldName: normalizeText(worldName),
+        messageSlot: Number.isFinite(normalizedMessageSlot)
+            ? normalizedMessageSlot
+            : null,
+        imageData: normalizeText(imageData),
+        rsvp: typeof rsvp === 'boolean' ? rsvp : null
     });
+    if (outcome.status === 'remoteFailed') {
+        throw new Error(
+            outcome.remoteError || 'VRChat notification request failed'
+        );
+    }
+    return outcome;
 }
 
 export async function sendRequestInviteToUser({

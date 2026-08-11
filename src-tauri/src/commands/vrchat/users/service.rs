@@ -4,7 +4,7 @@ use tauri::State;
 use vrcx_0_application_core::vrchat_api::users::{
     current_user_badge_update_input, current_user_tags_add_input, current_user_tags_remove_input,
     current_user_update_input, profile_get_input, profile_update_input, user_groups_get_input,
-    user_mutual_counts_get_input, user_mutual_friends_get_input, user_represented_group_get_input,
+    user_represented_group_get_input,
 };
 use vrcx_0_application_core::RuntimeOperationStatus;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
@@ -15,8 +15,7 @@ use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, V
 
 use super::types::{
     VrchatCurrentUserBadgeInput, VrchatCurrentUserProfileUpdateInput, VrchatCurrentUserTagsInput,
-    VrchatCurrentUserUpdateInput, VrchatUserInput, VrchatUserMutualFriendsInput,
-    VrchatUserProfileInput,
+    VrchatCurrentUserUpdateInput, VrchatUserInput, VrchatUserProfileInput,
 };
 
 async fn execute_user_read_api(
@@ -143,23 +142,6 @@ pub async fn app__vrchat_user_get(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__vrchat_user_mutual_counts_get(
-    state: State<'_, AppState>,
-    input: VrchatUserInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (user_id, request) =
-        user_mutual_counts_get_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.user_id)?;
-    execute_user_read_api(
-        state,
-        "app__vrchat_user_mutual_counts_get",
-        format!("Getting mutual counts for {user_id}."),
-        request,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn app__vrchat_user_groups_get(
     state: State<'_, AppState>,
     input: VrchatUserInput,
@@ -187,31 +169,6 @@ pub async fn app__vrchat_user_represented_group_get(
         state,
         "app__vrchat_user_represented_group_get",
         format!("Getting represented group for user {user_id}."),
-        request,
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_user_mutual_friends_get(
-    state: State<'_, AppState>,
-    input: VrchatUserMutualFriendsInput,
-) -> Result<VrchatApiResponse, AppError> {
-    let (user_id, request) = user_mutual_friends_get_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.user_id,
-        input.n,
-        input.offset,
-        input.include_user_id_param,
-    )?;
-    execute_user_read_api(
-        state,
-        "app__vrchat_user_mutual_friends_get",
-        format!(
-            "Getting mutual friends for {user_id} offset {}.",
-            input.offset
-        ),
         request,
     )
     .await

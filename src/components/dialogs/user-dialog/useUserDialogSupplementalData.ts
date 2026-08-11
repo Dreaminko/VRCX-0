@@ -41,18 +41,6 @@ function record(value: unknown): DialogRecord {
         : {};
 }
 
-function normalizeMutualFriendCount(value: unknown) {
-    const source = record(value);
-    return (
-        Number(
-            source.friends ??
-                source.friendCount ??
-                source.mutualFriendCount ??
-                source.mutualFriends
-        ) || 0
-    );
-}
-
 function resolveFriendedAtFromHistoryRows(rows: unknown) {
     const latestRelationshipRow = Array.isArray(rows)
         ? rows
@@ -434,51 +422,6 @@ export function useUserDialogSupplementalData({
         profile?.location,
         profile?.travelingToLocation,
         openNonce,
-        reloadToken,
-        setUserStatsForTarget,
-        targetKey
-    ]);
-
-    useEffect(() => {
-        let active = true;
-
-        if (
-            !profile?.id ||
-            isTargetCurrentUser ||
-            currentUserSnapshot?.hasSharedConnectionsOptOut
-        ) {
-            return () => {
-                active = false;
-            };
-        }
-
-        userProfileRepository
-            .getMutualCounts({
-                userId: profile.id
-            })
-            .then((counts) => {
-                if (!active) {
-                    return;
-                }
-                const mutualFriendCount = normalizeMutualFriendCount(counts);
-                setUserStatsForTarget((current) => {
-                    const nextStats = {
-                        ...current,
-                        mutualFriendCount
-                    };
-                    return nextStats;
-                });
-            })
-            .catch(() => {});
-
-        return () => {
-            active = false;
-        };
-    }, [
-        currentEndpoint,
-        currentUserSnapshot?.hasSharedConnectionsOptOut,
-        isTargetCurrentUser,
-        profile?.id,
         reloadToken,
         setUserStatsForTarget,
         targetKey

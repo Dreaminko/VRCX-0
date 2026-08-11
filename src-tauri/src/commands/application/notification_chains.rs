@@ -4,8 +4,9 @@ use tauri::State;
 use vrcx_0_application::{
     accept_request_invite_notification, dismiss_boop_notifications, hide_and_expire_notification,
     respond_and_expire_notification, send_boop_reply_notification,
-    send_invite_response_notification, NotificationActionOutcome, NotificationBoopDismissInput,
-    NotificationBoopReplyInput, NotificationHideExpireInput, NotificationInviteResponseInput,
+    send_instance_invite_notification, send_invite_response_notification,
+    NotificationActionOutcome, NotificationBoopDismissInput, NotificationBoopReplyInput,
+    NotificationHideExpireInput, NotificationInstanceInviteInput, NotificationInviteResponseInput,
     NotificationRequestInviteAcceptInput, NotificationRespondInput, VrchatNotificationChainActions,
 };
 use vrcx_0_application_core::RuntimeAuthScopeSnapshot;
@@ -23,6 +24,7 @@ fn chain_actions(state: &AppState) -> Result<VrchatNotificationChainActions<'_>,
         auth_scope: &state.runtime_context.auth_scope,
         expected_scope: active_scope(state)?,
         event_bus: &state.runtime_context.event_bus,
+        world_cache: state.runtime_context.world_cache.as_ref(),
     })
 }
 
@@ -44,6 +46,16 @@ pub async fn app__notification_request_invite_accept(
 ) -> Result<NotificationActionOutcome, AppError> {
     let actions = chain_actions(&state)?;
     Ok(accept_request_invite_notification(&actions, input).await?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn app__notification_instance_invite_send(
+    state: State<'_, AppState>,
+    input: NotificationInstanceInviteInput,
+) -> Result<NotificationActionOutcome, AppError> {
+    let actions = chain_actions(&state)?;
+    Ok(send_instance_invite_notification(&actions, input).await?)
 }
 
 #[tauri::command]

@@ -2,7 +2,7 @@
 
 use tauri::State;
 use vrcx_0_application_core::vrchat_api::favorites::{
-    favorite_avatars_get_input, favorite_groups_get_input, favorite_worlds_get_input,
+    favorite_groups_get_input, favorite_worlds_get_input,
 };
 use vrcx_0_application_core::vrchat_api::require_text;
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
@@ -13,9 +13,8 @@ use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, V
 
 use super::types::{
     LocalFavoriteGroupInput, LocalFavoriteGroupRenameInput, LocalFavoriteInput,
-    VrchatFavoriteAddInput, VrchatFavoriteAvatarsInput, VrchatFavoriteDeleteInput,
-    VrchatFavoriteGroupClearInput, VrchatFavoriteGroupSaveInput, VrchatFavoriteGroupsInput,
-    VrchatFavoriteWorldsInput,
+    VrchatFavoriteAddInput, VrchatFavoriteDeleteInput, VrchatFavoriteGroupClearInput,
+    VrchatFavoriteGroupSaveInput, VrchatFavoriteGroupsInput, VrchatFavoriteWorldsInput,
 };
 
 async fn execute_favorite_api(
@@ -56,26 +55,6 @@ pub async fn app__vrchat_favorite_worlds_get(
             input.offset,
             input.owner_id,
             input.user_id,
-            input.tag,
-        ),
-    )
-    .await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn app__vrchat_favorite_avatars_get(
-    state: State<'_, AppState>,
-    input: VrchatFavoriteAvatarsInput,
-) -> Result<VrchatApiResponse, AppError> {
-    execute_favorite_api(
-        state,
-        "app__vrchat_favorite_avatars_get",
-        format!("Getting favorite avatars offset {}.", input.offset),
-        favorite_avatars_get_input(
-            VRCHAT_API_DEFAULT_ENDPOINT.into(),
-            input.n,
-            input.offset,
             input.tag,
         ),
     )

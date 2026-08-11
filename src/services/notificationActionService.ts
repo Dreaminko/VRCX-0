@@ -5,7 +5,6 @@ import {
     type SocialFriendMutationOutcome
 } from '@/platform/tauri/bindings';
 import notificationPersistenceRepository from '@/repositories/notificationPersistenceRepository';
-import vrchatSearchRepository from '@/repositories/vrchatSearchRepository';
 
 type NotificationRecord = Record<string, unknown> & {
     id?: unknown;
@@ -50,18 +49,6 @@ function normalizeText(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
-}
-
-function isNotFoundError(error: unknown): boolean {
-    if (
-        error &&
-        typeof error === 'object' &&
-        'status' in error &&
-        (error as { status?: unknown }).status === 404
-    ) {
-        return true;
-    }
-    return error instanceof Error && /\(404\)/.test(error.message);
 }
 
 function requireNotification(
@@ -165,29 +152,20 @@ export async function acceptFriendRequestNotification({
         normalizeText(targetUser?.displayName) ||
         normalizeText(target.senderUsername);
 
-    try {
-        const outcome = await commands.appSocialFriendRequestAccept({
-            ownerUserId: normalizeText(currentUserId),
-            endpoint,
-            notificationId: normalizeText(target.id),
-            targetUserId,
-            targetDisplayName
-        });
-        await expireNotificationLocally({
-            currentUserId,
-            notification: target
-        });
-        return { status: 'accepted' as const, outcome };
-    } catch (error) {
-        if (isNotFoundError(error)) {
-            await expireNotificationLocally({
-                currentUserId,
-                notification: target
-            });
-            return { status: 'not-found' as const };
-        }
-        throw error;
+    const result = await commands.appSocialFriendRequestNotificationAccept({
+        ownerUserId: normalizeText(currentUserId),
+        endpoint,
+        notificationId: normalizeText(target.id),
+        targetUserId,
+        targetDisplayName
+    });
+    if (result.status === 'notFound') {
+        return { status: 'not-found' as const };
     }
+    if (!result.outcome) {
+        throw new Error('Friend request accept result is incomplete.');
+    }
+    return { status: 'accepted' as const, outcome: result.outcome };
 }
 
 export async function acceptRequestInviteNotification({
@@ -199,23 +177,11 @@ export async function acceptRequestInviteNotification({
     const target = requireNotification(notification);
     const notificationTarget = toNotificationTarget(target);
     const normalizedInstanceId = normalizeText(instanceId);
-    const normalizedWorldId = normalizeText(worldId);
-    let worldName = '';
-    if (
-        notificationTarget.senderUserId &&
-        normalizedInstanceId &&
-        normalizedWorldId
-    ) {
-        const worldResponse =
-            await vrchatSearchRepository.getWorldById(normalizedWorldId);
-        worldName = normalizeText(worldResponse?.json?.name);
-    }
     const outcome = await commands.appNotificationRequestInviteAccept({
         ownerUserId: normalizeText(currentUserId),
         target: notificationTarget,
         instanceId: normalizedInstanceId,
-        worldId: normalizedWorldId,
-        worldName
+        worldId: normalizeText(worldId)
     });
     unwrapNotificationActionOutcome(outcome);
 }

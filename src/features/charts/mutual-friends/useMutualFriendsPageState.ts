@@ -2,12 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import mutualGraphPersistenceRepository from '@/repositories/mutualGraphPersistenceRepository';
+import { commands } from '@/platform/tauri/bindings';
 import { openUserDialog } from '@/services/dialogService';
 import { useModalStore } from '@/state/modalStore';
 
 import { assignMutualFriendCommunities } from './mutualFriendsCommunities';
-import { fetchMutualFriendIds } from './mutualFriendsFetchApi';
 import {
     applyMutualFriendsViewFilters,
     countIsolatedMutualFriendNodes
@@ -217,46 +216,28 @@ export function useMutualFriendsPageState() {
 
         setNodeRefreshId(selectedNode.id);
         try {
-            const mutualIds = await fetchMutualFriendIds(selectedNode.id);
+            const result = await commands.appMutualGraphFriendRefresh({
+                ownerUserId,
+                friendId: selectedNode.id
+            });
             if (currentUserIdRef.current !== ownerUserId) {
                 return;
             }
-            await mutualGraphPersistenceRepository.updateMutualsForFriend(
-                ownerUserId,
-                selectedNode.id,
-                mutualIds
-            );
-            await mutualGraphPersistenceRepository.upsertMeta(
-                ownerUserId,
-                selectedNode.id,
-                { optedOut: false }
-            );
             await snapshot.reloadSnapshot('', ownerUserId);
-            toast.success(
-                t('view.charts.dynamic.refreshed_mutuals_for_value', {
-                    value: selectedNode.label
-                })
-            );
-        } catch (error) {
-            const status = (error as { status?: number })?.status;
-            if (status === 403 || status === 404) {
-                if (currentUserIdRef.current !== ownerUserId) {
-                    return;
-                }
-                await mutualGraphPersistenceRepository.upsertMeta(
-                    ownerUserId,
-                    selectedNode.id,
-                    { optedOut: true }
-                );
-                await snapshot.reloadSnapshot('', ownerUserId);
+            if (result.status === 'optedOut') {
                 toast.warning(
                     t('view.charts.dynamic.could_not_load_mutuals_for_value', {
                         value: selectedNode.label
                     })
                 );
-                return;
+            } else {
+                toast.success(
+                    t('view.charts.dynamic.refreshed_mutuals_for_value', {
+                        value: selectedNode.label
+                    })
+                );
             }
-
+        } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message

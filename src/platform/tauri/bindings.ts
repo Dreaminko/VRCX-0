@@ -283,6 +283,13 @@ export const commands = {
             input
         });
     },
+    async appNotificationInstanceInviteSend(
+        input: NotificationInstanceInviteInput
+    ): Promise<NotificationActionOutcome> {
+        return await TAURI_INVOKE('app__notification_instance_invite_send', {
+            input
+        });
+    },
     async appNotificationInviteResponseSend(
         input: NotificationInviteResponseInput
     ): Promise<NotificationActionOutcome> {
@@ -990,55 +997,10 @@ export const commands = {
     ): Promise<ActivityOverlapViewOutput> {
         return await TAURI_INVOKE('app__activity_overlap_view', { input });
     },
-    async appMutualGraphTablesEnsure(
-        userId: string
-    ): Promise<UserTableContextOutput> {
-        return await TAURI_INVOKE('app__mutual_graph_tables_ensure', {
-            userId
-        });
-    },
     async appMutualGraphSnapshotGet(
         userId: string
     ): Promise<MutualGraphSnapshotOutput> {
         return await TAURI_INVOKE('app__mutual_graph_snapshot_get', { userId });
-    },
-    async appMutualGraphSnapshotSave(
-        userId: string,
-        entries: MutualGraphSnapshotEntryInput[]
-    ): Promise<null> {
-        return await TAURI_INVOKE('app__mutual_graph_snapshot_save', {
-            userId,
-            entries
-        });
-    },
-    async appMutualGraphFriendUpdate(
-        userId: string,
-        friendId: string,
-        mutualIds: string[]
-    ): Promise<null> {
-        return await TAURI_INVOKE('app__mutual_graph_friend_update', {
-            userId,
-            friendId,
-            mutualIds
-        });
-    },
-    async appMutualGraphMetaUpsert(
-        userId: string,
-        entry: MutualGraphMetaInput
-    ): Promise<null> {
-        return await TAURI_INVOKE('app__mutual_graph_meta_upsert', {
-            userId,
-            entry
-        });
-    },
-    async appMutualGraphMetaBulkUpsert(
-        userId: string,
-        entries: MutualGraphMetaInput[]
-    ): Promise<null> {
-        return await TAURI_INVOKE('app__mutual_graph_meta_bulk_upsert', {
-            userId,
-            entries
-        });
     },
     async appMutualGraphFetchStatusGet(): Promise<MutualGraphFetchStatus> {
         return await TAURI_INVOKE('app__mutual_graph_fetch_status_get');
@@ -1052,6 +1014,20 @@ export const commands = {
         input: MutualGraphFetchStartInput
     ): Promise<MutualGraphFetchStatus> {
         return await TAURI_INVOKE('app__mutual_graph_fetch_start', { input });
+    },
+    async appMutualGraphFriendRefresh(
+        input: MutualGraphFriendRefreshInput
+    ): Promise<MutualGraphFriendRefreshOutput> {
+        return await TAURI_INVOKE('app__mutual_graph_friend_refresh', {
+            input
+        });
+    },
+    async appUserMutualFriendsListGet(
+        input: UserMutualFriendsListInput
+    ): Promise<RawJson[]> {
+        return await TAURI_INVOKE('app__user_mutual_friends_list_get', {
+            input
+        });
     },
     async appWorldSearch(query: string): Promise<WorldSummaryOutput[]> {
         return await TAURI_INVOKE('app__world_search', { query });
@@ -1431,13 +1407,6 @@ export const commands = {
         input: VrchatFavoriteAddInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_favorite_add', { input });
-    },
-    async appVrchatFavoriteAvatarsGet(
-        input: VrchatFavoriteAvatarsInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_favorite_avatars_get', {
-            input
-        });
     },
     async appVrchatFavoriteDelete(
         input: VrchatFavoriteDeleteInput
@@ -1905,52 +1874,6 @@ export const commands = {
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_boop_send', { input });
     },
-    async appVrchatInvitePhotoSend(
-        input: VrchatNotificationPhotoSendInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_invite_photo_send', { input });
-    },
-    async appVrchatInviteResponsePhotoSend(
-        input: VrchatInviteResponsePhotoInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_invite_response_photo_send', {
-            input
-        });
-    },
-    async appVrchatInviteResponseSend(
-        input: VrchatInviteResponseInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_invite_response_send', {
-            input
-        });
-    },
-    async appVrchatInviteSend(
-        input: VrchatNotificationSendInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_invite_send', { input });
-    },
-    async appVrchatNotificationAcceptFriendRequest(
-        input: VrchatNotificationIdInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE(
-            'app__vrchat_notification_accept_friend_request',
-            { input }
-        );
-    },
-    async appVrchatNotificationHideRemote(
-        input: VrchatNotificationHideInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_notification_hide_remote', {
-            input
-        });
-    },
-    async appVrchatNotificationRespond(
-        input: VrchatNotificationRespondInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_notification_respond', {
-            input
-        });
-    },
     async appVrchatRequestInvitePhotoSend(
         input: VrchatNotificationPhotoSendInput
     ): Promise<HttpApiExecuteResponse> {
@@ -2010,12 +1933,13 @@ export const commands = {
             input
         });
     },
-    async appSocialFriendRequestAccept(
+    async appSocialFriendRequestNotificationAccept(
         input: SocialFriendRequestAcceptInput
-    ): Promise<SocialFriendMutationOutcome> {
-        return await TAURI_INVOKE('app__social_friend_request_accept', {
-            input
-        });
+    ): Promise<SocialFriendRequestNotificationAcceptOutput> {
+        return await TAURI_INVOKE(
+            'app__social_friend_request_notification_accept',
+            { input }
+        );
     },
     async appSocialFriendRequestCancel(
         input: SocialFriendRequestCancelInput
@@ -2135,20 +2059,6 @@ export const commands = {
         input: VrchatUserInput
     ): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_user_groups_get', { input });
-    },
-    async appVrchatUserMutualCountsGet(
-        input: VrchatUserInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_user_mutual_counts_get', {
-            input
-        });
-    },
-    async appVrchatUserMutualFriendsGet(
-        input: VrchatUserMutualFriendsInput
-    ): Promise<HttpApiExecuteResponse> {
-        return await TAURI_INVOKE('app__vrchat_user_mutual_friends_get', {
-            input
-        });
     },
     async appVrchatUserProfileGet(
         input: VrchatUserProfileInput
@@ -4496,20 +4406,19 @@ export type MutualGraphFetchStatus = {
     finishedAt: string | null;
     lastError: string | null;
 };
-export type MutualGraphLinkOutput = { friendId: string; mutualId: string };
-export type MutualGraphMetaInput = {
+export type MutualGraphFriendRefreshInput = {
+    ownerUserId: string;
     friendId: string;
-    lastFetchedAt?: string;
-    optedOut?: boolean;
 };
+export type MutualGraphFriendRefreshOutput = {
+    status: MutualGraphFriendRefreshStatus;
+};
+export type MutualGraphFriendRefreshStatus = 'refreshed' | 'optedOut';
+export type MutualGraphLinkOutput = { friendId: string; mutualId: string };
 export type MutualGraphMetaOutput = {
     friendId: string;
     lastFetchedAt: string;
     optedOut: boolean;
-};
-export type MutualGraphSnapshotEntryInput = {
-    friendId: string;
-    mutualIds?: string[];
 };
 export type MutualGraphSnapshotOutput = {
     friendIds: string[];
@@ -4597,6 +4506,16 @@ export type NotificationHideExpireInput = {
     endpoint?: string;
     target: NotificationTarget;
 };
+export type NotificationInstanceInviteInput = {
+    endpoint?: string;
+    receiverUserId: string;
+    instanceId: string;
+    worldId: string;
+    worldName?: string;
+    messageSlot?: number | null;
+    imageData?: string;
+    rsvp?: boolean | null;
+};
 export type NotificationInviteResponseInput = {
     ownerUserId: string;
     endpoint?: string;
@@ -4665,7 +4584,6 @@ export type NotificationRequestInviteAcceptInput = {
     target: NotificationTarget;
     instanceId?: string;
     worldId?: string;
-    worldName?: string;
 };
 export type NotificationRespondInput = {
     ownerUserId: string;
@@ -5445,6 +5363,13 @@ export type SocialFriendRequestCancelInput = {
     targetDisplayName?: string;
     notificationId?: string;
 };
+export type SocialFriendRequestNotificationAcceptOutput = {
+    status: SocialFriendRequestNotificationAcceptStatus;
+    outcome?: SocialFriendMutationOutcome | null;
+};
+export type SocialFriendRequestNotificationAcceptStatus =
+    | 'accepted'
+    | 'notFound';
 export type SocialFriendRosterBaselineInput = {
     userId?: string;
     endpoint?: string;
@@ -5545,9 +5470,11 @@ export type UpdaterMetadata = {
 export type UserDialogTabCountsInput = {
     userId: string;
     avatarReleaseStatus?: string;
+    includeMutualFriends?: boolean;
     force?: boolean;
 };
 export type UserDialogTabCountsOutput = {
+    mutualFriends?: number | null;
     groups?: number | null;
     worlds?: number | null;
     favoriteWorlds?: number | null;
@@ -5571,6 +5498,7 @@ export type UserGroupsOverviewOutput = {
     permissionsDegraded: boolean;
 };
 export type UserMemoOutput = { userId: string; editedAt: string; memo: string };
+export type UserMutualFriendsListInput = { userId: string };
 export type UserNoteOutput = {
     userId: string;
     displayName: string;
@@ -5643,11 +5571,6 @@ export type VrchatFavoriteAddInput = {
     type: VrchatFavoriteType;
     favoriteId?: string;
     tags?: string;
-};
-export type VrchatFavoriteAvatarsInput = {
-    n?: number;
-    offset?: number;
-    tag?: string;
 };
 export type VrchatFavoriteDeleteInput = { objectId?: string };
 export type VrchatFavoriteGroupClearInput = {
@@ -5768,12 +5691,6 @@ export type VrchatInstanceShortNameInput = {
     instanceId?: string;
     shortName?: string;
 };
-export type VrchatInviteResponseInput = { id?: string; responseSlot?: number };
-export type VrchatInviteResponsePhotoInput = {
-    id?: string;
-    responseSlot?: number;
-    imageData?: string;
-};
 export type VrchatLogEntriesReadInput = {
     fileName: string;
     offset: number | null;
@@ -5872,22 +5789,10 @@ export type VrchatMediaUserInventoryItemInput = {
     userId?: string;
     inventoryId?: string;
 };
-export type VrchatNotificationHideInput = {
-    id?: string;
-    version?: number;
-    type?: string;
-    senderUserId?: string;
-};
-export type VrchatNotificationIdInput = { id?: string };
 export type VrchatNotificationPhotoSendInput = {
     receiverUserId?: string;
     params?: JsonValue;
     imageData?: string;
-};
-export type VrchatNotificationRespondInput = {
-    id?: string;
-    responseType?: string;
-    responseData?: JsonValue;
 };
 export type VrchatNotificationSendInput = {
     receiverUserId?: string;
@@ -5944,12 +5849,6 @@ export type VrchatUserInput = {
     force?: boolean;
     dialog?: boolean;
     isFriend?: boolean | null;
-};
-export type VrchatUserMutualFriendsInput = {
-    userId?: string;
-    n?: number;
-    offset?: number;
-    includeUserIdParam?: boolean;
 };
 export type VrchatUserProfileInput = { userId?: string; asSelf?: boolean };
 export type VrchatWorldIdInput = { worldId?: string };

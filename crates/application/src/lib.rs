@@ -101,12 +101,13 @@ pub use media::{
 };
 pub use remote_mutation_gate::RemoteMutationGate;
 pub use social::{
-    accept_friend_request, cancel_friend_request, send_friend_request, unfriend, unfriend_batch,
-    unfriend_selection, SocialFriendMutationInput, SocialFriendMutationOutcome,
-    SocialFriendMutationStatus, SocialFriendRequestAcceptInput, SocialFriendRequestCancelInput,
-    SocialMutationDeps, SocialUnfriendBatchInput, SocialUnfriendBatchItemResult,
-    SocialUnfriendBatchItemState, SocialUnfriendBatchResult, SocialUnfriendBatchTarget,
-    SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
+    accept_friend_request, accept_friend_request_notification, cancel_friend_request,
+    send_friend_request, unfriend, unfriend_batch, unfriend_selection, SocialFriendMutationInput,
+    SocialFriendMutationOutcome, SocialFriendMutationStatus, SocialFriendRequestAcceptInput,
+    SocialFriendRequestCancelInput, SocialFriendRequestNotificationAcceptOutput,
+    SocialFriendRequestNotificationAcceptStatus, SocialMutationDeps, SocialUnfriendBatchInput,
+    SocialUnfriendBatchItemResult, SocialUnfriendBatchItemState, SocialUnfriendBatchResult,
+    SocialUnfriendBatchTarget, SOCIAL_UNFRIEND_BATCH_MAX_ITEMS,
 };
 pub use social::{
     add_member_role, ban_member, block_group, cancel_request, create_post, delete_invite,
@@ -137,6 +138,12 @@ pub use social::{
 pub use social::{
     get_user_groups_overview, UserGroupsOverviewDeps, UserGroupsOverviewGroup,
     UserGroupsOverviewInput, UserGroupsOverviewOutput,
+};
+pub use social::{
+    get_user_mutual_friends_list, refresh_mutual_graph_friend, MutualGraphFetchCancelInput,
+    MutualGraphFetchRuntime, MutualGraphFetchStartInput, MutualGraphFetchState,
+    MutualGraphFetchStatus, MutualGraphFriendRefreshInput, MutualGraphFriendRefreshOutput,
+    MutualGraphFriendRefreshStatus, MutualGraphRequestDeps, UserMutualFriendsListInput,
 };
 pub use social::{
     load_group_calendar, GroupCalendarDeps, GroupCalendarInput, GroupCalendarSnapshot,
@@ -172,19 +179,16 @@ pub use social::{
     GroupBanImportRuntime, GroupBanImportStartInput, GroupBanImportState, GroupBanImportStatus,
     VrchatGroupBanImportActions,
 };
-pub use social::{
-    MutualGraphFetchCancelInput, MutualGraphFetchRuntime, MutualGraphFetchStartInput,
-    MutualGraphFetchState, MutualGraphFetchStatus,
-};
 pub use system::DatabaseUpgradeRuntime;
 pub use system::ProfileOperationGate;
 pub use system::VrcStatusService;
 pub use system::{
     accept_request_invite_notification, dismiss_boop_notifications, hide_and_expire_notification,
     respond_and_expire_notification, send_boop_reply_notification,
-    send_invite_response_notification, NotificationActionOutcome, NotificationActionStatus,
-    NotificationBoopDismissInput, NotificationBoopReplyInput, NotificationChainActions,
-    NotificationHideExpireInput, NotificationInviteResponseInput,
+    send_instance_invite_notification, send_invite_response_notification,
+    NotificationActionOutcome, NotificationActionStatus, NotificationBoopDismissInput,
+    NotificationBoopReplyInput, NotificationChainActions, NotificationHideExpireInput,
+    NotificationInstanceInviteInput, NotificationInviteResponseInput,
     NotificationRequestInviteAcceptInput, NotificationRespondInput, NotificationTarget,
     VrchatNotificationChainActions,
 };

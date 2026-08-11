@@ -4,21 +4,12 @@ import {
     type NotificationListItemOutput,
     type NotificationListQueryInput,
     type VrchatBoopInput,
-    type VrchatInviteResponseInput,
-    type VrchatInviteResponsePhotoInput,
-    type VrchatNotificationHideInput,
-    type VrchatNotificationIdInput,
     type VrchatNotificationPhotoSendInput,
-    type VrchatNotificationRespondInput,
     type VrchatNotificationSendInput
 } from '@/platform/tauri/bindings';
 
 import configRepository from './configRepository';
-import {
-    isVrchatRequestError,
-    type QueryParams,
-    unwrapVrchatResponse
-} from './vrchatRequest';
+import { type QueryParams, unwrapVrchatResponse } from './vrchatRequest';
 
 export type NotificationDetails = Record<string, unknown> & {
     displayLocation?: string;
@@ -78,10 +69,6 @@ interface NotificationUserOptions {
 }
 
 interface NotificationActionOptions {
-    id?: unknown;
-    responseSlot?: unknown;
-    responseType?: unknown;
-    responseData?: unknown;
     imageData?: unknown;
     receiverUserId?: unknown;
     userId?: unknown;
@@ -332,198 +319,6 @@ async function expireNotification({
     await commands.appNotificationExpire(normalizedUserId, normalizedId);
 }
 
-async function acceptFriendRequest({ id }: NotificationActionOptions = {}) {
-    const normalizedId =
-        typeof id === 'string' ? id.trim() : String(id ?? '').trim();
-    if (!normalizedId) {
-        return null;
-    }
-
-    const input = {
-        id: normalizedId
-    } satisfies VrchatNotificationIdInput;
-    const response =
-        await commands.appVrchatNotificationAcceptFriendRequest(input);
-    return unwrapVrchatNotificationResponse(
-        response,
-        `auth/user/notifications/${encodeURIComponent(normalizedId)}/accept`
-    );
-}
-
-async function hideRemoteNotification({
-    id,
-    version,
-    type = '',
-    senderUserId = ''
-}: NotificationActionOptions & {
-    version?: unknown;
-    type?: string;
-    senderUserId?: unknown;
-} = {}) {
-    const normalizedId =
-        typeof id === 'string' ? id.trim() : String(id ?? '').trim();
-    const normalizedSenderUserId =
-        typeof senderUserId === 'string'
-            ? senderUserId.trim()
-            : String(senderUserId ?? '').trim();
-    if (!normalizedId) {
-        return null;
-    }
-
-    const input = {
-        id: normalizedId,
-        version: Number(version) || 0,
-        type,
-        senderUserId: normalizedSenderUserId
-    } satisfies VrchatNotificationHideInput;
-    const response = await commands.appVrchatNotificationHideRemote(input);
-    const path =
-        type === 'ignoredFriendRequest' && normalizedSenderUserId
-            ? `user/${encodeURIComponent(normalizedSenderUserId)}/friendRequest`
-            : Number(version) >= 2
-              ? `notifications/${encodeURIComponent(normalizedId)}`
-              : `auth/user/notifications/${encodeURIComponent(normalizedId)}/hide`;
-    return unwrapVrchatNotificationResponse(response, path);
-}
-
-async function sendNotificationResponse({
-    id,
-    responseType,
-    responseData = ''
-}: NotificationActionOptions = {}) {
-    const normalizedId =
-        typeof id === 'string' ? id.trim() : String(id ?? '').trim();
-    const normalizedResponseType =
-        typeof responseType === 'string'
-            ? responseType.trim()
-            : String(responseType ?? '').trim();
-    if (!normalizedId || !normalizedResponseType) {
-        return null;
-    }
-
-    const input = {
-        id: normalizedId,
-        responseType: normalizedResponseType,
-        responseData: responseData ?? ''
-    } satisfies VrchatNotificationRespondInput;
-    const response = await commands.appVrchatNotificationRespond(input);
-    try {
-        return unwrapVrchatNotificationResponse(
-            response,
-            `notifications/${encodeURIComponent(normalizedId)}/respond`
-        );
-    } catch (error) {
-        if (isVrchatRequestError(error) && error.status === 404) {
-            return null;
-        }
-        throw error;
-    }
-}
-
-async function sendInviteResponse({
-    id,
-    responseSlot
-}: NotificationActionOptions = {}) {
-    const normalizedId =
-        typeof id === 'string' ? id.trim() : String(id ?? '').trim();
-    const normalizedSlot = Number.parseInt(String(responseSlot), 10);
-    if (!normalizedId || !Number.isFinite(normalizedSlot)) {
-        return null;
-    }
-
-    const input = {
-        id: normalizedId,
-        responseSlot: normalizedSlot
-    } satisfies VrchatInviteResponseInput;
-    const response = await commands.appVrchatInviteResponseSend(input);
-    return unwrapVrchatNotificationResponse(
-        response,
-        `invite/${encodeURIComponent(normalizedId)}/response`
-    );
-}
-
-async function sendInviteResponsePhoto({
-    id,
-    responseSlot,
-    imageData
-}: NotificationActionOptions = {}) {
-    const normalizedId =
-        typeof id === 'string' ? id.trim() : String(id ?? '').trim();
-    const normalizedSlot = Number.parseInt(String(responseSlot), 10);
-    const normalizedImageData =
-        typeof imageData === 'string'
-            ? imageData.trim()
-            : String(imageData ?? '').trim();
-    if (
-        !normalizedId ||
-        !Number.isFinite(normalizedSlot) ||
-        !normalizedImageData
-    ) {
-        return null;
-    }
-
-    const path = `invite/${encodeURIComponent(normalizedId)}/response/photo`;
-    const input = {
-        id: normalizedId,
-        responseSlot: normalizedSlot,
-        imageData: normalizedImageData
-    } satisfies VrchatInviteResponsePhotoInput;
-    const response = await commands.appVrchatInviteResponsePhotoSend(input);
-    return unwrapVrchatNotificationResponse(response, path);
-}
-
-async function sendInvite({
-    receiverUserId,
-    params = {}
-}: NotificationActionOptions = {}) {
-    const normalizedReceiverUserId =
-        typeof receiverUserId === 'string'
-            ? receiverUserId.trim()
-            : String(receiverUserId ?? '').trim();
-    if (!normalizedReceiverUserId) {
-        return null;
-    }
-
-    const input = {
-        receiverUserId: normalizedReceiverUserId,
-        params
-    } satisfies VrchatNotificationSendInput;
-    const response = await commands.appVrchatInviteSend(input);
-    return unwrapVrchatNotificationResponse(
-        response,
-        `invite/${encodeURIComponent(normalizedReceiverUserId)}`
-    );
-}
-
-async function sendInvitePhoto({
-    receiverUserId,
-    params = {},
-    imageData
-}: NotificationActionOptions = {}) {
-    const normalizedReceiverUserId =
-        typeof receiverUserId === 'string'
-            ? receiverUserId.trim()
-            : String(receiverUserId ?? '').trim();
-    const normalizedImageData =
-        typeof imageData === 'string'
-            ? imageData.trim()
-            : String(imageData ?? '').trim();
-    if (!normalizedReceiverUserId || !normalizedImageData) {
-        return null;
-    }
-
-    const input = {
-        receiverUserId: normalizedReceiverUserId,
-        params,
-        imageData: normalizedImageData
-    } satisfies VrchatNotificationPhotoSendInput;
-    const response = await commands.appVrchatInvitePhotoSend(input);
-    return unwrapVrchatNotificationResponse(
-        response,
-        `invite/${encodeURIComponent(normalizedReceiverUserId)}/photo`
-    );
-}
-
 async function sendRequestInvite({
     receiverUserId,
     params = {}
@@ -610,13 +405,6 @@ const notificationPersistenceRepository = Object.freeze({
     queryNotifications,
     deleteNotification,
     expireNotification,
-    acceptFriendRequest,
-    hideRemoteNotification,
-    sendNotificationResponse,
-    sendInviteResponse,
-    sendInviteResponsePhoto,
-    sendInvite,
-    sendInvitePhoto,
     sendRequestInvite,
     sendRequestInvitePhoto,
     sendBoop,
@@ -631,13 +419,6 @@ export {
     queryNotifications,
     deleteNotification,
     expireNotification,
-    acceptFriendRequest,
-    hideRemoteNotification,
-    sendNotificationResponse,
-    sendInviteResponse,
-    sendInviteResponsePhoto,
-    sendInvite,
-    sendInvitePhoto,
     sendRequestInvite,
     sendRequestInvitePhoto,
     sendBoop,

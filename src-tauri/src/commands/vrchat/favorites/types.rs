@@ -18,17 +18,6 @@ pub struct VrchatFavoriteWorldsInput {
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct VrchatFavoriteAvatarsInput {
-    #[serde(default)]
-    pub(crate) n: i64,
-    #[serde(default)]
-    pub(crate) offset: i64,
-    #[serde(default)]
-    pub(crate) tag: String,
-}
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct VrchatFavoriteGroupsInput {
     #[serde(default)]
     pub(crate) n: i64,

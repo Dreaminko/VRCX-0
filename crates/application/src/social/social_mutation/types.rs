@@ -67,6 +67,21 @@ pub struct SocialFriendMutationOutcome {
     pub local_error: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum SocialFriendRequestNotificationAcceptStatus {
+    Accepted,
+    NotFound,
+}
+
+#[derive(Debug, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SocialFriendRequestNotificationAcceptOutput {
+    pub status: SocialFriendRequestNotificationAcceptStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<SocialFriendMutationOutcome>,
+}
+
 impl SocialFriendMutationOutcome {
     pub(super) fn applied(target_user_id: &str) -> Self {
         Self {

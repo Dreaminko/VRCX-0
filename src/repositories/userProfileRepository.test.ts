@@ -5,7 +5,7 @@ const tauriMock = vi.hoisted(() => ({
         appVrchatCurrentUserProfileUpdate: vi.fn(),
         appVrchatFriendStatusGet: vi.fn(),
         appVrchatUserProfileGet: vi.fn(),
-        appVrchatUserMutualFriendsGet: vi.fn()
+        appUserMutualFriendsListGet: vi.fn()
     }
 }));
 
@@ -20,7 +20,7 @@ describe('UserProfileRepository', () => {
         ).mockReset();
         vi.mocked(tauriMock.commands.appVrchatFriendStatusGet).mockReset();
         vi.mocked(tauriMock.commands.appVrchatUserProfileGet).mockReset();
-        vi.mocked(tauriMock.commands.appVrchatUserMutualFriendsGet).mockReset();
+        vi.mocked(tauriMock.commands.appUserMutualFriendsListGet).mockReset();
     });
 
     it('reads and normalizes the friend relationship status', async () => {
@@ -336,41 +336,20 @@ describe('UserProfileRepository', () => {
         });
     });
 
-    it('collects mutual friends until the first short page', async () => {
-        vi.mocked(tauriMock.commands.appVrchatUserMutualFriendsGet)
-            .mockResolvedValueOnce({
-                status: 200,
-                data: Array.from({ length: 100 }, (_, index) => ({
-                    id: `usr_page_1_${index}`
-                }))
-            })
-            .mockResolvedValueOnce({
-                status: 200,
-                data: [{ id: 'usr_last' }]
-            });
+    it('loads the backend-collected mutual friend list', async () => {
+        vi.mocked(
+            tauriMock.commands.appUserMutualFriendsListGet
+        ).mockResolvedValue([{ id: 'usr_mutual' }]);
 
         const rows = await userProfileRepository.getAllMutualFriends({
             userId: 'usr_target'
         });
 
         expect(
-            tauriMock.commands.appVrchatUserMutualFriendsGet
-        ).toHaveBeenNthCalledWith(1, {
-            userId: 'usr_target',
-            n: 100,
-            offset: 0
+            tauriMock.commands.appUserMutualFriendsListGet
+        ).toHaveBeenCalledWith({
+            userId: 'usr_target'
         });
-        expect(
-            tauriMock.commands.appVrchatUserMutualFriendsGet
-        ).toHaveBeenNthCalledWith(2, {
-            userId: 'usr_target',
-            n: 100,
-            offset: 100
-        });
-        expect(
-            tauriMock.commands.appVrchatUserMutualFriendsGet
-        ).toHaveBeenCalledTimes(2);
-        expect(rows).toHaveLength(101);
-        expect(rows.at(-1)).toEqual({ id: 'usr_last' });
+        expect(rows).toEqual([{ id: 'usr_mutual' }]);
     });
 });

@@ -383,7 +383,11 @@ export function UserDialogTabbedView({
         friendedAt
     } = buildUserDialogProfileSummary({
         profile,
-        userStats,
+        userStats: {
+            ...userStats,
+            mutualFriendCount:
+                remoteTabCounts.mutual ?? record(userStats).mutualFriendCount
+        },
         sortedProfileGroups,
         isCurrentUser,
         vrchatConfigConstants,
@@ -461,7 +465,7 @@ export function UserDialogTabbedView({
                 : previousInstances.length,
             mutual: resolveTabCount(
                 loadedTabCount(remoteStatus.mutual, mutualFriends),
-                mutualFriendCount
+                remoteTabCounts.mutual ?? mutualFriendCount
             ),
             groups: resolveTabCount(
                 loadedTabCount(remoteStatus.groups, profileGroups),

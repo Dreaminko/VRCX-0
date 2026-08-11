@@ -12,6 +12,7 @@ use vrcx_0_vrchat_client::{
 
 use crate::{
     Error, RemoteMutationGate, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient,
+    WorldCache,
 };
 
 const INSTANCE_INVITE_MAX_RETRIES: usize = 3;
@@ -115,6 +116,7 @@ pub struct VrchatInstanceInviteBatchActions<'a> {
     pub auth_scope: &'a RuntimeAuthScope,
     pub expected_scope: RuntimeAuthScopeSnapshot,
     pub remote_mutation_gate: &'a RemoteMutationGate,
+    pub world_cache: &'a WorldCache,
 }
 
 impl VrchatInstanceInviteBatchActions<'_> {
@@ -214,7 +216,23 @@ pub async fn send_instance_invites_batch(
     actions: &VrchatInstanceInviteBatchActions<'_>,
     input: InstanceInviteBatchInput,
 ) -> Result<InstanceInviteBatchResult> {
-    let (context, targets) = normalize_input(input, &actions.expected_scope.current_user_id)?;
+    let (mut context, targets) = normalize_input(input, &actions.expected_scope.current_user_id)?;
+    if context.world_name == context.world_id {
+        if let Some(world_name) = actions
+            .world_cache
+            .resolve_name(
+                actions.web,
+                &actions.expected_scope.endpoint,
+                &context.world_id,
+            )
+            .await
+        {
+            context.world_name = world_name;
+        }
+    }
+    if !actions.scope_matches() {
+        return Err(Error::Custom(INSTANCE_INVITE_SCOPE_CHANGED.into()));
+    }
     Ok(
         run_instance_invite_batch(actions, &context, targets, INSTANCE_INVITE_RETRY_BASE_DELAY)
             .await,

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { AvatarDetailsDialog } from '@/components/dialogs/AvatarDetailsDialog';
 import { AvatarContentTagsDialog } from '@/components/dialogs/AvatarOwnerEditDialogs';
 import { ImageCropDialog } from '@/components/media/ImageCropDialog';
-import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { ManageAvatarTagsDialog } from '../ManageAvatarTagsDialog';
 import type {
@@ -44,10 +43,6 @@ export function MyAvatarsDialogs({
     onContentTagsSaved
 }: MyAvatarsDialogsProps) {
     const { t } = useTranslation();
-    const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const currentEndpoint = useRuntimeStore(
-        (state) => state.auth.currentUserEndpoint
-    );
 
     return (
         <>
@@ -60,8 +55,6 @@ export function MyAvatarsDialogs({
             <AvatarContentTagsDialog
                 open={Boolean(contentTagsAvatar)}
                 avatar={contentTagsAvatar}
-                currentUserId={currentUserId}
-                endpoint={currentEndpoint}
                 onOpenChange={onContentTagsOpenChange}
                 onSavedCurrentAvatar={onContentTagsSaved}
             />

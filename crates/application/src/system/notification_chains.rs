@@ -2,7 +2,7 @@ use std::{future::Future, pin::Pin};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use vrcx_0_application_core::{RealtimeNotificationProjection, RuntimeEventBus};
+use vrcx_0_application_core::{RealtimeNotificationProjection, RuntimeEventBus, WorldCache};
 use vrcx_0_persistence::{
     notifications::{notification_expire, notification_list_query, NotificationListQueryInput},
     DatabaseService,
@@ -10,8 +10,9 @@ use vrcx_0_persistence::{
 use vrcx_0_vrchat_client::{
     http_api::{normalize_vrchat_api_endpoint, ApiJsonResponse, ApiScope},
     notifications::{
-        boop_send_input, invite_response_photo_input, invite_response_send_input,
-        invite_send_input, notification_hide_remote_input, notification_respond_input,
+        boop_send_input, invite_photo_input, invite_response_photo_input,
+        invite_response_send_input, invite_send_input, notification_hide_remote_input,
+        notification_respond_input,
     },
 };
 
@@ -87,8 +88,24 @@ pub struct NotificationRequestInviteAcceptInput {
     pub instance_id: String,
     #[serde(default)]
     pub world_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationInstanceInviteInput {
+    #[serde(default)]
+    pub endpoint: String,
+    pub receiver_user_id: String,
+    pub instance_id: String,
+    pub world_id: String,
     #[serde(default)]
     pub world_name: String,
+    #[serde(default)]
+    pub message_slot: Option<i64>,
+    #[serde(default)]
+    pub image_data: String,
+    #[serde(default)]
+    pub rsvp: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
@@ -176,6 +193,11 @@ pub enum NotificationChainRemoteCall {
         receiver_user_id: String,
         params: Value,
     },
+    InviteSendPhoto {
+        receiver_user_id: String,
+        params: Value,
+        image_data: String,
+    },
     BoopSend {
         user_id: String,
         emoji_id: String,
@@ -194,12 +216,17 @@ pub struct BoopNotificationRow {
 
 pub trait NotificationChainActions: Send + Sync {
     fn ensure_scope(&self, owner_user_id: &str, endpoint: &str) -> Result<()>;
+    fn ensure_active_scope(&self, endpoint: &str) -> Result<()>;
     fn execute_remote(
         &self,
         call: NotificationChainRemoteCall,
     ) -> Pin<
         Box<dyn Future<Output = std::result::Result<(), NotificationChainRemoteError>> + Send + '_>,
     >;
+    fn resolve_world_name<'a>(
+        &'a self,
+        world_id: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>>;
     fn expire_local(&self, id: String) -> Result<()>;
     fn query_boop_rows(&self) -> Result<Vec<BoopNotificationRow>>;
     fn emit_expired(&self, expired_ids: Vec<String>);
@@ -211,6 +238,7 @@ pub struct VrchatNotificationChainActions<'a> {
     pub auth_scope: &'a RuntimeAuthScope,
     pub expected_scope: RuntimeAuthScopeSnapshot,
     pub event_bus: &'a RuntimeEventBus,
+    pub world_cache: &'a WorldCache,
 }
 
 impl NotificationChainActions for VrchatNotificationChainActions<'_> {
@@ -228,6 +256,10 @@ impl NotificationChainActions for VrchatNotificationChainActions<'_> {
             return Err(stale());
         }
         Ok(())
+    }
+
+    fn ensure_active_scope(&self, endpoint: &str) -> Result<()> {
+        self.ensure_scope(&self.expected_scope.current_user_id, endpoint)
     }
 
     fn execute_remote(
@@ -287,6 +319,18 @@ impl NotificationChainActions for VrchatNotificationChainActions<'_> {
                         .map_err(NotificationChainRemoteError::terminal)?;
                     (request, ApiScope::Vrchat)
                 }
+                NotificationChainRemoteCall::InviteSendPhoto {
+                    receiver_user_id,
+                    params,
+                    image_data,
+                } => {
+                    let (_, request) =
+                        invite_photo_input(endpoint, receiver_user_id, params, image_data)
+                            .map_err(NotificationChainRemoteError::terminal)?;
+                    let request = prepare_media_upload_request(request)
+                        .map_err(NotificationChainRemoteError::terminal)?;
+                    (request, ApiScope::VrchatMedia)
+                }
                 NotificationChainRemoteCall::BoopSend { user_id, emoji_id } => {
                     let (_, request) = boop_send_input(endpoint, user_id, emoji_id)
                         .map_err(NotificationChainRemoteError::terminal)?;
@@ -308,6 +352,25 @@ impl NotificationChainActions for VrchatNotificationChainActions<'_> {
             ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)
                 .map_err(NotificationChainRemoteError::terminal)?;
             Ok(())
+        })
+    }
+
+    fn resolve_world_name<'a>(
+        &'a self,
+        world_id: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Option<String>> + Send + 'a>> {
+        Box::pin(async move {
+            if ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope).is_err() {
+                return None;
+            }
+            let name = self
+                .world_cache
+                .resolve_name(self.web, &self.expected_scope.endpoint, world_id)
+                .await;
+            if ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope).is_err() {
+                return None;
+            }
+            name
         })
     }
 
@@ -456,8 +519,11 @@ pub async fn accept_request_invite_notification(
     let receiver_user_id = target.sender_user_id.clone();
     let instance_id = normalize_text(&input.instance_id);
     let world_id = normalize_text(&input.world_id);
-    let world_name = normalize_text(&input.world_name);
     if !receiver_user_id.is_empty() && !instance_id.is_empty() && !world_id.is_empty() {
+        let world_name = actions
+            .resolve_world_name(&world_id)
+            .await
+            .unwrap_or_else(|| world_id.clone());
         let params = json!({
             "instanceId": instance_id,
             "worldId": world_id,
@@ -479,6 +545,62 @@ pub async fn accept_request_invite_notification(
     }
     let outcome = hide_then_expire(actions, &target).await;
     finish(actions, outcome)
+}
+
+pub async fn send_instance_invite_notification(
+    actions: &dyn NotificationChainActions,
+    input: NotificationInstanceInviteInput,
+) -> Result<NotificationActionOutcome> {
+    actions.ensure_active_scope(&input.endpoint)?;
+    let receiver_user_id = normalize_text(&input.receiver_user_id);
+    let instance_id = normalize_text(&input.instance_id);
+    let world_id = normalize_text(&input.world_id);
+    if receiver_user_id.is_empty() || instance_id.is_empty() || world_id.is_empty() {
+        return Err(Error::Custom(
+            "Instance invite requires receiverUserId, instanceId, and worldId.".into(),
+        ));
+    }
+    let provided_world_name = normalize_text(&input.world_name);
+    let world_name = if provided_world_name.is_empty() {
+        actions
+            .resolve_world_name(&world_id)
+            .await
+            .unwrap_or_else(|| world_id.clone())
+    } else {
+        provided_world_name
+    };
+    let mut params = serde_json::Map::from_iter([
+        ("instanceId".into(), Value::String(instance_id)),
+        ("worldId".into(), Value::String(world_id)),
+        ("worldName".into(), Value::String(world_name)),
+    ]);
+    if let Some(message_slot) = input.message_slot {
+        params.insert("messageSlot".into(), Value::from(message_slot));
+    }
+    if let Some(rsvp) = input.rsvp {
+        params.insert("rsvp".into(), Value::Bool(rsvp));
+    }
+    let image_data = normalize_text(&input.image_data);
+    let sent_photo = !image_data.is_empty();
+    let call = if sent_photo {
+        NotificationChainRemoteCall::InviteSendPhoto {
+            receiver_user_id,
+            params: Value::Object(params),
+            image_data,
+        }
+    } else {
+        NotificationChainRemoteCall::InviteSend {
+            receiver_user_id,
+            params: Value::Object(params),
+        }
+    };
+    let mut outcome = NotificationActionOutcome::new(NotificationActionStatus::Applied);
+    outcome.sent_photo = sent_photo;
+    if let Err(error) = actions.execute_remote(call).await {
+        outcome.status = NotificationActionStatus::RemoteFailed;
+        outcome.remote_error = Some(error.message);
+    }
+    Ok(outcome)
 }
 
 pub async fn send_invite_response_notification(

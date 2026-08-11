@@ -65,6 +65,7 @@ describe('userDialogTabService', () => {
 
     it('loads tab counts through one backend aggregate without fetching detail rows', async () => {
         appUserDialogTabCountsGet.mockResolvedValue({
+            mutualFriends: 7,
             groups: 12,
             worlds: 34,
             favoriteWorlds: 56,
@@ -76,9 +77,11 @@ describe('userDialogTabService', () => {
                 endpoint: 'https://api.example.test',
                 currentUserId: 'usr_self',
                 effectiveAvatarReleaseStatus: 'public',
+                includeMutualFriends: true,
                 force: true
             })
         ).resolves.toEqual({
+            mutual: 7,
             groups: 12,
             worlds: 34,
             'favorite-worlds': 56,
@@ -88,6 +91,7 @@ describe('userDialogTabService', () => {
         expect(appUserDialogTabCountsGet).toHaveBeenCalledWith({
             userId: 'usr_target',
             avatarReleaseStatus: 'public',
+            includeMutualFriends: true,
             force: true
         });
     });

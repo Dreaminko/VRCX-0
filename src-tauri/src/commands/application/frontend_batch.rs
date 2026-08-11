@@ -144,6 +144,7 @@ pub async fn app__instance_invite_batch(
         auth_scope: &state.runtime_context.auth_scope,
         expected_scope,
         remote_mutation_gate: &state.remote_mutations,
+        world_cache: state.runtime_context.world_cache.as_ref(),
     };
     Ok(send_instance_invites_batch(&actions, input).await?)
 }

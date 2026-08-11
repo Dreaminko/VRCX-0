@@ -328,6 +328,16 @@ fn error_message_with_status_suffix_does_not_double_append_fallback_message() {
 }
 
 #[test]
+fn friend_request_accept_only_treats_status_404_as_not_found() {
+    assert!(is_not_found_error(&Error::Custom(
+        "The specified friend request was not found. (404)".into()
+    )));
+    assert!(!is_not_found_error(&Error::Custom(
+        "The specified friend request was not found. (500)".into()
+    )));
+}
+
+#[test]
 fn current_scope_401_emits_structured_auth_failure() {
     let fixture = fixture("current-scope-401");
     let scope = fixture

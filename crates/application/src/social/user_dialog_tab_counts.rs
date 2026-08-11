@@ -17,11 +17,10 @@ use vrcx_0_application_core::vrchat_api::favorites::{
     favorite_groups_get_input, favorite_worlds_get_input,
 };
 use vrcx_0_application_core::vrchat_api::groups::user_groups_get_input;
+use vrcx_0_application_core::vrchat_api::users::user_mutual_counts_get_input;
 use vrcx_0_application_core::vrchat_api::worlds::world_list_by_user_get_input;
 use vrcx_0_application_core::{RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient};
-use vrcx_0_integrations::external_api::{
-    self, ExternalApiScope, ExternalHttpRequestInput,
-};
+use vrcx_0_integrations::external_api::{self, ExternalApiScope, ExternalHttpRequestInput};
 use vrcx_0_persistence::{config, DatabaseService};
 use vrcx_0_vrchat_client::http_api::{ApiJsonResponse, ApiScope, HttpApiRequestInput};
 
@@ -34,8 +33,7 @@ const WORLD_PAGE_SIZE: usize = 100;
 const WORLD_MAX_OFFSET: i64 = ((MAX_PROFILE_PAGES - 1) * WORLD_PAGE_SIZE) as i64;
 const FAVORITE_GROUP_PAGE_SIZE: usize = 50;
 const FAVORITE_WORLD_PAGE_SIZE: usize = 300;
-const FAVORITE_WORLD_MAX_OFFSET: i64 =
-    ((MAX_PROFILE_PAGES - 1) * FAVORITE_WORLD_PAGE_SIZE) as i64;
+const FAVORITE_WORLD_MAX_OFFSET: i64 = ((MAX_PROFILE_PAGES - 1) * FAVORITE_WORLD_PAGE_SIZE) as i64;
 const MY_AVATAR_PAGE_SIZE: usize = 50;
 const MY_AVATAR_MAX_OFFSET: i64 = 5_000;
 const DEFAULT_AVATAR_PROVIDER: &str = "https://api.avtrdb.com/v3/avatar/search/vrcx";
@@ -59,6 +57,7 @@ struct UserDialogTabCountsCacheKey {
     target_user_id: String,
     avatar_release_status: String,
     avatar_provider: String,
+    include_mutual_friends: bool,
 }
 
 #[derive(Clone)]
@@ -80,6 +79,7 @@ impl UserDialogTabCountsRuntime {
         &self,
         key: UserDialogTabCountsCacheKey,
         force: bool,
+        include_mutual_friends: bool,
         load: F,
     ) -> Result<UserDialogTabCountsOutput>
     where
@@ -94,7 +94,7 @@ impl UserDialogTabCountsRuntime {
             .try_get_with(key.clone(), async move { load().await.map(Arc::new) })
             .await
             .map_err(|error| Error::Custom(error.to_string()))?;
-        if !counts.is_complete() {
+        if !counts.is_complete(include_mutual_friends) {
             self.cache.invalidate(&key).await;
         }
         Ok((*counts).clone())
@@ -140,18 +140,25 @@ pub async fn get_user_dialog_tab_counts(
         target_user_id: target_user_id.clone(),
         avatar_release_status: avatar_release_status.clone(),
         avatar_provider: avatar_provider_key,
+        include_mutual_friends: input.include_mutual_friends,
     };
     runtime
-        .resolve(key, input.force, move || async move {
-            load_user_dialog_tab_counts(
-                deps,
-                scope,
-                target_user_id,
-                avatar_release_status,
-                avatar_provider,
-            )
-            .await
-        })
+        .resolve(
+            key,
+            input.force,
+            input.include_mutual_friends,
+            move || async move {
+                load_user_dialog_tab_counts(
+                    deps,
+                    scope,
+                    target_user_id,
+                    avatar_release_status,
+                    avatar_provider,
+                    input.include_mutual_friends,
+                )
+                .await
+            },
+        )
         .await
 }
 
@@ -161,7 +168,13 @@ async fn load_user_dialog_tab_counts(
     target_user_id: String,
     avatar_release_status: String,
     avatar_provider: Result<Option<String>>,
+    include_mutual_friends: bool,
 ) -> Result<UserDialogTabCountsOutput> {
+    let mutual_friends = if include_mutual_friends {
+        Some(count_mutual_friends(&deps, &scope, &target_user_id).await)
+    } else {
+        None
+    };
     let groups = count_groups(&deps, &scope, &target_user_id).await;
     let worlds = count_worlds(&deps, &scope, &target_user_id).await;
     let favorite_worlds = count_favorite_worlds(&deps, &scope, &target_user_id).await;
@@ -174,11 +187,27 @@ async fn load_user_dialog_tab_counts(
     )
     .await;
     Ok(counts_from_results(
+        mutual_friends,
         groups,
         worlds,
         favorite_worlds,
         avatars,
     ))
+}
+
+async fn count_mutual_friends(
+    deps: &UserDialogTabCountsDeps,
+    scope: &RuntimeAuthScopeSnapshot,
+    target_user_id: &str,
+) -> Result<usize> {
+    let (_, request) = user_mutual_counts_get_input(scope.endpoint.clone(), target_user_id.into())?;
+    let payload = execute_vrchat_payload(deps, scope, request, "mutual friends").await?;
+    let value = serde_json::from_str::<Value>(&payload)?;
+    value
+        .get("friends")
+        .and_then(Value::as_u64)
+        .and_then(|count| usize::try_from(count).ok())
+        .ok_or_else(|| Error::Custom("Mutual friend count response is invalid.".into()))
 }
 
 async fn count_groups(
@@ -427,9 +456,7 @@ fn external_avatar_search_request(
         query.append_pair("n", "5000");
     }
 
-    let mut vrcx_id = config::get_string(db, VRCX_ID_KEY, "")?
-        .trim()
-        .to_string();
+    let mut vrcx_id = config::get_string(db, VRCX_ID_KEY, "")?.trim().to_string();
     if vrcx_id.is_empty() {
         vrcx_id = Uuid::new_v4().to_string();
         config::set_string(db, VRCX_ID_KEY, &vrcx_id)?;
@@ -478,12 +505,16 @@ pub struct UserDialogTabCountsInput {
     #[serde(default)]
     pub avatar_release_status: String,
     #[serde(default)]
+    pub include_mutual_friends: bool,
+    #[serde(default)]
     pub force: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UserDialogTabCountsOutput {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mutual_friends: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub groups: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -495,8 +526,9 @@ pub struct UserDialogTabCountsOutput {
 }
 
 impl UserDialogTabCountsOutput {
-    fn is_complete(&self) -> bool {
-        self.groups.is_some()
+    fn is_complete(&self, include_mutual_friends: bool) -> bool {
+        (!include_mutual_friends || self.mutual_friends.is_some())
+            && self.groups.is_some()
             && self.worlds.is_some()
             && self.favorite_worlds.is_some()
             && self.avatars.is_some()
@@ -504,12 +536,14 @@ impl UserDialogTabCountsOutput {
 }
 
 fn counts_from_results(
+    mutual_friends: Option<Result<usize>>,
     groups: Result<usize>,
     worlds: Result<usize>,
     favorite_worlds: Result<usize>,
     avatars: Result<usize>,
 ) -> UserDialogTabCountsOutput {
     UserDialogTabCountsOutput {
+        mutual_friends: mutual_friends.and_then(|result| resolved_count("mutual friends", result)),
         groups: resolved_count("groups", groups),
         worlds: resolved_count("worlds", worlds),
         favorite_worlds: resolved_count("favorite worlds", favorite_worlds),
@@ -552,14 +586,15 @@ fn world_favorite_group_names(payload: &str) -> Result<Vec<String>> {
 
 #[derive(Deserialize)]
 struct AvatarSearchCountRow {
-    #[serde(default, alias = "Id", alias = "_id", alias = "avatarId", alias = "AvatarId")]
-    id: Value,
     #[serde(
         default,
-        rename = "authorId",
-        alias = "AuthorId",
-        alias = "author_id"
+        alias = "Id",
+        alias = "_id",
+        alias = "avatarId",
+        alias = "AvatarId"
     )]
+    id: Value,
+    #[serde(default, rename = "authorId", alias = "AuthorId", alias = "author_id")]
     author_id: Value,
 }
 
@@ -651,6 +686,7 @@ mod tests {
     #[test]
     fn keeps_successful_counts_when_one_source_fails() {
         let counts = counts_from_results(
+            Some(Ok(7)),
             Ok(12),
             Err(Error::Custom("worlds failed".into())),
             Ok(34),
@@ -660,6 +696,7 @@ mod tests {
         assert_eq!(
             counts,
             UserDialogTabCountsOutput {
+                mutual_friends: Some(7),
                 groups: Some(12),
                 worlds: None,
                 favorite_worlds: Some(34),
@@ -752,8 +789,7 @@ mod tests {
                 move |offset| {
                     offsets.lock().unwrap().push(offset);
                     std::future::ready(Ok(
-                        serde_json::json!([{ "id": offset }, { "id": offset + 1 }])
-                            .to_string(),
+                        serde_json::json!([{ "id": offset }, { "id": offset + 1 }]).to_string(),
                     ))
                 }
             },
@@ -776,9 +812,11 @@ mod tests {
             target_user_id: "usr_target".into(),
             avatar_release_status: "public".into(),
             avatar_provider: "provider-a".into(),
+            include_mutual_friends: true,
         };
         let calls = Arc::new(AtomicUsize::new(0));
         let expected = UserDialogTabCountsOutput {
+            mutual_friends: Some(5),
             groups: Some(1),
             worlds: Some(2),
             favorite_worlds: Some(3),
@@ -790,7 +828,7 @@ mod tests {
             let loaded_counts = expected.clone();
             assert_eq!(
                 runtime
-                    .resolve(key.clone(), force, move || async move {
+                    .resolve(key.clone(), force, true, move || async move {
                         calls.fetch_add(1, Ordering::SeqCst);
                         Ok(loaded_counts)
                     })

@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{normalize_text, now_iso, row_i64, row_string, ParamsBuilder};
 use crate::database::schema::ensure_user_store_tables;
-use crate::database::{
-    maintenance::UserTableContextOutput, DatabaseService, DatabaseWriteTransaction,
-};
+use crate::database::{DatabaseService, DatabaseWriteTransaction};
 use crate::realtime::normalize_user_table_prefix;
 use crate::Error;
 
@@ -50,19 +48,6 @@ pub struct MutualGraphSnapshotOutput {
     pub friend_ids: Vec<String>,
     pub links: Vec<MutualGraphLinkOutput>,
     pub meta: Vec<MutualGraphMetaOutput>,
-}
-
-pub fn mutual_graph_tables_ensure(
-    db: &DatabaseService,
-    user_id: String,
-) -> Result<UserTableContextOutput, Error> {
-    let user_id = normalize_text(user_id);
-    let user_prefix = normalize_user_table_prefix(&user_id)?;
-    ensure_user_store_tables(db, &user_prefix)?;
-    Ok(UserTableContextOutput {
-        user_id,
-        user_prefix,
-    })
 }
 
 pub fn mutual_graph_snapshot_get(
@@ -223,20 +208,6 @@ fn replace_mutual_graph_snapshot_entries(
     Ok(())
 }
 
-pub fn mutual_graph_snapshot_save(
-    db: &DatabaseService,
-    user_id: String,
-    entries: Vec<MutualGraphSnapshotEntryInput>,
-) -> Result<(), Error> {
-    let user_prefix = normalize_user_table_prefix(&user_id)?;
-    ensure_user_store_tables(db, &user_prefix)?;
-    db.write_transaction(|tx| {
-        replace_mutual_graph_snapshot_entries(tx, &user_prefix, &entries)?;
-        Ok(())
-    })?;
-    Ok(())
-}
-
 pub fn mutual_graph_snapshot_commit(
     db: &DatabaseService,
     user_id: String,
@@ -257,11 +228,12 @@ pub fn mutual_graph_snapshot_commit(
     Ok(())
 }
 
-pub fn mutual_graph_friend_update(
+pub fn mutual_graph_friend_refresh_commit(
     db: &DatabaseService,
     user_id: String,
     friend_id: String,
-    mutual_ids: Vec<String>,
+    mutual_ids: Option<Vec<String>>,
+    opted_out: bool,
 ) -> Result<(), Error> {
     let user_prefix = normalize_user_table_prefix(&user_id)?;
     ensure_user_store_tables(db, &user_prefix)?;
@@ -270,41 +242,32 @@ pub fn mutual_graph_friend_update(
         return Ok(());
     }
     db.write_transaction(|tx| {
-        insert_mutual_graph_friend(tx, &user_prefix, &friend_id)?;
-        tx.execute_non_query(
-            &format!("DELETE FROM {user_prefix}_mutual_graph_links WHERE friend_id = @friend_id"),
-            &ParamsBuilder::new()
-                .set("friend_id", friend_id.clone())
-                .build(),
-        )?;
-        for mutual_id in &mutual_ids {
-            let mutual_id = normalize_text(mutual_id);
-            if !mutual_id.is_empty() {
-                insert_mutual_graph_link(tx, &user_prefix, &friend_id, &mutual_id)?;
+        if let Some(mutual_ids) = mutual_ids {
+            insert_mutual_graph_friend(tx, &user_prefix, &friend_id)?;
+            tx.execute_non_query(
+                &format!(
+                    "DELETE FROM {user_prefix}_mutual_graph_links WHERE friend_id = @friend_id"
+                ),
+                &ParamsBuilder::new()
+                    .set("friend_id", friend_id.clone())
+                    .build(),
+            )?;
+            for mutual_id in mutual_ids {
+                let mutual_id = normalize_text(mutual_id);
+                if !mutual_id.is_empty() {
+                    insert_mutual_graph_link(tx, &user_prefix, &friend_id, &mutual_id)?;
+                }
             }
         }
-        Ok(())
-    })?;
-    Ok(())
-}
-
-pub fn mutual_graph_meta_upsert(
-    db: &DatabaseService,
-    user_id: String,
-    entry: MutualGraphMetaInput,
-) -> Result<(), Error> {
-    mutual_graph_meta_bulk_upsert(db, user_id, vec![entry])
-}
-
-pub fn mutual_graph_meta_bulk_upsert(
-    db: &DatabaseService,
-    user_id: String,
-    entries: Vec<MutualGraphMetaInput>,
-) -> Result<(), Error> {
-    let user_prefix = normalize_user_table_prefix(&user_id)?;
-    ensure_user_store_tables(db, &user_prefix)?;
-    db.write_transaction(|tx| {
-        upsert_mutual_graph_meta_entries(tx, &user_prefix, &entries)?;
+        upsert_mutual_graph_meta_entries(
+            tx,
+            &user_prefix,
+            &[MutualGraphMetaInput {
+                friend_id,
+                last_fetched_at: String::new(),
+                opted_out,
+            }],
+        )?;
         Ok(())
     })?;
     Ok(())

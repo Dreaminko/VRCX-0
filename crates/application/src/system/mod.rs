@@ -71,9 +71,10 @@ pub use notification_actions::{
 pub use notification_chains::{
     accept_request_invite_notification, dismiss_boop_notifications, hide_and_expire_notification,
     respond_and_expire_notification, send_boop_reply_notification,
-    send_invite_response_notification, NotificationActionOutcome, NotificationActionStatus,
-    NotificationBoopDismissInput, NotificationBoopReplyInput, NotificationChainActions,
-    NotificationHideExpireInput, NotificationInviteResponseInput,
+    send_instance_invite_notification, send_invite_response_notification,
+    NotificationActionOutcome, NotificationActionStatus, NotificationBoopDismissInput,
+    NotificationBoopReplyInput, NotificationChainActions, NotificationHideExpireInput,
+    NotificationInstanceInviteInput, NotificationInviteResponseInput,
     NotificationRequestInviteAcceptInput, NotificationRespondInput, NotificationTarget,
     VrchatNotificationChainActions,
 };

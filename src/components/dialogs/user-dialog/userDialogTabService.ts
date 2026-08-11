@@ -44,6 +44,7 @@ export type UserDialogRepositories = {
 };
 
 type UserDialogTabCounts = {
+    mutual?: number;
     groups?: number;
     worlds?: number;
     'favorite-worlds'?: number;
@@ -79,12 +80,14 @@ export async function loadUserDialogTabCounts({
     endpoint,
     currentUserId,
     effectiveAvatarReleaseStatus,
+    includeMutualFriends,
     force = false
 }: {
     userId: string;
     endpoint: string;
     currentUserId: string;
     effectiveAvatarReleaseStatus: string;
+    includeMutualFriends: boolean;
     force?: boolean;
 }): Promise<UserDialogTabCounts> {
     if (!userId) {
@@ -95,7 +98,8 @@ export async function loadUserDialogTabCounts({
             {
                 userId,
                 currentUserId,
-                avatarReleaseStatus: effectiveAvatarReleaseStatus
+                avatarReleaseStatus: effectiveAvatarReleaseStatus,
+                includeMutualFriends
             },
             endpoint
         ),
@@ -105,10 +109,12 @@ export async function loadUserDialogTabCounts({
             const counts = await commands.appUserDialogTabCountsGet({
                 userId,
                 avatarReleaseStatus: effectiveAvatarReleaseStatus,
+                includeMutualFriends,
                 force
             });
 
             return {
+                mutual: counts.mutualFriends ?? undefined,
                 groups: counts.groups ?? undefined,
                 worlds: counts.worlds ?? undefined,
                 'favorite-worlds': counts.favoriteWorlds ?? undefined,

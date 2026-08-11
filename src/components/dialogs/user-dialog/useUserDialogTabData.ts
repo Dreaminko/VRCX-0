@@ -83,6 +83,7 @@ type UserDialogLoadContext = {
 type UserDialogCountContext = UserDialogLoadContext & {
     currentUserId: string;
     avatarReleaseStatus: string;
+    includeMutualFriends: boolean;
 };
 
 interface UseUserDialogTabDataInput {
@@ -147,6 +148,7 @@ export function useUserDialogTabData({
         emptyUserDialogStatus
     );
     const [remoteTabCounts, setRemoteTabCounts] = useState<{
+        mutual?: number;
         groups?: number;
         worlds?: number;
         'favorite-worlds'?: number;
@@ -177,6 +179,8 @@ export function useUserDialogTabData({
         userId: profileUserId,
         currentUserId: currentUserId || '',
         avatarReleaseStatus: effectiveAvatarReleaseStatus,
+        includeMutualFriends:
+            !isCurrentUser && !currentUserHasSharedConnectionsOptOut,
         reloadToken
     });
     const avatarSortLoadVersionRef = useRef(0);
@@ -187,6 +191,8 @@ export function useUserDialogTabData({
         userId: profileUserId,
         currentUserId: currentUserId || '',
         avatarReleaseStatus: effectiveAvatarReleaseStatus,
+        includeMutualFriends:
+            !isCurrentUser && !currentUserHasSharedConnectionsOptOut,
         reloadToken
     };
 
@@ -321,6 +327,8 @@ export function useUserDialogTabData({
             countContextRef.current.currentUserId === context.currentUserId &&
             countContextRef.current.avatarReleaseStatus ===
                 context.avatarReleaseStatus &&
+            countContextRef.current.includeMutualFriends ===
+                context.includeMutualFriends &&
             countContextRef.current.reloadToken === context.reloadToken
         );
     }
@@ -335,6 +343,8 @@ export function useUserDialogTabData({
             userId: profileUserId,
             currentUserId: currentUserId || '',
             avatarReleaseStatus: effectiveAvatarReleaseStatus,
+            includeMutualFriends:
+                !isCurrentUser && !currentUserHasSharedConnectionsOptOut,
             reloadToken
         };
         try {
@@ -343,6 +353,7 @@ export function useUserDialogTabData({
                 endpoint: currentEndpoint,
                 currentUserId: currentUserId || '',
                 effectiveAvatarReleaseStatus,
+                includeMutualFriends: countContext.includeMutualFriends,
                 force
             });
             if (!isCurrentCountContext(countContext)) {
@@ -520,7 +531,9 @@ export function useUserDialogTabData({
     }, [
         currentEndpoint,
         currentUserId,
+        currentUserHasSharedConnectionsOptOut,
         effectiveAvatarReleaseStatus,
+        isCurrentUser,
         profileUserId,
         reloadToken
     ]);

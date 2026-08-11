@@ -52,8 +52,6 @@ export function AvatarDialogContent({
         avatar,
         avatarActions,
         avatarForView,
-        currentEndpoint,
-        currentUserId,
         imageCropRequest,
         imageUrl,
         labels,
@@ -122,8 +120,6 @@ export function AvatarDialogContent({
             <AvatarContentTagsDialog
                 open={ownerEditor === 'content-tags'}
                 avatar={avatar}
-                currentUserId={currentUserId}
-                endpoint={currentEndpoint}
                 onOpenChange={(open: boolean) =>
                     setOwnerEditor(open ? 'content-tags' : null)
                 }
