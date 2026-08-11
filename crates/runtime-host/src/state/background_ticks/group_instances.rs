@@ -7,8 +7,8 @@ use crate::{GroupOrderSource, RuntimeGroupInstancesProjection, RuntimeHostContex
 
 use super::super::{
     background_capability_session, background_capability_session_matches, emit_background_info,
-    emit_background_warning, gui_maintenance_runtime_mode, SharedAtomicFlagGuard,
-    BackendRuntimeFrontendSessionSnapshot, BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
+    emit_background_warning, gui_maintenance_runtime_mode, BackendRuntimeFrontendSessionSnapshot,
+    SharedAtomicFlagGuard, BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
     BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
 };
 use super::BackgroundTickContext;
