@@ -9,7 +9,8 @@ use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
 use crate::realtime::{
     FriendBaselineCausalWatermark, FriendBaselineResult, FriendStateBucketAuthority,
-    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendSnapshot,
+    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendRosterSnapshot,
+    RealtimeFriendSnapshot,
 };
 
 use super::event_patch::{
@@ -362,6 +363,28 @@ impl RealtimeFriendsRuntime {
         self.lock_state().baseline.clone()
     }
 
+    pub fn roster_snapshot(
+        &self,
+        previous_order: &[String],
+    ) -> serde_json::Result<Option<RealtimeFriendRosterSnapshot>> {
+        let state = self.lock_state();
+        let Some(baseline) = state.baseline.as_ref() else {
+            return Ok(None);
+        };
+        let snapshot = current_friend_roster_snapshot(
+            &baseline.current_user_id,
+            &baseline.friends_by_id,
+            previous_order,
+        )?;
+        Ok(Some(RealtimeFriendRosterSnapshot {
+            current_user_id: baseline.current_user_id.clone(),
+            endpoint: baseline.endpoint.clone(),
+            websocket: baseline.websocket.clone(),
+            friend_count: baseline.friends_by_id.len(),
+            snapshot,
+        }))
+    }
+
     pub fn session_context(&self) -> Option<RealtimeSessionContext> {
         self.lock_state()
             .baseline
@@ -624,6 +647,71 @@ fn leaves_online(state_bucket: &str) -> bool {
         StateBucket::from_exact(state_bucket),
         Some(StateBucket::Offline | StateBucket::Active)
     )
+}
+
+fn current_friend_roster_snapshot(
+    user_id: &str,
+    friends_by_id: &HashMap<String, FriendRecord>,
+    previous_order: &[String],
+) -> serde_json::Result<Value> {
+    let mut ordered_friend_ids = previous_order
+        .iter()
+        .filter(|friend_id| friends_by_id.contains_key(*friend_id))
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut seen = ordered_friend_ids.iter().cloned().collect::<HashSet<_>>();
+    let mut added = friends_by_id
+        .keys()
+        .filter(|friend_id| seen.insert((*friend_id).clone()))
+        .cloned()
+        .collect::<Vec<_>>();
+    added.sort();
+    ordered_friend_ids.extend(added);
+
+    let bucket_ids = |bucket: &str| {
+        ordered_friend_ids
+            .iter()
+            .filter(|friend_id| {
+                friends_by_id
+                    .get(*friend_id)
+                    .is_some_and(|friend| friend_snapshot_state_bucket(friend) == bucket)
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let online_ids = bucket_ids("online");
+    let active_ids = bucket_ids("active");
+    let offline_ids = bucket_ids("offline");
+    let ordered_friend_ids = online_ids
+        .iter()
+        .chain(&active_ids)
+        .chain(&offline_ids)
+        .cloned()
+        .collect::<Vec<_>>();
+    let friends_by_id = serde_json::to_value(friends_by_id)?;
+
+    Ok(json!({
+        "currentUserId": user_id,
+        "friendsById": friends_by_id,
+        "orderedFriendIds": ordered_friend_ids,
+        "onlineIds": online_ids,
+        "activeIds": active_ids,
+        "offlineIds": offline_ids,
+        "detail": "",
+    }))
+}
+
+fn friend_snapshot_state_bucket(friend: &FriendRecord) -> &str {
+    let state = if friend.state_bucket.is_empty() {
+        friend.state.as_str()
+    } else {
+        friend.state_bucket.as_str()
+    };
+    match state {
+        "online" => "online",
+        "active" => "active",
+        _ => "offline",
+    }
 }
 
 fn current_friend_state_sequence(state: &RealtimeFriendState, user_id: &str) -> u64 {

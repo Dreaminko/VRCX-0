@@ -58,6 +58,56 @@ mod tests {
     }
 
     #[test]
+    fn roster_snapshot_builds_current_json_with_stable_order() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                endpoint: "https://api.example.test".into(),
+                websocket: "wss://ws.example.test".into(),
+                friends_by_id: [
+                    (
+                        "usr_existing".to_string(),
+                        FriendRecord {
+                            id: "usr_existing".into(),
+                            state_bucket: "active".into(),
+                            ..Default::default()
+                        },
+                    ),
+                    (
+                        "usr_new".to_string(),
+                        FriendRecord {
+                            id: "usr_new".into(),
+                            state_bucket: "online".into(),
+                            ..Default::default()
+                        },
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            },
+            7,
+            3,
+        );
+
+        let projection = runtime
+            .roster_snapshot(&["usr_removed".into(), "usr_existing".into()])
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(projection.current_user_id, "usr_self");
+        assert_eq!(projection.endpoint, "https://api.example.test");
+        assert_eq!(projection.websocket, "wss://ws.example.test");
+        assert_eq!(projection.friend_count, 2);
+        assert_eq!(
+            projection.snapshot["orderedFriendIds"],
+            json!(["usr_new", "usr_existing"])
+        );
+        assert_eq!(projection.snapshot["onlineIds"], json!(["usr_new"]));
+        assert_eq!(projection.snapshot["activeIds"], json!(["usr_existing"]));
+    }
+
+    #[test]
     fn baseline_generation_uses_realtime_transport_generation_after_clear() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.clear();

@@ -118,8 +118,8 @@ impl RuntimeHostState {
                         favorite_groups_initialized = false;
                         next_current_user = now;
                         next_group_instances = now;
-                        next_social = now
-                            + Duration::from_secs(BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS);
+                        next_social =
+                            now + Duration::from_secs(BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS);
                         next_moderation = now;
                         next_print_cleanup = now;
                     }
@@ -162,16 +162,10 @@ impl RuntimeHostState {
                     }
 
                     if !favorite_groups_initialized {
-                        let snapshot = authenticated_runtime.snapshot();
-                        if let Some(favorites) = snapshot
-                            .favorites_baseline
-                            .as_ref()
-                            .and_then(|baseline| baseline.snapshot.as_ref())
+                        if let Some(groups) =
+                            authenticated_runtime.favorite_friend_group_membership()
                         {
-                            favorite_friend_groups_by_key =
-                                crate::authenticated_runtime::favorite_group_membership_from_baseline(
-                                    favorites,
-                                );
+                            favorite_friend_groups_by_key = groups;
                             favorite_groups_initialized = true;
                         }
                     }

@@ -113,7 +113,7 @@ where
     if window.is_visible().is_err() {
         return false;
     }
-    match window.emit(event, payload.clone()) {
+    match window.emit(event, payload) {
         Ok(()) => true,
         Err(error) => {
             tracing::debug!(error = %error, event, "skipped frontend event emit");

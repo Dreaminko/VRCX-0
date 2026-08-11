@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde::Serialize;
+use serde_json::Value;
 use vrcx_0_core::friends::FriendRecord;
 pub use vrcx_0_core::realtime::{
     RealtimeSessionContext, RealtimeWsMessagePayload, RealtimeWsStatus, RealtimeWsStatusPayload,
@@ -18,6 +19,15 @@ pub struct RealtimeFriendSnapshot {
     pub generation: u64,
     pub baseline_revision: u64,
     pub friends_by_id: HashMap<String, FriendRecord>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct RealtimeFriendRosterSnapshot {
+    pub current_user_id: String,
+    pub endpoint: String,
+    pub websocket: String,
+    pub friend_count: usize,
+    pub snapshot: Value,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, specta::Type)]

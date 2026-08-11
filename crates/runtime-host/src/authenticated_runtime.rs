@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
@@ -14,10 +14,11 @@ use vrcx_0_application_core::{
 };
 use vrcx_0_application_realtime::{
     build_favorites_baseline_from_friend_records, build_synced_friend_roster_baseline,
-    FavoriteBaselineSnapshot, RealtimeHostRuntime, RealtimeStopRequest,
-    RealtimeTransportLifecycleEvent, RealtimeTransportStartResult, RealtimeTransportTermination,
-    SocialBaselineDeps, SocialFavoritesBaselineOutput, SocialFavoritesBaselineRequest,
-    SocialFriendRosterBaselineInput, SocialFriendRosterBaselineOutput,
+    FavoriteBaselineSnapshot, RealtimeFriendRosterSnapshot, RealtimeHostRuntime,
+    RealtimeStopRequest, RealtimeTransportLifecycleEvent, RealtimeTransportStartResult,
+    RealtimeTransportTermination, SocialBaselineDeps, SocialFavoritesBaselineOutput,
+    SocialFavoritesBaselineRequest, SocialFriendRosterBaselineInput,
+    SocialFriendRosterBaselineOutput,
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::json::RawJson;
@@ -51,7 +52,7 @@ pub struct AuthenticatedRuntimeDeps {
 
 #[derive(Clone)]
 pub struct AuthenticatedRuntimeOrchestrator {
-    snapshot: Arc<Mutex<AuthenticatedRuntimePhaseSnapshot>>,
+    state: Arc<Mutex<AuthenticatedRuntimeState>>,
     generation: Arc<AtomicU64>,
     db: Arc<DatabaseService>,
     web: Arc<WebClient>,
@@ -63,10 +64,25 @@ pub struct AuthenticatedRuntimeOrchestrator {
     favorites_sink: Option<RuntimeHostFavoritesCallback>,
 }
 
+#[derive(Default)]
+struct AuthenticatedRuntimeState {
+    phase: AuthenticatedRuntimePhaseSnapshot,
+    friend_baseline: Option<FriendBaselineMetadata>,
+    favorites_baseline: Option<SocialFavoritesBaselineOutput>,
+}
+
+#[derive(Clone, Debug)]
+struct FriendBaselineMetadata {
+    user_id: String,
+    stale: bool,
+    detail: String,
+    ordered_friend_ids: Arc<[String]>,
+}
+
 impl AuthenticatedRuntimeOrchestrator {
     pub fn new(deps: AuthenticatedRuntimeDeps) -> Self {
         Self {
-            snapshot: Arc::new(Mutex::new(AuthenticatedRuntimePhaseSnapshot::default())),
+            state: Arc::new(Mutex::new(AuthenticatedRuntimeState::default())),
             generation: Arc::new(AtomicU64::new(0)),
             db: deps.db,
             web: deps.web,
@@ -80,52 +96,62 @@ impl AuthenticatedRuntimeOrchestrator {
     }
 
     pub fn snapshot(&self) -> AuthenticatedRuntimePhaseSnapshot {
-        let mut snapshot = self.lock_snapshot().clone();
-        let Some(current_friends) = self.realtime_runtime.friend_snapshot() else {
-            return snapshot;
+        let (snapshot, friend_baseline, favorites_baseline) = {
+            let state = self.lock_state();
+            (
+                state.phase.clone(),
+                state.friend_baseline.clone(),
+                state.favorites_baseline.clone(),
+            )
         };
-        if current_friends.current_user_id != snapshot.user_id
-            || current_friends.endpoint != snapshot.endpoint
-            || current_friends.websocket != snapshot.websocket
-        {
-            return snapshot;
-        }
-        let Some(friend_baseline) = snapshot.friend_baseline.as_mut() else {
-            return snapshot;
+        let current_friends = match friend_baseline.as_ref() {
+            Some(friend_baseline) => match self
+                .realtime_runtime
+                .friend_roster_snapshot(&friend_baseline.ordered_friend_ids)
+            {
+                Ok(current_friends) => current_friends,
+                Err(error) => {
+                    tracing::warn!(error = %error, "failed to build current friend phase snapshot");
+                    None
+                }
+            },
+            None => None,
         };
-        let previous = friend_baseline.snapshot.as_ref().map(RawJson::as_value);
-        match current_friend_baseline_snapshot(
-            &snapshot.user_id,
-            &current_friends.friends_by_id,
-            previous,
-        ) {
-            Ok(current) => {
-                friend_baseline.count = current_friends.friends_by_id.len();
-                friend_baseline.snapshot = Some(RawJson::from(current));
-                friend_baseline.friend_log_changed = false;
-            }
-            Err(error) => {
-                tracing::warn!(error = %error, "failed to build current friend phase snapshot");
-            }
-        }
-        snapshot
+        assemble_authenticated_runtime_snapshot(
+            snapshot,
+            friend_baseline,
+            current_friends,
+            favorites_baseline,
+        )
+    }
+
+    fn phase_snapshot(&self) -> AuthenticatedRuntimePhaseSnapshot {
+        self.lock_state().phase.clone()
     }
 
     pub fn update_favorites_baseline(&self, output: SocialFavoritesBaselineOutput) {
         if output.stale || output.snapshot.is_none() {
             return;
         }
-        let mut snapshot = self.lock_snapshot();
-        if snapshot.user_id != output.user_id
+        let mut state = self.lock_state();
+        if state.phase.user_id != output.user_id
             || !matches!(
-                snapshot.phase,
+                state.phase.phase,
                 AuthenticatedRuntimePhase::Starting | AuthenticatedRuntimePhase::Ready
             )
         {
             return;
         }
-        snapshot.favorites_baseline = Some(output);
-        snapshot.updated_at = now_iso();
+        state.favorites_baseline = Some(output);
+        state.phase.updated_at = now_iso();
+    }
+
+    pub(crate) fn favorite_friend_group_membership(&self) -> Option<HashMap<String, Vec<String>>> {
+        self.lock_state()
+            .favorites_baseline
+            .as_ref()
+            .and_then(|baseline| baseline.snapshot.as_ref())
+            .map(favorite_group_membership_from_baseline)
     }
 
     pub fn apply_favorites_snapshot(&self, snapshot: &FavoriteBaselineSnapshot) {
@@ -145,7 +171,7 @@ impl AuthenticatedRuntimeOrchestrator {
         }
 
         let scope = self.auth_scope.set(&session.user_id, &session.endpoint);
-        let current = self.snapshot();
+        let current = self.phase_snapshot();
         let same_session = snapshot_matches_session(&current, &session, scope.generation);
         let already_active = match current.phase {
             AuthenticatedRuntimePhase::Starting => same_session,
@@ -176,7 +202,10 @@ impl AuthenticatedRuntimeOrchestrator {
             updated_at: now_iso(),
             ..Default::default()
         };
-        *self.lock_snapshot() = snapshot.clone();
+        *self.lock_state() = AuthenticatedRuntimeState {
+            phase: snapshot.clone(),
+            ..Default::default()
+        };
         self.emit(snapshot.clone());
 
         let runtime = self.clone();
@@ -187,7 +216,7 @@ impl AuthenticatedRuntimeOrchestrator {
     }
 
     pub fn stop(&self) -> AuthenticatedRuntimePhaseSnapshot {
-        let previous = self.snapshot();
+        let previous = self.phase_snapshot();
         if matches!(
             previous.phase,
             AuthenticatedRuntimePhase::Idle | AuthenticatedRuntimePhase::Stopped
@@ -206,7 +235,10 @@ impl AuthenticatedRuntimeOrchestrator {
             updated_at: now_iso(),
             ..Default::default()
         };
-        *self.lock_snapshot() = snapshot.clone();
+        *self.lock_state() = AuthenticatedRuntimeState {
+            phase: snapshot.clone(),
+            ..Default::default()
+        };
         self.emit(snapshot.clone());
         snapshot
     }
@@ -445,9 +477,7 @@ impl AuthenticatedRuntimeOrchestrator {
                         session.display_name
                     );
                 }
-                self.update_snapshot(run_id, move |snapshot| {
-                    commit_friend_baseline(snapshot, attempt, output);
-                });
+                self.update_friend_baseline(run_id, attempt, output);
                 Ok(Some(friends_by_id))
             }
             Err(error) => {
@@ -493,11 +523,7 @@ impl AuthenticatedRuntimeOrchestrator {
                     if let Some(snapshot) = output.snapshot.as_ref() {
                         self.apply_favorites_snapshot(snapshot);
                     }
-                    self.update_snapshot(run_id, |snapshot| {
-                        snapshot.favorites =
-                            ready_step(attempt, format!("{} favorites loaded.", output.count));
-                        snapshot.favorites_baseline = Some(output);
-                    });
+                    self.update_favorites_step_baseline(run_id, attempt, output);
                     self.mark_ready_if_complete(run_id);
                     return;
                 }
@@ -723,7 +749,7 @@ impl AuthenticatedRuntimeOrchestrator {
             && self.generation.load(Ordering::Acquire) == run_id
             && self.auth_scope.snapshot().generation_matches(scope)
             && matches!(
-                self.lock_snapshot().phase,
+                self.lock_state().phase.phase,
                 AuthenticatedRuntimePhase::Starting | AuthenticatedRuntimePhase::Ready
             )
     }
@@ -792,29 +818,63 @@ impl AuthenticatedRuntimeOrchestrator {
         update: impl FnOnce(&mut AuthenticatedRuntimePhaseSnapshot),
     ) {
         let snapshot = {
-            let mut snapshot = self.lock_snapshot();
-            if snapshot.run_id != run_id {
+            let mut state = self.lock_state();
+            if state.phase.run_id != run_id {
                 return;
             }
-            update(&mut snapshot);
-            snapshot.updated_at = now_iso();
-            snapshot.clone()
+            update(&mut state.phase);
+            state.phase.friend_baseline = None;
+            state.phase.favorites_baseline = None;
+            state.phase.updated_at = now_iso();
+            state.phase.clone()
+        };
+        self.emit(snapshot);
+    }
+
+    fn update_friend_baseline(
+        &self,
+        run_id: u64,
+        attempt: u32,
+        output: SocialFriendRosterBaselineOutput,
+    ) {
+        let snapshot = {
+            let mut state = self.lock_state();
+            if state.phase.run_id != run_id {
+                return;
+            }
+            commit_friend_baseline(&mut state, attempt, output)
+        };
+        self.emit(snapshot);
+    }
+
+    fn update_favorites_step_baseline(
+        &self,
+        run_id: u64,
+        attempt: u32,
+        output: SocialFavoritesBaselineOutput,
+    ) {
+        let snapshot = {
+            let mut state = self.lock_state();
+            if state.phase.run_id != run_id {
+                return;
+            }
+            commit_favorites_baseline(&mut state, attempt, output)
         };
         self.emit(snapshot);
     }
 
     fn mark_ready_if_complete(&self, run_id: u64) {
         let snapshot = {
-            let mut snapshot = self.lock_snapshot();
-            if snapshot.run_id != run_id
-                || snapshot.phase != AuthenticatedRuntimePhase::Starting
-                || !all_steps_ready(&snapshot)
+            let mut state = self.lock_state();
+            if state.phase.run_id != run_id
+                || state.phase.phase != AuthenticatedRuntimePhase::Starting
+                || !all_steps_ready(&state.phase)
             {
                 return;
             }
-            snapshot.phase = AuthenticatedRuntimePhase::Ready;
-            snapshot.updated_at = now_iso();
-            snapshot.clone()
+            state.phase.phase = AuthenticatedRuntimePhase::Ready;
+            state.phase.updated_at = now_iso();
+            state.phase.clone()
         };
         self.emit(snapshot);
     }
@@ -823,8 +883,8 @@ impl AuthenticatedRuntimeOrchestrator {
         self.event_bus.emit(snapshot);
     }
 
-    fn lock_snapshot(&self) -> MutexGuard<'_, AuthenticatedRuntimePhaseSnapshot> {
-        self.snapshot
+    fn lock_state(&self) -> MutexGuard<'_, AuthenticatedRuntimeState> {
+        self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
@@ -859,13 +919,91 @@ fn ready_step(attempt: u32, detail: String) -> AuthenticatedRuntimeStepSnapshot 
 }
 
 fn commit_friend_baseline(
-    snapshot: &mut AuthenticatedRuntimePhaseSnapshot,
+    state: &mut AuthenticatedRuntimeState,
     attempt: u32,
     output: SocialFriendRosterBaselineOutput,
-) {
-    snapshot.friends = ready_step(attempt, format!("{} friends loaded.", output.count));
-    snapshot.friend_baseline_revision = snapshot.friend_baseline_revision.saturating_add(1);
-    snapshot.friend_baseline = Some(output);
+) -> AuthenticatedRuntimePhaseSnapshot {
+    state.phase.friends = ready_step(attempt, format!("{} friends loaded.", output.count));
+    state.phase.friend_baseline_revision = state.phase.friend_baseline_revision.saturating_add(1);
+    state.friend_baseline = Some(friend_baseline_metadata(&output));
+    state.phase.friend_baseline = None;
+    state.phase.favorites_baseline = None;
+    state.phase.updated_at = now_iso();
+    let mut emitted = state.phase.clone();
+    emitted.friend_baseline = Some(output);
+    emitted
+}
+
+fn commit_favorites_baseline(
+    state: &mut AuthenticatedRuntimeState,
+    attempt: u32,
+    output: SocialFavoritesBaselineOutput,
+) -> AuthenticatedRuntimePhaseSnapshot {
+    state.phase.favorites = ready_step(attempt, format!("{} favorites loaded.", output.count));
+    state.favorites_baseline = Some(output.clone());
+    state.phase.friend_baseline = None;
+    state.phase.favorites_baseline = None;
+    state.phase.updated_at = now_iso();
+    let mut emitted = state.phase.clone();
+    emitted.favorites_baseline = Some(output);
+    emitted
+}
+
+fn friend_baseline_metadata(output: &SocialFriendRosterBaselineOutput) -> FriendBaselineMetadata {
+    let ordered_friend_ids = output
+        .snapshot
+        .as_ref()
+        .and_then(|snapshot| snapshot.as_value().get("orderedFriendIds"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    FriendBaselineMetadata {
+        user_id: output.user_id.clone(),
+        stale: output.stale,
+        detail: output.detail.clone(),
+        ordered_friend_ids: ordered_friend_ids.into(),
+    }
+}
+
+fn current_friend_baseline_output(
+    metadata: FriendBaselineMetadata,
+    current: RealtimeFriendRosterSnapshot,
+) -> SocialFriendRosterBaselineOutput {
+    SocialFriendRosterBaselineOutput {
+        user_id: metadata.user_id,
+        stale: metadata.stale,
+        count: current.friend_count,
+        detail: metadata.detail,
+        snapshot: Some(RawJson::from(current.snapshot)),
+        friend_log_changed: false,
+    }
+}
+
+fn assemble_authenticated_runtime_snapshot(
+    mut snapshot: AuthenticatedRuntimePhaseSnapshot,
+    friend_baseline: Option<FriendBaselineMetadata>,
+    current_friends: Option<RealtimeFriendRosterSnapshot>,
+    favorites_baseline: Option<SocialFavoritesBaselineOutput>,
+) -> AuthenticatedRuntimePhaseSnapshot {
+    snapshot.favorites_baseline = favorites_baseline;
+    let (Some(friend_baseline), Some(current_friends)) = (friend_baseline, current_friends) else {
+        return snapshot;
+    };
+    if current_friends.current_user_id != snapshot.user_id
+        || current_friends.endpoint != snapshot.endpoint
+        || current_friends.websocket != snapshot.websocket
+        || friend_baseline.user_id != snapshot.user_id
+    {
+        return snapshot;
+    }
+    snapshot.friend_baseline = Some(current_friend_baseline_output(
+        friend_baseline,
+        current_friends,
+    ));
+    snapshot
 }
 
 fn all_steps_ready(snapshot: &AuthenticatedRuntimePhaseSnapshot) -> bool {
@@ -922,74 +1060,6 @@ fn snapshot_matches_session(
         && snapshot.user_id == session.user_id
         && snapshot.endpoint == session.endpoint
         && snapshot.websocket == session.websocket
-}
-
-fn current_friend_baseline_snapshot(
-    user_id: &str,
-    friends_by_id: &HashMap<String, FriendRecord>,
-    previous: Option<&Value>,
-) -> Result<Value> {
-    let mut ordered_friend_ids = previous
-        .and_then(|snapshot| snapshot.get("orderedFriendIds"))
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .filter(|friend_id| friends_by_id.contains_key(*friend_id))
-        .map(str::to_string)
-        .collect::<Vec<_>>();
-    let mut seen = ordered_friend_ids.iter().cloned().collect::<HashSet<_>>();
-    let mut added = friends_by_id
-        .keys()
-        .filter(|friend_id| seen.insert((*friend_id).clone()))
-        .cloned()
-        .collect::<Vec<_>>();
-    added.sort();
-    ordered_friend_ids.extend(added);
-
-    let bucket_ids = |bucket: &str| {
-        ordered_friend_ids
-            .iter()
-            .filter(|friend_id| {
-                friends_by_id
-                    .get(*friend_id)
-                    .is_some_and(|friend| friend_state_bucket(friend) == bucket)
-            })
-            .cloned()
-            .collect::<Vec<_>>()
-    };
-    let online_ids = bucket_ids("online");
-    let active_ids = bucket_ids("active");
-    let offline_ids = bucket_ids("offline");
-    let ordered_friend_ids = online_ids
-        .iter()
-        .chain(&active_ids)
-        .chain(&offline_ids)
-        .cloned()
-        .collect::<Vec<_>>();
-
-    Ok(json!({
-        "currentUserId": user_id,
-        "friendsById": friends_by_id,
-        "orderedFriendIds": ordered_friend_ids,
-        "onlineIds": online_ids,
-        "activeIds": active_ids,
-        "offlineIds": offline_ids,
-        "detail": "",
-    }))
-}
-
-fn friend_state_bucket(friend: &FriendRecord) -> &str {
-    let state = if friend.state_bucket.is_empty() {
-        friend.state.as_str()
-    } else {
-        friend.state_bucket.as_str()
-    };
-    match state {
-        "online" => "online",
-        "active" => "active",
-        _ => "offline",
-    }
 }
 
 pub fn favorite_group_membership_from_baseline(
@@ -1140,8 +1210,8 @@ mod tests {
     }
 
     #[test]
-    fn friend_rebaseline_commits_full_output_and_advances_phase_revision() {
-        let mut snapshot = AuthenticatedRuntimePhaseSnapshot::default();
+    fn friend_rebaseline_emits_full_output_without_storing_it_in_phase() {
+        let mut state = AuthenticatedRuntimeState::default();
         let output = SocialFriendRosterBaselineOutput {
             user_id: "usr_self".into(),
             stale: false,
@@ -1151,9 +1221,11 @@ mod tests {
             friend_log_changed: false,
         };
 
-        commit_friend_baseline(&mut snapshot, 1, output.clone());
-        assert_eq!(snapshot.friend_baseline_revision, 1);
-        let committed = snapshot.friend_baseline.as_ref().unwrap();
+        let emitted = commit_friend_baseline(&mut state, 1, output.clone());
+
+        assert_eq!(state.phase.friend_baseline_revision, 1);
+        assert!(state.phase.friend_baseline.is_none());
+        let committed = emitted.friend_baseline.as_ref().unwrap();
         assert_eq!(committed.user_id, "usr_self");
         assert_eq!(committed.count, 1);
         assert_eq!(committed.detail, "Friends ready.");
@@ -1162,45 +1234,106 @@ mod tests {
             &json!({"friendsById": {}})
         );
 
-        commit_friend_baseline(&mut snapshot, 1, output);
-        assert_eq!(snapshot.friend_baseline_revision, 2);
+        let emitted = commit_friend_baseline(&mut state, 1, output);
+        assert_eq!(state.phase.friend_baseline_revision, 2);
+        assert!(state.phase.friend_baseline.is_none());
+        assert!(emitted.friend_baseline.is_some());
     }
 
     #[test]
-    fn current_friend_snapshot_preserves_order_and_appends_new_friends() {
-        let friends = HashMap::from([
-            (
-                "usr_existing".into(),
-                FriendRecord {
-                    id: "usr_existing".into(),
-                    state_bucket: "active".into(),
-                    ..Default::default()
-                },
-            ),
-            (
-                "usr_new".into(),
-                FriendRecord {
-                    id: "usr_new".into(),
-                    state_bucket: "online".into(),
-                    ..Default::default()
-                },
-            ),
-        ]);
-        let snapshot = current_friend_baseline_snapshot(
-            "usr_self",
-            &friends,
-            Some(&json!({
-                "orderedFriendIds": ["usr_removed", "usr_existing"]
-            })),
-        )
-        .unwrap();
+    fn favorites_baseline_emits_full_output_without_storing_it_in_phase() {
+        let mut state = AuthenticatedRuntimeState::default();
+        let output = SocialFavoritesBaselineOutput {
+            user_id: "usr_self".into(),
+            stale: false,
+            count: 1,
+            snapshot: Some(FavoriteBaselineSnapshot {
+                current_user_id: "usr_self".into(),
+                ..Default::default()
+            }),
+        };
+
+        let emitted = commit_favorites_baseline(&mut state, 1, output);
 
         assert_eq!(
-            snapshot["orderedFriendIds"],
-            json!(["usr_new", "usr_existing"])
+            state.phase.favorites.status,
+            AuthenticatedRuntimeStepStatus::Ready
         );
-        assert_eq!(snapshot["onlineIds"], json!(["usr_new"]));
-        assert_eq!(snapshot["activeIds"], json!(["usr_existing"]));
-        assert_eq!(snapshot["offlineIds"], json!([]));
+        assert!(state.phase.favorites_baseline.is_none());
+        assert!(state.favorites_baseline.is_some());
+        assert!(emitted.favorites_baseline.is_some());
+    }
+
+    #[test]
+    fn combined_snapshot_reattaches_current_friend_and_favorites_baselines() {
+        let mut state = AuthenticatedRuntimeState {
+            phase: AuthenticatedRuntimePhaseSnapshot {
+                user_id: "usr_self".into(),
+                endpoint: "https://api.example.test".into(),
+                websocket: "wss://ws.example.test".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        commit_friend_baseline(
+            &mut state,
+            1,
+            SocialFriendRosterBaselineOutput {
+                user_id: "usr_self".into(),
+                stale: false,
+                count: 1,
+                detail: "Friends ready.".into(),
+                snapshot: Some(RawJson::from(json!({
+                    "orderedFriendIds": ["usr_friend"]
+                }))),
+                friend_log_changed: true,
+            },
+        );
+        commit_favorites_baseline(
+            &mut state,
+            1,
+            SocialFavoritesBaselineOutput {
+                user_id: "usr_self".into(),
+                stale: false,
+                count: 1,
+                snapshot: Some(FavoriteBaselineSnapshot {
+                    current_user_id: "usr_self".into(),
+                    ..Default::default()
+                }),
+            },
+        );
+
+        let snapshot = assemble_authenticated_runtime_snapshot(
+            state.phase.clone(),
+            state.friend_baseline.clone(),
+            Some(RealtimeFriendRosterSnapshot {
+                current_user_id: "usr_self".into(),
+                endpoint: "https://api.example.test".into(),
+                websocket: "wss://ws.example.test".into(),
+                friend_count: 1,
+                snapshot: json!({
+                    "currentUserId": "usr_self",
+                    "friendsById": {"usr_friend": {"id": "usr_friend"}},
+                    "orderedFriendIds": ["usr_friend"],
+                    "onlineIds": [],
+                    "activeIds": [],
+                    "offlineIds": ["usr_friend"],
+                    "detail": ""
+                }),
+            }),
+            state.favorites_baseline.clone(),
+        );
+
+        assert!(state.phase.friend_baseline.is_none());
+        assert!(state.phase.favorites_baseline.is_none());
+        assert_eq!(snapshot.friend_baseline.as_ref().unwrap().count, 1);
+        assert!(
+            !snapshot
+                .friend_baseline
+                .as_ref()
+                .unwrap()
+                .friend_log_changed
+        );
+        assert_eq!(snapshot.favorites_baseline.as_ref().unwrap().count, 1);
     }
 }
