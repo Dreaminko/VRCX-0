@@ -130,18 +130,19 @@ export function useWorldDialogData({
         vrchatAuthRepository
             .getCachedConfig({ endpoint: targetEndpoint })
             .catch((): null => null)
-            .then((configResponse) =>
-                Promise.allSettled([
-                    readWorldCacheInfo(world),
+            .then((configResponse) => {
+                const sdkUnityVersion = String(
+                    configResponse?.json?.sdkUnityVersion || ''
+                );
+                return Promise.allSettled([
+                    readWorldCacheInfo(world, sdkUnityVersion),
                     getFileAnalysisForUnityPackages({
                         unityPackages: world.unityPackages,
-                        sdkUnityVersion: String(
-                            configResponse?.json?.sdkUnityVersion || ''
-                        ),
+                        sdkUnityVersion,
                         endpoint: targetEndpoint
                     })
-                ])
-            )
+                ]);
+            })
             .then(([cacheResult, fileAnalysisResult]) => {
                 if (
                     active &&
