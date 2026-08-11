@@ -814,5 +814,4 @@ fn fallback_friend_profile_current(
 }
 
 #[cfg(test)]
-#[path = "friends_tests.rs"]
 mod friends_tests;

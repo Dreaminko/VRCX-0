@@ -1,6 +1,5 @@
-use vrcx_0_persistence::social_aggregates::{FriendChangeEvent, FriendChangeKind};
-
 use super::*;
+use vrcx_0_persistence::social_aggregates::{FriendChangeEvent, FriendChangeKind};
 
 fn change_event(kind: FriendChangeKind, new_value: &str) -> FriendChangeEvent {
     FriendChangeEvent {

@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use super::*;
+use std::path::PathBuf;
 
 struct TestDir {
     path: PathBuf,

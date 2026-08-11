@@ -551,7 +551,7 @@ fn combined_expire_rolls_back_both_versions_when_the_second_write_fails() -> Res
     )?;
 
     let error = notification_expire(&db, "usr_self".into(), "atomic".into()).unwrap_err();
-    assert!(matches!(error, Error::Database(_)));
+    assert!(matches!(error, Error::Sqlite { .. }));
     let v1 = rows_by_id(
         &db,
         "SELECT expired FROM usrself_notifications WHERE id = @id",

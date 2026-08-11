@@ -1,7 +1,6 @@
+use super::*;
 use serde_json::json;
 use vrcx_0_core::friends::FriendRecord;
-
-use super::*;
 
 fn friend(id: &str, display_name: &str, state_bucket: &str, location: &str) -> FriendRecord {
     FriendRecord {

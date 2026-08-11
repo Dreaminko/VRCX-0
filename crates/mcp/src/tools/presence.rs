@@ -140,5 +140,4 @@ fn online_friends_summary(rows: &[OnlineFriendRow]) -> String {
 }
 
 #[cfg(test)]
-#[path = "presence_tests.rs"]
 mod presence_tests;

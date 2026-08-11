@@ -522,5 +522,4 @@ pub(crate) fn current_friend_trust_level(entry: &FriendLogCurrentEntryInput) -> 
 }
 
 #[cfg(test)]
-#[path = "friends_tests.rs"]
 mod friends_tests;
