@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use vrcx_0_application_activity::OverlayActivityDelivery;
 
-use super::generic_webhook::default_webhook_fields;
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum NotificationTtsNameMode {
     #[default]
@@ -67,10 +65,6 @@ pub struct NotificationDeliveryPreferences {
     pub image_notifications: bool,
     pub notification_timeout_ms: i32,
     pub notification_opacity_percent: i32,
-    pub webhook_enabled: bool,
-    pub webhook_url: String,
-    pub webhook_format: NotificationWebhookFormat,
-    pub webhook_fields: Vec<String>,
     pub show_instance_id_in_location: bool,
 }
 
@@ -88,10 +82,6 @@ impl Default for NotificationDeliveryPreferences {
             image_notifications: true,
             notification_timeout_ms: 3000,
             notification_opacity_percent: 100,
-            webhook_enabled: false,
-            webhook_url: String::new(),
-            webhook_format: NotificationWebhookFormat::Generic,
-            webhook_fields: default_webhook_fields(),
             show_instance_id_in_location: false,
         }
     }
@@ -111,7 +101,6 @@ pub struct NotificationDeliveryPlan {
     pub ovrt: bool,
     pub ovrt_hud: bool,
     pub ovrt_wrist: bool,
-    pub webhook: bool,
     pub tts: bool,
 }
 
@@ -136,7 +125,6 @@ pub fn decide_notification_plan(
     let ovrt_hud = vr && preferences.ovrt_hud_notifications;
     let ovrt_wrist = vr && preferences.ovrt_wrist_notifications;
     let ovrt = ovrt_hud || ovrt_wrist;
-    let webhook = should_deliver_webhook(delivery, preferences);
     let tts = delivery.tts && should_play_for_condition(preferences.notification_tts, game);
 
     NotificationDeliveryPlan {
@@ -145,16 +133,8 @@ pub fn decide_notification_plan(
         ovrt,
         ovrt_hud,
         ovrt_wrist,
-        webhook,
         tts,
     }
-}
-
-pub(crate) fn should_deliver_webhook(
-    delivery: &OverlayActivityDelivery,
-    preferences: &NotificationDeliveryPreferences,
-) -> bool {
-    delivery.webhook && preferences.webhook_enabled && !preferences.webhook_url.trim().is_empty()
 }
 
 fn should_play_for_condition(

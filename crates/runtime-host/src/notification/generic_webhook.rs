@@ -1,28 +1,19 @@
+use std::sync::LazyLock;
+
 use serde_json::{json, Value};
 use vrcx_0_application_activity::OverlayActivityDelivery;
 
 use super::{webhook_local_time_string, RenderedNotification};
 
-const DEFAULT_WEBHOOK_FIELDS: &[&str] = &[
-    "version",
-    "event",
-    "category",
-    "title",
-    "message",
-    "user",
-    "location",
-    "locationId",
-    "worldId",
-    "worldName",
-    "timestamp",
-    "localTime",
-];
+const DEFAULT_WEBHOOK_FIELDS_JSON: &str =
+    include_str!("../../../../webhook-generic-fields.json");
+static DEFAULT_WEBHOOK_FIELDS: LazyLock<Vec<String>> = LazyLock::new(|| {
+    serde_json::from_str(DEFAULT_WEBHOOK_FIELDS_JSON)
+        .expect("webhook-generic-fields.json must contain a string array")
+});
 
 pub(crate) fn default_webhook_fields() -> Vec<String> {
-    DEFAULT_WEBHOOK_FIELDS
-        .iter()
-        .map(|field| (*field).to_string())
-        .collect()
+    DEFAULT_WEBHOOK_FIELDS.clone()
 }
 
 pub fn generic_webhook_payload(
@@ -58,7 +49,7 @@ pub fn filter_generic_webhook_payload(payload: Value, fields: &[String]) -> Valu
 
     let mut filtered = serde_json::Map::new();
     if fields.is_empty() {
-        for field in DEFAULT_WEBHOOK_FIELDS {
+        for field in DEFAULT_WEBHOOK_FIELDS.iter() {
             insert_generic_webhook_field(&mut filtered, object, field);
         }
     } else {
@@ -83,5 +74,5 @@ fn insert_generic_webhook_field(
 }
 
 pub(crate) fn is_default_webhook_field(field: &str) -> bool {
-    DEFAULT_WEBHOOK_FIELDS.contains(&field)
+    DEFAULT_WEBHOOK_FIELDS.iter().any(|item| item == field)
 }

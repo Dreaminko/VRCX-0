@@ -1,3 +1,5 @@
+import { DEFAULT_GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
+
 export type ConfigValueType = 'string' | 'int' | 'bool' | 'float';
 export type ConfigDefaultValue = string | number | boolean | null;
 
@@ -172,8 +174,7 @@ export const ConfigKeys = defineConfigKeys({
     webhookFormat: { type: 'string', default: 'generic' },
     webhookFields: {
         type: 'string',
-        default:
-            '["version","event","category","title","message","user","location","locationId","worldId","worldName","timestamp","localTime"]'
+        default: DEFAULT_GENERIC_WEBHOOK_FIELDS
     },
     vrNotificationActivityFilters: { type: 'string', default: '' },
     desktopNotificationActivityFilters: { type: 'string', default: '' },

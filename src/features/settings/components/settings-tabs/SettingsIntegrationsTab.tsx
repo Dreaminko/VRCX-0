@@ -1,7 +1,9 @@
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { commands } from '@/platform/tauri/bindings';
+import type { WebhookDeliverySnapshot } from '@/platform/tauri/bindings';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import { Switch } from '@/ui/shadcn/switch';
@@ -45,9 +47,36 @@ export function SettingsIntegrationsTab({
         onOpenAvatarProviderDialog
     } = integrations;
     const { t } = useTranslation();
+    const [webhookDeliverySnapshot, setWebhookDeliverySnapshot] =
+        useState<WebhookDeliverySnapshot | null>(null);
+    const [webhookDeliveryLoading, setWebhookDeliveryLoading] = useState(true);
     const setSystemHostOpen = useRuntimeStore(
         (state) => state.setSystemHostOpen
     );
+
+    const refreshWebhookDeliveryStatus = useCallback(
+        async (showError: boolean) => {
+            setWebhookDeliveryLoading(true);
+            try {
+                setWebhookDeliverySnapshot(
+                    await commands.appWebhookDeliverySnapshotGet()
+                );
+            } catch (error: unknown) {
+                if (showError) {
+                    toast.error(
+                        error instanceof Error ? error.message : String(error)
+                    );
+                }
+            } finally {
+                setWebhookDeliveryLoading(false);
+            }
+        },
+        []
+    );
+
+    useEffect(() => {
+        void refreshWebhookDeliveryStatus(false);
+    }, [refreshWebhookDeliveryStatus]);
 
     function openVrchatConfig() {
         setSystemHostOpen('vrchatConfigOpen', true);
@@ -101,11 +130,11 @@ export function SettingsIntegrationsTab({
                 webhookFormat,
                 String(prefs.webhookFields || '')
             )
-            .then((status) => {
+            .then((outcome) => {
                 toast.success(
                     t(
                         'view.settings.notifications.notifications.webhook.test_sent',
-                        { status }
+                        { status: outcome.status }
                     )
                 );
             })
@@ -252,6 +281,11 @@ export function SettingsIntegrationsTab({
                     openWebhookNotificationFilters
                 }
                 onTestWebhook={sendTestWebhook}
+                deliverySnapshot={webhookDeliverySnapshot}
+                deliveryStatusLoading={webhookDeliveryLoading}
+                onRefreshDeliveryStatus={() => {
+                    void refreshWebhookDeliveryStatus(true);
+                }}
             />
 
             <SettingsGroup

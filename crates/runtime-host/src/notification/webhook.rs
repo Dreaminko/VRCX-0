@@ -1,13 +1,63 @@
 use std::time::Duration;
-use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde_json::Value;
-use vrcx_0_application_core::{RuntimeDiagnostics, WebClient};
+use vrcx_0_application_core::{TaskStopToken, WebClient};
 use vrcx_0_vrchat_client::web_client::WebExecuteRequest;
 
 const WEBHOOK_TIMEOUT: Duration = Duration::from_secs(10);
 const WEBHOOK_RETRY_DELAYS: &[Duration] = &[Duration::from_millis(750), Duration::from_secs(2)];
 const WEBHOOK_MAX_RETRY_DELAY: Duration = Duration::from_secs(60);
+const WEBHOOK_RESPONSE_BODY_LIMIT: usize = 64 * 1024;
+const WEBHOOK_STOP_POLL_INTERVAL: Duration = Duration::from_millis(50);
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct WebhookDeliveryOutcome {
+    pub status: i32,
+    pub attempts: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WebhookDeliveryFailureKind {
+    Serialization,
+    Timeout,
+    Transport,
+    Http,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WebhookDeliveryFailure {
+    pub status: Option<i32>,
+    pub attempts: u32,
+    pub kind: WebhookDeliveryFailureKind,
+}
+
+impl std::fmt::Display for WebhookDeliveryFailure {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.kind, self.status) {
+            (WebhookDeliveryFailureKind::Serialization, _) => {
+                formatter.write_str("Webhook payload could not be serialized.")
+            }
+            (WebhookDeliveryFailureKind::Timeout, _) => write!(
+                formatter,
+                "Webhook delivery timed out after {} attempt(s).",
+                self.attempts
+            ),
+            (WebhookDeliveryFailureKind::Http, Some(status)) => write!(
+                formatter,
+                "Webhook returned HTTP {status} after {} attempt(s).",
+                self.attempts
+            ),
+            _ => write!(
+                formatter,
+                "Webhook delivery failed after {} attempt(s).",
+                self.attempts
+            ),
+        }
+    }
+}
+
+impl std::error::Error for WebhookDeliveryFailure {}
 
 struct WebhookResponse {
     status: i32,
@@ -16,34 +66,56 @@ struct WebhookResponse {
 
 pub async fn send_json_webhook_with_retry(
     web: &WebClient,
-    diagnostics: &RuntimeDiagnostics,
     url: &str,
     payload: Value,
-    diagnostics_key: &str,
-    event_label: &str,
-) {
+) -> Result<WebhookDeliveryOutcome, WebhookDeliveryFailure> {
     let url = url.trim();
     if url.is_empty() {
-        return;
+        return Err(WebhookDeliveryFailure {
+            status: None,
+            attempts: 0,
+            kind: WebhookDeliveryFailureKind::Transport,
+        });
     }
     let body = match serde_json::to_string(&payload) {
         Ok(body) => body,
-        Err(error) => {
-            diagnostics.record_command(
-                diagnostics_key,
-                RuntimeOperationStatus::Error,
-                error.to_string(),
-            );
-            return;
+        Err(_) => {
+            return Err(WebhookDeliveryFailure {
+                status: None,
+                attempts: 0,
+                kind: WebhookDeliveryFailureKind::Serialization,
+            });
         }
     };
-    let mut last_error = String::new();
+    let mut last_failure = WebhookDeliveryFailure {
+        status: None,
+        attempts: 0,
+        kind: WebhookDeliveryFailureKind::Transport,
+    };
     for attempt in 0..=WEBHOOK_RETRY_DELAYS.len() {
+        let attempts = attempt as u32 + 1;
         let mut retry_after = None;
         match send_webhook_once(web, url, &body).await {
-            Ok(response) if (200..=399).contains(&response.status) => return,
+            Ok(response) if (200..=299).contains(&response.status) => {
+                return Ok(WebhookDeliveryOutcome {
+                    status: response.status,
+                    attempts,
+                });
+            }
             Ok(response) => {
-                last_error = format!("HTTP {}", response.status);
+                last_failure = if response.status == -1 {
+                    WebhookDeliveryFailure {
+                        status: None,
+                        attempts,
+                        kind: WebhookDeliveryFailureKind::Transport,
+                    }
+                } else {
+                    WebhookDeliveryFailure {
+                        status: Some(response.status),
+                        attempts,
+                        kind: WebhookDeliveryFailureKind::Http,
+                    }
+                };
                 if !webhook_status_retryable(response.status) {
                     break;
                 }
@@ -51,24 +123,19 @@ pub async fn send_json_webhook_with_retry(
                     retry_after = webhook_retry_after(&response.body);
                 }
             }
-            Err(error) => {
-                last_error = error;
+            Err(kind) => {
+                last_failure = WebhookDeliveryFailure {
+                    status: None,
+                    attempts,
+                    kind,
+                };
             }
         }
         if let Some(fallback_delay) = WEBHOOK_RETRY_DELAYS.get(attempt) {
             tokio::time::sleep(retry_after.unwrap_or(*fallback_delay)).await;
         }
     }
-    diagnostics.record_command(
-        diagnostics_key,
-        RuntimeOperationStatus::Error,
-        format!("{event_label}: {last_error}"),
-    );
-    tracing::warn!(
-        event = %event_label,
-        error = %last_error,
-        "webhook delivery failed"
-    );
+    Err(last_failure)
 }
 
 pub fn webhook_local_time_string(created_at: &str) -> String {
@@ -82,7 +149,7 @@ pub fn webhook_local_time_string(created_at: &str) -> String {
         .unwrap_or_default()
 }
 
-pub(super) fn discord_webhook_url_with_wait(url: &str) -> String {
+pub fn discord_webhook_url_with_wait(url: &str) -> String {
     let url = url.trim();
     let Ok(mut parsed) = url::Url::parse(url) else {
         return url.to_string();
@@ -105,6 +172,12 @@ pub(super) fn discord_webhook_url_with_wait(url: &str) -> String {
     parsed.into()
 }
 
+pub(super) async fn wait_for_webhook_stop(stop_token: &TaskStopToken) {
+    while !stop_token.is_stop_requested() {
+        tokio::time::sleep(WEBHOOK_STOP_POLL_INTERVAL).await;
+    }
+}
+
 fn webhook_retry_after(body: &str) -> Option<Duration> {
     let seconds = serde_json::from_str::<Value>(body)
         .ok()?
@@ -120,16 +193,17 @@ async fn send_webhook_once(
     web: &WebClient,
     url: &str,
     body: &str,
-) -> Result<WebhookResponse, String> {
+) -> Result<WebhookResponse, WebhookDeliveryFailureKind> {
     let mut request = WebExecuteRequest::new(url.to_string(), "POST".to_string());
     request
         .headers
         .push(("Content-Type".into(), "application/json".into()));
     request.body = Some(body.to_string());
+    request.response_body_limit = Some(WEBHOOK_RESPONSE_BODY_LIMIT);
     match tokio::time::timeout(WEBHOOK_TIMEOUT, web.execute(request)).await {
         Ok(Ok((status, body))) => Ok(WebhookResponse { status, body }),
-        Ok(Err(error)) => Err(error.to_string()),
-        Err(_) => Err("timeout".into()),
+        Ok(Err(_)) => Err(WebhookDeliveryFailureKind::Transport),
+        Err(_) => Err(WebhookDeliveryFailureKind::Timeout),
     }
 }
 

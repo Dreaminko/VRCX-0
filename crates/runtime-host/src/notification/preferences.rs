@@ -51,14 +51,6 @@ pub fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPrefer
         image_notifications: config_bool_with_legacy(config, "imageNotifications", true),
         notification_timeout_ms: config_int_with_legacy(config, "notificationTimeout", 3000),
         notification_opacity_percent: config_int_with_legacy(config, "notificationOpacity", 100),
-        webhook_enabled: config_bool(config, "webhookEnabled", false),
-        webhook_url: config_string(config, "webhookUrl", ""),
-        webhook_format: NotificationWebhookFormat::from_config(&config_string(
-            config,
-            "webhookFormat",
-            "generic",
-        )),
-        webhook_fields: parse_webhook_fields(&config_string(config, "webhookFields", "")),
         show_instance_id_in_location: config_bool(config, "VRCX_showInstanceIdInLocation", false),
     }
 }

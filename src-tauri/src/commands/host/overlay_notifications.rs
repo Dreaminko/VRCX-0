@@ -1,19 +1,15 @@
 #![allow(non_snake_case)]
 
-use std::time::Duration;
-
 use serde_json::{json, Value};
 use tauri::State;
 use vrcx_0_runtime_host::notification::{
-    filter_generic_webhook_payload, parse_webhook_fields, webhook_local_time_string,
-    NotificationWebhookFormat,
+    discord_webhook_url_with_wait, filter_generic_webhook_payload, parse_webhook_fields,
+    send_json_webhook_with_retry, webhook_local_time_string, NotificationWebhookFormat,
+    WebhookDeliveryOutcome, WebhookDeliverySnapshot,
 };
-use vrcx_0_vrchat_client::web_client::WebExecuteRequest;
 
 use crate::error::AppError;
 use crate::state::AppState;
-
-const WEBHOOK_TEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[tauri::command]
 #[specta::specta]
@@ -22,25 +18,28 @@ pub async fn app__webhook_send_test(
     url: String,
     format: NotificationWebhookFormat,
     fields: String,
-) -> Result<i32, AppError> {
+) -> Result<WebhookDeliveryOutcome, AppError> {
     let url = url.trim();
     if url.is_empty() {
         return Err(AppError::Custom("Webhook URL is required.".into()));
     }
     let payload = webhook_test_payload(format, &fields);
-    let mut request = WebExecuteRequest::new(url.to_string(), "POST".into());
-    request
-        .headers
-        .push(("Content-Type".into(), "application/json".into()));
-    request.body = Some(serde_json::to_string(&payload)?);
-
-    let (status, data) = tokio::time::timeout(WEBHOOK_TEST_TIMEOUT, state.web.execute(request))
+    let url = if format == NotificationWebhookFormat::Discord {
+        discord_webhook_url_with_wait(url)
+    } else {
+        url.to_string()
+    };
+    send_json_webhook_with_retry(state.web.as_ref(), &url, payload)
         .await
-        .map_err(|_| AppError::Custom("Webhook test timed out.".into()))??;
-    if status == -1 {
-        return Err(AppError::Custom(data));
-    }
-    Ok(status)
+        .map_err(|error| AppError::Custom(error.to_string()))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn app__webhook_delivery_snapshot_get(
+    state: State<'_, AppState>,
+) -> Result<WebhookDeliverySnapshot, AppError> {
+    Ok(state.runtime_context.webhook_delivery_snapshot())
 }
 
 fn webhook_test_payload(format: NotificationWebhookFormat, fields: &str) -> Value {

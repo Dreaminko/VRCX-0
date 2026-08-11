@@ -1,5 +1,5 @@
 use crate::notification::{
-    auth_webhook_should_recover, send_auth_webhook, AuthWebhookEvent, AuthWebhookEventKind,
+    auth_webhook_should_recover, AuthWebhookEvent, AuthWebhookEventKind,
 };
 
 use super::{
@@ -68,8 +68,7 @@ impl RuntimeHostState {
                         reason.clone(),
                         snapshot.clone(),
                     );
-                    self.send_background_auth_recovery_webhook(&context.failed_event(reason))
-                        .await;
+                    self.send_background_auth_recovery_webhook(context.failed_event(reason));
                     return snapshot;
                 }
                 match self.start_authenticated_runtime_session(session) {
@@ -82,8 +81,7 @@ impl RuntimeHostState {
                             reason.clone(),
                             snapshot.clone(),
                         );
-                        self.send_background_auth_recovery_webhook(&context.failed_event(reason))
-                            .await;
+                        self.send_background_auth_recovery_webhook(context.failed_event(reason));
                         snapshot
                     }
                 }
@@ -97,8 +95,7 @@ impl RuntimeHostState {
                     reason.clone(),
                     snapshot.clone(),
                 );
-                self.send_background_auth_recovery_webhook(&context.failed_event(reason))
-                    .await;
+                self.send_background_auth_recovery_webhook(context.failed_event(reason));
                 snapshot
             }
             Err(NonInteractiveAuthError::SessionInvalidated {
@@ -110,8 +107,7 @@ impl RuntimeHostState {
                     reason.clone(),
                     snapshot.clone(),
                 );
-                self.send_background_auth_recovery_webhook(&context.failed_event(reason))
-                    .await;
+                self.send_background_auth_recovery_webhook(context.failed_event(reason));
                 snapshot
             }
             Err(NonInteractiveAuthError::Failed(reason)) => {
@@ -121,21 +117,14 @@ impl RuntimeHostState {
                     reason.clone(),
                     snapshot.clone(),
                 );
-                self.send_background_auth_recovery_webhook(&context.failed_event(reason))
-                    .await;
+                self.send_background_auth_recovery_webhook(context.failed_event(reason));
                 snapshot
             }
         }
     }
 
-    async fn send_background_auth_recovery_webhook(&self, event: &AuthWebhookEvent) {
-        send_auth_webhook(
-            self.runtime_context.config(),
-            self.web.as_ref(),
-            &self.runtime_context.diagnostics,
-            event,
-        )
-        .await;
+    fn send_background_auth_recovery_webhook(&self, event: AuthWebhookEvent) {
+        self.runtime_context.enqueue_auth_webhook(event);
     }
 
     fn background_auth_recovery_endpoint(&self, snapshot: &BackendRuntimeSnapshot) -> String {

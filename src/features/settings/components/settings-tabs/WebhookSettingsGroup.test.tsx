@@ -168,6 +168,9 @@ describe('WebhookSettingsGroup', () => {
                 onWebhookFieldsChange={noop}
                 onOpenWebhookNotificationFiltersDialog={noop}
                 onTestWebhook={noop}
+                deliverySnapshot={null}
+                deliveryStatusLoading={false}
+                onRefreshDeliveryStatus={noop}
             />
         );
 

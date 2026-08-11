@@ -20,28 +20,6 @@ use vrcx_0_runtime_host::notification::{
 use vrcx_0_runtime_host_desktop::notification::{DesktopNotifier, DesktopNotifierSlot};
 
 #[test]
-fn webhook_delivery_ignores_game_state_conditions() {
-    let preferences = NotificationDeliveryPreferences {
-        desktop_toast: NotificationDeliveryCondition::GameRunning,
-        notification_tts: NotificationDeliveryCondition::GameRunning,
-        webhook_enabled: true,
-        webhook_url: "https://example.com/webhook".into(),
-        ..NotificationDeliveryPreferences::default()
-    };
-    let game = NotificationDeliveryGameState {
-        is_game_running: false,
-        is_steamvr_running: false,
-        is_game_no_vr: false,
-    };
-
-    let plan = decide_notification_plan(&delivery(true, true, true, true), &preferences, &game);
-
-    assert!(!plan.desktop);
-    assert!(!plan.tts);
-    assert!(plan.webhook);
-}
-
-#[test]
 fn vr_delivery_requires_steamvr_and_enabled_channels() {
     let preferences = NotificationDeliveryPreferences {
         xs_notifications: true,

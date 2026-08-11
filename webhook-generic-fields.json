@@ -1,0 +1,14 @@
+[
+    "version",
+    "event",
+    "category",
+    "title",
+    "message",
+    "user",
+    "location",
+    "locationId",
+    "worldId",
+    "worldName",
+    "timestamp",
+    "localTime"
+]

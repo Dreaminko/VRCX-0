@@ -18,9 +18,10 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::notification::{
     load_overlay_activity_filters, save_notification_activity_filters,
-    save_overlay_activity_preference_filters, seed_hmd_notifications_default,
-    NotificationActivityFiltersSetInput, NotificationWebhookSink, NotificationWebhookSinkDeps,
-    OverlayActivityPreferenceFilters, UserImageCache,
+    save_overlay_activity_preference_filters, seed_hmd_notifications_default, AuthWebhookEvent,
+    AuthWebhookQueue, AuthWebhookQueueDeps, NotificationActivityFiltersSetInput,
+    NotificationWebhookSink, NotificationWebhookSinkDeps, OverlayActivityPreferenceFilters,
+    UserImageCache, WebhookDeliveryMonitor, WebhookDeliverySnapshot,
 };
 
 const AVATAR_CACHE_WORKING_CAPACITY: u64 = 256;
@@ -100,6 +101,8 @@ pub struct RuntimeHostContext {
     overlay_activity: OverlayActivityRuntime,
     overlay_activity_sinks: OverlayActivityFanoutSink,
     notification_user_image_cache: Arc<UserImageCache>,
+    auth_webhook_queue: AuthWebhookQueue,
+    webhook_delivery_monitor: WebhookDeliveryMonitor,
 }
 
 impl RuntimeHostContext {
@@ -130,6 +133,14 @@ impl RuntimeHostContext {
             OverlayActivityRuntime::with_filters(load_overlay_activity_filters(&config));
         let overlay_activity_sinks = OverlayActivityFanoutSink::default();
         let notification_user_image_cache = Arc::new(UserImageCache::new());
+        let webhook_delivery_monitor = WebhookDeliveryMonitor::default();
+        let auth_webhook_queue = AuthWebhookQueue::new(AuthWebhookQueueDeps {
+            config: config.clone(),
+            web: Arc::clone(&web),
+            diagnostics: diagnostics.clone(),
+            monitor: webhook_delivery_monitor.clone(),
+            tasks: tasks.clone(),
+        });
         let vrc_status = VrcStatusService::new(Arc::clone(&web), event_bus.clone());
         overlay_activity_sinks.add(Arc::new(OverlayActivityRuntimeEventSink {
             event_bus: event_bus.clone(),
@@ -143,6 +154,7 @@ impl RuntimeHostContext {
                 world_cache: Arc::clone(&world_cache),
                 user_image_cache: Arc::clone(&notification_user_image_cache),
                 diagnostics: diagnostics.clone(),
+                monitor: webhook_delivery_monitor.clone(),
                 tasks: tasks.clone(),
             },
         )));
@@ -170,6 +182,8 @@ impl RuntimeHostContext {
             overlay_activity,
             overlay_activity_sinks,
             notification_user_image_cache,
+            auth_webhook_queue,
+            webhook_delivery_monitor,
         }
     }
 
@@ -187,6 +201,14 @@ impl RuntimeHostContext {
 
     pub fn notification_user_image_cache(&self) -> Arc<UserImageCache> {
         Arc::clone(&self.notification_user_image_cache)
+    }
+
+    pub fn enqueue_auth_webhook(&self, event: AuthWebhookEvent) {
+        self.auth_webhook_queue.enqueue(event);
+    }
+
+    pub fn webhook_delivery_snapshot(&self) -> WebhookDeliverySnapshot {
+        self.webhook_delivery_monitor.snapshot()
     }
 
     pub fn reload_overlay_activity_filters(&self) {

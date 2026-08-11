@@ -1,14 +1,19 @@
+use std::sync::Arc;
+
 use serde_json::{json, Value};
 use vrcx_0_application_core::{
-    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, RuntimeDiagnostics, WebClient,
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, RuntimeDiagnostics,
+    TaskStopToken, TaskSupervisor, WebClient,
 };
 use vrcx_0_persistence::config::ConfigRepository;
 
-use super::webhook::discord_webhook_url_with_wait;
+use super::webhook::{discord_webhook_url_with_wait, wait_for_webhook_stop};
+use super::webhook_delivery::{WebhookDeliveryChannel, WebhookDeliveryMonitor};
 use super::{send_json_webhook_with_retry, webhook_local_time_string, NotificationWebhookFormat};
 
 const AUTH_WEBHOOK_ENABLED_CONFIG_KEY: &str = "webhookAuthEventsEnabled";
 const AUTH_WEBHOOK_DIAGNOSTICS_KEY: &str = "authWebhook";
+const AUTH_WEBHOOK_QUEUE_CAPACITY: usize = 16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AuthWebhookEventKind {
@@ -23,6 +28,74 @@ pub struct AuthWebhookEvent {
     pub reason: String,
     pub mode: BackendRuntimeMode,
     pub timestamp: String,
+}
+
+struct AuthWebhookJob {
+    url: String,
+    payload: Value,
+    event_label: &'static str,
+}
+
+struct AuthWebhookWorkerDeps {
+    config: ConfigRepository,
+    web: Arc<WebClient>,
+    diagnostics: RuntimeDiagnostics,
+    monitor: WebhookDeliveryMonitor,
+}
+
+pub(crate) struct AuthWebhookQueueDeps {
+    pub(crate) config: ConfigRepository,
+    pub(crate) web: Arc<WebClient>,
+    pub(crate) diagnostics: RuntimeDiagnostics,
+    pub(crate) monitor: WebhookDeliveryMonitor,
+    pub(crate) tasks: TaskSupervisor,
+}
+
+#[derive(Clone)]
+pub(crate) struct AuthWebhookQueue {
+    diagnostics: RuntimeDiagnostics,
+    monitor: WebhookDeliveryMonitor,
+    queue: tokio::sync::mpsc::Sender<AuthWebhookEvent>,
+}
+
+impl AuthWebhookQueue {
+    pub(crate) fn new(deps: AuthWebhookQueueDeps) -> Self {
+        let (queue, receiver) = tokio::sync::mpsc::channel(AUTH_WEBHOOK_QUEUE_CAPACITY);
+        let worker_deps = AuthWebhookWorkerDeps {
+            config: deps.config,
+            web: deps.web,
+            diagnostics: deps.diagnostics.clone(),
+            monitor: deps.monitor.clone(),
+        };
+        deps.tasks.spawn_cancellable(move |stop_token| {
+            run_auth_webhook_worker(receiver, worker_deps, stop_token)
+        });
+        Self {
+            diagnostics: deps.diagnostics,
+            monitor: deps.monitor,
+            queue,
+        }
+    }
+
+    pub(crate) fn enqueue(&self, event: AuthWebhookEvent) {
+        if let Err(error) = self.queue.try_send(event) {
+            let (event_label, reason) = match error {
+                tokio::sync::mpsc::error::TrySendError::Full(event) => {
+                    (event.kind.as_event_name(), "queue full")
+                }
+                tokio::sync::mpsc::error::TrySendError::Closed(event) => {
+                    (event.kind.as_event_name(), "worker stopped")
+                }
+            };
+            self.monitor.record_drop(
+                &self.diagnostics,
+                AUTH_WEBHOOK_DIAGNOSTICS_KEY,
+                WebhookDeliveryChannel::Auth,
+                event_label,
+                reason,
+            );
+        }
+    }
 }
 
 impl AuthWebhookEventKind {
@@ -57,14 +130,12 @@ pub fn auth_webhook_is_enabled(config: &ConfigRepository) -> bool {
             .is_empty()
 }
 
-pub async fn send_auth_webhook(
+fn auth_webhook_job(
     config: &ConfigRepository,
-    web: &WebClient,
-    diagnostics: &RuntimeDiagnostics,
     event: &AuthWebhookEvent,
-) {
+) -> Option<AuthWebhookJob> {
     if !auth_webhook_is_enabled(config) {
-        return;
+        return None;
     }
     let url = config.get_string("webhookUrl", "").unwrap_or_default();
     let format = NotificationWebhookFormat::from_config(
@@ -81,15 +152,45 @@ pub async fn send_auth_webhook(
             (url.trim().to_string(), auth_webhook_generic_payload(event))
         }
     };
-    send_json_webhook_with_retry(
-        web,
-        diagnostics,
-        &url,
+    Some(AuthWebhookJob {
+        url,
         payload,
+        event_label: event.kind.as_event_name(),
+    })
+}
+
+async fn run_auth_webhook_worker(
+    mut receiver: tokio::sync::mpsc::Receiver<AuthWebhookEvent>,
+    deps: AuthWebhookWorkerDeps,
+    stop_token: TaskStopToken,
+) {
+    loop {
+        let event = tokio::select! {
+            event = receiver.recv() => event,
+            _ = wait_for_webhook_stop(&stop_token) => return,
+        };
+        let Some(event) = event else {
+            return;
+        };
+        let Some(job) = auth_webhook_job(&deps.config, &event) else {
+            continue;
+        };
+        tokio::select! {
+            _ = deliver_auth_webhook(&deps, job) => {}
+            _ = wait_for_webhook_stop(&stop_token) => return,
+        }
+    }
+}
+
+async fn deliver_auth_webhook(deps: &AuthWebhookWorkerDeps, job: AuthWebhookJob) {
+    let result = send_json_webhook_with_retry(deps.web.as_ref(), &job.url, job.payload).await;
+    deps.monitor.record_result(
+        &deps.diagnostics,
         AUTH_WEBHOOK_DIAGNOSTICS_KEY,
-        event.kind.as_event_name(),
-    )
-    .await;
+        WebhookDeliveryChannel::Auth,
+        job.event_label,
+        &result,
+    );
 }
 
 pub fn auth_webhook_generic_payload(event: &AuthWebhookEvent) -> Value {

@@ -2389,12 +2389,15 @@ export const commands = {
         url: string,
         format: NotificationWebhookFormat,
         fields: string
-    ): Promise<number> {
+    ): Promise<WebhookDeliveryOutcome> {
         return await TAURI_INVOKE('app__webhook_send_test', {
             url,
             format,
             fields
         });
+    },
+    async appWebhookDeliverySnapshotGet(): Promise<WebhookDeliverySnapshot> {
+        return await TAURI_INVOKE('app__webhook_delivery_snapshot_get');
     },
     async appAuthFailureNotificationShow(reason: string | null): Promise<null> {
         return await TAURI_INVOKE('app__auth_failure_notification_show', {
@@ -5867,6 +5870,22 @@ export type VrchatWorldPersistentDataDeleteInput = {
 export type VrchatWorldSaveInput = {
     worldId?: string;
     params: JsonValue | null;
+};
+export type WebhookDeliveryChannelSnapshot = {
+    lastSuccess: WebhookDeliveryRecord | null;
+    lastFailure: WebhookDeliveryRecord | null;
+    droppedCount: number;
+};
+export type WebhookDeliveryOutcome = { status: number; attempts: number };
+export type WebhookDeliveryRecord = {
+    event: string;
+    status: number | null;
+    attempts: number;
+    observedAt: string;
+};
+export type WebhookDeliverySnapshot = {
+    notification: WebhookDeliveryChannelSnapshot;
+    auth: WebhookDeliveryChannelSnapshot;
 };
 export type WorldDetail = {
     id?: string;

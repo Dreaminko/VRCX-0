@@ -148,6 +148,11 @@ async fn headless_recent_notification_sends_one_webhook_and_deduplicates() {
     let payload: serde_json::Value = serde_json::from_str(body).unwrap();
     assert_eq!(payload["event"], "invite");
     assert_eq!(payload["user"]["id"], "usr_sender");
+    let delivery_status = state.runtime_context.webhook_delivery_snapshot();
+    let last_success = delivery_status.notification.last_success.unwrap();
+    assert_eq!(last_success.event, "invite");
+    assert_eq!(last_success.status, Some(204));
+    assert_eq!(last_success.attempts, 1);
 }
 
 fn serve_webhook_requests(listener: TcpListener, capture_tx: mpsc::Sender<(usize, String)>) {

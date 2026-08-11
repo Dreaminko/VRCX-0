@@ -1,6 +1,12 @@
 import { CircleHelpIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
+import type {
+    WebhookDeliveryChannelSnapshot,
+    WebhookDeliveryRecord,
+    WebhookDeliverySnapshot
+} from '@/platform/tauri/bindings';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
@@ -56,22 +62,20 @@ const DISCORD_WEBHOOK_EXAMPLE = `{
   ]
 }`;
 
-const WEBHOOK_PAYLOAD_FIELDS: Array<[string, string]> = [
-    ['version', 'field_option_version'],
-    ['event', 'field_option_event'],
-    ['category', 'field_option_category'],
-    ['title', 'field_option_title'],
-    ['message', 'field_option_message'],
-    ['user', 'field_option_user'],
-    ['location', 'field_option_location'],
-    ['locationId', 'field_option_location_id'],
-    ['worldId', 'field_option_world_id'],
-    ['worldName', 'field_option_world_name'],
-    ['timestamp', 'field_option_timestamp'],
-    ['localTime', 'field_option_local_time']
-];
-
-const DEFAULT_WEBHOOK_FIELDS = WEBHOOK_PAYLOAD_FIELDS.map(([field]) => field);
+const WEBHOOK_FIELD_LABEL_KEYS: Record<string, string> = {
+    version: 'field_option_version',
+    event: 'field_option_event',
+    category: 'field_option_category',
+    title: 'field_option_title',
+    message: 'field_option_message',
+    user: 'field_option_user',
+    location: 'field_option_location',
+    locationId: 'field_option_location_id',
+    worldId: 'field_option_world_id',
+    worldName: 'field_option_world_name',
+    timestamp: 'field_option_timestamp',
+    localTime: 'field_option_local_time'
+};
 
 const webhookFormatOptions = [
     [
@@ -106,6 +110,9 @@ type WebhookSettingsGroupProps = {
     onWebhookFieldsChange(value: string): void;
     onOpenWebhookNotificationFiltersDialog(): void;
     onTestWebhook(): void;
+    deliverySnapshot: WebhookDeliverySnapshot | null;
+    deliveryStatusLoading: boolean;
+    onRefreshDeliveryStatus(): void;
 };
 
 function parseWebhookFields(value: unknown): string[] {
@@ -123,15 +130,15 @@ function parseWebhookFields(value: unknown): string[] {
     }
     const selected = parsed
         .map((field) => String(field || '').trim())
-        .filter((field) => DEFAULT_WEBHOOK_FIELDS.includes(field));
+        .filter((field) => GENERIC_WEBHOOK_FIELDS.includes(field));
     return selected.length
         ? Array.from(new Set(selected))
-        : DEFAULT_WEBHOOK_FIELDS;
+        : [...GENERIC_WEBHOOK_FIELDS];
 }
 
 function formatWebhookFields(fields: string[]): string {
     return JSON.stringify(
-        fields.filter((field) => DEFAULT_WEBHOOK_FIELDS.includes(field))
+        fields.filter((field) => GENERIC_WEBHOOK_FIELDS.includes(field))
     );
 }
 
@@ -146,8 +153,8 @@ function updateWebhookFields(
     } else {
         current.delete(field);
     }
-    const ordered = DEFAULT_WEBHOOK_FIELDS.filter((item) => current.has(item));
-    return ordered.length ? ordered : [...DEFAULT_WEBHOOK_FIELDS];
+    const ordered = GENERIC_WEBHOOK_FIELDS.filter((item) => current.has(item));
+    return ordered.length ? ordered : [...GENERIC_WEBHOOK_FIELDS];
 }
 
 export function WebhookSettingsGroup({
@@ -159,7 +166,10 @@ export function WebhookSettingsGroup({
     onWebhookFormatChange,
     onWebhookFieldsChange,
     onOpenWebhookNotificationFiltersDialog,
-    onTestWebhook
+    onTestWebhook,
+    deliverySnapshot,
+    deliveryStatusLoading,
+    onRefreshDeliveryStatus
 }: WebhookSettingsGroupProps) {
     const { t } = useTranslation();
     const webhookControlsEnabled =
@@ -309,7 +319,111 @@ export function WebhookSettingsGroup({
                     )}
                 </Button>
             </Field>
+
+            <Field
+                label={t(
+                    'view.settings.notifications.notifications.webhook.delivery_status'
+                )}
+            >
+                <div className="flex w-full flex-col gap-3">
+                    <WebhookDeliveryChannelStatus
+                        label={t(
+                            'view.settings.notifications.notifications.webhook.delivery_activity'
+                        )}
+                        snapshot={deliverySnapshot?.notification ?? null}
+                    />
+                    <WebhookDeliveryChannelStatus
+                        label={t(
+                            'view.settings.notifications.notifications.webhook.delivery_auth'
+                        )}
+                        snapshot={deliverySnapshot?.auth ?? null}
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={deliveryStatusLoading}
+                        onClick={onRefreshDeliveryStatus}
+                    >
+                        {t('common.actions.refresh')}
+                    </Button>
+                </div>
+            </Field>
         </SettingsGroup>
+    );
+}
+
+function WebhookDeliveryChannelStatus({
+    label,
+    snapshot
+}: {
+    label: string;
+    snapshot: WebhookDeliveryChannelSnapshot | null;
+}) {
+    const { t } = useTranslation();
+
+    return (
+        <div className="flex flex-col gap-1 rounded-md border p-2 text-xs">
+            <div className="font-medium">{label}</div>
+            <WebhookDeliveryRecordStatus
+                label={t(
+                    'view.settings.notifications.notifications.webhook.delivery_last_success'
+                )}
+                record={snapshot?.lastSuccess ?? null}
+            />
+            <WebhookDeliveryRecordStatus
+                label={t(
+                    'view.settings.notifications.notifications.webhook.delivery_last_failure'
+                )}
+                record={snapshot?.lastFailure ?? null}
+            />
+            <div className="text-muted-foreground">
+                {t(
+                    'view.settings.notifications.notifications.webhook.delivery_dropped',
+                    { count: snapshot?.droppedCount ?? 0 }
+                )}
+            </div>
+        </div>
+    );
+}
+
+function WebhookDeliveryRecordStatus({
+    label,
+    record
+}: {
+    label: string;
+    record: WebhookDeliveryRecord | null;
+}) {
+    const { t } = useTranslation();
+    if (!record) {
+        return (
+            <div className="text-muted-foreground">
+                {label}:{' '}
+                {t(
+                    'view.settings.notifications.notifications.webhook.delivery_never'
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="text-muted-foreground">
+            {label}:{' '}
+            {t(
+                'view.settings.notifications.notifications.webhook.delivery_record',
+                {
+                    event: record.event,
+                    status:
+                        record.status === null
+                            ? t(
+                                  'view.settings.notifications.notifications.webhook.delivery_no_status'
+                              )
+                            : `HTTP ${record.status}`,
+                    attempts: record.attempts,
+                    time: new Date(record.observedAt).toLocaleString()
+                }
+            )}
+        </div>
     );
 }
 
@@ -376,7 +490,7 @@ function WebhookPayloadFieldsDialog({
                             ) : null}
                         </div>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                            {WEBHOOK_PAYLOAD_FIELDS.map(([field, labelKey]) => (
+                            {GENERIC_WEBHOOK_FIELDS.map((field) => (
                                 <label
                                     key={field}
                                     className="flex min-h-9 items-center gap-2 text-sm"
@@ -401,7 +515,7 @@ function WebhookPayloadFieldsDialog({
                                         }
                                     >
                                         {t(
-                                            `view.settings.notifications.notifications.webhook.${labelKey}`
+                                            `view.settings.notifications.notifications.webhook.${WEBHOOK_FIELD_LABEL_KEYS[field]}`
                                         )}
                                     </span>
                                 </label>
@@ -464,6 +578,36 @@ function WebhookPayloadFieldsDialog({
                             <li>
                                 {t(
                                     'view.settings.notifications.notifications.webhook.field_discord'
+                                )}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div className="flex flex-col gap-2 text-sm">
+                        <div className="font-medium">
+                            {t(
+                                'view.settings.notifications.notifications.webhook.delivery_contract_title'
+                            )}
+                        </div>
+                        <ul className="text-muted-foreground flex list-disc flex-col gap-1 pl-5">
+                            <li>
+                                {t(
+                                    'view.settings.notifications.notifications.webhook.delivery_contract_http'
+                                )}
+                            </li>
+                            <li>
+                                {t(
+                                    'view.settings.notifications.notifications.webhook.delivery_contract_auth'
+                                )}
+                            </li>
+                            <li>
+                                {t(
+                                    'view.settings.notifications.notifications.webhook.delivery_contract_queue'
+                                )}
+                            </li>
+                            <li>
+                                {t(
+                                    'view.settings.notifications.notifications.webhook.delivery_contract_secret'
                                 )}
                             </li>
                         </ul>

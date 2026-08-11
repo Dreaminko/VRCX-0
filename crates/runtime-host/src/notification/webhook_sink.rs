@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use vrcx_0_application_core::RuntimeOperationStatus;
 
 use vrcx_0_application_activity::{
     OverlayActivityDelivery, OverlayActivitySink, OverlayActivitySnapshot,
@@ -12,15 +11,14 @@ use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
 use super::discord::{build_discord_payload, DiscordDeps};
 use super::generic_webhook::generic_webhook_payload;
 use super::preferences::{load_webhook_preferences, NotificationWebhookPreferences};
-use super::webhook::discord_webhook_url_with_wait;
+use super::webhook::{discord_webhook_url_with_wait, wait_for_webhook_stop};
+use super::webhook_delivery::{WebhookDeliveryChannel, WebhookDeliveryMonitor};
 use super::{
     config_bool, load_notification_locale, render_delivery, resolve_delivery_world_name,
     send_json_webhook_with_retry, NotificationWebhookFormat, UserImageCache,
 };
 
 const NOTIFICATION_WEBHOOK_QUEUE_CAPACITY: usize = 64;
-const NOTIFICATION_WEBHOOK_STOP_POLL_INTERVAL: std::time::Duration =
-    std::time::Duration::from_millis(50);
 
 fn select_notification_webhook_format(
     preferences: &NotificationWebhookPreferences,
@@ -35,6 +33,7 @@ pub(crate) struct NotificationWebhookSink {
     session: HostSessionRuntime,
     config: ConfigRepository,
     diagnostics: RuntimeDiagnostics,
+    monitor: WebhookDeliveryMonitor,
     queue: tokio::sync::mpsc::Sender<NotificationWebhookJob>,
 }
 
@@ -53,6 +52,7 @@ struct NotificationWebhookWorkerDeps {
     world_cache: Arc<WorldCache>,
     user_image_cache: Arc<UserImageCache>,
     diagnostics: RuntimeDiagnostics,
+    monitor: WebhookDeliveryMonitor,
 }
 
 pub(crate) struct NotificationWebhookSinkDeps {
@@ -63,6 +63,7 @@ pub(crate) struct NotificationWebhookSinkDeps {
     pub(crate) world_cache: Arc<WorldCache>,
     pub(crate) user_image_cache: Arc<UserImageCache>,
     pub(crate) diagnostics: RuntimeDiagnostics,
+    pub(crate) monitor: WebhookDeliveryMonitor,
     pub(crate) tasks: TaskSupervisor,
 }
 
@@ -75,6 +76,7 @@ impl NotificationWebhookSink {
             world_cache: deps.world_cache,
             user_image_cache: deps.user_image_cache,
             diagnostics: deps.diagnostics.clone(),
+            monitor: deps.monitor.clone(),
         };
         deps.tasks.spawn_cancellable(move |stop_token| {
             run_notification_webhook_worker(receiver, worker_deps, stop_token)
@@ -83,6 +85,7 @@ impl NotificationWebhookSink {
             session: deps.session,
             config: deps.config,
             diagnostics: deps.diagnostics,
+            monitor: deps.monitor,
             queue,
         }
     }
@@ -121,12 +124,13 @@ impl OverlayActivitySink for NotificationWebhookSink {
                 tokio::sync::mpsc::error::TrySendError::Full(_) => "queue full",
                 tokio::sync::mpsc::error::TrySendError::Closed(_) => "worker stopped",
             };
-            self.diagnostics.record_command(
+            self.monitor.record_drop(
+                &self.diagnostics,
                 "notificationWebhook",
-                RuntimeOperationStatus::Error,
-                format!("{event_label}: {reason}"),
+                WebhookDeliveryChannel::Notification,
+                &event_label,
+                reason,
             );
-            tracing::warn!(event = %event_label, reason, "webhook delivery dropped");
         }
     }
 }
@@ -148,12 +152,6 @@ async fn run_notification_webhook_worker(
             _ = deliver_notification_webhook(&deps, job) => {}
             _ = wait_for_webhook_stop(&stop_token) => return,
         }
-    }
-}
-
-async fn wait_for_webhook_stop(stop_token: &TaskStopToken) {
-    while !stop_token.is_stop_requested() {
-        tokio::time::sleep(NOTIFICATION_WEBHOOK_STOP_POLL_INTERVAL).await;
     }
 }
 
@@ -206,15 +204,14 @@ async fn deliver_notification_webhook(
             discord_webhook_url_with_wait(job.preferences.url.trim())
         }
     };
-    send_json_webhook_with_retry(
-        deps.web.as_ref(),
+    let result = send_json_webhook_with_retry(deps.web.as_ref(), &url, payload).await;
+    deps.monitor.record_result(
         &deps.diagnostics,
-        &url,
-        payload,
         "notificationWebhook",
+        WebhookDeliveryChannel::Notification,
         &job.delivery.entry.activity_type,
-    )
-    .await;
+        &result,
+    );
 }
 
 #[cfg(test)]

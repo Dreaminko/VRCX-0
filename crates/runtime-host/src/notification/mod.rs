@@ -13,6 +13,7 @@ mod rendering;
 mod tests;
 mod user_image;
 mod webhook;
+mod webhook_delivery;
 mod webhook_sink;
 
 pub use activity_filters::{
@@ -25,8 +26,9 @@ pub(crate) use activity_filters::{
 };
 pub use auth_webhook::{
     auth_webhook_generic_payload, auth_webhook_is_enabled, auth_webhook_should_recover,
-    send_auth_webhook, AuthWebhookEvent, AuthWebhookEventKind,
+    AuthWebhookEvent, AuthWebhookEventKind,
 };
+pub(crate) use auth_webhook::{AuthWebhookQueue, AuthWebhookQueueDeps};
 pub use delivery::{
     decide_notification_plan, NotificationDeliveryCondition, NotificationDeliveryGameState,
     NotificationDeliveryPlan, NotificationDeliveryPreferences, NotificationTtsNameMode,
@@ -50,5 +52,12 @@ pub use rendering::{load_notification_locale, render_delivery};
 pub use user_image::{
     normalize_avatar_image_url_128, user_image_url_128, UserImageCache, UserImageSources,
 };
-pub use webhook::{send_json_webhook_with_retry, webhook_local_time_string};
+pub use webhook::{
+    discord_webhook_url_with_wait, send_json_webhook_with_retry, webhook_local_time_string,
+    WebhookDeliveryFailure, WebhookDeliveryFailureKind, WebhookDeliveryOutcome,
+};
+pub use webhook_delivery::{
+    WebhookDeliveryChannelSnapshot, WebhookDeliveryRecord, WebhookDeliverySnapshot,
+};
+pub(crate) use webhook_delivery::WebhookDeliveryMonitor;
 pub(crate) use webhook_sink::{NotificationWebhookSink, NotificationWebhookSinkDeps};
