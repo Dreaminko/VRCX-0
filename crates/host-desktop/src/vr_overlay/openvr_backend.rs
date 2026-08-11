@@ -100,7 +100,7 @@ struct OpenVrSurface {
     policy: WristVisibilityPolicy,
     visible: bool,
     active: bool,
-    pending_frame: Option<RgbaFrame>,
+    pending_frame: Option<PendingFrame>,
     last_uploaded_frame_fingerprint: Option<FrameFingerprint>,
     last_visible_frame_upload_at: Option<Instant>,
     current_alpha: f32,
@@ -109,8 +109,13 @@ struct OpenVrSurface {
     hide_after_fade: bool,
 }
 
+struct PendingFrame {
+    frame: RgbaFrame,
+    fingerprint: FrameFingerprint,
+}
+
 impl OpenVrSurface {
-    fn take_pending_frame_if_due(&mut self, now: Instant) -> Option<(OverlayHandle, RgbaFrame)> {
+    fn take_pending_frame_if_due(&mut self, now: Instant) -> Option<(OverlayHandle, PendingFrame)> {
         if !self.visible {
             return None;
         }
@@ -119,9 +124,9 @@ impl OpenVrSurface {
         }) {
             return None;
         }
-        let frame = self.pending_frame.take()?;
+        let pending_frame = self.pending_frame.take()?;
         self.last_visible_frame_upload_at = Some(now);
-        Some((self.handle, frame))
+        Some((self.handle, pending_frame))
     }
 }
 
@@ -310,22 +315,22 @@ impl OverlayBackend for OpenVrOverlayBackend {
                 surface.pending_frame = None;
                 return Ok(());
             }
-            surface.pending_frame = Some(frame);
+            surface.pending_frame = Some(PendingFrame { frame, fingerprint });
             surface.take_pending_frame_if_due(Instant::now())
         };
-        let Some((handle, frame)) = pending else {
+        let Some((handle, pending_frame)) = pending else {
             return Ok(());
         };
 
-        if let Err(error) = self.upload_frame(surface_id, handle, &frame) {
+        if let Err(error) = self.upload_frame(surface_id, handle, &pending_frame.frame) {
             if let Some(surface) = self.surfaces.get_mut(surface_id) {
-                surface.pending_frame = Some(frame);
+                surface.pending_frame = Some(pending_frame);
                 surface.last_visible_frame_upload_at = None;
             }
             return Err(error);
         }
         if let Some(surface) = self.surfaces.get_mut(surface_id) {
-            surface.last_uploaded_frame_fingerprint = Some(fingerprint);
+            surface.last_uploaded_frame_fingerprint = Some(pending_frame.fingerprint);
         }
         Ok(())
     }
@@ -996,16 +1001,15 @@ impl OpenVrOverlayBackend {
         if current_visible == visible {
             return Ok(());
         }
-        if let Some(frame) = pending_before_show {
-            let fingerprint = frame_fingerprint(&frame);
-            if let Err(error) = self.upload_frame(surface_id, handle, &frame) {
+        if let Some(pending_frame) = pending_before_show {
+            if let Err(error) = self.upload_frame(surface_id, handle, &pending_frame.frame) {
                 if let Some(surface) = self.surfaces.get_mut(surface_id) {
-                    surface.pending_frame = Some(frame);
+                    surface.pending_frame = Some(pending_frame);
                 }
                 return Err(error);
             }
             if let Some(surface) = self.surfaces.get_mut(surface_id) {
-                surface.last_uploaded_frame_fingerprint = Some(fingerprint);
+                surface.last_uploaded_frame_fingerprint = Some(pending_frame.fingerprint);
             }
         }
         let overlay = self
@@ -1167,19 +1171,18 @@ impl OpenVrOverlayBackend {
                 .surfaces
                 .get_mut(&surface_id)
                 .and_then(|surface| surface.take_pending_frame_if_due(now));
-            let Some((handle, frame)) = pending else {
+            let Some((handle, pending_frame)) = pending else {
                 continue;
             };
-            let fingerprint = frame_fingerprint(&frame);
-            if let Err(error) = self.upload_frame(&surface_id, handle, &frame) {
+            if let Err(error) = self.upload_frame(&surface_id, handle, &pending_frame.frame) {
                 if let Some(surface) = self.surfaces.get_mut(&surface_id) {
-                    surface.pending_frame = Some(frame);
+                    surface.pending_frame = Some(pending_frame);
                     surface.last_visible_frame_upload_at = None;
                 }
                 return Err(error);
             }
             if let Some(surface) = self.surfaces.get_mut(&surface_id) {
-                surface.last_uploaded_frame_fingerprint = Some(fingerprint);
+                surface.last_uploaded_frame_fingerprint = Some(pending_frame.fingerprint);
             }
         }
         Ok(())
@@ -1500,6 +1503,7 @@ mod tests {
     fn visible_surface_releases_pending_frame_when_upload_interval_elapses() {
         let started_at = Instant::now();
         let frame = RgbaFrame::new(OverlaySize::new(1, 1), vec![255, 255, 255, 255]);
+        let fingerprint = frame_fingerprint(&frame);
         let mut surface = test_main_surface(frame.clone(), started_at);
 
         assert!(surface
@@ -1507,12 +1511,19 @@ mod tests {
                 started_at + MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL - Duration::from_millis(1)
             )
             .is_none());
-        assert_eq!(surface.pending_frame.as_ref(), Some(&frame));
+        assert_eq!(
+            surface
+                .pending_frame
+                .as_ref()
+                .map(|pending_frame| &pending_frame.frame),
+            Some(&frame)
+        );
 
-        let (_, released_frame) = surface
+        let (_, released_pending_frame) = surface
             .take_pending_frame_if_due(started_at + MAIN_VISIBLE_FRAME_UPLOAD_INTERVAL)
             .expect("release pending frame at the upload deadline");
-        assert_eq!(released_frame, frame);
+        assert_eq!(released_pending_frame.frame, frame);
+        assert_eq!(released_pending_frame.fingerprint, fingerprint);
         assert!(surface.pending_frame.is_none());
         assert_eq!(
             surface.last_visible_frame_upload_at,
@@ -1541,6 +1552,7 @@ mod tests {
     }
 
     fn test_main_surface(frame: RgbaFrame, last_uploaded_at: Instant) -> OpenVrSurface {
+        let fingerprint = frame_fingerprint(&frame);
         OpenVrSurface {
             handle: OverlayHandle(1),
             config: OverlaySurfaceConfig {
@@ -1557,7 +1569,7 @@ mod tests {
             policy: WristVisibilityPolicy::default(),
             visible: true,
             active: true,
-            pending_frame: Some(frame),
+            pending_frame: Some(PendingFrame { frame, fingerprint }),
             last_uploaded_frame_fingerprint: None,
             last_visible_frame_upload_at: Some(last_uploaded_at),
             current_alpha: 1.0,
