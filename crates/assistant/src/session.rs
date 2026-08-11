@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
@@ -73,33 +73,41 @@ pub struct SessionSummary {
 pub struct SessionStore {
     sessions: Mutex<HashMap<String, Session>>,
     owners: Mutex<HashMap<String, String>>,
+    loaded_owners: Mutex<HashSet<String>>,
     seq: Mutex<u64>,
     db: Option<Arc<DatabaseService>>,
 }
 
 impl SessionStore {
-    /// Build a store backed by the database, hydrating any persisted sessions.
     pub fn with_db(db: Arc<DatabaseService>) -> Self {
-        let store = Self {
+        Self {
             sessions: Mutex::new(HashMap::new()),
             owners: Mutex::new(HashMap::new()),
+            loaded_owners: Mutex::new(HashSet::new()),
             seq: Mutex::new(0),
             db: Some(db),
-        };
-        store.load();
-        store
+        }
     }
 
-    fn load(&self) {
+    fn ensure_owner_loaded(&self, owner_user_id: &str) {
+        let owner_user_id = owner_user_id.trim();
+        let mut loaded_owners = self.loaded_owners.lock().unwrap();
+        if loaded_owners.contains(owner_user_id) {
+            return;
+        }
         let Some(db) = self.db.as_ref() else {
+            loaded_owners.insert(owner_user_id.to_string());
             return;
         };
-        match assistant::assistant_sessions_load(db, None) {
+        match assistant::assistant_sessions_load(db, owner_user_id) {
             Ok(persisted) => {
                 let mut max_seq = 0u64;
                 let mut guard = self.sessions.lock().unwrap();
                 let mut owners = self.owners.lock().unwrap();
                 for entry in persisted {
+                    if guard.contains_key(&entry.id) {
+                        continue;
+                    }
                     owners.insert(entry.id.clone(), entry.owner_user_id.clone());
                     let messages = entry
                         .messages
@@ -136,7 +144,9 @@ impl SessionStore {
                     );
                 }
                 drop(guard);
-                *self.seq.lock().unwrap() = max_seq;
+                let mut seq = self.seq.lock().unwrap();
+                *seq = (*seq).max(max_seq);
+                loaded_owners.insert(owner_user_id.to_string());
             }
             Err(error) => {
                 tracing::warn!(%error, "assistant: failed to load persisted sessions");
@@ -252,6 +262,7 @@ impl SessionStore {
         owner_user_id: &str,
         runtime: AssistantRuntimeSelection,
     ) -> Session {
+        self.ensure_owner_loaded(owner_user_id);
         self.insert_new(owner_user_id, format!("ses_{}", random_hex()), runtime)
     }
 
@@ -261,11 +272,16 @@ impl SessionStore {
         session_id: Option<String>,
         runtime: AssistantRuntimeSelection,
     ) -> Option<Session> {
+        self.ensure_owner_loaded(owner_user_id);
         let Some(id) = session_id else {
-            return Some(self.create_session_with_runtime(owner_user_id, runtime));
+            return Some(self.insert_new(
+                owner_user_id,
+                format!("ses_{}", random_hex()),
+                runtime,
+            ));
         };
         if self.sessions.lock().unwrap().contains_key(&id)
-            && !self.is_visible_to(&id, owner_user_id)
+            && !self.is_loaded_session_visible_to(&id, owner_user_id)
         {
             return None;
         }
@@ -302,6 +318,7 @@ impl SessionStore {
     }
 
     pub fn list(&self, owner_user_id: &str) -> Vec<SessionSummary> {
+        self.ensure_owner_loaded(owner_user_id);
         let sessions = self.sessions.lock().unwrap();
         let owners = self.owners.lock().unwrap();
         let mut summaries: Vec<SessionSummary> = sessions
@@ -457,6 +474,11 @@ impl SessionStore {
     }
 
     pub fn is_visible_to(&self, session_id: &str, owner_user_id: &str) -> bool {
+        self.ensure_owner_loaded(owner_user_id);
+        self.is_loaded_session_visible_to(session_id, owner_user_id)
+    }
+
+    fn is_loaded_session_visible_to(&self, session_id: &str, owner_user_id: &str) -> bool {
         self.owners
             .lock()
             .unwrap()
@@ -582,7 +604,7 @@ mod tests {
         // Simulate an app restart: a fresh store over the same database must
         // hydrate the prior turns so the next question is sent with context.
         let reopened = SessionStore::with_db(db);
-        let history = reopened.history(&session.id);
+        let history = reopened.get(TEST_OWNER, &session.id).unwrap().messages;
         assert_eq!(history.len(), 2);
         assert_eq!(history[0].role, Role::User);
         assert_eq!(history[0].content, "who do I play with?");
@@ -741,6 +763,41 @@ mod tests {
         assert!(SessionStore::with_db(db)
             .get("usr_a", &session_a.id)
             .is_some());
+    }
+
+    #[test]
+    fn persisted_sessions_load_only_for_the_requested_owner() {
+        let db = test_db();
+        assistant::assistant_session_upsert(&db, "usr_a", "ses_a", "a", "t0", "t0").unwrap();
+        assistant::assistant_session_upsert(&db, "usr_b", "ses_b", "b", "t0", "t0").unwrap();
+        assistant::assistant_session_upsert(&db, "", "ses_shared", "shared", "t0", "t0")
+            .unwrap();
+        let store = SessionStore::with_db(db);
+
+        assert!(store.sessions.lock().unwrap().is_empty());
+
+        let visible_to_a = store
+            .list("usr_a")
+            .into_iter()
+            .map(|session| session.id)
+            .collect::<HashSet<_>>();
+
+        assert_eq!(
+            visible_to_a,
+            HashSet::from(["ses_a".to_string(), "ses_shared".to_string()])
+        );
+        assert!(!store.sessions.lock().unwrap().contains_key("ses_b"));
+
+        let visible_to_b = store
+            .list("usr_b")
+            .into_iter()
+            .map(|session| session.id)
+            .collect::<HashSet<_>>();
+
+        assert_eq!(
+            visible_to_b,
+            HashSet::from(["ses_b".to_string(), "ses_shared".to_string()])
+        );
     }
 
     #[test]

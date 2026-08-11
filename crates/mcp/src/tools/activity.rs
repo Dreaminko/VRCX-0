@@ -957,6 +957,7 @@ mod activity_output_tests {
             config: ConfigRepository::new(db),
             mutual_graph_fetch: MutualGraphFetchRuntime::new(),
             tasks,
+            caller: crate::runtime::McpCaller::ExternalServer,
         };
         Ok((dir, VrcxMcpServer::new(runtime)))
     }

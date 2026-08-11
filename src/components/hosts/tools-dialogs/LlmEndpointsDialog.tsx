@@ -5,7 +5,7 @@ import {
     SquarePenIcon,
     Trash2Icon
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -109,6 +109,18 @@ function endpointApiKeyInput(draft: EndpointDraft): string | null {
     return apiKey || null;
 }
 
+function sameDetectionTarget(
+    current: EndpointDraft,
+    requested: EndpointDraft
+): boolean {
+    return (
+        current.id === requested.id &&
+        current.baseUrl.trim() === requested.baseUrl.trim() &&
+        current.apiKey.trim() === requested.apiKey.trim() &&
+        current.clearKey === requested.clearKey
+    );
+}
+
 type LlmEndpointsDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -131,6 +143,8 @@ export function LlmEndpointsDialog({
     const [draft, setDraft] = useState<EndpointDraft>(
         createEmptyLlmEndpointDraft
     );
+    const draftRef = useRef(draft);
+    draftRef.current = draft;
     const [detectedModels, setDetectedModels] = useState<string[]>([]);
     const [modelQuery, setModelQuery] = useState('');
     const [saving, setSaving] = useState(false);
@@ -195,7 +209,7 @@ export function LlmEndpointsDialog({
 
     async function detectInto(
         target: EndpointDraft
-    ): Promise<LlmEndpointDetectModelsResult> {
+    ): Promise<LlmEndpointDetectModelsResult | null> {
         const useSavedEndpoint = shouldUseSavedLlmEndpointForDetect(target);
         const result = await detectModels({
             id: useSavedEndpoint ? target.id : null,
@@ -203,21 +217,35 @@ export function LlmEndpointsDialog({
             apiKey: useSavedEndpoint ? null : target.apiKey.trim() || null,
             persist: useSavedEndpoint
         });
+        if (!sameDetectionTarget(draftRef.current, target)) {
+            return null;
+        }
         setDetectedModels(result.models);
-        setDraft((current) => ({
-            ...current,
-            detectedModelReasoning: result.modelReasoning
-        }));
+        setDraft((current) =>
+            sameDetectionTarget(current, target)
+                ? {
+                      ...current,
+                      detectedModelReasoning: result.modelReasoning
+                  }
+                : current
+        );
         return result;
     }
 
     async function detectForDraft() {
         try {
             const result = await detectInto(draft);
-            setDraft((current) => ({
-                ...current,
-                models: mergeModels(current.models, result.models)
-            }));
+            if (!result) {
+                return;
+            }
+            setDraft((current) =>
+                sameDetectionTarget(current, draft)
+                    ? {
+                          ...current,
+                          models: mergeModels(current.models, result.models)
+                      }
+                    : current
+            );
             toast.success(
                 result.models.length
                     ? t('view.tools.llm_endpoints.models_detected', {
@@ -234,15 +262,17 @@ export function LlmEndpointsDialog({
         }
     }
 
-    async function resolveModelsForSave(): Promise<ResolvedModelsForSave> {
-        if (draft.models.length) {
+    async function resolveModelsForSave(
+        target: EndpointDraft
+    ): Promise<ResolvedModelsForSave | null> {
+        if (target.models.length) {
             return {
-                models: draft.models,
-                modelReasoning: draft.detectedModelReasoning
+                models: target.models,
+                modelReasoning: target.detectedModelReasoning
             };
         }
         try {
-            return await detectInto(draft);
+            return await detectInto(target);
         } catch {
             return {
                 models: [],
@@ -252,14 +282,19 @@ export function LlmEndpointsDialog({
     }
 
     async function saveDraft() {
+        const target = draft;
         setSaving(true);
         try {
-            const { models, modelReasoning } = await resolveModelsForSave();
+            const resolved = await resolveModelsForSave(target);
+            if (!resolved) {
+                return;
+            }
+            const { models, modelReasoning } = resolved;
             await upsert({
-                id: draft.id,
-                name: draft.name.trim(),
-                baseUrl: draft.baseUrl.trim(),
-                apiKey: endpointApiKeyInput(draft),
+                id: target.id,
+                name: target.name.trim(),
+                baseUrl: target.baseUrl.trim(),
+                apiKey: endpointApiKeyInput(target),
                 models,
                 modelReasoning
             });
@@ -346,6 +381,7 @@ export function LlmEndpointsDialog({
                                     <EndpointRow
                                         key={endpoint.id}
                                         endpoint={endpoint}
+                                        disabled={loading}
                                         onDetect={() => detectForRow(endpoint)}
                                         onEdit={() => openEditView(endpoint)}
                                         onDelete={() =>
@@ -620,6 +656,7 @@ export function LlmEndpointsDialog({
 
 type EndpointRowProps = {
     endpoint: LlmEndpointDto;
+    disabled: boolean;
     onDetect: () => void;
     onEdit: () => void;
     onDelete: () => void;
@@ -627,6 +664,7 @@ type EndpointRowProps = {
 
 function EndpointRow({
     endpoint,
+    disabled,
     onDetect,
     onEdit,
     onDelete
@@ -667,18 +705,21 @@ function EndpointRow({
                 <div className="flex shrink-0 gap-1">
                     <RowAction
                         label={t('view.tools.llm_endpoints.detect_models')}
+                        disabled={disabled}
                         onClick={onDetect}
                     >
                         <RefreshCwIcon data-icon="inline-start" />
                     </RowAction>
                     <RowAction
                         label={t('view.tools.llm_endpoints.edit')}
+                        disabled={disabled}
                         onClick={onEdit}
                     >
                         <SquarePenIcon data-icon="inline-start" />
                     </RowAction>
                     <RowAction
                         label={t('view.tools.llm_endpoints.delete')}
+                        disabled={disabled}
                         onClick={onDelete}
                     >
                         <Trash2Icon data-icon="inline-start" />
@@ -693,6 +734,7 @@ function EndpointRow({
                         type="button"
                         size="xs"
                         variant="outline"
+                        disabled={disabled}
                         onClick={onDetect}
                     >
                         {t('view.tools.llm_endpoints.detect_models')}
@@ -705,11 +747,12 @@ function EndpointRow({
 
 type RowActionProps = {
     label: string;
+    disabled: boolean;
     onClick: () => void;
     children: React.ReactNode;
 };
 
-function RowAction({ label, onClick, children }: RowActionProps) {
+function RowAction({ label, disabled, onClick, children }: RowActionProps) {
     return (
         <Tooltip>
             <TooltipTrigger
@@ -719,6 +762,7 @@ function RowAction({ label, onClick, children }: RowActionProps) {
                         size="icon-xs"
                         variant="ghost"
                         aria-label={label}
+                        disabled={disabled}
                         onClick={onClick}
                     />
                 }

@@ -10,10 +10,7 @@ mod session;
 #[cfg(test)]
 mod test_support;
 
-pub use config::{
-    AssistantConfig, PlaybookMode, ASSISTANT_API_KEY_CONFIG_KEY, ASSISTANT_BASE_URL_CONFIG_KEY,
-    ASSISTANT_MODEL_CONFIG_KEY,
-};
+pub use config::PlaybookMode;
 pub use endpoints::{
     resolve_reasoning_effort, AssistantRuntimeSelection, AssistantRuntimeStatus, EndpointStore,
     LlmEndpointDetectModelsInput, LlmEndpointDto, LlmEndpointUpsertInput, LlmTranslateInput,

@@ -6,7 +6,7 @@ use specta::Type;
 use tokio_util::sync::CancellationToken;
 use vrcx_0_application_core::{RuntimeAuthScope, RuntimeEventBus, TaskSupervisor};
 use vrcx_0_integrations::llm::{LlmEndpointDetectModelsResult, LlmRequestOptions, ToolDefinition};
-use vrcx_0_mcp::{spawn_in_process_tools, InProcessMcpTools, McpRuntime};
+use vrcx_0_mcp::{spawn_in_process_tools, InProcessMcpTools, McpCaller, McpRuntime};
 use vrcx_0_runtime_host::RuntimeHostState;
 
 use crate::agent::{run_turn, TurnContext};
@@ -52,7 +52,9 @@ impl AssistantController {
             EndpointStore::new(config.clone(), state.web.proxy_url().map(str::to_string));
         let bus = state.runtime_context.event_bus.clone();
         let tasks = state.runtime_context.tasks.clone();
-        let tools = Arc::new(spawn_in_process_tools(McpRuntime::from_host(state)).await?);
+        let tools = Arc::new(
+            spawn_in_process_tools(McpRuntime::from_host(state, McpCaller::Assistant)).await?,
+        );
         let tool_defs = Arc::new(load_tool_defs(&tools).await?);
         Ok(Self {
             endpoints,

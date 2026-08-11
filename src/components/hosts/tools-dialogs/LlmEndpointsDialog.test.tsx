@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+    act,
     cleanup,
     fireEvent,
     render,
@@ -201,6 +202,48 @@ describe('LlmEndpointsDialog', () => {
                 })
             )
         );
+    });
+
+    it('ignores model detection after the endpoint target changes', async () => {
+        let resolveDetection: (value: {
+            models: string[];
+            modelReasoning: {
+                modelId: string;
+                supportedEfforts: string[];
+                mandatory: boolean;
+            }[];
+        }) => void = () => undefined;
+        mocks.detectModels.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveDetection = resolve;
+                })
+        );
+        render(<LlmEndpointsDialog open onOpenChange={vi.fn()} />);
+
+        await waitFor(() => expect(mocks.load).toHaveBeenCalledOnce());
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'view.tools.llm_endpoints.add'
+            })
+        );
+        fireEvent.click(
+            await screen.findByRole('button', {
+                name: 'view.tools.llm_endpoints.detect_models'
+            })
+        );
+        fireEvent.change(
+            screen.getByLabelText('view.tools.llm_endpoints.base_url'),
+            { target: { value: 'https://other.example/v1' } }
+        );
+        await act(async () => {
+            resolveDetection({
+                models: ['stale-model'],
+                modelReasoning: []
+            });
+        });
+
+        expect(screen.queryByText('stale-model')).toBeNull();
     });
 
     it('preserves existing reasoning metadata when saving without detection', async () => {

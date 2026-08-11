@@ -38,88 +38,101 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
-export const useLlmEndpointsStore = create<LlmEndpointsStoreState>((set) => ({
-    endpoints: [],
-    loading: false,
-    error: null,
-    async load() {
+export const useLlmEndpointsStore = create<LlmEndpointsStoreState>((set) => {
+    let pendingOperations = 0;
+    let endpointRevision = 0;
+
+    function beginOperation(): void {
+        pendingOperations += 1;
         set({ loading: true, error: null });
-        try {
-            const endpoints = await commands.appLlmEndpointList();
-            set({ endpoints, loading: false });
-            return endpoints;
-        } catch (error) {
-            const message = errorMessage(error);
-            set({ error: message, loading: false });
-            throw error;
-        }
-    },
-    async upsert(input) {
-        set({ loading: true, error: null });
-        try {
-            const saved = await commands.appLlmEndpointUpsert(input);
-            set((state) => {
-                const exists = state.endpoints.some(
-                    (endpoint) => endpoint.id === saved.id
-                );
-                return {
-                    endpoints: exists
-                        ? state.endpoints.map((endpoint) =>
-                              endpoint.id === saved.id ? saved : endpoint
-                          )
-                        : [...state.endpoints, saved],
-                    loading: false
-                };
-            });
-            return saved;
-        } catch (error) {
-            const message = errorMessage(error);
-            set({ error: message, loading: false });
-            throw error;
-        }
-    },
-    async deleteEndpoint(id) {
-        set({ loading: true, error: null });
-        try {
-            await commands.appLlmEndpointDelete(id);
-            set((state) => ({
-                endpoints: state.endpoints.filter(
-                    (endpoint) => endpoint.id !== id
-                ),
-                loading: false
-            }));
-        } catch (error) {
-            const message = errorMessage(error);
-            set({ error: message, loading: false });
-            throw error;
-        }
-    },
-    async detectModels(input) {
-        set({ loading: true, error: null });
-        try {
-            const result = await commands.appLlmEndpointDetectModels(input);
-            if (input.id) {
-                set((state) => ({
-                    endpoints: state.endpoints.map((endpoint) =>
-                        endpoint.id === input.id
-                            ? {
-                                  ...endpoint,
-                                  models: result.models,
-                                  modelReasoning: result.modelReasoning,
-                                  lastDetectedAt: new Date().toISOString()
-                              }
-                            : endpoint
-                    ),
-                    loading: false
-                }));
-            } else {
-                set({ loading: false });
-            }
-            return result;
-        } catch (error) {
-            const message = errorMessage(error);
-            set({ error: message, loading: false });
-            throw error;
-        }
     }
-}));
+
+    function finishOperation(): void {
+        pendingOperations -= 1;
+        set({ loading: pendingOperations > 0 });
+    }
+
+    return {
+        endpoints: [],
+        loading: false,
+        error: null,
+        async load() {
+            const expectedRevision = endpointRevision;
+            beginOperation();
+            try {
+                const endpoints = await commands.appLlmEndpointList();
+                if (expectedRevision === endpointRevision) {
+                    set({ endpoints });
+                }
+                return endpoints;
+            } catch (error) {
+                set({ error: errorMessage(error) });
+                throw error;
+            } finally {
+                finishOperation();
+            }
+        },
+        async upsert(input) {
+            beginOperation();
+            try {
+                const saved = await commands.appLlmEndpointUpsert(input);
+                endpointRevision += 1;
+                set((state) => {
+                    const exists = state.endpoints.some(
+                        (endpoint) => endpoint.id === saved.id
+                    );
+                    return {
+                        endpoints: exists
+                            ? state.endpoints.map((endpoint) =>
+                                  endpoint.id === saved.id ? saved : endpoint
+                              )
+                            : [...state.endpoints, saved]
+                    };
+                });
+                return saved;
+            } catch (error) {
+                set({ error: errorMessage(error) });
+                throw error;
+            } finally {
+                finishOperation();
+            }
+        },
+        async deleteEndpoint(id) {
+            beginOperation();
+            try {
+                await commands.appLlmEndpointDelete(id);
+                endpointRevision += 1;
+                set((state) => ({
+                    endpoints: state.endpoints.filter(
+                        (endpoint) => endpoint.id !== id
+                    )
+                }));
+            } catch (error) {
+                set({ error: errorMessage(error) });
+                throw error;
+            } finally {
+                finishOperation();
+            }
+        },
+        async detectModels(input) {
+            const expectedRevision = endpointRevision;
+            beginOperation();
+            try {
+                const result = await commands.appLlmEndpointDetectModels(input);
+                if (input.id && input.persist) {
+                    const endpoints = await commands.appLlmEndpointList();
+                    if (expectedRevision === endpointRevision) {
+                        endpointRevision += 1;
+                        set({ endpoints });
+                    }
+                }
+                return result;
+            } catch (error) {
+                set({ error: errorMessage(error) });
+                throw error;
+            } finally {
+                finishOperation();
+            }
+        }
+    };
+});

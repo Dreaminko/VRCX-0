@@ -198,6 +198,16 @@ impl EndpointStore {
                 _ => Vec::new(),
             },
         };
+        let last_detected_at = existing
+            .as_ref()
+            .filter(|endpoint| {
+                endpoint_matches_detect_target(
+                    endpoint,
+                    &base_url,
+                    &deobfuscate_api_key(&api_key),
+                )
+            })
+            .and_then(|endpoint| endpoint.last_detected_at.clone());
 
         let endpoint = StoredLlmEndpoint {
             id: id.clone(),
@@ -206,7 +216,7 @@ impl EndpointStore {
             api_key,
             models,
             model_reasoning,
-            last_detected_at: existing.and_then(|endpoint| endpoint.last_detected_at),
+            last_detected_at,
         };
 
         if let Some(existing) = endpoints.iter_mut().find(|endpoint| endpoint.id == id) {
@@ -268,7 +278,14 @@ impl EndpointStore {
             {
                 let _guard = self.write_lock.lock().unwrap();
                 let mut endpoints = self.load_endpoints()?;
-                if let Some(endpoint) = endpoints.iter_mut().find(|endpoint| endpoint.id == id) {
+                if let Some(endpoint) = endpoints.iter_mut().find(|endpoint| {
+                    endpoint.id == id
+                        && endpoint_matches_detect_target(
+                            endpoint,
+                            &resolved.base_url,
+                            &resolved.api_key,
+                        )
+                }) {
                     endpoint.models = models.clone();
                     endpoint.model_reasoning = model_reasoning.clone();
                     endpoint.last_detected_at = Some(chrono::Utc::now().to_rfc3339());
@@ -471,6 +488,15 @@ fn resolve_endpoint(endpoint: StoredLlmEndpoint) -> ResolvedLlmEndpoint {
         api_key: deobfuscate_api_key(&endpoint.api_key),
         model_reasoning: endpoint.model_reasoning,
     }
+}
+
+fn endpoint_matches_detect_target(
+    endpoint: &StoredLlmEndpoint,
+    base_url: &str,
+    api_key: &str,
+) -> bool {
+    normalize_llm_base_url(&endpoint.base_url) == normalize_llm_base_url(base_url)
+        && deobfuscate_api_key(&endpoint.api_key) == api_key
 }
 
 fn ensure_endpoint(

@@ -185,7 +185,7 @@ fn endpoint_upsert_retains_only_current_models_and_clears_reasoning_on_url_chang
                         "mandatory": false
                     }
                 ],
-                "lastDetectedAt": null
+                "lastDetectedAt": "2026-08-07T00:00:00Z"
             }]),
         )
         .unwrap();
@@ -203,6 +203,10 @@ fn endpoint_upsert_retains_only_current_models_and_clears_reasoning_on_url_chang
         .unwrap();
     assert_eq!(filtered.model_reasoning.len(), 1);
     assert_eq!(filtered.model_reasoning[0].model_id, "model-b");
+    assert_eq!(
+        filtered.last_detected_at.as_deref(),
+        Some("2026-08-07T00:00:00Z")
+    );
 
     let changed = store
         .upsert(LlmEndpointUpsertInput {
@@ -215,6 +219,36 @@ fn endpoint_upsert_retains_only_current_models_and_clears_reasoning_on_url_chang
         })
         .unwrap();
     assert!(changed.model_reasoning.is_empty());
+    assert!(changed.last_detected_at.is_none());
+}
+
+#[test]
+fn detected_metadata_only_matches_the_original_url_and_key() {
+    let endpoint = StoredLlmEndpoint {
+        id: "ep_1".into(),
+        name: "Provider".into(),
+        base_url: "https://example.com/v1".into(),
+        api_key: obfuscate_api_key("sk-original"),
+        models: Vec::new(),
+        model_reasoning: Vec::new(),
+        last_detected_at: None,
+    };
+
+    assert!(endpoint_matches_detect_target(
+        &endpoint,
+        "https://example.com/v1/",
+        "sk-original"
+    ));
+    assert!(!endpoint_matches_detect_target(
+        &endpoint,
+        "https://other.example/v1",
+        "sk-original"
+    ));
+    assert!(!endpoint_matches_detect_target(
+        &endpoint,
+        "https://example.com/v1",
+        "sk-new"
+    ));
 }
 
 #[test]

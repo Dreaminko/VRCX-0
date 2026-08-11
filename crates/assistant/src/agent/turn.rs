@@ -1,12 +1,14 @@
 use std::collections::HashSet;
+use std::future::Future;
 use std::sync::Arc;
+use std::time::Duration;
 
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 use vrcx_0_integrations::llm::{
     ChatMessage, LlmClient, LlmError, LlmRequestOptions, ToolDefinition,
 };
-use vrcx_0_mcp::{InProcessMcpTools, ToolCallOutcome};
+use vrcx_0_mcp::{InProcessMcpTools, McpError, ToolCallOutcome};
 
 use crate::entities::{extract_entities, surfaced_entities, Entity};
 use crate::events::AssistantEmitter;
@@ -21,6 +23,7 @@ use super::tool_summary::{
 };
 
 const MAX_TOOL_ROUNDS: usize = 6;
+const TOOL_CALL_TIMEOUT: Duration = Duration::from_secs(30);
 const FINAL_ANSWER_PROMPT: &str = "\
 Do not call any more tools. Write the final answer now, using only the tool results \
 above. If the data is incomplete, say so briefly and answer with the best supported \
@@ -216,11 +219,28 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
                     .then_some(utc_offset_minutes),
             );
             let signature = tool_call_signature(&call.function.name, arguments.as_ref());
-            let resolved = if dispatched_tools.insert(signature) {
-                let outcome = ctx
-                    .tools
-                    .call_tool(call.function.name.clone(), arguments)
-                    .await;
+            let resolved = if !tool_is_available(tool_defs, &call.function.name) {
+                resolve_tool_outcome(Err(McpError::Custom(format!(
+                    "tool `{}` is not available in this session",
+                    call.function.name
+                ))))
+            } else if dispatched_tools.insert(signature) {
+                let outcome = match await_tool_call(
+                    ctx.tools
+                        .call_tool(call.function.name.clone(), arguments),
+                    &ctx.cancel,
+                    TOOL_CALL_TIMEOUT,
+                )
+                .await
+                {
+                    AwaitToolCall::Completed(outcome) => outcome,
+                    AwaitToolCall::Cancelled => return finish_cancelled(&ctx),
+                    AwaitToolCall::TimedOut => Err(McpError::Custom(format!(
+                        "tool `{}` timed out after {} seconds",
+                        call.function.name,
+                        TOOL_CALL_TIMEOUT.as_secs()
+                    ))),
+                };
                 resolve_tool_outcome(outcome)
             } else {
                 tracing::warn!(
@@ -343,6 +363,28 @@ fn tool_accepts_utc_offset(tool_defs: &[ToolDefinition], tool_name: &str) -> boo
         .and_then(|tool| tool.parameters.get("properties"))
         .and_then(|properties| properties.get("utcOffsetMinutes"))
         .is_some()
+}
+
+fn tool_is_available(tool_defs: &[ToolDefinition], tool_name: &str) -> bool {
+    tool_defs.iter().any(|tool| tool.name == tool_name)
+}
+
+enum AwaitToolCall<T> {
+    Completed(T),
+    Cancelled,
+    TimedOut,
+}
+
+async fn await_tool_call<T>(
+    future: impl Future<Output = T>,
+    cancel: &CancellationToken,
+    timeout: Duration,
+) -> AwaitToolCall<T> {
+    tokio::select! {
+        result = future => AwaitToolCall::Completed(result),
+        _ = cancel.cancelled() => AwaitToolCall::Cancelled,
+        _ = tokio::time::sleep(timeout) => AwaitToolCall::TimedOut,
+    }
 }
 
 fn finish_cancelled(ctx: &TurnContext) {
@@ -557,6 +599,45 @@ fn dedup_entities(entities: Vec<Entity>) -> Vec<Entity> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn tool_wait_stops_when_the_turn_is_cancelled() {
+        let cancel = CancellationToken::new();
+        cancel.cancel();
+
+        let result = await_tool_call(
+            std::future::pending::<()>(),
+            &cancel,
+            Duration::from_secs(1),
+        )
+        .await;
+
+        assert!(matches!(result, AwaitToolCall::Cancelled));
+    }
+
+    #[tokio::test]
+    async fn tool_wait_returns_when_the_budget_expires() {
+        let result = await_tool_call(
+            std::future::pending::<()>(),
+            &CancellationToken::new(),
+            Duration::from_millis(1),
+        )
+        .await;
+
+        assert!(matches!(result, AwaitToolCall::TimedOut));
+    }
+
+    #[test]
+    fn hidden_tools_are_not_dispatchable() {
+        let tool_defs = vec![crate::test_support::tool_def(
+            "get_online_friends",
+            serde_json::json!({"type": "object"}),
+        )];
+
+        assert!(tool_is_available(&tool_defs, "get_online_friends"));
+        assert!(!tool_is_available(&tool_defs, "favorite_vrchat"));
+    }
+
     #[test]
     fn system_prompt_keeps_core_boundaries_and_schema_field_names() {
         for phrase in [

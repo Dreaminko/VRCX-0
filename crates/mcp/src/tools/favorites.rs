@@ -13,7 +13,6 @@ use vrcx_0_persistence::{
     social_aggregates::{self, FavoriteAction},
 };
 
-use crate::config::MCP_ALLOW_VRCHAT_WRITES_CONFIG_KEY;
 use crate::server::VrcxMcpServer;
 
 use super::common::{
@@ -122,11 +121,7 @@ impl VrcxMcpServer {
             );
         }
         let requested_write = !input.dry_run.unwrap_or(true);
-        let writes_allowed = self
-            .runtime
-            .config
-            .get_bool(MCP_ALLOW_VRCHAT_WRITES_CONFIG_KEY, false)
-            .unwrap_or(false);
+        let writes_allowed = self.runtime.vrchat_writes_allowed();
         if !requested_write || !writes_allowed {
             return Ok(FavoriteVrchatOutput {
                 kind,

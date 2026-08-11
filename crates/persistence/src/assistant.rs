@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::common::{row_i64, row_string, ParamsBuilder};
 use crate::database::schema::ensure_assistant_tables;
 use crate::database::DatabaseService;
@@ -31,23 +33,15 @@ pub struct PersistedSession {
 
 pub fn assistant_sessions_load(
     db: &DatabaseService,
-    owner_user_id: Option<&str>,
+    owner_user_id: &str,
 ) -> Result<Vec<PersistedSession>, Error> {
     ensure_assistant_tables(db)?;
-    let (owner_filter, owner_id) = if let Some(owner_user_id) = owner_user_id {
-        (
-            "WHERE s.owner_id IN (0, @owner_id)",
-            owner_id_for_filter(db, owner_user_id)?,
-        )
-    } else {
-        ("", 0)
-    };
+    let owner_id = owner_id_for_filter(db, owner_user_id)?;
+    let params = ParamsBuilder::new().set("owner_id", owner_id).build();
     let mut sessions: Vec<PersistedSession> = db
         .execute(
-            &format!(
-                "SELECT s.id, s.title, s.created_at, s.updated_at, s.entity_panel_open, s.surfaced_entities, s.endpoint_id, s.model, s.allow_writes, s.playbook_mode, COALESCE(o.user_id, '') FROM assistant_session s LEFT JOIN owners o ON o.id = s.owner_id {owner_filter} ORDER BY s.updated_at DESC"
-            ),
-            &ParamsBuilder::new().set("owner_id", owner_id).build(),
+            "SELECT s.id, s.title, s.created_at, s.updated_at, s.entity_panel_open, s.surfaced_entities, s.endpoint_id, s.model, s.allow_writes, s.playbook_mode, COALESCE(o.user_id, '') FROM assistant_session s LEFT JOIN owners o ON o.id = s.owner_id WHERE s.owner_id IN (0, @owner_id) ORDER BY s.updated_at DESC",
+            &params,
         )?
         .into_iter()
         .map(|row| PersistedSession {
@@ -66,23 +60,24 @@ pub fn assistant_sessions_load(
         })
         .collect();
 
-    for session in &mut sessions {
-        session.messages = db
-            .execute(
-                "SELECT id, seq, role, content, created_at FROM assistant_message WHERE session_id = @session_id ORDER BY seq ASC",
-                &ParamsBuilder::new()
-                    .set("session_id", session.id.clone())
-                    .build(),
-            )?
-            .into_iter()
-            .map(|row| PersistedMessage {
+    let mut messages_by_session: HashMap<String, Vec<PersistedMessage>> = HashMap::new();
+    for row in db.execute(
+        "SELECT m.id, m.session_id, m.seq, m.role, m.content, m.created_at FROM assistant_message m JOIN assistant_session s ON s.id = m.session_id WHERE s.owner_id IN (0, @owner_id) ORDER BY m.session_id, m.seq ASC",
+        &params,
+    )? {
+        messages_by_session
+            .entry(row_string(&row, 1))
+            .or_default()
+            .push(PersistedMessage {
                 id: row_string(&row, 0),
-                seq: row_i64(&row, 1),
-                role: row_string(&row, 2),
-                content: row_string(&row, 3),
-                created_at: row_string(&row, 4),
-            })
-            .collect();
+                seq: row_i64(&row, 2),
+                role: row_string(&row, 3),
+                content: row_string(&row, 4),
+                created_at: row_string(&row, 5),
+            });
+    }
+    for session in &mut sessions {
+        session.messages = messages_by_session.remove(&session.id).unwrap_or_default();
     }
     Ok(sessions)
 }
@@ -235,7 +230,7 @@ mod tests {
         assistant_session_upsert(&db, "usr_a", "ses_1", "hi", "t0", "t1").unwrap();
         assistant_message_insert(&db, "msg_2", "ses_1", 2, "assistant", "hello", "t2").unwrap();
 
-        let loaded = assistant_sessions_load(&db, Some("usr_a")).unwrap();
+        let loaded = assistant_sessions_load(&db, "usr_a").unwrap();
         assert_eq!(loaded.len(), 1);
         let session = &loaded[0];
         assert_eq!(session.title, "hi");
@@ -256,7 +251,7 @@ mod tests {
 
         assistant_session_delete(&db, "usr_a", "ses_1").unwrap();
 
-        assert!(assistant_sessions_load(&db, Some("usr_a"))
+        assert!(assistant_sessions_load(&db, "usr_a")
             .unwrap()
             .is_empty());
         let remaining = db
@@ -275,7 +270,7 @@ mod tests {
         assistant_session_upsert(&db, "usr_b", "ses_b", "b", "t0", "t0").unwrap();
         assistant_session_upsert(&db, "", "ses_shared", "shared", "t0", "t0").unwrap();
 
-        let mut a_ids = assistant_sessions_load(&db, Some("usr_a"))
+        let mut a_ids = assistant_sessions_load(&db, "usr_a")
             .unwrap()
             .into_iter()
             .map(|session| session.id)
@@ -284,7 +279,7 @@ mod tests {
         assert_eq!(a_ids, vec!["ses_a", "ses_shared"]);
 
         assistant_session_delete(&db, "usr_b", "ses_a").unwrap();
-        assert!(assistant_sessions_load(&db, Some("usr_a"))
+        assert!(assistant_sessions_load(&db, "usr_a")
             .unwrap()
             .iter()
             .any(|session| session.id == "ses_a"));

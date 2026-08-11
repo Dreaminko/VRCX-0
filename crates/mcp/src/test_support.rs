@@ -90,6 +90,7 @@ pub(crate) fn test_runtime(
         config: ConfigRepository::new(db),
         mutual_graph_fetch: MutualGraphFetchRuntime::new(),
         tasks,
+        caller: crate::runtime::McpCaller::ExternalServer,
     };
     Ok((dir, runtime))
 }

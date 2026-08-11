@@ -21,5 +21,5 @@ pub use config::{
 pub use controller::McpServerController;
 pub use error::McpError;
 pub use in_process::{spawn_in_process_tools, InProcessMcpTools, ToolCallOutcome, ToolDescriptor};
-pub use runtime::McpRuntime;
+pub use runtime::{McpCaller, McpRuntime};
 pub use types::{ClientConfigSnippets, McpServerState, McpServerStatus};
