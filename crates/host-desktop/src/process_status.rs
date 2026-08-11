@@ -1,4 +1,4 @@
-use sysinfo::{Pid, ProcessesToUpdate, System};
+use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct VrcProcessStatus {
@@ -16,7 +16,11 @@ impl ProcessStatusDetector {
     }
 
     pub fn detect(&mut self) -> VrcProcessStatus {
-        self.sys.refresh_processes(ProcessesToUpdate::All, true);
+        self.sys.refresh_processes_specifics(
+            ProcessesToUpdate::All,
+            true,
+            ProcessRefreshKind::nothing(),
+        );
         detect_process_status_from_names(
             self.sys
                 .processes()
