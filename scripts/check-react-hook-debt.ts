@@ -10,10 +10,7 @@ const expectedDiagnosticsByFile = new Map<string, number>([
     ['src/components/dialogs/BoopEmojiDialog.tsx', 1],
     ['src/components/dialogs/EntityDialogScaffold.tsx', 1],
     ['src/components/dialogs/group-dialog/GroupDialogTabbedView.tsx', 5],
-    [
-        'src/components/dialogs/group-dialog/GroupModerationWorkspace.tsx',
-        4
-    ],
+    ['src/components/dialogs/group-dialog/GroupModerationWorkspace.tsx', 4],
     ['src/components/dialogs/group-dialog/GroupPostEditorDialog.tsx', 1],
     ['src/components/dialogs/group-dialog/useGroupModerationTable.ts', 1],
     ['src/components/dialogs/invite-message/InviteMessagePanel.tsx', 1],
@@ -25,31 +22,20 @@ const expectedDiagnosticsByFile = new Map<string, number>([
         'src/components/dialogs/user-dialog/components/UserDialogProfileMediaPanel.tsx',
         1
     ],
-    [
-        'src/components/dialogs/user-dialog/useUserActivityPanelController.ts',
-        2
-    ],
-    [
-        'src/components/dialogs/user-dialog/useUserDialogLocationPanel.ts',
-        3
-    ],
-    [
-        'src/components/dialogs/user-dialog/useUserDialogProfileResource.ts',
-        2
-    ],
-    [
-        'src/components/dialogs/user-dialog/useUserDialogSupplementalData.ts',
-        2
-    ],
+    ['src/components/dialogs/user-dialog/useUserActivityPanelController.ts', 2],
+    ['src/components/dialogs/user-dialog/useUserDialogLocationPanel.ts', 3],
+    ['src/components/dialogs/user-dialog/useUserDialogProfileResource.ts', 2],
+    ['src/components/dialogs/user-dialog/useUserDialogSupplementalData.ts', 2],
     ['src/components/dialogs/user-dialog/useUserDialogTabData.ts', 6],
     ['src/components/dialogs/UserActivityPanelImpl.tsx', 1],
     ['src/components/dialogs/UserDialogTabbedView.tsx', 7],
     ['src/components/dialogs/world-dialog/useWorldDialogData.ts', 3],
+    ['src/components/dialogs/world-dialog/useWorldDialogCurrentInstance.ts', 1],
     [
         'src/components/dialogs/world-dialog/WorldDialogInstanceUsers.test.tsx',
         1
     ],
-    ['src/components/dialogs/world-dialog/WorldDialogTabbedView.tsx', 6],
+    ['src/components/dialogs/world-dialog/WorldDialogTabbedView.tsx', 5],
     ['src/components/dialogs/WorldDialogContentWorkflow.tsx', 1],
     ['src/components/hosts/LaunchDialogHost.tsx', 2],
     ['src/components/hosts/system-dialogs/LaunchOptionsDialog.tsx', 1],
@@ -66,10 +52,9 @@ const expectedDiagnosticsByFile = new Map<string, number>([
     ['src/components/hosts/VrcNotificationCenterHost.tsx', 1],
     ['src/components/layout/AppMenuBar.tsx', 1],
     ['src/components/location/useLocationMetadata.ts', 2],
-    [
-        'src/components/sidebar/friends-sidebar/FriendsSidebarLocation.tsx',
-        1
-    ],
+    ['src/components/media/ImageCropDialog.tsx', 1],
+    ['src/components/media/imageCropDialogSession.ts', 2],
+    ['src/components/sidebar/friends-sidebar/FriendsSidebarLocation.tsx', 1],
     ['src/components/sidebar/FriendsSidebar.tsx', 6],
     ['src/components/sidebar/GroupsSidebar.tsx', 1],
     ['src/components/sidebar/quick-search/useQuickSearchResults.ts', 1],
@@ -90,7 +75,6 @@ const expectedDiagnosticsByFile = new Map<string, number>([
     ['src/features/friends/useFriendListRows.ts', 1],
     ['src/features/game-log/useGameLogPageController.ts', 1],
     ['src/features/game-log/useGameLogRows.ts', 1],
-    ['src/features/instance-history/InstanceHistoryPage.tsx', 3],
     ['src/features/moderation/components/ModerationColumns.tsx', 1],
     ['src/features/my-avatars/AvatarStylesDialog.tsx', 1],
     ['src/features/my-avatars/useMyAvatarsRows.ts', 1],
@@ -142,7 +126,9 @@ function compareDiagnosticCounts(diagnostics: Diagnostic[]): string[] {
         const expected = expectedDiagnosticsByFile.get(filename) ?? 0;
         const actual = actualByFile.get(filename) ?? 0;
         if (expected !== actual) {
-            failures.push(`${filename}: expected ${expected}, received ${actual}`);
+            failures.push(
+                `${filename}: expected ${expected}, received ${actual}`
+            );
         }
     }
     return failures;

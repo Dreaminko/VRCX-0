@@ -2,6 +2,8 @@ import type { Area, Point, Size } from 'react-easy-crop';
 
 const MAX_PREVIEW_SIZE = 800;
 
+export const CROP_ROTATION_GUTTER = 44;
+
 export interface CropRect {
     x: number;
     y: number;
@@ -10,6 +12,15 @@ export interface CropRect {
 }
 
 export type CropResizeAxis = 'horizontal' | 'vertical';
+
+export function normalizeRotation(rotation: number): number {
+    return ((rotation % 360) + 360) % 360;
+}
+
+export function normalizeSignedRotation(rotation: number): number {
+    const normalized = normalizeRotation(rotation);
+    return normalized > 180 ? normalized - 360 : normalized;
+}
 
 export function getContinuousRotationDeltaDegrees(
     previousAngleRadians: number,

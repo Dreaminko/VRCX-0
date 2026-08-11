@@ -1,32 +1,7 @@
 import 'react-easy-crop/react-easy-crop.css';
-import {
-    FlipHorizontal2,
-    FlipVertical2,
-    Maximize2,
-    Minimize2,
-    RefreshCcw,
-    RotateCcw,
-    RotateCw,
-    Upload,
-    ZoomIn,
-    ZoomOut
-} from 'lucide-react';
-import {
-    type KeyboardEvent as ReactKeyboardEvent,
-    type PointerEvent as ReactPointerEvent,
-    type ReactNode,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from 'react';
-import Cropper, {
-    type Area,
-    type MediaSize,
-    type Point,
-    type Size
-} from 'react-easy-crop';
+import { RotateCw, Upload } from 'lucide-react';
+import { useCallback, useEffect, useMemo } from 'react';
+import Cropper, { type Area } from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -43,43 +18,28 @@ import {
 } from '@/ui/shadcn/dialog';
 import { Field, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
-import { Separator } from '@/ui/shadcn/separator';
-import { Slider } from '@/ui/shadcn/slider';
 import { Spinner } from '@/ui/shadcn/spinner';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger
-} from '@/ui/shadcn/tooltip';
+import { TooltipProvider } from '@/ui/shadcn/tooltip';
 
+import { useImageCropDialogSession } from './imageCropDialogSession';
+import { ImageCropToolbar } from './ImageCropToolbar';
 import {
     buildMediaTransform,
-    constrainCropSizeToZoom,
-    constrainCropToImage,
+    CROP_ROTATION_GUTTER,
     cropImage,
-    getContinuousRotationDeltaDegrees,
     getRotationCoverZoom,
+    normalizeRotation,
+    normalizeSignedRotation,
     prepareImage,
-    resizeCropSize,
-    resizeCropSizeFromCorner,
     type CropResizeAxis
 } from './imageCropUtils';
+import { useImageCropViewportInteractions } from './useImageCropViewportInteractions';
 
 const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 5;
 const ZOOM_DEFAULT = 1;
 const ZOOM_FACTOR = 1.2;
-const TRACKPAD_PAN_END_MS = 160;
-const TRACKPAD_PAN_THRESHOLD = 50;
-const TRANSFORM_TRANSITION_MS = 180;
 const TRANSFORM_TRANSITION = `transform 150ms cubic-bezier(0.23, 1, 0.32, 1)`;
-const MIN_CROP_SHORT_EDGE = 56;
-const CROP_ROTATION_GUTTER = 44;
-
-type CropResizeHandle =
-    | { kind: 'edge'; axis: CropResizeAxis; direction: 1 | -1 }
-    | { kind: 'corner'; direction: Point };
 
 const CROP_EDGE_HANDLES: ReadonlyArray<{
     side: 'top' | 'right' | 'bottom' | 'left';
@@ -166,25 +126,6 @@ function formatAspect(aspect: number): string {
     return aspect.toFixed(2);
 }
 
-function normalizeRotation(rotation: number): number {
-    return ((rotation % 360) + 360) % 360;
-}
-
-function normalizeSignedRotation(rotation: number): number {
-    const normalized = normalizeRotation(rotation);
-    return normalized > 180 ? normalized - 360 : normalized;
-}
-
-function prefersReducedMotion(): boolean {
-    if (
-        typeof window === 'undefined' ||
-        typeof window.matchMedia !== 'function'
-    ) {
-        return false;
-    }
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 export interface ImageCropDialogNoteField {
     label: string;
     placeholder?: string;
@@ -229,54 +170,47 @@ export function ImageCropDialog({
 }: ImageCropDialogProps) {
     const { t } = useTranslation();
 
-    const originalImgRef = useRef<HTMLImageElement | null>(null);
-    const previewScaleRef = useRef<number>(1);
-    const cropWrapperRef = useRef<HTMLDivElement | null>(null);
-    const cropStageRef = useRef<HTMLDivElement | null>(null);
-    const rotationInputRef = useRef<HTMLInputElement | null>(null);
-
-    const [previewSrc, setPreviewSrc] = useState<string>('');
-    const [previewPending, setPreviewPending] = useState(false);
-    const [cropperReady, setCropperReady] = useState(false);
-    const [crop, setCrop] = useState({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(ZOOM_DEFAULT);
-    const [rotation, setRotation] = useState(0);
-    const [rotationEditing, setRotationEditing] = useState(false);
-    const [rotationInput, setRotationInput] = useState('');
-    const [mediaSize, setMediaSize] = useState<MediaSize | null>(null);
-    const [cropSize, setCropSize] = useState<Size | null>(null);
-    const [flipH, setFlipH] = useState(false);
-    const [flipV, setFlipV] = useState(false);
-    const [fitWhole, setFitWhole] = useState(false);
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
-        null
-    );
-
-    const [note, setNote] = useState('');
-    const [cropWhiteBorder, setCropWhiteBorder] = useState(true);
-    const [isConfirming, setIsConfirming] = useState(false);
-    const [transformAnimating, setTransformAnimating] = useState(false);
-    const transformAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-        null
-    );
-    const rotationDragRef = useRef<{
-        pointerId: number;
-        centerX: number;
-        centerY: number;
-        previousAngleRadians: number;
-        rotationDegrees: number;
-    } | null>(null);
-    const cropResizeDragRef = useRef<{
-        pointerId: number;
-        startX: number;
-        startY: number;
-        startSize: Size;
-        handle: CropResizeHandle;
-    } | null>(null);
-    const trackpadPanningRef = useRef(false);
-    const trackpadPanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-        null
-    );
+    const cropSession = useImageCropDialogSession();
+    const {
+        crop,
+        croppedAreaPixels,
+        cropSize,
+        cropStageRef,
+        cropWhiteBorder,
+        cropWrapperRef,
+        cropperReady,
+        fitWhole,
+        flipH,
+        flipV,
+        isConfirming,
+        mediaSize,
+        note,
+        originalImgRef,
+        previewPending,
+        previewScaleRef,
+        previewSrc,
+        resetTransforms,
+        rotation,
+        rotationEditing,
+        rotationInput,
+        rotationInputRef,
+        setCroppedAreaPixels,
+        setCropSize,
+        setCropWhiteBorder,
+        setCropperReady,
+        setIsConfirming,
+        setMediaSize,
+        setNote,
+        setPreviewPending,
+        setPreviewSrc,
+        setRotation,
+        setRotationEditing,
+        setRotationInput,
+        setZoom,
+        transformAnimating,
+        triggerTransformAnim,
+        zoom
+    } = cropSession;
 
     const resolvedTitle = title || t('message.image.label.crop_image');
     const resolvedDescription =
@@ -306,16 +240,40 @@ export function ImageCropDialog({
     const logZoomMin = Math.log(minZoom);
     const logZoomMax = Math.log(maxZoom);
 
-    const resetTransforms = useCallback(() => {
-        setCrop({ x: 0, y: 0 });
-        setZoom(ZOOM_DEFAULT);
-        setRotation(0);
-        setFlipH(false);
-        setFlipV(false);
-        setFitWhole(false);
-        setRotationEditing(false);
-        setCropSize(null);
-    }, []);
+    const {
+        adjustRotationFromKeyboard,
+        flipHorizontal: doFlipH,
+        flipVertical: doFlipV,
+        moveCropResize,
+        moveCropRotation,
+        onCropChange,
+        onWheelRequest,
+        reset,
+        rotateLeft,
+        rotateRight,
+        setZoomFromSlider: onZoomSlider,
+        startCropResize,
+        startCropRotation,
+        stopCropResize,
+        stopCropRotation,
+        toggleFit,
+        zoomIn,
+        zoomOut
+    } = useImageCropViewportInteractions({
+        model: {
+            aspect,
+            constrainToImage,
+            cropSize,
+            effectiveZoom,
+            logZoomMax,
+            logZoomMin,
+            maxZoom,
+            mediaSize,
+            minZoom,
+            rotation
+        },
+        session: cropSession
+    });
 
     useEffect(() => {
         resetTransforms();
@@ -348,11 +306,21 @@ export function ImageCropDialog({
         return () => {
             cancelled = true;
         };
-    }, [file, open, resetTransforms]);
+    }, [
+        file,
+        open,
+        originalImgRef,
+        previewScaleRef,
+        resetTransforms,
+        setCroppedAreaPixels,
+        setMediaSize,
+        setPreviewPending,
+        setPreviewSrc
+    ]);
 
     useEffect(() => {
         setCropSize(null);
-    }, [aspect]);
+    }, [aspect, setCropSize]);
 
     useEffect(() => {
         setNote('');
@@ -362,7 +330,9 @@ export function ImageCropDialog({
         cropWhiteBorderEnabled,
         file,
         noteEnabled,
-        open
+        open,
+        setCropWhiteBorder,
+        setNote
     ]);
 
     // Mount the cropper only after the dialog open animation settles: it measures
@@ -392,321 +362,14 @@ export function ImageCropDialog({
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
-    }, [open, previewSrc]);
+    }, [open, previewSrc, setCropperReady]);
 
-    const onCropComplete = useCallback((_croppedArea: Area, pixels: Area) => {
-        setCroppedAreaPixels(pixels);
-    }, []);
-
-    useEffect(() => {
-        return () => {
-            if (transformAnimTimerRef.current) {
-                clearTimeout(transformAnimTimerRef.current);
-            }
-            if (trackpadPanTimerRef.current) {
-                clearTimeout(trackpadPanTimerRef.current);
-            }
-        };
-    }, []);
-
-    const triggerTransformAnim = useCallback(() => {
-        if (prefersReducedMotion()) return;
-        if (transformAnimTimerRef.current) {
-            clearTimeout(transformAnimTimerRef.current);
-        }
-        setTransformAnimating(true);
-        transformAnimTimerRef.current = setTimeout(() => {
-            setTransformAnimating(false);
-            transformAnimTimerRef.current = null;
-        }, TRANSFORM_TRANSITION_MS);
-    }, []);
-
-    const startCropRotation = useCallback(
-        (event: ReactPointerEvent<HTMLSpanElement>) => {
-            event.preventDefault();
-            event.stopPropagation();
-            const cropBounds =
-                event.currentTarget.parentElement?.getBoundingClientRect();
-            if (!cropBounds) return;
-
-            if (transformAnimTimerRef.current) {
-                clearTimeout(transformAnimTimerRef.current);
-                transformAnimTimerRef.current = null;
-            }
-            setTransformAnimating(false);
-            event.currentTarget.setPointerCapture(event.pointerId);
-            const centerX = cropBounds.left + cropBounds.width / 2;
-            const centerY = cropBounds.top + cropBounds.height / 2;
-            rotationDragRef.current = {
-                pointerId: event.pointerId,
-                centerX,
-                centerY,
-                previousAngleRadians: Math.atan2(
-                    event.clientY - centerY,
-                    event.clientX - centerX
-                ),
-                rotationDegrees: rotation
-            };
+    const onCropComplete = useCallback(
+        (_croppedArea: Area, pixels: Area) => {
+            setCroppedAreaPixels(pixels);
         },
-        [rotation]
+        [setCroppedAreaPixels]
     );
-
-    const moveCropRotation = useCallback(
-        (event: ReactPointerEvent<HTMLSpanElement>) => {
-            const drag = rotationDragRef.current;
-            if (!drag || drag.pointerId !== event.pointerId) return;
-            event.preventDefault();
-            event.stopPropagation();
-            const angleRadians = Math.atan2(
-                event.clientY - drag.centerY,
-                event.clientX - drag.centerX
-            );
-            drag.rotationDegrees += getContinuousRotationDeltaDegrees(
-                drag.previousAngleRadians,
-                angleRadians
-            );
-            drag.previousAngleRadians = angleRadians;
-            setRotation(drag.rotationDegrees);
-        },
-        []
-    );
-
-    const stopCropRotation = useCallback(
-        (event: ReactPointerEvent<HTMLSpanElement>) => {
-            const drag = rotationDragRef.current;
-            if (!drag || drag.pointerId !== event.pointerId) return;
-            event.preventDefault();
-            event.stopPropagation();
-            rotationDragRef.current = null;
-            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                event.currentTarget.releasePointerCapture(event.pointerId);
-            }
-            setRotation((value) => normalizeSignedRotation(value));
-        },
-        []
-    );
-
-    const adjustRotationFromKeyboard = useCallback(
-        (event: ReactKeyboardEvent<HTMLSpanElement>) => {
-            let rotationDelta = event.shiftKey ? 15 : 1;
-            switch (event.key) {
-                case 'ArrowLeft':
-                case 'ArrowDown':
-                    rotationDelta = -rotationDelta;
-                    break;
-                case 'ArrowRight':
-                case 'ArrowUp':
-                    break;
-                case 'Home':
-                    rotationDelta = 0;
-                    break;
-                default:
-                    return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-            setRotation((value) =>
-                rotationDelta === 0
-                    ? 0
-                    : normalizeSignedRotation(value + rotationDelta)
-            );
-        },
-        []
-    );
-
-    const startCropResize = useCallback(
-        (
-            handle: CropResizeHandle,
-            event: ReactPointerEvent<HTMLSpanElement>
-        ) => {
-            if (!cropSize) return;
-            event.preventDefault();
-            event.stopPropagation();
-            event.currentTarget.setPointerCapture(event.pointerId);
-            cropResizeDragRef.current = {
-                pointerId: event.pointerId,
-                startX: event.clientX,
-                startY: event.clientY,
-                startSize: cropSize,
-                handle
-            };
-        },
-        [cropSize]
-    );
-
-    const moveCropResize = useCallback(
-        (event: ReactPointerEvent<HTMLSpanElement>) => {
-            const drag = cropResizeDragRef.current;
-            if (!drag || drag.pointerId !== event.pointerId) return;
-
-            event.preventDefault();
-            event.stopPropagation();
-            const cropStageBounds =
-                cropStageRef.current?.getBoundingClientRect();
-            if (!cropStageBounds) return;
-            const cropBounds = {
-                width: cropStageBounds.width,
-                height: Math.max(
-                    0,
-                    cropStageBounds.height - CROP_ROTATION_GUTTER
-                )
-            };
-
-            const delta = {
-                x: event.clientX - drag.startX,
-                y: event.clientY - drag.startY
-            };
-            const resized =
-                drag.handle.kind === 'corner'
-                    ? resizeCropSizeFromCorner(
-                          drag.startSize,
-                          delta,
-                          drag.handle.direction,
-                          cropBounds,
-                          aspect,
-                          MIN_CROP_SHORT_EDGE
-                      )
-                    : resizeCropSize(
-                          drag.startSize,
-                          drag.handle.axis,
-                          (drag.handle.axis === 'horizontal'
-                              ? delta.x
-                              : delta.y) * drag.handle.direction,
-                          cropBounds,
-                          aspect,
-                          MIN_CROP_SHORT_EDGE
-                      );
-            setCropSize(
-                constrainToImage && mediaSize
-                    ? constrainCropSizeToZoom(
-                          resized,
-                          mediaSize,
-                          effectiveZoom,
-                          rotation
-                      )
-                    : resized
-            );
-        },
-        [aspect, constrainToImage, effectiveZoom, mediaSize, rotation]
-    );
-
-    const stopCropResize = useCallback(
-        (event: ReactPointerEvent<HTMLSpanElement>) => {
-            const drag = cropResizeDragRef.current;
-            if (!drag || drag.pointerId !== event.pointerId) return;
-            event.preventDefault();
-            event.stopPropagation();
-            cropResizeDragRef.current = null;
-            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                event.currentTarget.releasePointerCapture(event.pointerId);
-            }
-        },
-        []
-    );
-
-    const limitCropPosition = useCallback(
-        (position: Point) =>
-            constrainToImage && mediaSize && cropSize
-                ? constrainCropToImage(
-                      position,
-                      mediaSize,
-                      cropSize,
-                      effectiveZoom,
-                      rotation
-                  )
-                : position,
-        [constrainToImage, cropSize, effectiveZoom, mediaSize, rotation]
-    );
-
-    const onCropChange = useCallback(
-        (position: Point) => setCrop(limitCropPosition(position)),
-        [limitCropPosition]
-    );
-
-    const onWheelRequest = useCallback(
-        (event: WheelEvent) => {
-            if (event.ctrlKey) {
-                trackpadPanningRef.current = false;
-                if (trackpadPanTimerRef.current) {
-                    clearTimeout(trackpadPanTimerRef.current);
-                    trackpadPanTimerRef.current = null;
-                }
-                return true;
-            }
-
-            const startsTrackpadPan =
-                event.deltaMode === 0 &&
-                (event.deltaX !== 0 ||
-                    Math.abs(event.deltaY) < TRACKPAD_PAN_THRESHOLD);
-            if (!trackpadPanningRef.current && !startsTrackpadPan) return true;
-
-            event.preventDefault();
-            trackpadPanningRef.current = true;
-            if (trackpadPanTimerRef.current) {
-                clearTimeout(trackpadPanTimerRef.current);
-            }
-            trackpadPanTimerRef.current = setTimeout(() => {
-                trackpadPanningRef.current = false;
-                trackpadPanTimerRef.current = null;
-            }, TRACKPAD_PAN_END_MS);
-            setCrop((current) =>
-                limitCropPosition({
-                    x: current.x - event.deltaX,
-                    y: current.y - event.deltaY
-                })
-            );
-            return false;
-        },
-        [limitCropPosition]
-    );
-
-    const rotateBy = useCallback(
-        (delta: number) => setRotation((r) => r + delta),
-        []
-    );
-    const rotateLeft = useCallback(() => {
-        triggerTransformAnim();
-        rotateBy(-90);
-    }, [rotateBy, triggerTransformAnim]);
-    const rotateRight = useCallback(() => {
-        triggerTransformAnim();
-        rotateBy(90);
-    }, [rotateBy, triggerTransformAnim]);
-    const doFlipH = useCallback(() => {
-        triggerTransformAnim();
-        setFlipH((v) => !v);
-    }, [triggerTransformAnim]);
-    const doFlipV = useCallback(() => {
-        triggerTransformAnim();
-        setFlipV((v) => !v);
-    }, [triggerTransformAnim]);
-    const zoomIn = useCallback(() => {
-        setZoom(Math.min(maxZoom, effectiveZoom * ZOOM_FACTOR));
-    }, [effectiveZoom, maxZoom]);
-    const zoomOut = useCallback(
-        () => setZoom(Math.max(minZoom, effectiveZoom / ZOOM_FACTOR)),
-        [effectiveZoom, minZoom]
-    );
-    const onZoomSlider = useCallback(
-        (value: number | readonly number[]) => {
-            const pct = (Array.isArray(value) ? value[0] : value) ?? 0;
-            setZoom(
-                Math.exp(logZoomMin + (pct / 100) * (logZoomMax - logZoomMin))
-            );
-        },
-        [logZoomMax, logZoomMin]
-    );
-    const toggleFit = useCallback(
-        () =>
-            setFitWhole((f) => {
-                // Leaving free mode: clamp back so the image still fills the frame.
-                if (f) setZoom((z) => Math.max(z, ZOOM_DEFAULT));
-                return !f;
-            }),
-        []
-    );
-    const reset = resetTransforms;
 
     async function confirmCrop() {
         const img = originalImgRef.current;
@@ -800,36 +463,6 @@ export function ImageCropDialog({
         }
         setRotationEditing(false);
     }
-
-    const tool = (
-        onClick: () => void,
-        label: string,
-        icon: ReactNode,
-        active?: boolean
-    ) => (
-        <Tooltip>
-            <TooltipTrigger
-                render={
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={onClick}
-                        disabled={toolsDisabled}
-                        aria-label={label}
-                        aria-pressed={active}
-                        className={cn(
-                            'text-muted-foreground hover:text-foreground',
-                            active && 'bg-muted text-foreground'
-                        )}
-                    >
-                        {icon}
-                    </Button>
-                }
-            />
-            <TooltipContent>{label}</TooltipContent>
-        </Tooltip>
-    );
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1096,85 +729,28 @@ export function ImageCropDialog({
                             ) : null}
                         </div>
 
-                        <div
-                            className="bg-muted/40 flex flex-wrap items-center justify-center gap-2 rounded-xl border p-1.5"
-                            role="toolbar"
-                            aria-label={t('dialog.image_crop.toolbar_label', {
-                                defaultValue: 'Image crop toolbar'
-                            })}
-                        >
-                            <div className="bg-background/50 flex items-center gap-0.5 rounded-lg border p-1">
-                                {tool(
-                                    rotateLeft,
-                                    t('dialog.image_crop.rotate_left'),
-                                    <RotateCcw />
-                                )}
-                                {tool(
-                                    rotateRight,
-                                    t('dialog.image_crop.rotate_right'),
-                                    <RotateCw />
-                                )}
-                                <Separator
-                                    orientation="vertical"
-                                    className="mx-0.5 !h-5"
-                                />
-                                {tool(
-                                    doFlipH,
-                                    t('dialog.image_crop.flip_h'),
-                                    <FlipHorizontal2 />,
-                                    flipH
-                                )}
-                                {tool(
-                                    doFlipV,
-                                    t('dialog.image_crop.flip_v'),
-                                    <FlipVertical2 />,
-                                    flipV
-                                )}
-                            </div>
-
-                            <div className="bg-background/50 flex items-center gap-1 rounded-lg border py-1 pr-1 pl-1.5">
-                                {tool(
-                                    zoomOut,
-                                    t('dialog.image_crop.zoom_out'),
-                                    <ZoomOut />
-                                )}
-                                <div className="w-24 sm:w-36">
-                                    <Slider
-                                        min={0}
-                                        max={100}
-                                        step={1}
-                                        value={[zoomSliderValue]}
-                                        disabled={toolsDisabled}
-                                        onValueChange={onZoomSlider}
-                                        aria-label={t(
-                                            'dialog.image_crop.zoom_level'
-                                        )}
-                                    />
-                                </div>
-                                <span className="text-muted-foreground w-10 text-right font-mono text-xs tabular-nums">
-                                    {zoomPercent}%
-                                </span>
-                                {tool(
-                                    zoomIn,
-                                    t('dialog.image_crop.zoom_in'),
-                                    <ZoomIn />
-                                )}
-                            </div>
-
-                            <div className="bg-background/50 flex items-center gap-0.5 rounded-lg border p-1">
-                                {tool(
-                                    toggleFit,
-                                    fitLabel,
-                                    fitWhole ? <Minimize2 /> : <Maximize2 />,
-                                    fitWhole
-                                )}
-                                {tool(
-                                    reset,
-                                    t('dialog.image_crop.reset'),
-                                    <RefreshCcw />
-                                )}
-                            </div>
-                        </div>
+                        <ImageCropToolbar
+                            model={{
+                                disabled: toolsDisabled,
+                                fitLabel,
+                                fitWhole,
+                                flipH,
+                                flipV,
+                                zoomPercent,
+                                zoomSliderValue
+                            }}
+                            actions={{
+                                flipHorizontal: doFlipH,
+                                flipVertical: doFlipV,
+                                reset,
+                                rotateLeft,
+                                rotateRight,
+                                toggleFit,
+                                zoomIn,
+                                zoomOut,
+                                setZoom: onZoomSlider
+                            }}
+                        />
 
                         {noteEnabled ? (
                             <Field>

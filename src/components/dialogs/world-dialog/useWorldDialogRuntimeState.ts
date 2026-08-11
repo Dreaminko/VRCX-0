@@ -81,3 +81,7 @@ export function useWorldDialogTabbedRuntimeState() {
         screenshotCacheStatus
     };
 }
+
+export type WorldDialogTabbedRuntimeState = ReturnType<
+    typeof useWorldDialogTabbedRuntimeState
+>;

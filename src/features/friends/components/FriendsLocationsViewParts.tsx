@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { FriendLocationCard } from '@/components/friends/FriendLocationCard';
 import { CurrentInstanceBadge } from '@/components/instances/CurrentInstanceBadge';
 import { EmptyState } from '@/components/layout/PageScaffold';
 import { Location } from '@/components/Location';
@@ -26,6 +25,7 @@ import {
     resolveLocationTarget
 } from '../friendsLocationsRows';
 import type { FriendsLocationsSection } from '../useFriendsLocationsPageDerivedState';
+import { FriendLocationCard } from './FriendLocationCard';
 
 type BivariantCallback<Args extends unknown[]> = {
     bivarianceHack(...args: Args): void;
@@ -241,30 +241,36 @@ export function FriendsLocationCardItem({
     return (
         <FriendLocationCard
             friend={friend}
-            locationLabel={location.label}
-            groupHint={groupHint}
-            rawLocation={rawLocation}
-            isTraveling={isTravelingLocation}
-            travelingLocation={travelingLocation}
-            instanceEpoch={instanceEpoch}
-            densityConfig={densityConfig}
-            contentMode={section.cardContentMode}
-            displayInstanceInfo={section.displayInstanceInfo !== false}
-            canUseFriendLocation={
-                !friendIsCurrentUser && friendLocationAvailable
-            }
-            canSendInvite={!friendIsCurrentUser && canSendInvite}
-            canRequestInvite={!friendIsCurrentUser && friendIsOnline}
-            canBoop={!friendIsCurrentUser && canBoop}
-            onOpenUser={() => onOpenUser(friend)}
-            onOpenWorld={
-                target.worldId ? () => onOpenWorld(target, location) : undefined
-            }
-            onLaunchLocation={() => onLaunchLocation(rawLocation)}
-            onSelfInviteLocation={() => onSelfInviteLocation(rawLocation)}
-            onSendInvite={() => onSendInvite(friend)}
-            onRequestInvite={() => onRequestInvite(friend)}
-            onSendBoop={() => onSendBoop(friend)}
+            location={{
+                label: location.label,
+                groupHint,
+                raw: rawLocation,
+                traveling: isTravelingLocation,
+                travelingTo: travelingLocation,
+                instanceEpoch
+            }}
+            presentation={{
+                density: densityConfig,
+                contentMode: section.cardContentMode,
+                displayInstanceInfo: section.displayInstanceInfo !== false
+            }}
+            capabilities={{
+                useLocation: !friendIsCurrentUser && friendLocationAvailable,
+                sendInvite: !friendIsCurrentUser && canSendInvite,
+                requestInvite: !friendIsCurrentUser && friendIsOnline,
+                boop: !friendIsCurrentUser && canBoop
+            }}
+            actions={{
+                openUser: () => onOpenUser(friend),
+                openWorld: target.worldId
+                    ? () => onOpenWorld(target, location)
+                    : undefined,
+                launchLocation: () => onLaunchLocation(rawLocation),
+                selfInviteLocation: () => onSelfInviteLocation(rawLocation),
+                sendInvite: () => onSendInvite(friend),
+                requestInvite: () => onRequestInvite(friend),
+                sendBoop: () => onSendBoop(friend)
+            }}
         />
     );
 }

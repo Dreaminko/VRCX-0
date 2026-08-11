@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import mediaRepository from '@/repositories/mediaRepository';
 import {
@@ -6,6 +7,11 @@ import {
     startScreenshotLibraryScan,
     subscribeScreenshotLibraryScanStatus
 } from '@/services/screenshotLibraryScanService';
+
+import {
+    createWorldDialogRequestContext,
+    isSameWorldDialogRequestContext
+} from './worldDialogRequestContext';
 
 export type WorldWorldScreenshots = Array<{
     path: string;
@@ -22,19 +28,9 @@ export type WorldWorldScreenshots = Array<{
     metadata: {
         application: string;
         version: number;
-        author: {
-            id: string;
-            displayName?: string;
-        };
-        world: {
-            id: string;
-            name?: string;
-            instanceId: string;
-        };
-        players: Array<{
-            id: string;
-            displayName: string;
-        }>;
+        author: { id: string; displayName?: string };
+        world: { id: string; name?: string; instanceId: string };
+        players: Array<{ id: string; displayName: string }>;
         sourceFile: string;
         timestamp?: string;
     };
@@ -45,24 +41,26 @@ type ScreenshotScanStatus = Awaited<
     ReturnType<typeof mediaRepository.getScreenshotLibraryStatus>
 >;
 
-type WorldDialogScreenshotsInput = {
-    activeTab: string;
-    loadFailedMessage: string;
-    openNonce: number;
-    worldId: string;
-};
-
-function useWorldDialogScreenshots({
-    activeTab,
-    loadFailedMessage,
+export function useWorldDialogScreenshots({
+    active,
+    endpoint,
     openNonce,
     worldId
-}: WorldDialogScreenshotsInput) {
+}: {
+    active: boolean;
+    endpoint: string;
+    openNonce: number;
+    worldId: string;
+}) {
+    const { t } = useTranslation();
     const [screenshots, setScreenshots] = useState<WorldWorldScreenshots>([]);
     const [status, setStatus] = useState('idle');
     const [error, setError] = useState('');
     const [refreshToken, setRefreshToken] = useState(0);
     const forceRefreshRef = useRef(false);
+    const activeContextRef = useRef(
+        createWorldDialogRequestContext({ endpoint, openNonce, worldId })
+    );
 
     function refresh() {
         forceRefreshRef.current = true;
@@ -76,25 +74,36 @@ function useWorldDialogScreenshots({
     }, [worldId]);
 
     useEffect(() => {
-        if (activeTab !== 'screenshots' || !worldId) {
-            return undefined;
+        if (!active || !worldId) {
+            return;
         }
 
-        let active = true;
+        let mounted = true;
         let scanActive = false;
         let scanCompleted = false;
         let scanError = '';
+        const requestContext = createWorldDialogRequestContext({
+            endpoint,
+            openNonce,
+            worldId
+        });
+        activeContextRef.current = requestContext;
+        const isCurrent = () =>
+            mounted &&
+            isSameWorldDialogRequestContext(
+                activeContextRef.current,
+                requestContext
+            );
 
         const loadWorldScreenshots = async () => {
             try {
-                const result = await mediaRepository.getWorldScreenshots(
-                    worldId
-                );
-                if (!active) {
+                const nextScreenshots =
+                    await mediaRepository.getWorldScreenshots(worldId);
+                if (!isCurrent()) {
                     return;
                 }
-                const screenshotList = Array.isArray(result)
-                    ? (result as WorldWorldScreenshots)
+                const screenshotList = Array.isArray(nextScreenshots)
+                    ? (nextScreenshots as WorldWorldScreenshots)
                     : [];
                 setScreenshots(screenshotList);
                 if (scanError) {
@@ -105,14 +114,14 @@ function useWorldDialogScreenshots({
                 setError('');
                 setStatus('ready');
             } catch (loadError) {
-                if (!active) {
+                if (!isCurrent()) {
                     return;
                 }
                 setScreenshots([]);
                 setError(
                     loadError instanceof Error
                         ? loadError.message
-                        : loadFailedMessage
+                        : t('dialog.world.screenshots.load_failed')
                 );
                 setStatus('error');
             }
@@ -131,7 +140,7 @@ function useWorldDialogScreenshots({
         };
 
         const handleScanStatus = (scanStatus: ScreenshotScanStatus) => {
-            if (!active) {
+            if (!isCurrent()) {
                 return;
             }
             if (scanStatus.error) {
@@ -154,17 +163,18 @@ function useWorldDialogScreenshots({
         setError('');
         const forceRefresh = forceRefreshRef.current;
         forceRefreshRef.current = false;
+
         const initializeScan = async () => {
             try {
                 let currentStatus =
                     await getCurrentScreenshotLibraryScanStatus();
-                if (!active) {
+                if (!isCurrent()) {
                     return;
                 }
                 if (!currentStatus) {
                     currentStatus =
                         await getCurrentScreenshotLibraryScanStatus();
-                    if (!active) {
+                    if (!isCurrent()) {
                         return;
                     }
                 }
@@ -175,22 +185,22 @@ function useWorldDialogScreenshots({
                 scanActive = true;
                 const scanStatus =
                     await startScreenshotLibraryScan(forceRefresh);
-                if (!active || !scanStatus) {
+                if (!isCurrent() || !scanStatus) {
                     return;
                 }
                 handleScanStatus(scanStatus);
                 if (!scanStatus.running) {
                     completeScan(scanStatus);
                 }
-            } catch (scanStartError) {
-                if (!active) {
+            } catch (scanFailure) {
+                if (!isCurrent()) {
                     return;
                 }
                 setScreenshots([]);
                 setError(
-                    scanStartError instanceof Error
-                        ? scanStartError.message
-                        : loadFailedMessage
+                    scanFailure instanceof Error
+                        ? scanFailure.message
+                        : t('dialog.world.screenshots.load_failed')
                 );
                 setStatus('error');
             }
@@ -198,18 +208,10 @@ function useWorldDialogScreenshots({
         void initializeScan();
 
         return () => {
-            active = false;
+            mounted = false;
             unsubscribe();
         };
-    }, [activeTab, loadFailedMessage, openNonce, refreshToken, worldId]);
+    }, [active, endpoint, openNonce, refreshToken, t, worldId]);
 
-    return {
-        error,
-        refresh,
-        refreshDisabled: status === 'loading',
-        screenshots,
-        status
-    };
+    return { error, refresh, screenshots, status };
 }
-
-export { useWorldDialogScreenshots };

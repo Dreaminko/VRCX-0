@@ -12,8 +12,6 @@ import { FriendInstanceTimer } from '@/components/sidebar/friends-sidebar/Friend
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
 import { UserStatusDot } from '@/components/UserStatusDot';
 import type { FriendRecord } from '@/domain/friends/friendRosterTypes';
-import type { FriendsLocationsCardContentMode } from '@/features/friends/friendsLocationsDensity';
-import type { getFriendsLocationsDensityConfig } from '@/features/friends/friendsLocationsDensity';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
 import { normalizeLocationValue, parseLocation } from '@/shared/utils/location';
@@ -45,6 +43,11 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 
+import type {
+    FriendsLocationsCardContentMode,
+    getFriendsLocationsDensityConfig
+} from '../friendsLocationsDensity';
+
 type FriendLocationCardSource = Record<string, unknown> & {
     id?: unknown;
     userId?: unknown;
@@ -57,14 +60,14 @@ type FriendLocationCardSource = Record<string, unknown> & {
     $travelingToLocation?: unknown;
 };
 
-type FriendLocationCardFriend = FriendRecord & {
+export type FriendLocationCardFriend = FriendRecord & {
     ref?: FriendLocationCardSource | null;
     pendingOffline?: unknown;
     travelingToLocation?: unknown;
     $travelingToLocation?: unknown;
 };
 
-type FriendLocationCardDensity = Pick<
+export type FriendLocationCardDensity = Pick<
     ReturnType<typeof getFriendsLocationsDensityConfig>,
     | 'value'
     | 'layout'
@@ -311,54 +314,84 @@ function resolveLineClampClass(lineClamp: number) {
     return lineClamp > 1 ? 'line-clamp-2' : 'line-clamp-1';
 }
 
-export function FriendLocationCard({
-    friend,
-    locationLabel = '',
-    groupHint = '',
-    rawLocation = '',
-    densityConfig = DEFAULT_CARD_DENSITY_CONFIG,
-    contentMode = 'full',
-    displayInstanceInfo = true,
-    isTraveling = false,
-    travelingLocation = '',
-    instanceEpoch = 0,
-    canUseFriendLocation = false,
-    canSendInvite = false,
-    canRequestInvite = false,
-    canBoop = false,
-    onOpenUser,
-    onOpenWorld,
-    onLaunchLocation,
-    onSelfInviteLocation,
-    onSendInvite,
-    onRequestInvite,
-    onSendBoop,
-    worldActionLabel
-}: {
-    friend: FriendLocationCardFriend;
-    locationLabel?: string;
+export interface FriendLocationCardLocationModel {
+    label?: string;
     groupHint?: string;
-    rawLocation?: unknown;
-    densityConfig?: FriendLocationCardDensity;
+    raw?: unknown;
+    traveling?: boolean;
+    travelingTo?: unknown;
+    instanceEpoch?: unknown;
+}
+
+export interface FriendLocationCardPresentation {
+    density?: FriendLocationCardDensity;
     contentMode?: FriendsLocationsCardContentMode;
     displayInstanceInfo?: boolean;
-    isTraveling?: boolean;
-    travelingLocation?: unknown;
-    instanceEpoch?: unknown;
-    canUseFriendLocation?: boolean;
-    canSendInvite?: boolean;
-    canRequestInvite?: boolean;
-    canBoop?: boolean;
-    onOpenUser?: () => void;
-    onOpenWorld?: () => void;
-    onLaunchLocation?: () => void;
-    onSelfInviteLocation?: () => void;
-    onSendInvite?: () => void;
-    onRequestInvite?: () => void;
-    onSendBoop?: () => void;
+}
+
+export interface FriendLocationCardCapabilities {
+    useLocation?: boolean;
+    sendInvite?: boolean;
+    requestInvite?: boolean;
+    boop?: boolean;
+}
+
+export interface FriendLocationCardActions {
+    openUser?: () => void;
+    openWorld?: () => void;
+    launchLocation?: () => void;
+    selfInviteLocation?: () => void;
+    sendInvite?: () => void;
+    requestInvite?: () => void;
+    sendBoop?: () => void;
+}
+
+export interface FriendLocationCardProps {
+    friend: FriendLocationCardFriend;
+    location?: FriendLocationCardLocationModel;
+    presentation?: FriendLocationCardPresentation;
+    capabilities?: FriendLocationCardCapabilities;
+    actions?: FriendLocationCardActions;
     worldActionLabel?: string;
-}) {
+}
+
+export function FriendLocationCard({
+    friend,
+    location = {},
+    presentation = {},
+    capabilities = {},
+    actions = {},
+    worldActionLabel
+}: FriendLocationCardProps) {
     const { t } = useTranslation();
+    const {
+        label: locationLabel = '',
+        groupHint = '',
+        raw: rawLocation = '',
+        traveling: isTraveling = false,
+        travelingTo: travelingLocation = '',
+        instanceEpoch = 0
+    } = location;
+    const {
+        density: densityConfig = DEFAULT_CARD_DENSITY_CONFIG,
+        contentMode = 'full',
+        displayInstanceInfo = true
+    } = presentation;
+    const {
+        useLocation: canUseFriendLocation = false,
+        sendInvite: canSendInvite = false,
+        requestInvite: canRequestInvite = false,
+        boop: canBoop = false
+    } = capabilities;
+    const {
+        openUser: onOpenUser,
+        openWorld: onOpenWorld,
+        launchLocation: onLaunchLocation,
+        selfInviteLocation: onSelfInviteLocation,
+        sendInvite: onSendInvite,
+        requestInvite: onRequestInvite,
+        sendBoop: onSendBoop
+    } = actions;
 
     const currentUserSnapshot = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot

@@ -10,9 +10,11 @@ type ScanStatusListener = (status: ScreenshotLibraryScanStatus) => void;
 const mocks = vi.hoisted(() => ({
     getCurrentStatus:
         vi.fn<() => Promise<ScreenshotLibraryScanStatus | null>>(),
-    getWorldScreenshots: vi.fn<() => Promise<unknown>>(),
+    getWorldScreenshots: vi.fn<(worldId: string) => Promise<unknown>>(),
     startScan:
-        vi.fn<(force?: boolean) => Promise<ScreenshotLibraryScanStatus | null>>(),
+        vi.fn<
+            (force?: boolean) => Promise<ScreenshotLibraryScanStatus | null>
+        >(),
     subscribe: vi.fn<(listener: ScanStatusListener) => () => void>(),
     unsubscribe: vi.fn()
 }));
@@ -47,29 +49,26 @@ function scanStatus(
     };
 }
 
-function screenshot() {
+function screenshot(worldId: string) {
     return {
-        path: 'C:\\Screenshots\\VRChat_2026-08-11.png',
+        path: `C:\\Screenshots\\${worldId}.png`,
         folderPath: 'C:\\Screenshots',
-        fileName: 'VRChat_2026-08-11.png',
+        fileName: `${worldId}.png`,
         sizeBytes: 128,
         modifiedAt: 1,
         createdAt: 1,
         width: 1920,
         height: 1080,
-        worldId: 'wrld_target',
+        worldId,
         worldName: 'Target World',
         capturedAt: '2026-08-11T00:00:00Z',
         metadata: {
             application: 'VRChat',
             version: 1,
             author: { id: 'usr_author' },
-            world: {
-                id: 'wrld_target',
-                instanceId: '12345'
-            },
+            world: { id: worldId, instanceId: '12345' },
             players: [],
-            sourceFile: 'VRChat_2026-08-11.png'
+            sourceFile: `${worldId}.png`
         },
         error: null
     };
@@ -81,38 +80,40 @@ describe('useWorldDialogScreenshots', () => {
         mocks.subscribe.mockReturnValue(mocks.unsubscribe);
         mocks.getCurrentStatus.mockResolvedValue(scanStatus());
         mocks.startScan.mockResolvedValue(scanStatus());
-        mocks.getWorldScreenshots.mockResolvedValue([screenshot()]);
+        mocks.getWorldScreenshots.mockImplementation((worldId) =>
+            Promise.resolve([screenshot(worldId)])
+        );
     });
 
-    it('loads screenshots only after the screenshots tab scan completes', async () => {
+    it('loads screenshots only while the screenshots tab is active', async () => {
         const { result, rerender } = renderHook(
-            ({ activeTab }) =>
+            ({ active }) =>
                 useWorldDialogScreenshots({
-                    activeTab,
-                    loadFailedMessage: 'load failed',
+                    active,
+                    endpoint: 'https://api.example.test',
                     openNonce: 0,
                     worldId: 'wrld_target'
                 }),
-            { initialProps: { activeTab: 'instances' } }
+            { initialProps: { active: false } }
         );
 
         expect(result.current.status).toBe('idle');
         expect(mocks.subscribe).not.toHaveBeenCalled();
 
-        rerender({ activeTab: 'screenshots' });
+        rerender({ active: true });
 
         await waitFor(() => expect(result.current.status).toBe('ready'));
         expect(mocks.startScan).toHaveBeenCalledWith(false);
         expect(mocks.getWorldScreenshots).toHaveBeenCalledWith('wrld_target');
-        expect(result.current.screenshots).toEqual([screenshot()]);
+        expect(result.current.screenshots).toEqual([screenshot('wrld_target')]);
         expect(result.current.error).toBe('');
     });
 
     it('requests a forced scan when the user refreshes', async () => {
         const { result } = renderHook(() =>
             useWorldDialogScreenshots({
-                activeTab: 'screenshots',
-                loadFailedMessage: 'load failed',
+                active: true,
+                endpoint: 'https://api.example.test',
                 openNonce: 0,
                 worldId: 'wrld_target'
             })
@@ -122,21 +123,17 @@ describe('useWorldDialogScreenshots', () => {
 
         act(() => result.current.refresh());
 
-        await waitFor(() =>
-            expect(mocks.startScan).toHaveBeenCalledWith(true)
-        );
+        await waitFor(() => expect(mocks.startScan).toHaveBeenCalledWith(true));
     });
 
     it('surfaces a completed scan error when no screenshots are available', async () => {
-        mocks.startScan.mockResolvedValue(
-            scanStatus({ error: 'scan failed' })
-        );
+        mocks.startScan.mockResolvedValue(scanStatus({ error: 'scan failed' }));
         mocks.getWorldScreenshots.mockResolvedValue([]);
 
         const { result } = renderHook(() =>
             useWorldDialogScreenshots({
-                activeTab: 'screenshots',
-                loadFailedMessage: 'load failed',
+                active: true,
+                endpoint: 'https://api.example.test',
                 openNonce: 0,
                 worldId: 'wrld_target'
             })
@@ -145,6 +142,51 @@ describe('useWorldDialogScreenshots', () => {
         await waitFor(() => expect(result.current.status).toBe('error'));
         expect(result.current.error).toBe('scan failed');
         expect(result.current.screenshots).toEqual([]);
+    });
+
+    it('discards an older response after the dialog request context changes', async () => {
+        let resolveOldScreenshots!: (screenshots: unknown) => void;
+        mocks.getWorldScreenshots.mockImplementation((worldId) => {
+            if (worldId === 'wrld_old') {
+                return new Promise((resolve) => {
+                    resolveOldScreenshots = resolve;
+                });
+            }
+            return Promise.resolve([screenshot(worldId)]);
+        });
+        const { result, rerender } = renderHook(
+            ({ endpoint, openNonce, worldId }) =>
+                useWorldDialogScreenshots({
+                    active: true,
+                    endpoint,
+                    openNonce,
+                    worldId
+                }),
+            {
+                initialProps: {
+                    endpoint: 'https://api.old.test',
+                    openNonce: 0,
+                    worldId: 'wrld_old'
+                }
+            }
+        );
+        await waitFor(() =>
+            expect(mocks.getWorldScreenshots).toHaveBeenCalledWith('wrld_old')
+        );
+
+        rerender({
+            endpoint: 'https://api.new.test',
+            openNonce: 1,
+            worldId: 'wrld_new'
+        });
+        await waitFor(() => expect(result.current.status).toBe('ready'));
+        expect(result.current.screenshots).toEqual([screenshot('wrld_new')]);
+
+        await act(async () => {
+            resolveOldScreenshots([screenshot('wrld_old')]);
+        });
+
+        expect(result.current.screenshots).toEqual([screenshot('wrld_new')]);
     });
 
     it('cancels initialization after the owner unmounts', async () => {
@@ -156,8 +198,8 @@ describe('useWorldDialogScreenshots', () => {
         );
         const { unmount } = renderHook(() =>
             useWorldDialogScreenshots({
-                activeTab: 'screenshots',
-                loadFailedMessage: 'load failed',
+                active: true,
+                endpoint: 'https://api.example.test',
                 openNonce: 0,
                 worldId: 'wrld_target'
             })

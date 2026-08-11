@@ -1,10 +1,19 @@
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React, { type PropsWithChildren, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+    copyTextToClipboard: vi.fn(),
+    registerWorldOpenShare: vi.fn(),
+    translate: vi.fn((key: string) => key)
+}));
 
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
-        t: (key: string) => key
+        t: mocks.translate
     })
 }));
 
@@ -25,11 +34,11 @@ vi.mock('@/components/UserStatusDot', () => ({
 }));
 
 vi.mock('@/repositories/worldProfileRepository', () => ({
-    registerWorldOpenShare: vi.fn()
+    registerWorldOpenShare: mocks.registerWorldOpenShare
 }));
 
 vi.mock('@/services/clipboardService', () => ({
-    copyTextToClipboard: vi.fn()
+    copyTextToClipboard: mocks.copyTextToClipboard
 }));
 
 vi.mock('@/services/dialogService', () => ({
@@ -74,7 +83,18 @@ vi.mock('@/ui/shadcn/button', () => ({
 }));
 
 vi.mock('@/ui/shadcn/checkbox', () => ({
-    Checkbox: () => <input type="checkbox" />
+    Checkbox: ({
+        onCheckedChange,
+        ...props
+    }: React.ComponentProps<'input'> & {
+        onCheckedChange?: (checked: boolean) => void;
+    }) => (
+        <input
+            {...props}
+            type="checkbox"
+            onChange={(event) => onCheckedChange?.(event.currentTarget.checked)}
+        />
+    )
 }));
 
 vi.mock('@/ui/shadcn/dropdown-menu', () => {
@@ -108,6 +128,11 @@ import { FavoriteCard, type FavoriteCardItem } from './FavoriteCard';
 const AVATAR_ID = 'avtr_12345678-1234-1234-1234-1234567890ab';
 const USER_ID = 'usr_12345678-1234-1234-1234-1234567890ab';
 const WORLD_ID = 'wrld_12345678-1234-1234-1234-1234567890ab';
+
+afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+});
 
 function renderAvatarCard(
     releaseStatus: 'public' | 'private',
@@ -173,6 +198,42 @@ describe('FavoriteCard website links', () => {
         expect(html).toContain('lucide-share-2');
     });
 
+    it('copies the world share text with its entity name', () => {
+        const item: FavoriteCardItem = {
+            id: WORLD_ID,
+            key: 'world:copy-share',
+            kind: 'world',
+            source: 'remote',
+            title: 'Named world'
+        };
+
+        render(
+            <FavoriteCard
+                item={item}
+                densityConfig={getFavoritesDensityConfig('world', 'standard')}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'dialog.world.info.copy_vrcx_url'
+            })
+        );
+
+        expect(mocks.translate).toHaveBeenCalledWith(
+            'dialog.world.info.vrcx_share_text',
+            {
+                name: 'Named world',
+                url: `https://open.vrcx-0.dev/world/${WORLD_ID}`
+            }
+        );
+        expect(mocks.copyTextToClipboard).toHaveBeenCalledWith(
+            'dialog.world.info.vrcx_share_text',
+            expect.any(Object)
+        );
+        expect(mocks.registerWorldOpenShare).toHaveBeenCalledWith(WORLD_ID);
+    });
+
     it('shows VRChat and share links for a public avatar', () => {
         const html = renderAvatarCard('public');
 
@@ -186,6 +247,43 @@ describe('FavoriteCard website links', () => {
         const selectIndex = html.indexOf('dialog.avatar.actions.select');
         expect(separatorIndex).toBeGreaterThan(shareLinkIndex);
         expect(selectIndex).toBeGreaterThan(separatorIndex);
+    });
+
+    it('copies the avatar share text with its entity name', () => {
+        const item: FavoriteCardItem = {
+            id: AVATAR_ID,
+            key: 'avatar:copy-share',
+            kind: 'avatar',
+            source: 'remote',
+            title: 'Named avatar',
+            seedData: { releaseStatus: 'public' }
+        };
+
+        render(
+            <FavoriteCard
+                item={item}
+                densityConfig={getFavoritesDensityConfig('avatar', 'standard')}
+                onAvatarSelect={vi.fn()}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'dialog.avatar.info.copy_vrcx_url'
+            })
+        );
+
+        expect(mocks.translate).toHaveBeenCalledWith(
+            'dialog.avatar.info.vrcx_share_text',
+            {
+                name: 'Named avatar',
+                url: `https://open.vrcx-0.dev/avatar/${AVATAR_ID}`
+            }
+        );
+        expect(mocks.copyTextToClipboard).toHaveBeenCalledWith(
+            'dialog.avatar.info.vrcx_share_text',
+            expect.any(Object)
+        );
     });
 
     it('shows only the VRChat link for a private avatar', () => {
@@ -233,6 +331,97 @@ describe('FavoriteCard friend actions', () => {
         expect(html).toContain(
             '<button>dialog.user.actions.request_invite</button>'
         );
+    });
+
+    it('routes the remote remove action to its matching callback', () => {
+        const item: FavoriteCardItem = {
+            id: USER_ID,
+            key: 'friend:remove',
+            kind: 'friend',
+            source: 'remote',
+            title: 'Remote friend'
+        };
+        const onRemoveRemote = vi.fn();
+
+        render(
+            <FavoriteCard
+                item={item}
+                densityConfig={getFavoritesDensityConfig('friend', 'standard')}
+                onRemoveRemote={onRemoveRemote}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'view.favorite.action.remove_favorite'
+            })
+        );
+
+        expect(onRemoveRemote).toHaveBeenCalledWith(item);
+    });
+});
+
+describe('FavoriteCard selection and avatar actions', () => {
+    it('keeps checkbox selection independent from card activation', () => {
+        const item: FavoriteCardItem = {
+            id: WORLD_ID,
+            key: 'world:selection',
+            kind: 'world',
+            source: 'remote',
+            title: 'Selection world'
+        };
+        const onToggleSelect = vi.fn();
+
+        render(
+            <FavoriteCard
+                item={item}
+                selectionActive
+                selected={false}
+                densityConfig={getFavoritesDensityConfig('world', 'standard')}
+                onToggleSelect={onToggleSelect}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('checkbox', {
+                name: 'common.actions.select Selection world'
+            })
+        );
+
+        expect(onToggleSelect).toHaveBeenCalledTimes(1);
+        expect(onToggleSelect).toHaveBeenCalledWith(
+            'world:selection',
+            true,
+            false
+        );
+    });
+
+    it('passes the selected avatar item to the avatar action', () => {
+        const item: FavoriteCardItem = {
+            id: AVATAR_ID,
+            key: 'avatar:select',
+            kind: 'avatar',
+            source: 'remote',
+            title: 'Selectable avatar',
+            seedData: { releaseStatus: 'public' }
+        };
+        const onAvatarSelect = vi.fn();
+
+        render(
+            <FavoriteCard
+                item={item}
+                densityConfig={getFavoritesDensityConfig('avatar', 'standard')}
+                onAvatarSelect={onAvatarSelect}
+            />
+        );
+
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'dialog.avatar.actions.select'
+            })
+        );
+
+        expect(onAvatarSelect).toHaveBeenCalledWith(item);
     });
 });
 
