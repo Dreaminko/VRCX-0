@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 const DEFAULT_PRODUCTION_ENDPOINT: &str = "https://stats.vrcx-0.dev";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
-const MAX_SUMMARY_LENGTH: usize = 160;
+const MAX_SUMMARY_LENGTH: usize = 500;
 const MAX_TOKEN_LENGTH: usize = 64;
 
 static URL_PATTERN: LazyLock<Regex> =
@@ -125,7 +125,6 @@ pub struct TelemetryConfigSnapshot {
     pub wrist_overlay_enabled: bool,
     pub ovrt_wrist_notifications: bool,
     pub hmd_notifications_enabled: bool,
-    pub discord_active: bool,
     pub webhook_enabled: bool,
     pub auto_state_change_enabled: bool,
     pub auto_accept_invite_requests: String,

@@ -5505,7 +5505,6 @@ export type TelemetryClientEvent =
           name: string | null;
           summary: string | null;
       }
-    | { type: 'viewModeSwitch'; dimension: string; value: string }
     | {
           type: 'assistantToolError';
           source: string | null;

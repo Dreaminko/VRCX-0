@@ -18,7 +18,6 @@ fn config_snapshot_matches_worker_contract_fields() {
         wrist_overlay_enabled: false,
         ovrt_wrist_notifications: false,
         hmd_notifications_enabled: true,
-        discord_active: false,
         webhook_enabled: false,
         auto_state_change_enabled: false,
         auto_accept_invite_requests: "off".into(),
@@ -39,7 +38,6 @@ fn config_snapshot_matches_worker_contract_fields() {
         "autoStateChangeEnabled",
         "avatarAutoCleanup",
         "backgroundModeEnabled",
-        "discordActive",
         "hmdNotificationsEnabled",
         "ovrtWristNotifications",
         "themeMode",
@@ -164,4 +162,11 @@ fn error_summary_preserves_not_found_without_leaking_notification_ids() {
         sanitize_error_summary("result=not_found notification=not_123"),
         "result=not_found notification=<id>"
     );
+}
+
+#[test]
+fn error_summary_is_truncated_to_five_hundred_characters() {
+    let summary = sanitize_error_summary("ab ".repeat(201));
+
+    assert_eq!(summary.chars().count(), 500);
 }

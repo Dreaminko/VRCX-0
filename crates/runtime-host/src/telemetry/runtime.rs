@@ -540,7 +540,6 @@ impl TelemetryRuntime {
             wrist_overlay_enabled: self.config_bool("wristOverlayEnabled", false),
             ovrt_wrist_notifications: self.config_bool("ovrtWristNotifications", false),
             hmd_notifications_enabled: self.config_bool("hmdNotificationsEnabled", false),
-            discord_active: self.config_bool("discordActive", false),
             webhook_enabled: self.config_bool("webhookEnabled", false),
             auto_state_change_enabled: has_enabled_rules(
                 &self.config_string("presenceAutomationContextRules", "[]"),

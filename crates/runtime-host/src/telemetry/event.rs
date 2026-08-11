@@ -11,10 +11,6 @@ pub enum TelemetryClientEvent {
         name: Option<String>,
         summary: Option<String>,
     },
-    ViewModeSwitch {
-        dimension: String,
-        value: String,
-    },
     AssistantToolError {
         source: Option<String>,
         summary: Option<String>,

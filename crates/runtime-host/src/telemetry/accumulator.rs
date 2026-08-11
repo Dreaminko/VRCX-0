@@ -78,7 +78,6 @@ impl TelemetryAccumulator {
                 name,
                 summary,
             } => self.record_route_error(error_class, name, summary),
-            TelemetryClientEvent::ViewModeSwitch { .. } => {}
             TelemetryClientEvent::AssistantToolError { source, summary } => {
                 if !should_record_assistant_tool_detail(summary.as_deref()) {
                     return;
