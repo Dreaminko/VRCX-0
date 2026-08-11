@@ -5,11 +5,15 @@ use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
 use super::{
     eligibility::VrOverlayEligibility,
-    service::{OverlayBackendPreference, OverlayServiceStartError, VrOverlayServiceControl},
+    service::{
+        OverlayBackendPreference, OverlayServiceStartError, OverlayServiceStartErrorReason,
+        VrOverlayServiceControl,
+    },
 };
 
 const OVERLAY_START_RETRY_INITIAL_BACKOFF: Duration = Duration::from_secs(5);
 const OVERLAY_START_RETRY_MAX_BACKOFF: Duration = Duration::from_secs(60);
+const OVERLAY_RUNTIME_UNAVAILABLE_RETRY_INTERVAL: Duration = Duration::from_secs(1);
 
 pub struct VrOverlayManager<S> {
     service: S,
@@ -62,9 +66,9 @@ where
                         );
                     }
                     Err(error) => {
-                        self.next_start_attempt_at = Some(now + self.start_retry_backoff);
-                        self.start_retry_backoff =
-                            (self.start_retry_backoff * 2).min(OVERLAY_START_RETRY_MAX_BACKOFF);
+                        let retry_delay =
+                            next_start_retry_delay(&error, &mut self.start_retry_backoff);
+                        self.next_start_attempt_at = Some(now + retry_delay);
                         log_overlay_start_error(&error);
                     }
                 }
@@ -161,18 +165,29 @@ where
     }
 }
 
+fn next_start_retry_delay(
+    error: &OverlayServiceStartError,
+    transient_backoff: &mut Duration,
+) -> Duration {
+    if error.reason == OverlayServiceStartErrorReason::RuntimeUnavailable {
+        return OVERLAY_RUNTIME_UNAVAILABLE_RETRY_INTERVAL;
+    }
+    let retry_delay = *transient_backoff;
+    *transient_backoff = (*transient_backoff * 2).min(OVERLAY_START_RETRY_MAX_BACKOFF);
+    retry_delay
+}
+
 fn log_overlay_start_error(error: &OverlayServiceStartError) {
     match error.reason {
-        crate::service::OverlayServiceStartErrorReason::RuntimeCooldown => tracing::debug!(
+        OverlayServiceStartErrorReason::RuntimeCooldown => tracing::debug!(
             error = %error.message,
             "VR overlay start deferred by runtime quit cooldown"
         ),
-        crate::service::OverlayServiceStartErrorReason::RuntimeUnavailable => tracing::debug!(
+        OverlayServiceStartErrorReason::RuntimeUnavailable => tracing::debug!(
             error = %error.message,
             "VR overlay service is waiting for the VR runtime"
         ),
-        crate::service::OverlayServiceStartErrorReason::Other
-        | crate::service::OverlayServiceStartErrorReason::Unsupported => {
+        OverlayServiceStartErrorReason::Other | OverlayServiceStartErrorReason::Unsupported => {
             tracing::warn!(error = %error.message, "failed to start VR overlay service");
         }
     }
@@ -183,11 +198,35 @@ mod tests {
     use vrcx_0_host_desktop::vr_overlay::{OverlaySurfaceConfig, VrDeviceSnapshot};
     use vrcx_0_vr_overlay::{OverlaySurfaceId, RgbaFrame};
 
-    use super::VrOverlayManager;
+    use super::{
+        next_start_retry_delay, VrOverlayManager, OVERLAY_RUNTIME_UNAVAILABLE_RETRY_INTERVAL,
+        OVERLAY_START_RETRY_INITIAL_BACKOFF,
+    };
     use crate::{
         service::{OverlayBackendPreference, OverlayServiceStartError, VrOverlayServiceControl},
         VrOverlayEligibility,
     };
+
+    #[test]
+    fn runtime_unavailable_retry_stays_short_without_growing_transient_backoff() {
+        let mut transient_backoff = OVERLAY_START_RETRY_INITIAL_BACKOFF;
+
+        let delay = next_start_retry_delay(
+            &OverlayServiceStartError::runtime_unavailable("runtime is starting"),
+            &mut transient_backoff,
+        );
+
+        assert_eq!(delay, OVERLAY_RUNTIME_UNAVAILABLE_RETRY_INTERVAL);
+        assert_eq!(transient_backoff, OVERLAY_START_RETRY_INITIAL_BACKOFF);
+
+        let delay = next_start_retry_delay(
+            &OverlayServiceStartError::transient("backend failed"),
+            &mut transient_backoff,
+        );
+
+        assert_eq!(delay, OVERLAY_START_RETRY_INITIAL_BACKOFF);
+        assert_eq!(transient_backoff, OVERLAY_START_RETRY_INITIAL_BACKOFF * 2);
+    }
 
     #[test]
     fn ineligible_reconcile_stops_service_that_needs_stop_without_running() {

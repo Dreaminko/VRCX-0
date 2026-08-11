@@ -5403,7 +5403,6 @@ export type VrOverlayRuntimeSnapshot = {
     enabled: boolean;
     backendAvailable: boolean;
     running: boolean;
-    vrMode: boolean;
     steamvrRunning: boolean;
     activeBackend: string | null;
 };

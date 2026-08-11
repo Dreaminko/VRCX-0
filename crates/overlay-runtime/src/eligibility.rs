@@ -2,14 +2,14 @@
 pub enum WristOverlayStartMode {
     SteamVr,
     #[default]
-    VrchatVrMode,
+    Vrchat,
 }
 
 impl WristOverlayStartMode {
     pub fn from_config(value: &str) -> Self {
         match value.trim() {
             "steamvr" => Self::SteamVr,
-            _ => Self::VrchatVrMode,
+            _ => Self::Vrchat,
         }
     }
 }
@@ -19,7 +19,6 @@ pub struct VrOverlayEligibility {
     pub enabled: bool,
     pub backend_available: bool,
     pub game_running: bool,
-    pub vr_mode: bool,
     pub steamvr_running: bool,
     pub start_mode: WristOverlayStartMode,
 }
@@ -31,7 +30,7 @@ impl VrOverlayEligibility {
             && self.steamvr_running
             && match self.start_mode {
                 WristOverlayStartMode::SteamVr => true,
-                WristOverlayStartMode::VrchatVrMode => self.game_running && self.vr_mode,
+                WristOverlayStartMode::Vrchat => self.game_running,
             }
     }
 }

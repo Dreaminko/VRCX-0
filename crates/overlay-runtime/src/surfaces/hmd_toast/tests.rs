@@ -367,27 +367,67 @@ fn hmd_avatar_uses_friend_record_url_before_direct_notification_image() {
 }
 
 #[test]
-fn hmd_idle_renderer_release_keeps_avatar_bitmap_cache() {
+fn hmd_idle_renderer_release_clears_avatar_bitmap_cache_after_last_toast_expires() {
     let runtime = VrOverlayRuntime::new_for_test();
     runtime.avatar_bitmap_cache.store_success(
         "https://images.example/idle",
         "usr_friend",
         test_avatar_bitmap(),
     );
+    let now = Instant::now();
+    enqueue_expired_hmd_toast(&runtime, now);
 
     {
         let mut manager = runtime.manager.lock().unwrap();
-        runtime.push_hmd_frame(
-            &mut manager,
-            VrOverlayRuntimeConfig::default(),
-            Instant::now(),
-        );
+        runtime.push_hmd_frame(&mut manager, VrOverlayRuntimeConfig::default(), now);
     }
 
     assert!(runtime
         .avatar_bitmap_cache
         .cached("https://images.example/idle", "usr_friend")
-        .is_some());
+        .is_none());
+}
+
+#[test]
+fn hmd_enqueue_after_idle_clears_previous_avatar_bitmap_cache() {
+    let runtime = VrOverlayRuntime::new_for_test();
+    let now = Instant::now();
+    enqueue_expired_hmd_toast(&runtime, now);
+    runtime.avatar_bitmap_cache.store_success(
+        "https://images.example/idle",
+        "usr_friend",
+        test_avatar_bitmap(),
+    );
+
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "new-avatar",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:456",
+        ),
+        now,
+        Duration::from_secs(5),
+    );
+
+    assert!(runtime
+        .avatar_bitmap_cache
+        .cached("https://images.example/idle", "usr_friend")
+        .is_none());
+}
+
+fn enqueue_expired_hmd_toast(runtime: &VrOverlayRuntime, now: Instant) {
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "expired-avatar",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::Friend,
+            "wrld_home:123",
+        ),
+        now.checked_sub(Duration::from_secs(1))
+            .expect("expired toast timestamp"),
+        Duration::ZERO,
+    );
 }
 
 fn hmd_entry(

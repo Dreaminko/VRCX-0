@@ -97,7 +97,7 @@ impl VrOverlayRuntime {
         let Ok(mut queue) = self.hmd_toasts.lock() else {
             return false;
         };
-        prune_expired_hmd_toasts(&mut queue, now);
+        let last_toast_expired = prune_expired_hmd_toasts(&mut queue, now);
         if let Some(existing) = queue
             .iter_mut()
             .rev()
@@ -107,22 +107,25 @@ impl VrOverlayRuntime {
             existing.merge_count = existing.merge_count.saturating_add(1);
             existing.expires_at = now + timeout;
             existing.last_updated_at = now;
-            return true;
+        } else {
+            while queue.len() >= HMD_TOAST_CAPACITY {
+                queue.pop_front();
+            }
+            let visual_pos = queue.len() as f32;
+            queue.push_back(HmdToastState {
+                entry,
+                expires_at: now + timeout,
+                last_updated_at: now,
+                avatar: None,
+                merge_count: 1,
+                appeared_at: now,
+                visual_pos,
+                last_frame_at: now,
+            });
         }
-        while queue.len() >= HMD_TOAST_CAPACITY {
-            queue.pop_front();
+        if last_toast_expired {
+            self.avatar_bitmap_cache.clear();
         }
-        let visual_pos = queue.len() as f32;
-        queue.push_back(HmdToastState {
-            entry,
-            expires_at: now + timeout,
-            last_updated_at: now,
-            avatar: None,
-            merge_count: 1,
-            appeared_at: now,
-            visual_pos,
-            last_frame_at: now,
-        });
         true
     }
 
@@ -175,9 +178,9 @@ impl VrOverlayRuntime {
         let Ok(mut queue) = self.hmd_toasts.lock() else {
             return Vec::new();
         };
-        prune_expired_hmd_toasts(&mut queue, now);
+        let last_toast_expired = prune_expired_hmd_toasts(&mut queue, now);
         let friend_snapshot = self.current_friends_panel_snapshot();
-        queue
+        let views = queue
             .iter_mut()
             .enumerate()
             .map(|(index, toast)| {
@@ -199,7 +202,11 @@ impl VrOverlayRuntime {
                     slide_offset: toast.visual_pos - index as f32,
                 }
             })
-            .collect()
+            .collect();
+        if last_toast_expired {
+            self.avatar_bitmap_cache.clear();
+        }
+        views
     }
 
     pub(crate) fn hmd_toast_refresh_hint(&self, now: Instant) -> Option<Duration> {
@@ -390,8 +397,10 @@ impl VrOverlayRuntime {
     }
 }
 
-fn prune_expired_hmd_toasts(queue: &mut VecDeque<HmdToastState>, now: Instant) {
+fn prune_expired_hmd_toasts(queue: &mut VecDeque<HmdToastState>, now: Instant) -> bool {
+    let had_toasts = !queue.is_empty();
     queue.retain(|toast| now < toast.expires_at + HMD_TOAST_FADE_OUT);
+    had_toasts && queue.is_empty()
 }
 
 fn hmd_toast_alpha(toast: &HmdToastState, now: Instant) -> f32 {

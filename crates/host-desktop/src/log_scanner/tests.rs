@@ -148,18 +148,3 @@ fn future_location_accepts_61_minutes_but_rejects_later_entries() {
 
     assert_eq!(snapshot.location, "wrld_boundary:instance");
 }
-
-#[test]
-fn vr_mode_uses_the_last_matching_event() {
-    let dir = TestDir::new("vr-mode");
-    let path = dir.write(
-        "output_log_current.txt",
-        &[
-            recent_line(-3, "Initializing VRSDK."),
-            recent_line(-2, "VRCApplication: OnApplicationQuit at 10"),
-            recent_line(-1, "STEAMVR HMD Model: Test HMD"),
-        ],
-    );
-
-    assert_eq!(scan_log_file_vr_mode(&path), Some(true));
-}

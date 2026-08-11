@@ -483,9 +483,11 @@ impl VrOverlayServiceControl for HostVrOverlayService {
             return Ok(());
         }
         let actor = self.active_actor()?;
-        actor
-            .send(OverlayServiceCommand::Hide(surface_id.clone()))
-            .map_err(|error| self.map_actor_error(error))
+        if let Err(error) = actor.send(OverlayServiceCommand::Hide(surface_id.clone())) {
+            return Err(self.map_actor_error(error));
+        }
+        self.last_surface_frames.remove(surface_id);
+        Ok(())
     }
 
     fn set_surface_alpha(

@@ -1,6 +1,4 @@
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
-use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
-use vrcx_0_core::game_log_parser::GameLogEventKind;
 use vrcx_0_overlay_runtime::VrOverlayRuntime;
 
 #[test]
@@ -17,21 +15,6 @@ fn runtime_starts_panel_listener_before_wrist_overlay_is_enabled() {
     assert!(runtime.is_running());
 
     runtime.set_enabled(true);
-    assert!(runtime.is_running());
-
-    runtime
-        .ingest_game_log_event(&game_log_event(GameLogEventKind::OpenVrInit))
-        .expect("record vr mode");
-    assert!(runtime.is_running());
-
-    runtime
-        .ingest_game_log_event(&game_log_event(GameLogEventKind::DesktopMode))
-        .expect("record desktop mode");
-    assert!(runtime.is_running());
-
-    runtime
-        .ingest_game_log_event(&game_log_event(GameLogEventKind::OpenVrInit))
-        .expect("record vr mode");
     assert!(runtime.is_running());
 
     runtime
@@ -64,19 +47,8 @@ fn runtime_does_not_start_noop_overlay_when_backend_is_unavailable() {
             game_changed: true,
         })
         .expect("record process status");
-    runtime
-        .ingest_game_log_event(&game_log_event(GameLogEventKind::OpenVrInit))
-        .expect("record vr mode");
     runtime.set_enabled(true);
 
     assert!(runtime.is_enabled());
     assert!(!runtime.is_running());
-}
-
-fn game_log_event(kind: GameLogEventKind) -> GameLogEvent {
-    GameLogEvent {
-        file_name: "output_log.txt".to_string(),
-        created_at: "2026-06-01T12:34:56.000Z".to_string(),
-        kind,
-    }
 }

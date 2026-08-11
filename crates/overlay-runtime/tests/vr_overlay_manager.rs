@@ -10,14 +10,13 @@ fn eligible(start_mode: WristOverlayStartMode) -> VrOverlayEligibility {
         enabled: true,
         backend_available: true,
         game_running: true,
-        vr_mode: true,
         steamvr_running: true,
         start_mode,
     }
 }
 
 #[test]
-fn manager_does_not_start_vrchat_mode_until_required_eligibility_inputs_are_true() {
+fn manager_does_not_start_vrchat_mode_until_both_processes_are_running() {
     let service = RecordingOverlayService::default();
     let starts = service.starts.clone();
     let stops = service.stops.clone();
@@ -25,23 +24,19 @@ fn manager_does_not_start_vrchat_mode_until_required_eligibility_inputs_are_true
 
     manager.reconcile(VrOverlayEligibility {
         enabled: false,
-        ..eligible(WristOverlayStartMode::VrchatVrMode)
-    });
-    manager.reconcile(VrOverlayEligibility {
-        vr_mode: false,
-        ..eligible(WristOverlayStartMode::VrchatVrMode)
+        ..eligible(WristOverlayStartMode::Vrchat)
     });
     manager.reconcile(VrOverlayEligibility {
         steamvr_running: false,
-        ..eligible(WristOverlayStartMode::VrchatVrMode)
+        ..eligible(WristOverlayStartMode::Vrchat)
     });
     manager.reconcile(VrOverlayEligibility {
         game_running: false,
-        ..eligible(WristOverlayStartMode::VrchatVrMode)
+        ..eligible(WristOverlayStartMode::Vrchat)
     });
     manager.reconcile(VrOverlayEligibility {
         backend_available: false,
-        ..eligible(WristOverlayStartMode::VrchatVrMode)
+        ..eligible(WristOverlayStartMode::Vrchat)
     });
 
     assert_eq!(*starts.borrow(), 0);
@@ -56,11 +51,11 @@ fn manager_starts_once_when_eligible_and_stops_when_ineligible() {
     let stops = service.stops.clone();
     let mut manager = VrOverlayManager::new(service);
 
-    manager.reconcile(eligible(WristOverlayStartMode::VrchatVrMode));
-    manager.reconcile(eligible(WristOverlayStartMode::VrchatVrMode));
+    manager.reconcile(eligible(WristOverlayStartMode::Vrchat));
+    manager.reconcile(eligible(WristOverlayStartMode::Vrchat));
     manager.reconcile(VrOverlayEligibility {
-        vr_mode: false,
-        ..eligible(WristOverlayStartMode::VrchatVrMode)
+        game_running: false,
+        ..eligible(WristOverlayStartMode::Vrchat)
     });
 
     assert_eq!(*starts.borrow(), 1);
@@ -69,7 +64,7 @@ fn manager_starts_once_when_eligible_and_stops_when_ineligible() {
 }
 
 #[test]
-fn manager_start_mode_controls_whether_vrchat_vr_mode_is_required() {
+fn manager_start_mode_controls_whether_vrchat_process_is_required() {
     let service = RecordingOverlayService::default();
     let starts = service.starts.clone();
     let stops = service.stops.clone();
@@ -77,14 +72,13 @@ fn manager_start_mode_controls_whether_vrchat_vr_mode_is_required() {
 
     manager.reconcile(VrOverlayEligibility {
         game_running: false,
-        vr_mode: false,
         ..eligible(WristOverlayStartMode::SteamVr)
     });
     assert!(manager.is_running());
 
     manager.reconcile(VrOverlayEligibility {
-        vr_mode: false,
-        ..eligible(WristOverlayStartMode::VrchatVrMode)
+        game_running: false,
+        ..eligible(WristOverlayStartMode::Vrchat)
     });
     assert!(!manager.is_running());
 
@@ -101,8 +95,8 @@ fn manager_retries_start_when_service_reports_not_running_after_failure() {
     let starts = service.starts.clone();
     let mut manager = VrOverlayManager::new(service);
 
-    manager.reconcile(eligible(WristOverlayStartMode::VrchatVrMode));
-    manager.reconcile(eligible(WristOverlayStartMode::VrchatVrMode));
+    manager.reconcile(eligible(WristOverlayStartMode::Vrchat));
+    manager.reconcile(eligible(WristOverlayStartMode::Vrchat));
 
     assert_eq!(*starts.borrow(), 2);
     assert!(!manager.is_running());
@@ -118,7 +112,7 @@ fn manager_backs_off_after_start_error() {
     };
     let starts = service.starts.clone();
     let mut manager = VrOverlayManager::new(service);
-    let eligibility = eligible(WristOverlayStartMode::VrchatVrMode);
+    let eligibility = eligible(WristOverlayStartMode::Vrchat);
 
     manager.reconcile(eligibility);
     manager.reconcile(eligibility);
@@ -138,7 +132,7 @@ fn manager_blocks_retries_after_permanent_start_error_until_eligibility_changes(
     };
     let starts = service.starts.clone();
     let mut manager = VrOverlayManager::new(service);
-    let eligibility = eligible(WristOverlayStartMode::VrchatVrMode);
+    let eligibility = eligible(WristOverlayStartMode::Vrchat);
 
     for _ in 0..5 {
         manager.reconcile(eligibility);
@@ -162,14 +156,14 @@ fn manager_permanent_block_clears_after_eligibility_drops_and_returns() {
     };
     let starts = service.starts.clone();
     let mut manager = VrOverlayManager::new(service);
-    let eligibility = eligible(WristOverlayStartMode::VrchatVrMode);
+    let eligibility = eligible(WristOverlayStartMode::Vrchat);
 
     manager.reconcile(eligibility);
     manager.reconcile(eligibility);
     assert_eq!(*starts.borrow(), 1);
 
     manager.reconcile(VrOverlayEligibility {
-        vr_mode: false,
+        game_running: false,
         ..eligibility
     });
     manager.reconcile(eligibility);
@@ -184,7 +178,7 @@ fn manager_forwards_frames_and_show_to_running_service() {
     let shows = service.shows.clone();
     let mut manager = VrOverlayManager::new(service);
 
-    manager.reconcile(eligible(WristOverlayStartMode::VrchatVrMode));
+    manager.reconcile(eligible(WristOverlayStartMode::Vrchat));
     manager
         .update_frame(RgbaFrame::new(OverlaySize::new(16, 8), vec![0; 16 * 8 * 4]))
         .expect("update frame");
@@ -201,7 +195,7 @@ fn manager_forwards_targeted_surface_frames_and_alpha() {
     let surface_alpha = service.surface_alpha.clone();
     let mut manager = VrOverlayManager::new(service);
 
-    manager.reconcile(eligible(WristOverlayStartMode::VrchatVrMode));
+    manager.reconcile(eligible(WristOverlayStartMode::Vrchat));
     manager
         .update_surface_frame(
             &OverlaySurfaceId::new("main"),

@@ -12,7 +12,7 @@ const HMD_AVATAR_SIZE: u32 = 128;
 const HMD_AVATAR_MASK_FEATHER_PX: f32 = 2.0;
 const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 const HMD_AVATAR_FAILURE_TTL: Duration = Duration::from_secs(60);
-const HMD_AVATAR_CACHE_CAPACITY: usize = 256;
+const HMD_AVATAR_CACHE_CAPACITY: usize = 128;
 
 #[derive(Default)]
 struct AvatarBitmapCacheState {
@@ -219,19 +219,22 @@ impl AvatarBitmapCache {
     }
 
     pub(super) fn clear(&self) {
-        self.generation.fetch_add(1, Ordering::AcqRel);
-        *self
+        let mut success = self
             .success
             .lock()
-            .unwrap_or_else(|error| error.into_inner()) = AvatarBitmapCacheState::default();
-        self.failures
+            .unwrap_or_else(|error| error.into_inner());
+        let mut failures = self
+            .failures
             .lock()
-            .unwrap_or_else(|error| error.into_inner())
-            .clear();
-        self.inflight
+            .unwrap_or_else(|error| error.into_inner());
+        let mut inflight = self
+            .inflight
             .lock()
-            .unwrap_or_else(|error| error.into_inner())
-            .clear();
+            .unwrap_or_else(|error| error.into_inner());
+        self.generation.fetch_add(1, Ordering::AcqRel);
+        *success = AvatarBitmapCacheState::default();
+        failures.clear();
+        inflight.clear();
     }
 
     pub(super) fn generation(&self) -> u64 {
@@ -289,6 +292,7 @@ fn apply_circular_avatar_mask(rgba: &mut [u8], width: u32, height: u32) {
 pub(crate) mod tests {
     use super::*;
     use std::io::Cursor;
+    use std::sync::{Barrier, TryLockError};
 
     #[test]
     fn circular_avatar_mask_makes_corners_transparent() {
@@ -358,6 +362,7 @@ pub(crate) mod tests {
 
     #[test]
     fn avatar_bitmap_cache_evicts_least_recently_used_entry_after_capacity() {
+        assert_eq!(HMD_AVATAR_CACHE_CAPACITY, 128);
         let cache = AvatarBitmapCache::new();
         for index in 0..HMD_AVATAR_CACHE_CAPACITY {
             let url = format!("https://images.example/avatar/{index}");
@@ -420,6 +425,40 @@ pub(crate) mod tests {
             .is_none());
         assert!(!cache.store_failure_if_generation("https://images.example/avatar", generation));
         assert!(!cache.recently_failed("https://images.example/avatar"));
+    }
+
+    #[test]
+    fn avatar_bitmap_cache_clear_publishes_generation_after_locking_all_state() {
+        let cache = Arc::new(AvatarBitmapCache::new());
+        let generation = cache.generation();
+        let failures = cache.failures.lock().unwrap();
+        let started = Arc::new(Barrier::new(2));
+        let clear_cache = Arc::clone(&cache);
+        let clear_started = Arc::clone(&started);
+        let clear = std::thread::spawn(move || {
+            clear_started.wait();
+            clear_cache.clear();
+        });
+        started.wait();
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            match cache.success.try_lock() {
+                Err(TryLockError::WouldBlock) => break,
+                Err(TryLockError::Poisoned(error)) => panic!("success cache poisoned: {error}"),
+                Ok(success) => drop(success),
+            }
+            assert!(
+                Instant::now() < deadline,
+                "cache clear did not lock success state"
+            );
+            std::thread::yield_now();
+        }
+
+        assert_eq!(cache.generation(), generation);
+        drop(failures);
+        clear.join().unwrap();
+        assert_ne!(cache.generation(), generation);
     }
 
     fn test_png(width: u32, height: u32) -> Vec<u8> {

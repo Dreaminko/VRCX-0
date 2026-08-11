@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use super::geometry::OverlaySize;
@@ -5,12 +7,16 @@ use super::geometry::OverlaySize;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RgbaFrame {
     pub size: OverlaySize,
-    pub data: Vec<u8>,
+    #[serde(with = "arc_bytes")]
+    pub data: Arc<[u8]>,
 }
 
 impl RgbaFrame {
-    pub fn new(size: OverlaySize, data: Vec<u8>) -> Self {
-        Self { size, data }
+    pub fn new(size: OverlaySize, data: impl Into<Arc<[u8]>>) -> Self {
+        Self {
+            size,
+            data: data.into(),
+        }
     }
 
     pub fn expected_byte_len(size: OverlaySize) -> Option<usize> {
@@ -21,6 +27,26 @@ impl RgbaFrame {
 
     pub fn is_valid_len(&self) -> bool {
         Self::expected_byte_len(self.size).is_some_and(|expected| expected == self.data.len())
+    }
+}
+
+mod arc_bytes {
+    use std::sync::Arc;
+
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S>(data: &Arc<[u8]>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        data.as_ref().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Arc<[u8]>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Vec::<u8>::deserialize(deserializer).map(Arc::from)
     }
 }
 
@@ -58,5 +84,13 @@ mod tests {
         assert!(RgbaFrame::new(size, vec![0; 2 * 3 * 4]).is_valid_len());
         assert!(!RgbaFrame::new(size, vec![0; 2 * 3 * 4 - 1]).is_valid_len());
         assert!(!RgbaFrame::new(OverlaySize::new(u32::MAX, u32::MAX), Vec::new()).is_valid_len());
+    }
+
+    #[test]
+    fn clone_shares_rgba_storage() {
+        let frame = RgbaFrame::new(OverlaySize::new(2, 2), vec![0; 2 * 2 * 4]);
+        let cloned = frame.clone();
+
+        assert!(Arc::ptr_eq(&frame.data, &cloned.data));
     }
 }

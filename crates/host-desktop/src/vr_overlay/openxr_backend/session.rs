@@ -369,6 +369,7 @@ impl SessionContext {
                     surface.requested_visible = false;
                     surface.policy.close();
                     surface.visible = false;
+                    surface.pending_frame = None;
                 }
             }
             SessionCommand::SnapshotDevices { reply } => {

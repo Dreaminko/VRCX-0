@@ -16,7 +16,10 @@ pub struct GameProcessStatus {
 
 #[derive(Clone, Copy, Debug)]
 enum ProcessMonitorPoll {
-    Initial(GameProcessStatus),
+    Initial {
+        previous: GameProcessStatus,
+        current: GameProcessStatus,
+    },
     Subsequent {
         previous: GameProcessStatus,
         current: GameProcessStatus,
@@ -89,11 +92,15 @@ impl ProcessMonitor {
             {
                 let status = actions.detect();
                 let prev_game = shared.observed_game_running.load(Ordering::Relaxed);
-                let game_found = resolve_debounced_game_running(
-                    status.is_game_running,
-                    prev_game,
-                    &mut consecutive_game_misses,
-                );
+                let game_found = if first_poll {
+                    status.is_game_running
+                } else {
+                    resolve_debounced_game_running(
+                        status.is_game_running,
+                        prev_game,
+                        &mut consecutive_game_misses,
+                    )
+                };
                 let steamvr_found = status.is_steamvr_running;
 
                 shared
@@ -112,7 +119,7 @@ impl ProcessMonitor {
                     is_steamvr_running: steamvr_found,
                 };
                 let poll = if first_poll {
-                    ProcessMonitorPoll::Initial(current)
+                    ProcessMonitorPoll::Initial { previous, current }
                 } else {
                     ProcessMonitorPoll::Subsequent { previous, current }
                 };
@@ -205,9 +212,11 @@ fn dispatch_process_monitor_actions(
     poll: ProcessMonitorPoll,
 ) {
     match poll {
-        ProcessMonitorPoll::Initial(current) => {
+        ProcessMonitorPoll::Initial { previous, current } => {
             if current.is_game_running {
                 actions.on_game_started(current.is_steamvr_running);
+            } else if previous.is_game_running {
+                actions.on_game_stopped();
             }
         }
         ProcessMonitorPoll::Subsequent { previous, current } => {
@@ -265,10 +274,13 @@ mod tests {
 
         dispatch_process_monitor_actions(
             &mut actions,
-            ProcessMonitorPoll::Initial(GameProcessStatus {
-                is_game_running: true,
-                is_steamvr_running: true,
-            }),
+            ProcessMonitorPoll::Initial {
+                previous: GameProcessStatus::default(),
+                current: GameProcessStatus {
+                    is_game_running: true,
+                    is_steamvr_running: true,
+                },
+            },
         );
 
         assert_eq!(actions.events, vec!["started:true"]);
@@ -280,17 +292,38 @@ mod tests {
 
         dispatch_process_monitor_actions(
             &mut actions,
-            ProcessMonitorPoll::Initial(GameProcessStatus {
-                is_game_running: false,
-                is_steamvr_running: true,
-            }),
+            ProcessMonitorPoll::Initial {
+                previous: GameProcessStatus::default(),
+                current: GameProcessStatus {
+                    is_game_running: false,
+                    is_steamvr_running: true,
+                },
+            },
         );
 
         assert!(actions.events.is_empty());
     }
 
     #[test]
-    fn game_start_after_steamvr_reports_vr_mode() {
+    fn first_poll_stopped_after_previous_running_game_stops_actions() {
+        let mut actions = RecordingActions::default();
+
+        dispatch_process_monitor_actions(
+            &mut actions,
+            ProcessMonitorPoll::Initial {
+                previous: GameProcessStatus {
+                    is_game_running: true,
+                    is_steamvr_running: true,
+                },
+                current: GameProcessStatus::default(),
+            },
+        );
+
+        assert_eq!(actions.events, vec!["stopped"]);
+    }
+
+    #[test]
+    fn game_start_after_steamvr_reports_steamvr_running() {
         let mut actions = RecordingActions::default();
 
         dispatch_process_monitor_actions(
@@ -390,6 +423,7 @@ mod tests {
 
     struct ScriptedDetectActions {
         game_running: Arc<AtomicBool>,
+        stopped: Arc<AtomicBool>,
     }
 
     impl GameProcessMonitorActions for ScriptedDetectActions {
@@ -402,7 +436,9 @@ mod tests {
 
         fn on_game_started(&mut self, _steamvr_running: bool) {}
 
-        fn on_game_stopped(&mut self) {}
+        fn on_game_stopped(&mut self) {
+            self.stopped.store(true, Ordering::Release);
+        }
     }
 
     struct RecordingSink {
@@ -434,6 +470,7 @@ mod tests {
     fn game_exit_during_stop_window_emits_stopped_transition_after_restart() {
         let monitor = ProcessMonitor::new();
         let detected = Arc::new(AtomicBool::new(true));
+        let stopped = Arc::new(AtomicBool::new(false));
         let sink = Arc::new(RecordingSink {
             events: Mutex::new(Vec::new()),
         });
@@ -441,6 +478,7 @@ mod tests {
         monitor.start(
             ScriptedDetectActions {
                 game_running: Arc::clone(&detected),
+                stopped: Arc::clone(&stopped),
             },
             LogWatcher::new(None),
             vec![Arc::clone(&sink) as Arc<dyn GameProcessEventSink>],
@@ -449,26 +487,38 @@ mod tests {
 
         monitor.stop();
         assert!(!monitor.is_game_running());
+        assert!(!stopped.load(Ordering::Acquire));
 
         detected.store(false, Ordering::Relaxed);
         sink.events.lock().unwrap().clear();
         monitor.start(
             ScriptedDetectActions {
                 game_running: Arc::clone(&detected),
+                stopped: Arc::clone(&stopped),
             },
             LogWatcher::new(None),
             vec![Arc::clone(&sink) as Arc<dyn GameProcessEventSink>],
         );
 
-        assert!(wait_for_event(&sink, |event| event.game_changed && !event.is_game_running));
+        assert!(wait_for_event(&sink, |_| true));
+        {
+            let events = sink.events.lock().unwrap();
+            let first_event = events.first().expect("restart process event");
+            assert!(first_event.game_changed);
+            assert!(!first_event.is_game_running);
+        }
         monitor.stop();
+        assert!(stopped.load(Ordering::Acquire));
     }
 
     #[test]
     fn stop_clears_process_state_before_a_later_restart() {
         let monitor = ProcessMonitor::new();
         monitor.shared.game_running.store(true, Ordering::Relaxed);
-        monitor.shared.steamvr_running.store(true, Ordering::Relaxed);
+        monitor
+            .shared
+            .steamvr_running
+            .store(true, Ordering::Relaxed);
 
         monitor.stop();
 

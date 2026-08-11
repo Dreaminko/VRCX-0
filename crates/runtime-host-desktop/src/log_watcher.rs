@@ -13,10 +13,6 @@ impl LogLocationSnapshotScanner for HostLogLocationSnapshotScanner {
     fn scan_current_location_snapshot(&self, log_dir: &Path) -> Option<LogLocationSnapshot> {
         vrcx_0_host_desktop::log_scanner::scan_current_location_snapshot(log_dir)
     }
-
-    fn scan_latest_vr_mode(&self, log_dir: &Path) -> Option<bool> {
-        vrcx_0_host_desktop::log_scanner::scan_latest_vr_mode(log_dir)
-    }
 }
 
 pub struct HostGameLogEventFanout {

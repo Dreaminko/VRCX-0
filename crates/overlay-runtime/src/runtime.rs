@@ -178,7 +178,7 @@ impl Default for HmdNotificationConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            start_mode: WristOverlayStartMode::VrchatVrMode,
+            start_mode: WristOverlayStartMode::Vrchat,
             timeout_ms: 5_000,
             opacity_percent: 100,
             position: HmdNotificationPosition::Bottom,
@@ -204,7 +204,7 @@ pub(super) struct VrOverlayRuntimeConfig {
 impl Default for VrOverlayRuntimeConfig {
     fn default() -> Self {
         Self {
-            start_mode: WristOverlayStartMode::VrchatVrMode,
+            start_mode: WristOverlayStartMode::Vrchat,
             backend: OverlayBackendPreference::Auto,
             button: OverlayActivationButton::Grip,
             hand: WristOverlayHand::Left,
@@ -436,7 +436,6 @@ pub struct VrOverlayRuntimeSnapshot {
     pub enabled: bool,
     pub backend_available: bool,
     pub running: bool,
-    pub vr_mode: bool,
     pub steamvr_running: bool,
     pub active_backend: Option<String>,
 }
@@ -444,7 +443,6 @@ pub struct VrOverlayRuntimeSnapshot {
 pub struct VrOverlayRuntime {
     enabled: AtomicBool,
     game_running: AtomicBool,
-    vr_mode: AtomicBool,
     steamvr_running: AtomicBool,
     refresh_loop_started: AtomicBool,
     wrist_frame_release_requested: AtomicBool,
@@ -585,7 +583,6 @@ impl VrOverlayRuntime {
         Self {
             enabled: AtomicBool::new(false),
             game_running: AtomicBool::new(false),
-            vr_mode: AtomicBool::new(false),
             steamvr_running: AtomicBool::new(false),
             refresh_loop_started: AtomicBool::new(false),
             wrist_frame_release_requested: AtomicBool::new(false),
@@ -772,11 +769,6 @@ impl VrOverlayRuntime {
 impl VrOverlayRuntime {
     pub fn is_backend_available(&self) -> bool {
         self.backend_available
-    }
-
-    pub fn set_vr_mode(&self, vr_mode: bool) {
-        self.vr_mode.store(vr_mode, Ordering::Release);
-        self.reconcile_current_with_device_refresh(true);
     }
 
     pub fn stop_detached(&self) {
@@ -1294,7 +1286,6 @@ impl VrOverlayRuntime {
             enabled: self.enabled.load(Ordering::Acquire),
             backend_available: self.backend_available,
             running,
-            vr_mode: self.vr_mode.load(Ordering::Acquire),
             steamvr_running: self.steamvr_running.load(Ordering::Acquire),
             active_backend,
         }
@@ -1326,9 +1317,6 @@ impl VrOverlayRuntime {
     }
 
     fn update_process_status(&self, game_running: bool, steamvr_running: bool) {
-        if !game_running {
-            self.vr_mode.store(false, Ordering::Release);
-        }
         let previous_game_running = self.game_running.swap(game_running, Ordering::AcqRel);
         if previous_game_running && !game_running {
             self.avatar_bitmap_cache.clear();
@@ -1361,10 +1349,9 @@ impl VrOverlayRuntime {
                 config = next_config;
             }
             let game_running = self.game_running.load(Ordering::Acquire);
-            let vr_mode = self.vr_mode.load(Ordering::Acquire);
             let steamvr_running = self.steamvr_running.load(Ordering::Acquire);
             let active_surfaces =
-                self.active_surfaces_for_state(config, game_running, vr_mode, steamvr_running);
+                self.active_surfaces_for_state(config, game_running, steamvr_running);
             if active_surfaces.any() {
                 let configs = overlay_surface_configs(active_surfaces, config, self);
                 if let Err(error) = manager.set_surface_configs(configs) {
@@ -1380,7 +1367,6 @@ impl VrOverlayRuntime {
                 enabled: active_surfaces.any(),
                 backend_available: self.backend_available,
                 game_running,
-                vr_mode,
                 steamvr_running,
                 start_mode: WristOverlayStartMode::SteamVr,
             };
@@ -1389,12 +1375,8 @@ impl VrOverlayRuntime {
             if eligibility.can_run() && manager.is_running() {
                 let input_outcome = self.process_overlay_input_events(&mut manager);
                 if input_outcome.surface_config_changed {
-                    let refreshed_surfaces = self.active_surfaces_for_state(
-                        config,
-                        game_running,
-                        vr_mode,
-                        steamvr_running,
-                    );
+                    let refreshed_surfaces =
+                        self.active_surfaces_for_state(config, game_running, steamvr_running);
                     let configs = overlay_surface_configs(refreshed_surfaces, config, self);
                     if let Err(error) = manager.set_surface_configs(configs) {
                         tracing::warn!(
@@ -1476,7 +1458,6 @@ impl VrOverlayRuntime {
         self.active_surfaces_for_state(
             config,
             self.game_running.load(Ordering::Acquire),
-            self.vr_mode.load(Ordering::Acquire),
             self.steamvr_running.load(Ordering::Acquire),
         )
     }
@@ -1485,7 +1466,6 @@ impl VrOverlayRuntime {
         &self,
         config: VrOverlayRuntimeConfig,
         game_running: bool,
-        vr_mode: bool,
         steamvr_running: bool,
     ) -> ActiveOverlaySurfaces {
         let panel_listener = self.backend_available && steamvr_running && config.panel_enabled;
@@ -1497,7 +1477,6 @@ impl VrOverlayRuntime {
                 self.backend_available,
                 steamvr_running,
                 game_running,
-                vr_mode,
             ),
             hmd: surface_active_for_start_mode(
                 config.hmd.enabled,
@@ -1505,7 +1484,6 @@ impl VrOverlayRuntime {
                 self.backend_available,
                 steamvr_running,
                 game_running,
-                vr_mode,
             ),
             panel_listener,
             friends_panel,
@@ -2124,13 +2102,8 @@ impl GameProcessEventSink for VrOverlayRuntime {
 impl GameLogEventSink for VrOverlayRuntime {
     fn ingest_game_log_event(&self, event: &GameLogEvent) -> vrcx_0_application_core::Result<()> {
         match event.kind {
-            GameLogEventKind::OpenVrInit => self.set_vr_mode(true),
-            GameLogEventKind::DesktopMode => self.set_vr_mode(false),
-            GameLogEventKind::VrcQuit => {
-                self.set_vr_mode(false);
-                self.mark_friends_panel_model_dirty();
-            }
-            GameLogEventKind::Location { .. }
+            GameLogEventKind::VrcQuit
+            | GameLogEventKind::Location { .. }
             | GameLogEventKind::LocationDestination { .. }
             | GameLogEventKind::PlayerJoined { .. }
             | GameLogEventKind::PlayerLeft { .. } => {
@@ -2207,10 +2180,10 @@ impl VrOverlayFrameProducer for StaticWristFrameProducer {
     }
 }
 
-fn start_mode_allows(start_mode: WristOverlayStartMode, game_running: bool, vr_mode: bool) -> bool {
+fn start_mode_allows(start_mode: WristOverlayStartMode, game_running: bool) -> bool {
     match start_mode {
         WristOverlayStartMode::SteamVr => true,
-        WristOverlayStartMode::VrchatVrMode => game_running && vr_mode,
+        WristOverlayStartMode::Vrchat => game_running,
     }
 }
 
@@ -2310,12 +2283,8 @@ fn surface_active_for_start_mode(
     backend_available: bool,
     steamvr_running: bool,
     game_running: bool,
-    vr_mode: bool,
 ) -> bool {
-    enabled
-        && backend_available
-        && steamvr_running
-        && start_mode_allows(start_mode, game_running, vr_mode)
+    enabled && backend_available && steamvr_running && start_mode_allows(start_mode, game_running)
 }
 
 fn overlay_surface_configs(

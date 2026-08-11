@@ -118,7 +118,6 @@ struct DesktopRuntimeProfileExtension {
 
 struct VrOverlayProcessSink {
     runtime: Arc<DesktopVrOverlayRuntime>,
-    log_watcher: LogWatcher,
 }
 
 impl GameProcessEventSink for VrOverlayProcessSink {
@@ -126,12 +125,7 @@ impl GameProcessEventSink for VrOverlayProcessSink {
         &self,
         event: GameProcessEvent,
     ) -> vrcx_0_application_core::Result<()> {
-        let current_vr_mode = if event.is_game_running {
-            self.log_watcher.current_vr_mode()
-        } else {
-            None
-        };
-        self.runtime.on_game_process_event(event, current_vr_mode)
+        self.runtime.on_game_process_event(event)
     }
 }
 
@@ -587,7 +581,6 @@ impl DesktopRuntimeProfileExtension {
             let vr_overlay_process_sink: Arc<dyn GameProcessEventSink> =
                 Arc::new(VrOverlayProcessSink {
                     runtime: Arc::clone(&self.desktop.vr_overlay_runtime),
-                    log_watcher: self.game.log_watcher.clone(),
                 });
             let game_process_sinks: Vec<Arc<dyn GameProcessEventSink>> = vec![
                 self.game.session_runtime.clone(),

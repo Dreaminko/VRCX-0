@@ -22,10 +22,6 @@ pub struct LogWatcher {
 
 pub trait LogLocationSnapshotScanner: Send + Sync {
     fn scan_current_location_snapshot(&self, log_dir: &Path) -> Option<LogLocationSnapshot>;
-
-    fn scan_latest_vr_mode(&self, _log_dir: &Path) -> Option<bool> {
-        None
-    }
 }
 
 #[derive(Default)]
@@ -180,13 +176,6 @@ impl LogWatcher {
             .scan_current_location_snapshot(&log_dir)
     }
 
-    pub fn current_vr_mode(&self) -> Option<bool> {
-        let log_dir = self.inner.log_dir.read().unwrap().clone()?;
-        self.inner
-            .location_snapshot_scanner
-            .scan_latest_vr_mode(&log_dir)
-    }
-
     pub fn set_game_running(&self, running: bool) {
         *self.inner.game_running.lock().unwrap() = running;
         if !running {
@@ -293,8 +282,7 @@ pub(super) fn update(
             .expect("multiple GameLog entries");
         entries = vec![latest];
     } else {
-        entries
-            .sort_by_key(|(entry, _, _)| entry.metadata().and_then(|meta| meta.created()).ok());
+        entries.sort_by_key(|(entry, _, _)| entry.metadata().and_then(|meta| meta.created()).ok());
     }
 
     let mut sink = queue::WatcherParseSink {

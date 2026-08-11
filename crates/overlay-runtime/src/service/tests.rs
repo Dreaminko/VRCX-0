@@ -243,6 +243,39 @@ fn unchanged_configs_register_when_running_actor_has_no_registered_surfaces() {
         .expect("stop overlay actor");
 }
 
+#[test]
+fn hiding_surface_releases_last_submitted_cpu_frame() {
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let actor = OverlayActorHandle::spawn_with_backend(RecordingBackend {
+        calls: Arc::clone(&calls),
+    });
+    actor
+        .send(OverlayServiceCommand::Start)
+        .expect("start actor");
+    let surface_id = surface_id("main");
+    let mut service = HostVrOverlayService::new_noop(vec![surface_config("main")]);
+    service.actor = Some(actor.clone());
+
+    service
+        .update_surface_frame(
+            &surface_id,
+            RgbaFrame::new(OverlaySize::new(16, 8), vec![0; 16 * 8 * 4]),
+        )
+        .expect("update surface frame");
+    assert!(service.last_surface_frames.contains_key(&surface_id));
+
+    service.hide_surface(&surface_id).expect("hide surface");
+
+    assert!(!service.last_surface_frames.contains_key(&surface_id));
+    assert_eq!(
+        calls.lock().unwrap().as_slice(),
+        ["update:main", "hide:main"]
+    );
+    actor
+        .send(OverlayServiceCommand::Stop)
+        .expect("stop overlay actor");
+}
+
 fn surface_id(value: &str) -> OverlaySurfaceId {
     OverlaySurfaceId::new(value)
 }
@@ -329,9 +362,13 @@ impl OverlayBackend for RecordingBackend {
 
     fn update_frame(
         &mut self,
-        _surface_id: &OverlaySurfaceId,
+        surface_id: &OverlaySurfaceId,
         _frame: RgbaFrame,
     ) -> Result<(), String> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push(format!("update:{}", surface_id.as_str()));
         Ok(())
     }
 
@@ -339,7 +376,11 @@ impl OverlayBackend for RecordingBackend {
         Ok(())
     }
 
-    fn hide(&mut self, _surface_id: &OverlaySurfaceId) -> Result<(), String> {
+    fn hide(&mut self, surface_id: &OverlaySurfaceId) -> Result<(), String> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push(format!("hide:{}", surface_id.as_str()));
         Ok(())
     }
 
