@@ -1,0 +1,182 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { Session } from '@/platform/tauri/bindings';
+
+const mocks = vi.hoisted(() => ({
+    listSessions: vi.fn(),
+    getSession: vi.fn(),
+    deleteSession: vi.fn()
+}));
+
+vi.mock('@/platform/tauri/bindings', () => ({
+    commands: {
+        appAssistantListSessions: mocks.listSessions,
+        appAssistantGetSession: mocks.getSession,
+        appAssistantDeleteSession: mocks.deleteSession
+    }
+}));
+
+import { useAssistantChatStore } from '@/state/assistantChatStore';
+
+import {
+    deleteSession,
+    openSession,
+    refreshSessions
+} from './assistantActions';
+
+function session(id: string): Session {
+    return {
+        id,
+        title: id,
+        messages: [
+            {
+                id: `message-${id}`,
+                seq: 1,
+                role: 'user',
+                content: id,
+                createdAt: '2026-08-11T00:00:00Z'
+            }
+        ],
+        activeTurn: null,
+        endpointId: null,
+        model: null,
+        allowWrites: false,
+        playbookMode: 'auto',
+        entityPanelOpen: false,
+        surfacedEntities: [],
+        createdAt: '2026-08-11T00:00:00Z',
+        updatedAt: '2026-08-11T00:00:00Z'
+    };
+}
+
+function deferred<T>(): {
+    promise: Promise<T>;
+    resolve: (value: T) => void;
+} {
+    let resolve: (value: T) => void = () => {
+        throw new Error('Deferred promise was not initialized.');
+    };
+    const promise = new Promise<T>((next) => {
+        resolve = next;
+    });
+    return { promise, resolve };
+}
+
+describe('assistantActions session lifecycle', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        useAssistantChatStore.getState().resetAssistantChatState();
+        useAssistantChatStore.getState().setOpen(true);
+        mocks.listSessions.mockResolvedValue([]);
+        mocks.deleteSession.mockResolvedValue(undefined);
+    });
+
+    it('evicts the previous completed transcript when switching sessions', async () => {
+        useAssistantChatStore.setState({
+            activeSessionId: 'session-1',
+            sessions: [
+                {
+                    id: 'session-1',
+                    title: 'First',
+                    busy: false,
+                    updatedAt: '2026-08-11T00:00:00Z'
+                },
+                {
+                    id: 'session-2',
+                    title: 'Second',
+                    busy: false,
+                    updatedAt: '2026-08-11T00:00:00Z'
+                }
+            ],
+            messagesBySession: { 'session-1': [] }
+        });
+        mocks.getSession.mockResolvedValue(session('session-2'));
+
+        await openSession('session-2');
+
+        expect(useAssistantChatStore.getState()).toMatchObject({
+            activeSessionId: 'session-2',
+            messagesBySession: {
+                'session-2': [
+                    {
+                        id: 'message-session-2',
+                        text: 'session-2'
+                    }
+                ]
+            }
+        });
+        expect(
+            useAssistantChatStore.getState().messagesBySession['session-1']
+        ).toBeUndefined();
+    });
+
+    it('does not repopulate a transcript after the dialog closes during hydration', async () => {
+        const pendingSession = deferred<Session | null>();
+        mocks.getSession.mockReturnValue(pendingSession.promise);
+
+        const opening = openSession('session-1');
+        useAssistantChatStore.getState().setOpen(false);
+        pendingSession.resolve(session('session-1'));
+        await opening;
+
+        expect(
+            useAssistantChatStore.getState().messagesBySession['session-1']
+        ).toBeUndefined();
+    });
+
+    it('does not apply a session list fetched for an older auth scope', async () => {
+        const pendingSessions = deferred<
+            Array<{
+                id: string;
+                title: string;
+                busy: boolean;
+                updatedAt: string;
+            }>
+        >();
+        mocks.listSessions.mockReturnValue(pendingSessions.promise);
+
+        const refresh = refreshSessions();
+        useAssistantChatStore.getState().resetAssistantChatState();
+        pendingSessions.resolve([
+            {
+                id: 'session-old-account',
+                title: 'Old account',
+                busy: false,
+                updatedAt: '2026-08-11T00:00:00Z'
+            }
+        ]);
+        await refresh;
+
+        expect(useAssistantChatStore.getState().sessions).toEqual([]);
+    });
+
+    it('removes deleted session data before refreshing summaries', async () => {
+        useAssistantChatStore.setState({
+            activeSessionId: 'session-1',
+            sessions: [
+                {
+                    id: 'session-1',
+                    title: 'First',
+                    busy: false,
+                    updatedAt: '2026-08-11T00:00:00Z'
+                }
+            ],
+            messagesBySession: { 'session-1': [] },
+            surfacedEntitiesBySession: { 'session-1': [] },
+            entityPanelOpenBySession: { 'session-1': true },
+            busySessions: { 'session-1': false }
+        });
+
+        await deleteSession('session-1');
+
+        expect(mocks.deleteSession).toHaveBeenCalledWith('session-1');
+        expect(useAssistantChatStore.getState()).toMatchObject({
+            activeSessionId: null,
+            sessions: [],
+            messagesBySession: {},
+            surfacedEntitiesBySession: {},
+            entityPanelOpenBySession: {},
+            busySessions: {}
+        });
+    });
+});

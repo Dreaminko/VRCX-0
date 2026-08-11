@@ -58,6 +58,7 @@ import { Switch } from '@/ui/shadcn/switch';
 
 import {
     cancelActiveTurn,
+    openSession,
     refreshSessions,
     sendMessage,
     setEntityPanelOpen
@@ -189,6 +190,12 @@ export function AssistantDialog() {
                 .catch(() => {});
         }
     }, [loadEndpoints, open]);
+
+    useEffect(() => {
+        if (open && activeSessionId && !messages) {
+            void openSession(activeSessionId).catch(() => {});
+        }
+    }, [activeSessionId, messages, open]);
 
     useEffect(() => {
         if (!activeSessionId && runtimeStatus?.lastSelection) {

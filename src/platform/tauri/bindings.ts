@@ -186,6 +186,9 @@ export const commands = {
     async appFavoriteImportCancel(): Promise<FavoriteImportStatus> {
         return await TAURI_INVOKE('app__favorite_import_cancel');
     },
+    async appFavoriteImportDismiss(runId: string): Promise<boolean> {
+        return await TAURI_INVOKE('app__favorite_import_dismiss', { runId });
+    },
     async appGroupBanImportStart(
         input: GroupBanImportStartInput
     ): Promise<GroupBanImportStatus> {
@@ -2949,13 +2952,19 @@ export type AppUpdateStatusSnapshot = {
     shouldNotify: boolean;
 };
 export type AssistantDeltaEvent = {
+    ownerUserId: string;
     sessionId: string;
     turnId: string;
     text: string;
     replace: boolean;
 };
-export type AssistantDoneEvent = { sessionId: string; turnId: string };
+export type AssistantDoneEvent = {
+    ownerUserId: string;
+    sessionId: string;
+    turnId: string;
+};
 export type AssistantErrorEvent = {
+    ownerUserId: string;
     sessionId: string;
     turnId: string;
     code: string;
@@ -2972,6 +2981,7 @@ export type AssistantRuntimeStatus = {
     lastSelection: AssistantRuntimeSelection;
 };
 export type AssistantToolCallEvent = {
+    ownerUserId: string;
     sessionId: string;
     turnId: string;
     toolCallId: string;
@@ -2979,6 +2989,7 @@ export type AssistantToolCallEvent = {
     args: string;
 };
 export type AssistantToolResultEvent = {
+    ownerUserId: string;
     sessionId: string;
     turnId: string;
     toolCallId: string;
@@ -2987,6 +2998,7 @@ export type AssistantToolResultEvent = {
     entities: Entity[];
 };
 export type AssistantTurnEntitiesEvent = {
+    ownerUserId: string;
     sessionId: string;
     turnId: string;
     entities: Entity[];

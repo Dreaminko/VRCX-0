@@ -6,6 +6,7 @@ import {
     recordAssistantTurnError
 } from '@/services/telemetry/telemetryAssistantHealth';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
+import { useRuntimeStore } from '@/state/runtimeStore';
 
 import type {
     AssistantDeltaEvent,
@@ -25,6 +26,26 @@ const EVENT_NAMES = [
     'assistantError'
 ] as const;
 
+function isCurrentAccountEvent(event: {
+    ownerUserId: string;
+    sessionId: string;
+}): boolean {
+    if (
+        !event.ownerUserId ||
+        event.ownerUserId !== useRuntimeStore.getState().auth.currentUserId
+    ) {
+        return false;
+    }
+    const state = useAssistantChatStore.getState();
+    return (
+        state.open ||
+        Boolean(state.busySessions[event.sessionId]) ||
+        state.sessions.some(
+            (session) => session.id === event.sessionId && session.busy
+        )
+    );
+}
+
 export function useAssistantEvents(): void {
     useEffect(() => {
         const store = useAssistantChatStore.getState();
@@ -43,7 +64,9 @@ export function useAssistantEvents(): void {
         const flushDeltas = () => {
             rafHandle = 0;
             for (const event of pendingDeltas.values()) {
-                store.applyDelta(event);
+                if (isCurrentAccountEvent(event)) {
+                    store.applyDelta(event);
+                }
             }
             pendingDeltas.clear();
         };
@@ -53,10 +76,27 @@ export function useAssistantEvents(): void {
             }
             flushDeltas();
         };
+        const clearBufferedEvents = () => {
+            if (rafHandle) {
+                cancelAnimationFrame(rafHandle);
+                rafHandle = 0;
+            }
+            pendingDeltas.clear();
+            toolCallsById.clear();
+        };
+        const evictFinishedSessionIfClosed = (sessionId: string) => {
+            const current = useAssistantChatStore.getState();
+            if (!current.open) {
+                current.evictSessionData(sessionId);
+            }
+        };
 
         const handlers: Record<string, (payload: unknown) => void> = {
             assistantDelta: (payload) => {
                 const event = payload as AssistantDeltaEvent;
+                if (!isCurrentAccountEvent(event)) {
+                    return;
+                }
                 if (event.replace) {
                     flushNow();
                     store.applyDelta(event);
@@ -73,8 +113,11 @@ export function useAssistantEvents(): void {
                 }
             },
             assistantToolCall: (payload) => {
-                flushNow();
                 const event = payload as AssistantToolCallEvent;
+                if (!isCurrentAccountEvent(event)) {
+                    return;
+                }
+                flushNow();
                 toolCallsById.set(event.toolCallId, {
                     name: event.name,
                     args: event.args
@@ -82,8 +125,11 @@ export function useAssistantEvents(): void {
                 store.applyToolCall(event);
             },
             assistantToolResult: (payload) => {
-                flushNow();
                 const event = payload as AssistantToolResultEvent;
+                if (!isCurrentAccountEvent(event)) {
+                    return;
+                }
+                flushNow();
                 store.applyToolResult(event);
                 if (!event.ok) {
                     const tool = toolCallsById.get(event.toolCallId);
@@ -95,19 +141,50 @@ export function useAssistantEvents(): void {
                 }
                 toolCallsById.delete(event.toolCallId);
             },
-            assistantTurnEntities: (payload) =>
-                store.applyTurnEntities(payload as AssistantTurnEntitiesEvent),
+            assistantTurnEntities: (payload) => {
+                const event = payload as AssistantTurnEntitiesEvent;
+                if (isCurrentAccountEvent(event)) {
+                    store.applyTurnEntities(event);
+                }
+            },
             assistantDone: (payload) => {
-                flushNow();
-                store.applyDone(payload as AssistantDoneEvent);
+                const event = payload as AssistantDoneEvent;
+                if (isCurrentAccountEvent(event)) {
+                    flushNow();
+                    store.applyDone(event);
+                    evictFinishedSessionIfClosed(event.sessionId);
+                }
             },
             assistantError: (payload) => {
-                flushNow();
                 const event = payload as AssistantErrorEvent;
+                if (!isCurrentAccountEvent(event)) {
+                    return;
+                }
+                flushNow();
                 store.applyError(event);
                 recordAssistantTurnError(event.code, event.message);
+                evictFinishedSessionIfClosed(event.sessionId);
             }
         };
+
+        const unsubscribeAuth = useRuntimeStore.subscribe(
+            (state, previousState) => {
+                if (
+                    state.auth.currentUserId ===
+                    previousState.auth.currentUserId
+                ) {
+                    return;
+                }
+                clearBufferedEvents();
+            }
+        );
+        const unsubscribeAssistantScope = useAssistantChatStore.subscribe(
+            (state, previousState) => {
+                if (state.authScopeVersion !== previousState.authScopeVersion) {
+                    clearBufferedEvents();
+                }
+            }
+        );
 
         for (const name of EVENT_NAMES) {
             tauriClient.events
@@ -130,6 +207,8 @@ export function useAssistantEvents(): void {
             for (const unsubscribe of unsubscribers) {
                 unsubscribe();
             }
+            unsubscribeAuth();
+            unsubscribeAssistantScope();
             toolCallsById.clear();
         };
     }, []);

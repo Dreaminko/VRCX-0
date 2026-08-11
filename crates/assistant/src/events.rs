@@ -7,6 +7,7 @@ use crate::entities::Entity;
 #[derive(Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AssistantDeltaEvent {
+    pub owner_user_id: String,
     pub session_id: String,
     pub turn_id: String,
     pub text: String,
@@ -16,6 +17,7 @@ pub struct AssistantDeltaEvent {
 #[derive(Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AssistantToolCallEvent {
+    pub owner_user_id: String,
     pub session_id: String,
     pub turn_id: String,
     pub tool_call_id: String,
@@ -26,6 +28,7 @@ pub struct AssistantToolCallEvent {
 #[derive(Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AssistantToolResultEvent {
+    pub owner_user_id: String,
     pub session_id: String,
     pub turn_id: String,
     pub tool_call_id: String,
@@ -37,6 +40,7 @@ pub struct AssistantToolResultEvent {
 #[derive(Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AssistantTurnEntitiesEvent {
+    pub owner_user_id: String,
     pub session_id: String,
     pub turn_id: String,
     pub entities: Vec<Entity>,
@@ -45,6 +49,7 @@ pub struct AssistantTurnEntitiesEvent {
 #[derive(Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AssistantDoneEvent {
+    pub owner_user_id: String,
     pub session_id: String,
     pub turn_id: String,
 }
@@ -52,6 +57,7 @@ pub struct AssistantDoneEvent {
 #[derive(Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AssistantErrorEvent {
+    pub owner_user_id: String,
     pub session_id: String,
     pub turn_id: String,
     pub code: String,
@@ -85,14 +91,21 @@ impl RuntimeEventPayload for AssistantErrorEvent {
 #[derive(Clone)]
 pub struct AssistantEmitter {
     bus: RuntimeEventBus,
+    owner_user_id: String,
     session_id: String,
     turn_id: String,
 }
 
 impl AssistantEmitter {
-    pub fn new(bus: RuntimeEventBus, session_id: String, turn_id: String) -> Self {
+    pub fn new(
+        bus: RuntimeEventBus,
+        owner_user_id: String,
+        session_id: String,
+        turn_id: String,
+    ) -> Self {
         Self {
             bus,
+            owner_user_id,
             session_id,
             turn_id,
         }
@@ -100,6 +113,7 @@ impl AssistantEmitter {
 
     pub fn delta(&self, text: &str) {
         self.bus.emit(AssistantDeltaEvent {
+            owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
             text: text.to_string(),
@@ -109,6 +123,7 @@ impl AssistantEmitter {
 
     pub fn answer(&self, text: &str) {
         self.bus.emit(AssistantDeltaEvent {
+            owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
             text: text.to_string(),
@@ -118,6 +133,7 @@ impl AssistantEmitter {
 
     pub fn tool_call(&self, tool_call_id: &str, name: &str, args: &str) {
         self.bus.emit(AssistantToolCallEvent {
+            owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
             tool_call_id: tool_call_id.to_string(),
@@ -128,6 +144,7 @@ impl AssistantEmitter {
 
     pub fn tool_result(&self, tool_call_id: &str, ok: bool, summary: &str, entities: &[Entity]) {
         self.bus.emit(AssistantToolResultEvent {
+            owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
             tool_call_id: tool_call_id.to_string(),
@@ -139,6 +156,7 @@ impl AssistantEmitter {
 
     pub fn turn_entities(&self, entities: &[Entity]) {
         self.bus.emit(AssistantTurnEntitiesEvent {
+            owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
             entities: entities.to_vec(),
@@ -147,6 +165,7 @@ impl AssistantEmitter {
 
     pub fn done(&self) {
         self.bus.emit(AssistantDoneEvent {
+            owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
         });
@@ -154,6 +173,7 @@ impl AssistantEmitter {
 
     pub fn error(&self, code: &str, message: &str) {
         self.bus.emit(AssistantErrorEvent {
+            owner_user_id: self.owner_user_id.clone(),
             session_id: self.session_id.clone(),
             turn_id: self.turn_id.clone(),
             code: code.to_string(),
@@ -185,7 +205,12 @@ mod tests {
         let bus = RuntimeEventBus::new();
         let sink = CapturingSink::default();
         bus.set_sink(sink.clone());
-        let emitter = AssistantEmitter::new(bus.clone(), "session-1".into(), "turn-1".into());
+        let emitter = AssistantEmitter::new(
+            bus.clone(),
+            "usr_self".into(),
+            "session-1".into(),
+            "turn-1".into(),
+        );
 
         emitter.delta("draft");
         emitter.answer("final");
@@ -193,6 +218,7 @@ mod tests {
         let events = sink.0.lock().unwrap();
         assert_eq!(events.len(), 2);
         assert_eq!(events[0].1["replace"], false);
+        assert_eq!(events[0].1["ownerUserId"], "usr_self");
         assert_eq!(events[0].1["text"], "draft");
         assert_eq!(events[1].1["replace"], true);
         assert_eq!(events[1].1["text"], "final");

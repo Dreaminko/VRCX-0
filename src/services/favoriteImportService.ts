@@ -139,18 +139,42 @@ interface FavoriteImportWatcher {
 
 let favoriteImportWatcher: FavoriteImportWatcher | null = null;
 
+function dismissFavoriteImportStatus(status: FavoriteImportStatus): void {
+    if (!status.runId || isBackendActive(status)) {
+        return;
+    }
+    void commands
+        .appFavoriteImportDismiss(status.runId)
+        .catch((error: unknown) => {
+            console.warn('Failed to dismiss favorite import result:', error);
+        });
+}
+
+function requestFavoriteImportCancel(): void {
+    void commands
+        .appFavoriteImportCancel()
+        .then(dismissFavoriteImportStatus)
+        .catch((error: unknown) => {
+            console.warn('Failed to cancel favorite import:', error);
+        });
+}
+
 export function handleFavoriteImportStatusEvent(
     status: FavoriteImportStatus
 ): void {
     const watcher = favoriteImportWatcher;
     if (!watcher || status.runId !== watcher.runId) {
+        dismissFavoriteImportStatus(status);
         return;
     }
     if (!isActiveDialogSession(watcher.sessionId, watcher.type)) {
         favoriteImportWatcher = null;
         commands
             .appFavoriteImportCancel()
-            .then(watcher.resolve)
+            .then((cancelledStatus) => {
+                dismissFavoriteImportStatus(cancelledStatus);
+                watcher.resolve(cancelledStatus);
+            })
             .catch(() => watcher.resolve(status));
         return;
     }
@@ -163,6 +187,7 @@ export function handleFavoriteImportStatusEvent(
     );
     if (!isBackendActive(status)) {
         favoriteImportWatcher = null;
+        dismissFavoriteImportStatus(status);
         watcher.resolve(status);
     }
 }
@@ -385,14 +410,12 @@ export function clearFavoriteImportRows(): void {
 
 export function cancelFavoriteImport(): void {
     useFavoriteImportStore.getState().cancelActiveWork();
-    void commands.appFavoriteImportCancel().catch((error: unknown) => {
-        console.warn('Failed to cancel favorite import:', error);
-    });
+    requestFavoriteImportCancel();
 }
 
 export function closeFavoriteImportDialog(): void {
-    cancelFavoriteImport();
     useFavoriteImportStore.getState().closeDialog();
+    requestFavoriteImportCancel();
 }
 
 export function getFavoriteImportTypeConfig(type: unknown) {

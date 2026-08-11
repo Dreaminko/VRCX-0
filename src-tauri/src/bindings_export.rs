@@ -153,6 +153,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::share_collection::app__shared_collection_import_status,
             commands::application::frontend_batch::app__favorite_import_start,
             commands::application::frontend_batch::app__favorite_import_cancel,
+            commands::application::frontend_batch::app__favorite_import_dismiss,
             commands::application::frontend_batch::app__group_ban_import_start,
             commands::application::frontend_batch::app__group_ban_import_status,
             commands::application::frontend_batch::app__group_ban_import_cancel,

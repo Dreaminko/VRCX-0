@@ -110,9 +110,8 @@ export const useFavoriteImportStore = create<FavoriteImportStore>((set) => ({
     },
     closeDialog() {
         set((state) => ({
-            ...state,
-            open: false,
-            loading: false
+            ...initialState,
+            sessionId: state.sessionId + 1
         }));
     },
     cancelActiveWork() {

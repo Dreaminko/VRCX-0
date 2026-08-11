@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     favoriteImportStart: vi.fn(),
     favoriteImportStatus: vi.fn(),
     favoriteImportCancel: vi.fn(),
+    favoriteImportDismiss: vi.fn(),
     bootstrapFavorites: vi.fn(),
     translate: vi.fn()
 }));
@@ -19,7 +20,8 @@ vi.mock('@/platform/tauri/bindings', () => ({
     commands: {
         appFavoriteImportStart: mocks.favoriteImportStart,
         appFavoriteImportStatus: mocks.favoriteImportStatus,
-        appFavoriteImportCancel: mocks.favoriteImportCancel
+        appFavoriteImportCancel: mocks.favoriteImportCancel,
+        appFavoriteImportDismiss: mocks.favoriteImportDismiss
     }
 }));
 
@@ -109,6 +111,7 @@ describe('favoriteImportService typed worker adapter', () => {
                 target: null
             })
         );
+        mocks.favoriteImportDismiss.mockResolvedValue(true);
         mocks.bootstrapFavorites.mockResolvedValue(undefined);
         mocks.translate.mockImplementation((_key: string, params?: unknown) =>
             params && typeof params === 'object' && 'value' in params
@@ -139,6 +142,50 @@ describe('favoriteImportService typed worker adapter', () => {
             loading: false,
             errors: '',
             rows: [{ id: AVATAR_ID, name: 'Avatar' }]
+        });
+        await vi.waitFor(() => {
+            expect(mocks.favoriteImportDismiss).toHaveBeenCalledWith(
+                'favorite-test-1'
+            );
+        });
+    });
+
+    it('clears page-owned state on close and dismisses a terminal backend result', async () => {
+        const { useFavoriteImportStore } =
+            await import('@/state/favoriteImportStore');
+        const { closeFavoriteImportDialog } =
+            await import('./favoriteImportService');
+        useFavoriteImportStore.getState().openDialog({
+            type: 'avatar',
+            input: AVATAR_ID
+        });
+        useFavoriteImportStore
+            .getState()
+            .setRows([{ id: AVATAR_ID, name: 'Avatar' }]);
+        useFavoriteImportStore.getState().setErrors('failed');
+        useFavoriteImportStore.getState().setRemoteGroupName('avatars1');
+
+        closeFavoriteImportDialog();
+
+        expect(useFavoriteImportStore.getState()).toMatchObject({
+            open: false,
+            type: 'avatar',
+            input: '',
+            rows: [],
+            loading: false,
+            progress: 0,
+            progressTotal: 0,
+            importProgress: 0,
+            importProgressTotal: 0,
+            errors: '',
+            remoteGroupName: '',
+            localGroupName: ''
+        });
+        await vi.waitFor(() => {
+            expect(mocks.favoriteImportCancel).toHaveBeenCalledOnce();
+            expect(mocks.favoriteImportDismiss).toHaveBeenCalledWith(
+                'favorite-test-1'
+            );
         });
     });
 

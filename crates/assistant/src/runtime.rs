@@ -263,7 +263,12 @@ impl AssistantController {
         let context = TurnContext {
             tools: Arc::clone(&self.tools),
             sessions: Arc::clone(&self.sessions),
-            emitter: AssistantEmitter::new(self.bus.clone(), session_id.clone(), turn_id.clone()),
+            emitter: AssistantEmitter::new(
+                self.bus.clone(),
+                owner_user_id,
+                session_id.clone(),
+                turn_id.clone(),
+            ),
             client,
             tool_defs,
             session_id: session_id.clone(),

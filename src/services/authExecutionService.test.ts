@@ -79,6 +79,7 @@ import type {
     SavedAuthSnapshot,
     SavedCredentialSnapshot
 } from '@/platform/tauri/bindings';
+import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -196,6 +197,7 @@ describe('authExecutionService characterization', () => {
         vi.clearAllMocks();
         useRuntimeStore.getState().resetRuntimeState();
         useSessionStore.getState().resetSessionState();
+        useAssistantChatStore.getState().resetAssistantChatState();
         useModalStore.getState().resetModalState();
         useModalStore.setState({
             confirm: mocks.confirm,
@@ -236,6 +238,12 @@ describe('authExecutionService characterization', () => {
     });
 
     it('records and bootstraps a successful manual login', async () => {
+        useAssistantChatStore.setState({
+            open: true,
+            activeSessionId: 'session-from-previous-account',
+            messagesBySession: { 'session-from-previous-account': [] }
+        });
+
         await expect(
             executeManualLogin({
                 username: ' self@example.test ',
@@ -258,6 +266,11 @@ describe('authExecutionService characterization', () => {
         });
         expect(useSessionStore.getState().sessionPhase).toBe('authenticating');
         expect(mocks.loadVrchatConfigSnapshot).toHaveBeenCalledTimes(1);
+        expect(useAssistantChatStore.getState()).toMatchObject({
+            open: false,
+            activeSessionId: null,
+            messagesBySession: {}
+        });
         expect(mocks.bootstrapAuthenticatedSession).toHaveBeenCalledWith(
             user(),
             expect.any(Number)

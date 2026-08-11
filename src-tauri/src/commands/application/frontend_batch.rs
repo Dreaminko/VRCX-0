@@ -34,6 +34,12 @@ pub fn app__favorite_import_cancel(state: State<'_, AppState>) -> FavoriteImport
 
 #[tauri::command]
 #[specta::specta]
+pub fn app__favorite_import_dismiss(state: State<'_, AppState>, runId: String) -> bool {
+    state.favorite_import.dismiss(&runId)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn app__group_ban_import_start(
     state: State<'_, AppState>,
     input: GroupBanImportStartInput,

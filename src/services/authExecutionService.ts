@@ -11,6 +11,7 @@ import authRepository, {
     type SavedCredentialRecord
 } from '@/repositories/authRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
+import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { useDialogStore } from '@/state/dialogStore';
 import { useFavoriteRevisionStore } from '@/state/favoriteRevisionStore';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -172,6 +173,7 @@ export function setAuthenticatingSessionState() {
 function resetCurrentUserRuntimeCaches() {
     clearEntityQueryCache();
     resetVrchatConfigSnapshot();
+    useAssistantChatStore.getState().resetAssistantChatState();
     useFriendRosterStore.getState().resetRoster();
     useFavoriteStore.getState().resetFavorites();
     useFavoriteRevisionStore.getState().reset();

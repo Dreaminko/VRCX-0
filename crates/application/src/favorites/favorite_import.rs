@@ -250,6 +250,15 @@ impl FavoriteImportRuntime {
         status
     }
 
+    pub fn dismiss(&self, run_id: &str) -> bool {
+        let mut inner = self.lock_inner();
+        if !dismiss_terminal_status(&mut inner.status, run_id) {
+            return false;
+        }
+        inner.cancel = None;
+        true
+    }
+
     pub fn cancel_if_scope_mismatch(&self) -> FavoriteImportStatus {
         let scope = self.auth_scope.snapshot();
         let status = {
@@ -714,6 +723,14 @@ fn is_active_state(state: FavoriteImportState) -> bool {
     )
 }
 
+fn dismiss_terminal_status(status: &mut FavoriteImportStatus, run_id: &str) -> bool {
+    if run_id.is_empty() || status.run_id != run_id || is_active_state(status.status) {
+        return false;
+    }
+    *status = FavoriteImportStatus::default();
+    true
+}
+
 async fn wait_for_interval(should_cancel: impl Fn() -> bool) -> bool {
     let started_at = tokio::time::Instant::now();
     loop {
@@ -906,5 +923,36 @@ mod tests {
             }),
         })
         .is_err());
+    }
+
+    #[test]
+    fn dismiss_clears_only_the_matching_terminal_import() {
+        let mut status = FavoriteImportStatus {
+            run_id: "favorite-test-1".into(),
+            status: FavoriteImportState::Completed,
+            total: 1,
+            processed: 1,
+            succeeded: 1,
+            items: vec![FavoriteImportItemResult {
+                id: AVATAR_ID.into(),
+                state: FavoriteImportItemState::Succeeded,
+                message: String::new(),
+                entity: None,
+            }],
+            ..Default::default()
+        };
+
+        assert!(!dismiss_terminal_status(&mut status, "favorite-test-2"));
+        assert_eq!(status.items.len(), 1);
+
+        status.status = FavoriteImportState::Running;
+        assert!(!dismiss_terminal_status(&mut status, "favorite-test-1"));
+        assert_eq!(status.items.len(), 1);
+
+        status.status = FavoriteImportState::Completed;
+        assert!(dismiss_terminal_status(&mut status, "favorite-test-1"));
+        assert_eq!(status.status, FavoriteImportState::Idle);
+        assert!(status.run_id.is_empty());
+        assert!(status.items.is_empty());
     }
 }

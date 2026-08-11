@@ -15,6 +15,7 @@ import type { Session } from '@/platform/tauri/bindings';
 
 interface AssistantChatState {
     open: boolean;
+    authScopeVersion: number;
     sessions: SessionSummary[];
     activeSessionId: string | null;
     messagesBySession: Record<string, UIMessage[]>;
@@ -25,6 +26,9 @@ interface AssistantChatState {
     setEntityPanelOpen: (open: boolean) => void;
     setSessions: (sessions: SessionSummary[]) => void;
     setActiveSession: (sessionId: string | null) => void;
+    evictSessionData: (sessionId: string) => void;
+    removeSession: (sessionId: string) => void;
+    resetAssistantChatState: () => void;
     hydrateSession: (session: Session) => void;
     appendUserMessage: (sessionId: string, text: string) => void;
     dropTrailingUserMessage: (sessionId: string) => void;
@@ -37,6 +41,29 @@ interface AssistantChatState {
     applyError: (event: AssistantErrorEvent) => void;
 }
 
+type AssistantChatData = Pick<
+    AssistantChatState,
+    | 'open'
+    | 'authScopeVersion'
+    | 'sessions'
+    | 'activeSessionId'
+    | 'messagesBySession'
+    | 'surfacedEntitiesBySession'
+    | 'entityPanelOpenBySession'
+    | 'busySessions'
+>;
+
+const initialState: AssistantChatData = {
+    open: false,
+    authScopeVersion: 0,
+    sessions: [],
+    activeSessionId: null,
+    messagesBySession: {},
+    surfacedEntitiesBySession: {},
+    entityPanelOpenBySession: {},
+    busySessions: {}
+};
+
 function markSessionIdle(
     sessions: SessionSummary[],
     sessionId: string
@@ -48,6 +75,40 @@ function markSessionIdle(
 
 function randomId(prefix: string): string {
     return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function removeSessionEntry<T>(
+    entries: Record<string, T>,
+    sessionId: string
+): Record<string, T> {
+    const next = { ...entries };
+    delete next[sessionId];
+    return next;
+}
+
+function retainSessionEntries<T>(
+    entries: Record<string, T>,
+    sessionIds: Set<string>
+): Record<string, T> {
+    return Object.fromEntries(
+        Object.entries(entries).filter(([sessionId]) =>
+            sessionIds.has(sessionId)
+        )
+    );
+}
+
+function getBusySessionIds(state: AssistantChatState): Set<string> {
+    const sessionIds = new Set(
+        state.sessions
+            .filter((session) => session.busy)
+            .map((session) => session.id)
+    );
+    for (const [sessionId, busy] of Object.entries(state.busySessions)) {
+        if (busy) {
+            sessionIds.add(sessionId);
+        }
+    }
+    return sessionIds;
 }
 
 function updateMessages(
@@ -92,17 +153,34 @@ function withAssistantMessage(
 }
 
 export const useAssistantChatStore = create<AssistantChatState>((set) => ({
-    open: false,
-    sessions: [],
-    activeSessionId: null,
-    messagesBySession: {},
-    surfacedEntitiesBySession: {},
-    entityPanelOpenBySession: {},
-    busySessions: {},
+    ...initialState,
 
-    setOpen: (open) => set({ open }),
-    // Entity panel open/closed is remembered per session: switching restores the
-    // panel state and contents of the session being opened, never wiping them.
+    setOpen: (open) =>
+        set((state) => {
+            if (open) {
+                return { open: true };
+            }
+            const busySessionIds = getBusySessionIds(state);
+            return {
+                open: false,
+                messagesBySession: retainSessionEntries(
+                    state.messagesBySession,
+                    busySessionIds
+                ),
+                surfacedEntitiesBySession: retainSessionEntries(
+                    state.surfacedEntitiesBySession,
+                    busySessionIds
+                ),
+                entityPanelOpenBySession: retainSessionEntries(
+                    state.entityPanelOpenBySession,
+                    busySessionIds
+                ),
+                busySessions: retainSessionEntries(
+                    state.busySessions,
+                    busySessionIds
+                )
+            };
+        }),
     setEntityPanelOpen: (open) =>
         set((state) =>
             state.activeSessionId
@@ -116,20 +194,67 @@ export const useAssistantChatStore = create<AssistantChatState>((set) => ({
         ),
     setSessions: (sessions) => set({ sessions }),
     setActiveSession: (activeSessionId) => set({ activeSessionId }),
+    evictSessionData: (sessionId) =>
+        set((state) => {
+            if (getBusySessionIds(state).has(sessionId)) {
+                return {};
+            }
+            return {
+                messagesBySession: removeSessionEntry(
+                    state.messagesBySession,
+                    sessionId
+                ),
+                surfacedEntitiesBySession: removeSessionEntry(
+                    state.surfacedEntitiesBySession,
+                    sessionId
+                ),
+                entityPanelOpenBySession: removeSessionEntry(
+                    state.entityPanelOpenBySession,
+                    sessionId
+                ),
+                busySessions: removeSessionEntry(state.busySessions, sessionId)
+            };
+        }),
+    removeSession: (sessionId) =>
+        set((state) => ({
+            sessions: state.sessions.filter(
+                (session) => session.id !== sessionId
+            ),
+            activeSessionId:
+                state.activeSessionId === sessionId
+                    ? null
+                    : state.activeSessionId,
+            messagesBySession: removeSessionEntry(
+                state.messagesBySession,
+                sessionId
+            ),
+            surfacedEntitiesBySession: removeSessionEntry(
+                state.surfacedEntitiesBySession,
+                sessionId
+            ),
+            entityPanelOpenBySession: removeSessionEntry(
+                state.entityPanelOpenBySession,
+                sessionId
+            ),
+            busySessions: removeSessionEntry(state.busySessions, sessionId)
+        })),
+    resetAssistantChatState: () =>
+        set((state) => ({
+            ...initialState,
+            authScopeVersion: state.authScopeVersion + 1
+        })),
 
     hydrateSession: (session) =>
         set((state) => ({
             messagesBySession: {
                 ...state.messagesBySession,
-                [session.id]: session.messages.map(
-                    (message): UIMessage => ({
-                        id: message.id,
-                        role: message.role,
-                        text: message.content,
-                        streaming: false,
-                        toolCalls: []
-                    })
-                )
+                [session.id]: session.messages.map((message): UIMessage => ({
+                    id: message.id,
+                    role: message.role,
+                    text: message.content,
+                    streaming: false,
+                    toolCalls: []
+                }))
             },
             // Restore the persisted right-panel state for this session.
             entityPanelOpenBySession: {
