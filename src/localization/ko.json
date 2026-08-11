@@ -3672,6 +3672,7 @@
                 "url": "VRChat 링크",
                 "vrcx_url": "공유 링크",
                 "vrcx_url_description": "이 링크를 열면 VRCX-0 앱이 바로 실행됩니다",
+                "vrcx_share_text": "VRCX-0에서 월드 “{name}” 열기: {url}",
                 "copy_vrcx_url": "공유 링크 복사"
             },
             "json": {
@@ -3867,6 +3868,7 @@
                 "url": "VRChat 링크",
                 "vrcx_url": "공유 링크",
                 "vrcx_url_description": "이 링크를 열면 VRCX-0 앱이 바로 실행됩니다",
+                "vrcx_share_text": "VRCX-0에서 아바타 “{name}” 열기: {url}",
                 "copy_vrcx_url": "공유 링크 복사"
             },
             "json": {

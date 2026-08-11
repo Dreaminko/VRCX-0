@@ -502,7 +502,10 @@ export function AvatarDialogTabbedView({
                         }}
                         onCopyVrcxAvatarUrl={() => {
                             copyAvatarText(
-                                vrcxAvatarUrl,
+                                t('dialog.avatar.info.vrcx_share_text', {
+                                    name: avatar.name,
+                                    url: vrcxAvatarUrl
+                                }),
                                 t('dialog.avatar.info.vrcx_url')
                             );
                         }}

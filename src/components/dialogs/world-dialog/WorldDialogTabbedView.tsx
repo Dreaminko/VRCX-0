@@ -862,7 +862,13 @@ export function WorldDialogTabbedView({
         onCopyWorldUrl: () =>
             copyWorldText(worldUrl, t('dialog.world.info.url')),
         onCopyVrcxWorldUrl: () => {
-            copyWorldText(vrcxWorldUrl, t('dialog.world.info.vrcx_url'));
+            copyWorldText(
+                t('dialog.world.info.vrcx_share_text', {
+                    name: world.name,
+                    url: vrcxWorldUrl
+                }),
+                t('dialog.world.info.vrcx_url')
+            );
             worldProfileRepository.registerWorldOpenShare(world.id);
         },
         onDelete,

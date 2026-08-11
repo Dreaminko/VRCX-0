@@ -237,22 +237,34 @@ const FavoriteCard = memo(function FavoriteCard({
         if (!vrcxWorldShareUrl) {
             return;
         }
-        void copyTextToClipboard(vrcxWorldShareUrl, {
-            successMessage: t('dialog.world.dynamic.value_copied', {
-                value: t('dialog.world.info.vrcx_url')
-            })
-        });
+        void copyTextToClipboard(
+            t('dialog.world.info.vrcx_share_text', {
+                name: item.title || worldId,
+                url: vrcxWorldShareUrl
+            }),
+            {
+                successMessage: t('dialog.world.dynamic.value_copied', {
+                    value: t('dialog.world.info.vrcx_url')
+                })
+            }
+        );
         registerWorldOpenShare(worldId);
     };
     const copyVrcxAvatarShareLink = () => {
         if (!vrcxAvatarShareUrl) {
             return;
         }
-        void copyTextToClipboard(vrcxAvatarShareUrl, {
-            successMessage: t('dialog.avatar.dynamic.value_copied', {
-                value: t('dialog.avatar.info.vrcx_url')
-            })
-        });
+        void copyTextToClipboard(
+            t('dialog.avatar.info.vrcx_share_text', {
+                name: item.title || avatarId,
+                url: vrcxAvatarShareUrl
+            }),
+            {
+                successMessage: t('dialog.avatar.dynamic.value_copied', {
+                    value: t('dialog.avatar.info.vrcx_url')
+                })
+            }
+        );
     };
     const activateCard = (shift: boolean) => {
         if (isSelectionActive) {
