@@ -334,7 +334,7 @@ pub(super) fn refresh_runs(inner: &mut Inner) {
 }
 
 fn refresh_run_tracking(run: &mut AppLauncherRun) {
-    if run.root_pid.is_none() || run.tracked_pids.is_empty() {
+    if run.root_pid.is_none() && run.tracked_pids.is_empty() {
         return;
     }
     if !matches!(run.status, AppLauncherRunStatus::Running) {
@@ -431,9 +431,32 @@ pub(super) fn stop_tracked_run(run: &mut AppLauncherRun) {
         }
     }
 
+    finish_stop_attempt(run, &failed_pids);
+}
+
+pub(super) fn finish_stop_attempt(run: &mut AppLauncherRun, failed_pids: &[u32]) {
+    if !failed_pids.is_empty() {
+        let mut remaining_pids = failed_pids.to_vec();
+        remaining_pids.sort_unstable();
+        remaining_pids.dedup();
+        run.root_pid = run.root_pid.filter(|pid| remaining_pids.contains(pid));
+        run.tracked_pids = remaining_pids;
+        run.status = AppLauncherRunStatus::Running;
+        run.finished_at = None;
+        run.error = Some(format!(
+            "failed to stop process IDs: {}",
+            run.tracked_pids
+                .iter()
+                .map(u32::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        return;
+    }
     run.status = AppLauncherRunStatus::Stopped;
     run.finished_at = Some(now_timestamp());
     run.tracked_pids.clear();
+    run.error = None;
 }
 
 pub(super) fn tracked_stop_pids(run: &AppLauncherRun) -> Vec<u32> {

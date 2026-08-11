@@ -189,6 +189,24 @@ describe('AppLauncherDialog Windows launch diagnostics', () => {
         ).toBeTruthy();
     });
 
+    it('shows the newest run after an active entry configuration is replaced', async () => {
+        const snapshot = appSnapshot();
+        snapshot.activeSession!.runs = [
+            appRun({ id: 'old', status: 'running', error: null }),
+            appRun({ id: 'new', status: 'failed' })
+        ];
+        mocks.snapshot.mockResolvedValue(snapshot);
+
+        render(<AppLauncherDialog open onOpenChange={vi.fn()} />);
+
+        expect(
+            await screen.findAllByText('dialog.app_launcher.run_status_failed')
+        ).toHaveLength(1);
+        expect(
+            screen.queryByText('dialog.app_launcher.run_status_running')
+        ).toBeNull();
+    });
+
     it('offers elevation only for Windows local apps and keeps them running', async () => {
         const initial = appSnapshot();
         mocks.snapshot.mockResolvedValue(initial);

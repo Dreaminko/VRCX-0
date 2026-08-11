@@ -22,15 +22,15 @@ use model::{
     default_working_directory_for_local_target, display_name_for_path, is_windows_executable_path,
     path_extension_eq,
 };
-use process::{
-    launch_entry, now_timestamp, refresh_runs, stop_close_by_vrcx_session, stop_tracked_run,
-};
 #[cfg(test)]
 use process::{
-    local_launch_strategy, normalized_process_path_for_platform, process_name_for_run,
-    process_name_from_target_for_platform, should_close_untracked_matching_processes,
-    should_skip_entry, tracked_shell_process_id, tracked_stop_pids, LaunchFailure,
-    LocalLaunchStrategy, ShellExecuteVerb,
+    finish_stop_attempt, local_launch_strategy, normalized_process_path_for_platform,
+    process_name_for_run, process_name_from_target_for_platform,
+    should_close_untracked_matching_processes, should_skip_entry, tracked_shell_process_id,
+    tracked_stop_pids, LaunchFailure, LocalLaunchStrategy, ShellExecuteVerb,
+};
+use process::{
+    launch_entry, now_timestamp, refresh_runs, stop_close_by_vrcx_session, stop_tracked_run,
 };
 
 pub use manager::AutoAppLaunchManager;

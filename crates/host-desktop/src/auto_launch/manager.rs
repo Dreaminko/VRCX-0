@@ -183,6 +183,20 @@ impl AutoAppLaunchManager {
         Ok(inner.snapshot())
     }
 
+    #[cfg(test)]
+    pub(super) fn set_active_run_tracking_for_test(&self, entry_id: &str, pid: u32) {
+        let mut inner = self.inner.lock().unwrap();
+        let run = inner
+            .active_session
+            .as_mut()
+            .and_then(|session| session.runs.iter_mut().find(|run| run.entry_id == entry_id))
+            .unwrap();
+        run.status = AppLauncherRunStatus::Running;
+        run.root_pid = Some(pid);
+        run.tracked_pids = vec![pid];
+        run.finished_at = None;
+    }
+
     fn launch_delayed_session_entry(
         &self,
         session_id: &str,
@@ -284,17 +298,17 @@ fn reconcile_active_session_entries(
 
     if let Some(session) = inner.active_session.as_mut() {
         session.runs.retain_mut(|run| {
+            if matches!(run.status, AppLauncherRunStatus::Waiting) {
+                return false;
+            }
             let Some(entry) = desired_entries
                 .iter()
                 .find(|entry| entry.id == run.entry_id)
             else {
-                return false;
+                return matches!(run.status, AppLauncherRunStatus::Running);
             };
-            if matches!(run.status, AppLauncherRunStatus::Waiting) {
-                return false;
-            }
             if run.entry_signature != entry_signature(entry) {
-                return false;
+                return matches!(run.status, AppLauncherRunStatus::Running);
             }
             run.entry_name = entry.name.clone();
             run.stop_policy = entry.stop_policy.clone();
@@ -309,7 +323,13 @@ fn reconcile_active_session_entries(
             session
                 .runs
                 .iter()
-                .map(|run| run.entry_id.clone())
+                .filter_map(|run| {
+                    desired_entries
+                        .iter()
+                        .find(|entry| entry.id == run.entry_id)
+                        .filter(|entry| run.entry_signature == entry_signature(entry))
+                        .map(|_| run.entry_id.clone())
+                })
                 .collect()
         })
         .unwrap_or_default();

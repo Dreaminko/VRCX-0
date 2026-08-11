@@ -411,15 +411,57 @@ fn app_launcher_entries_set_applies_to_active_session() {
 }
 
 #[test]
-fn app_launcher_disabling_entry_removes_active_session_run() {
+fn app_launcher_disabling_entry_preserves_started_session_run_tracking() {
     let manager = AutoAppLaunchManager::new(true, vec![local_entry("local")]);
     manager.on_game_started(false);
+    let pid = std::process::id();
+    manager.set_active_run_tracking_for_test("local", pid);
 
     let mut disabled = local_entry("local");
     disabled.enabled = false;
     let snapshot = manager.set_entries(vec![disabled]);
+    let runs = snapshot.active_session.unwrap().runs;
 
-    assert!(snapshot.active_session.unwrap().runs.is_empty());
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0].status, AppLauncherRunStatus::Running);
+    assert_eq!(runs[0].tracked_pids, vec![pid]);
+}
+
+#[test]
+fn app_launcher_editing_entry_preserves_old_run_tracking_while_starting_new_config() {
+    let manager = AutoAppLaunchManager::new(true, vec![local_entry("local")]);
+    manager.on_game_started(false);
+    let pid = std::process::id();
+    manager.set_active_run_tracking_for_test("local", pid);
+
+    let mut edited = local_entry("local");
+    edited.target = "C:\\Tools\\Edited.exe".to_string();
+    let snapshot = manager.set_entries(vec![edited]);
+    let runs = snapshot.active_session.unwrap().runs;
+
+    assert_eq!(runs.len(), 2);
+    assert_eq!(runs[0].status, AppLauncherRunStatus::Running);
+    assert_eq!(runs[0].tracked_pids, vec![pid]);
+    assert_eq!(runs[1].target, "C:\\Tools\\Edited.exe");
+}
+
+#[test]
+fn app_launcher_stop_failure_keeps_run_tracked_and_not_stopped() {
+    let mut run = new_run("run", &local_entry("local"), false);
+    run.status = AppLauncherRunStatus::Running;
+    run.root_pid = Some(42);
+    run.tracked_pids = vec![42, 99];
+
+    finish_stop_attempt(&mut run, &[99]);
+
+    assert_eq!(run.status, AppLauncherRunStatus::Running);
+    assert_eq!(run.root_pid, None);
+    assert_eq!(run.tracked_pids, vec![99]);
+    assert_eq!(run.finished_at, None);
+    assert!(run
+        .error
+        .as_deref()
+        .is_some_and(|error| error.contains("99")));
 }
 
 #[test]

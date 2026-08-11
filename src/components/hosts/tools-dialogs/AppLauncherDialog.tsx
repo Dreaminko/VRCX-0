@@ -151,10 +151,14 @@ function activeRunForEntry(
     snapshot: AppLauncherSnapshot | null,
     entryId: string
 ): AppLauncherRun | null {
-    return (
-        snapshot?.activeSession?.runs.find((run) => run.entryId === entryId) ??
-        null
-    );
+    const runs = snapshot?.activeSession?.runs ?? [];
+    for (let index = runs.length - 1; index >= 0; index -= 1) {
+        const run = runs[index];
+        if (run?.entryId === entryId) {
+            return run;
+        }
+    }
+    return null;
 }
 
 function runErrorKey(run: AppLauncherRun): string | null {
