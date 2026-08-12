@@ -2608,6 +2608,8 @@
                         "gamelog_description": "關閉後不會儲存新的遊戲紀錄歷史；房間用戶列表、正在播放、截圖後設資料、房間媒體與其他即時日誌功能仍可使用。",
                         "feed_history": "儲存好友動態歷史",
                         "feed_history_description": "關閉後不會儲存或載入好友動態歷史。好友動態會從空白狀態開始，只顯示本次工作階段收到的即時動態；好友側邊欄與其他即時功能仍可使用。",
+                        "avatar_feed_history": "儲存角色切換紀錄",
+                        "avatar_feed_history_description": "關閉後不會將新的角色切換紀錄寫入資料庫；好友動態顯示與通知推送仍可使用。",
                         "tools": "診斷",
                         "database_usage": "資料庫使用量",
                         "refresh_database_usage": "更新資料庫使用情況",

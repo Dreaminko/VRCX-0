@@ -23,6 +23,18 @@ pub fn app__feed_persistence_set_disabled(
 
 #[tauri::command]
 #[specta::specta]
+pub fn app__avatar_feed_persistence_set_disabled(
+    state: State<'_, AppState>,
+    disabled: bool,
+) -> Result<(), AppError> {
+    state
+        .realtime_runtime
+        .set_avatar_feed_persistence_disabled(disabled)
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn app__avatar_feed_history_cleanup(
     state: State<'_, AppState>,
     cutoff_date: Option<String>,

@@ -25,7 +25,9 @@ const labels: Record<string, string> = {
         'custom directory',
     'view.settings.advanced.advanced_ui.behavior.deep_link_repair': 'Fix',
     'view.settings.advanced.advanced_ui.behavior.focus_on_join_header':
-        'Bring VRChat to the front'
+        'Bring VRChat to the front',
+    'view.settings.advanced.advanced_ui.troubleshooting.avatar_feed_history':
+        'Save avatar change history'
 };
 
 const commandMocks = vi.hoisted(() => ({
@@ -80,6 +82,7 @@ function createModel(
         onClearConfigTreeData: vi.fn(),
         onGameLogDisabledChange: vi.fn(),
         onFeedPersistenceDisabledChange: vi.fn(),
+        onAvatarFeedPersistenceDisabledChange: vi.fn(),
         onFocusVrchatOnJoinChange: vi.fn(),
         onLogResourceLoadChange: vi.fn(),
         onMigrateLegacyVrcxData: vi.fn(),
@@ -101,6 +104,7 @@ function createModel(
             avatarAutoCleanup: 'Off',
             gameLogDisabled: false,
             feedPersistenceDisabled: false,
+            avatarFeedPersistenceDisabled: false,
             focusVrchatOnJoin: false,
             logResourceLoad: false,
             relaunchVRChatAfterCrash: false,
@@ -259,5 +263,34 @@ describe('SettingsAdvancedTab data directory states', () => {
                 name: 'Bring VRChat to the front'
             })
         ).toBeNull();
+    });
+
+    it('disables avatar history persistence while Feed persistence is off', () => {
+        const model = createModel();
+        model.prefs.feedPersistenceDisabled = true;
+
+        renderTab(model);
+
+        const toggle = screen.getByRole('switch', {
+            name: 'Save avatar change history'
+        });
+        expect(toggle.hasAttribute('data-disabled')).toBe(true);
+    });
+
+    it('changes avatar history persistence without changing Feed persistence', () => {
+        const onAvatarFeedPersistenceDisabledChange = vi.fn();
+        renderTab(
+            createModel({ onAvatarFeedPersistenceDisabledChange })
+        );
+
+        fireEvent.click(
+            screen.getByRole('switch', {
+                name: 'Save avatar change history'
+            })
+        );
+
+        expect(onAvatarFeedPersistenceDisabledChange).toHaveBeenCalledWith(
+            true
+        );
     });
 });

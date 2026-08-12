@@ -374,6 +374,7 @@ export const DEFAULT_PREFERENCES: PreferenceInputSnapshot = Object.freeze({
     autoSweepVRChatCache: false,
     gameLogDisabled: false,
     feedPersistenceDisabled: false,
+    avatarFeedPersistenceDisabled: false,
     avatarAutoCleanup: 'Off',
     anonymousUsageTelemetry: true,
     udonExceptionLogging: false,
@@ -584,6 +585,9 @@ export function normalizePreferenceSnapshot(snapshot: unknown = {}) {
         autoSweepVRChatCache: normalizeBool(next.autoSweepVRChatCache),
         gameLogDisabled: normalizeBool(next.gameLogDisabled),
         feedPersistenceDisabled: normalizeBool(next.feedPersistenceDisabled),
+        avatarFeedPersistenceDisabled: normalizeBool(
+            next.avatarFeedPersistenceDisabled
+        ),
         avatarAutoCleanup: String(next.avatarAutoCleanup || 'Off'),
         anonymousUsageTelemetry: normalizeBool(next.anonymousUsageTelemetry),
         udonExceptionLogging: normalizeBool(next.udonExceptionLogging),

@@ -2608,6 +2608,8 @@
                         "gamelog_description": "关闭后不会保存新的游戏日志历史；当前玩家、正在播放、截图元数据、房间媒体和其他实时日志功能仍可使用。",
                         "feed_history": "保存好友动态历史",
                         "feed_history_description": "关闭后不会保存或加载好友动态历史。好友动态将从空白状态开始，仅显示本次会话收到的实时动态；好友侧栏和其他实时功能仍可使用。",
+                        "avatar_feed_history": "保存模型切换记录",
+                        "avatar_feed_history_description": "关闭后不再将新的模型切换记录写入数据库；好友动态显示和通知推送仍可使用。",
                         "tools": "诊断",
                         "database_usage": "数据库占用",
                         "refresh_database_usage": "刷新数据库占用",

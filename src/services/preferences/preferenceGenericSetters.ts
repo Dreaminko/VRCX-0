@@ -369,6 +369,14 @@ export async function setFeedPersistenceDisabledPreference(disabled: boolean) {
     publishPreferenceChanged('feedPersistenceDisabled', disabled);
 }
 
+export async function setAvatarFeedPersistenceDisabledPreference(
+    disabled: boolean
+) {
+    await commands.appAvatarFeedPersistenceSetDisabled(disabled);
+    patchPreferenceValue('avatarFeedPersistenceDisabled', disabled);
+    publishPreferenceChanged('avatarFeedPersistenceDisabled', disabled);
+}
+
 function isHiddenVrPanelBoolConfigKey(
     key: BoolConfigPreferenceInputKey
 ): key is HiddenVrPanelBoolConfigKey {

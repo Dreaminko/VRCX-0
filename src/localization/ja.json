@@ -2604,6 +2604,8 @@
                         "gamelog_description": "オフにすると新しい履歴は保存されません。プレイヤーリストや再生中などのリアルタイム機能は引き続き利用できます。",
                         "feed_history": "フィード履歴を保存",
                         "feed_history_description": "オフにするとフィードは毎回空の状態で始まります。フレンドサイドバーなどのリアルタイム機能は引き続き利用できます。",
+                        "avatar_feed_history": "アバター変更履歴を保存",
+                        "avatar_feed_history_description": "オフにすると、新しいアバター変更はデータベースに保存されません。フィード表示と通知の配信は引き続き利用できます。",
                         "tools": "診断",
                         "database_usage": "データベース使用量",
                         "refresh_database_usage": "データベース使用量を更新",

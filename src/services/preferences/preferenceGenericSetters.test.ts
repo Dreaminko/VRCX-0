@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     appSetStartup: vi.fn(),
     appVrOverlayConfigReload: vi.fn(),
     appFeedPersistenceSetDisabled: vi.fn(),
+    appAvatarFeedPersistenceSetDisabled: vi.fn(),
     getBool: vi.fn(),
     getString: vi.fn(),
     getInt: vi.fn(),
@@ -36,7 +37,9 @@ vi.mock('@/platform/tauri/bindings', () => ({
         appRestartApplication: mocks.appRestartApplication,
         appSetStartup: mocks.appSetStartup,
         appVrOverlayConfigReload: mocks.appVrOverlayConfigReload,
-        appFeedPersistenceSetDisabled: mocks.appFeedPersistenceSetDisabled
+        appFeedPersistenceSetDisabled: mocks.appFeedPersistenceSetDisabled,
+        appAvatarFeedPersistenceSetDisabled:
+            mocks.appAvatarFeedPersistenceSetDisabled
     }
 }));
 
@@ -114,6 +117,7 @@ import { useShellStore } from '@/state/shellStore';
 import {
     addFeedHiddenUserPreference,
     removeFeedHiddenUserPreference,
+    setAvatarFeedPersistenceDisabledPreference,
     setFeedPersistenceDisabledPreference,
     setIntConfigPreference,
     setStartAtWindowsStartupPreference,
@@ -152,6 +156,7 @@ describe('preferenceGenericSetters', () => {
         mocks.appRestartApplication.mockResolvedValue(undefined);
         mocks.appVrOverlayConfigReload.mockResolvedValue(undefined);
         mocks.appFeedPersistenceSetDisabled.mockResolvedValue(undefined);
+        mocks.appAvatarFeedPersistenceSetDisabled.mockResolvedValue(undefined);
         useFeedLiveStore.getState().resetFeedLive();
         mocks.readRecentActionCooldown.mockReturnValue({
             enabled: false,
@@ -279,6 +284,25 @@ describe('preferenceGenericSetters', () => {
         expect(usePreferencesStore.getState().feedPersistenceDisabled).toBe(
             false
         );
+    });
+
+    it('keeps live Feed entries when avatar history persistence changes', async () => {
+        useFeedLiveStore.getState().pushEntries([
+            {
+                sequence: 1,
+                entry: { id: 'avatar-change', type: 'Avatar' }
+            }
+        ]);
+
+        await setAvatarFeedPersistenceDisabledPreference(true);
+
+        expect(mocks.appAvatarFeedPersistenceSetDisabled).toHaveBeenCalledWith(
+            true
+        );
+        expect(useFeedLiveStore.getState().entries).toHaveLength(1);
+        expect(
+            usePreferencesStore.getState().avatarFeedPersistenceDisabled
+        ).toBe(true);
     });
 
     it('keeps compound table preferences unchanged when the transaction fails', async () => {

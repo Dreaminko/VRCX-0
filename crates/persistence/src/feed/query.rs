@@ -452,46 +452,43 @@ pub fn feed_latest_query(
 pub fn feed_search_query(
     db: &DatabaseService,
     query: FeedSearchQueryInput,
-) -> Result<Vec<FeedRowOutput>, Error> {
-    if query.favorites_only && query.favorite_user_ids.is_empty() {
-        return Ok(Vec::new());
-    }
-    query_feed_rows(
-        db,
-        &FeedRowsQueryInput {
-            user_id: query.user_id,
-            mode: FeedQueryMode::Search,
-            search: query.search,
-            filters: query.filters,
-            vip_list: if query.favorites_only {
-                query.favorite_user_ids
-            } else {
-                Vec::new()
-            },
-            scoped_user_ids: query.scoped_user_ids,
-            excluded_user_ids: query.excluded_user_ids,
-            max_entries: query.max_rows,
-            date_from: query.date_from,
-            date_to: query.date_to,
-            cursor: None,
-        },
-        None,
-    )
-}
-
-pub fn feed_live_search_query(
-    query: FeedSearchQueryInput,
     live_entries: Vec<FeedLiveEntryInput>,
     watermark: i64,
-) -> FeedReadModelOutput {
+    include_persisted_rows: bool,
+) -> Result<FeedReadModelOutput, Error> {
     if query.favorites_only && query.favorite_user_ids.is_empty() {
-        return FeedReadModelOutput {
+        return Ok(FeedReadModelOutput {
             rows: Vec::new(),
             max_sequence: watermark,
             persisted_cursor: None,
             persisted_has_more: false,
-        };
+        });
     }
+    let rows = if include_persisted_rows {
+        query_feed_rows(
+            db,
+            &FeedRowsQueryInput {
+                user_id: query.user_id.clone(),
+                mode: FeedQueryMode::Search,
+                search: query.search.clone(),
+                filters: query.filters.clone(),
+                vip_list: if query.favorites_only {
+                    query.favorite_user_ids.clone()
+                } else {
+                    Vec::new()
+                },
+                scoped_user_ids: query.scoped_user_ids.clone(),
+                excluded_user_ids: query.excluded_user_ids.clone(),
+                max_entries: query.max_rows,
+                date_from: query.date_from.clone(),
+                date_to: query.date_to.clone(),
+                cursor: None,
+            },
+            None,
+        )?
+    } else {
+        Vec::new()
+    };
     let context = FeedLiveRowsMergeContext {
         current_user_id: &query.user_id,
         filters: &query.filters,
@@ -504,9 +501,9 @@ pub fn feed_live_search_query(
         excluded_user_ids: &query.excluded_user_ids,
         max_rows: query.max_rows,
     };
-    let mut output = merge_feed_rows_with_live(Vec::new(), &live_entries, 0, context);
+    let mut output = merge_feed_rows_with_live(rows, &live_entries, 0, context);
     output.max_sequence = watermark.max(output.max_sequence);
-    output
+    Ok(output)
 }
 
 const FEED_GPS_SOURCE_RANK: i64 = 60;
@@ -809,6 +806,18 @@ fn feed_search_matches(row: &Value, search: &str) -> bool {
     let query = search.trim().to_uppercase();
     if query.is_empty() {
         return true;
+    }
+
+    if feed_entry_string(row, &["type"]) == "Avatar" {
+        let user_id = feed_entry_string(row, &["userId", "user_id"]);
+        let owner_id = feed_entry_string(row, &["ownerId", "owner_id"]);
+        if !user_id.is_empty()
+            && !owner_id.is_empty()
+            && ((query == "PRIVATE" && user_id == owner_id)
+                || (query == "PUBLIC" && user_id != owner_id))
+        {
+            return true;
+        }
     }
 
     if (query.starts_with("WRLD_") || query.starts_with("GRP_"))
@@ -1264,6 +1273,90 @@ mod tests {
             Some([].as_slice())
         );
         assert_eq!(row.row_id, None);
+    }
+
+    #[test]
+    fn live_avatar_search_matches_private_and_public_with_dates_and_filters() {
+        let live_entries = vec![
+            FeedLiveEntryInput {
+                sequence: 1,
+                entry: RawJson::from(json!({
+                    "type": "Avatar",
+                    "userId": "usr_old",
+                    "ownerId": "usr_old",
+                    "avatarName": "Old",
+                    "created_at": "2026-05-01T00:00:00Z",
+                })),
+            },
+            FeedLiveEntryInput {
+                sequence: 2,
+                entry: RawJson::from(json!({
+                    "type": "Avatar",
+                    "userId": "usr_private",
+                    "ownerId": "usr_private",
+                    "avatarName": "Owned Avatar",
+                    "created_at": "2026-05-20T00:00:00Z",
+                })),
+            },
+            FeedLiveEntryInput {
+                sequence: 3,
+                entry: RawJson::from(json!({
+                    "type": "Avatar",
+                    "userId": "usr_public",
+                    "ownerId": "usr_author",
+                    "avatarName": "Shared Avatar",
+                    "created_at": "2026-05-21T00:00:00Z",
+                })),
+            },
+            FeedLiveEntryInput {
+                sequence: 4,
+                entry: RawJson::from(json!({
+                    "type": "Avatar",
+                    "userId": "usr_missing_owner",
+                    "avatarName": "Missing Owner",
+                    "created_at": "2026-05-21T00:00:00Z",
+                })),
+            },
+            FeedLiveEntryInput {
+                sequence: 5,
+                entry: RawJson::from(json!({
+                    "type": "GPS",
+                    "userId": "usr_gps",
+                    "ownerId": "usr_other",
+                    "created_at": "2026-05-20T00:00:00Z",
+                })),
+            },
+        ];
+
+        let private_output = merge_case(MergeCase {
+            filters: vec![FeedFilter::Avatar],
+            search: "private".into(),
+            date_from: "2026-05-10T00:00:00Z".into(),
+            date_to: "2026-05-20T00:00:00Z".into(),
+            live_entries: live_entries.clone(),
+            max_rows: 10,
+            ..MergeCase::default()
+        });
+        assert_eq!(private_output.rows.len(), 1);
+        assert_eq!(
+            private_output.rows[0].user_id.as_deref(),
+            Some("usr_private")
+        );
+
+        let public_output = merge_case(MergeCase {
+            filters: vec![FeedFilter::Avatar],
+            search: "public".into(),
+            date_from: "2026-05-21T00:00:00Z".into(),
+            date_to: "2026-05-21T00:00:00Z".into(),
+            live_entries,
+            max_rows: 10,
+            ..MergeCase::default()
+        });
+        assert_eq!(public_output.rows.len(), 1);
+        assert_eq!(
+            public_output.rows[0].user_id.as_deref(),
+            Some("usr_public")
+        );
     }
 
     #[test]

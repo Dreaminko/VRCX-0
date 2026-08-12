@@ -239,6 +239,7 @@ pub struct RealtimeHostRuntime {
     pub(super) feed_owner_lock: Mutex<()>,
     pub(super) feed_live_cache: Mutex<FeedLiveCache>,
     pub(super) feed_persistence_disabled: AtomicBool,
+    pub(super) avatar_feed_persistence_disabled: AtomicBool,
     pub(super) notification_apply_lock: tokio::sync::Mutex<()>,
     pub(super) friend_profile_bulk_load:
         Mutex<super::friend_profile_bulk_load::FriendProfileBulkLoadState>,

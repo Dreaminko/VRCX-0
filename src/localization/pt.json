@@ -2608,6 +2608,8 @@
                         "gamelog_description": "Quando desativado, nenhum novo histórico é salvo. Recursos em tempo real como Lista de usuários e Tocando agora continuam disponíveis.",
                         "feed_history": "Salvar histórico do Feed",
                         "feed_history_description": "Quando desativado, o Feed começa vazio a cada sessão. Recursos em tempo real como a barra lateral de amigos continuam disponíveis.",
+                        "avatar_feed_history": "Salvar histórico de trocas de avatar",
+                        "avatar_feed_history_description": "Quando desativado, novas trocas de avatar não são gravadas no banco de dados. A exibição do Feed e a entrega de notificações continuam funcionando.",
                         "tools": "Diagnóstico",
                         "database_usage": "Uso do banco de dados",
                         "refresh_database_usage": "Atualizar uso do banco de dados",

@@ -2608,6 +2608,8 @@
                         "gamelog_description": "Al desactivarlo, no se guarda nuevo historial. Funciones en tiempo real como Lista de jugadores y Reproduciendo ahora siguen disponibles.",
                         "feed_history": "Guardar historial del Feed",
                         "feed_history_description": "Al desactivarlo, el Feed empieza vacío en cada sesión. Funciones en tiempo real como la barra lateral de amigos siguen disponibles.",
+                        "avatar_feed_history": "Guardar historial de cambios de avatar",
+                        "avatar_feed_history_description": "Al desactivarlo, los nuevos cambios de avatar no se escriben en la base de datos. El Feed y la entrega de notificaciones siguen funcionando.",
                         "tools": "Diagnóstico",
                         "database_usage": "Uso de la base de datos",
                         "refresh_database_usage": "Actualizar uso de la base de datos",

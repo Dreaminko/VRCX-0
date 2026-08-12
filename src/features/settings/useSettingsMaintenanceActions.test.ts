@@ -19,6 +19,7 @@ function createMaintenanceActions({
     isGameRunning = false,
     setGameLogPersistenceDisabledPreference = async () => undefined,
     setFeedPersistenceDisabledPreference = async () => undefined,
+    setAvatarFeedPersistenceDisabledPreference = async () => undefined,
     setPurgeDialogOpen = () => undefined,
     toastWarning = () => undefined
 }: {
@@ -36,6 +37,9 @@ function createMaintenanceActions({
         disabled: boolean
     ) => Promise<void>;
     setFeedPersistenceDisabledPreference?: (disabled: boolean) => Promise<void>;
+    setAvatarFeedPersistenceDisabledPreference?: (
+        disabled: boolean
+    ) => Promise<void>;
     setPurgeDialogOpen?: (open: boolean) => void;
     toastWarning?: (message: string) => void;
 }) {
@@ -89,6 +93,7 @@ function createMaintenanceActions({
         setCropInstancePrintsPreference: async () => undefined,
         setGameLogPersistenceDisabledPreference,
         setFeedPersistenceDisabledPreference,
+        setAvatarFeedPersistenceDisabledPreference,
         setIntConfigPreference: async () => undefined,
         setPrefs: () => undefined,
         setPurgeDialogOpen,
@@ -186,6 +191,26 @@ describe('handleFeedPersistenceDisabledChange', () => {
         await actions.handleFeedPersistenceDisabledChange(true);
 
         expect(setFeedPersistenceDisabledPreference).toHaveBeenCalledWith(true);
+    });
+});
+
+describe('handleAvatarFeedPersistenceDisabledChange', () => {
+    it('switches avatar Feed persistence without confirmation', async () => {
+        const confirm = vi.fn(async () => ({ ok: false }));
+        const setAvatarFeedPersistenceDisabledPreference = vi.fn(
+            async () => undefined
+        );
+        const actions = createMaintenanceActions({
+            confirm,
+            setAvatarFeedPersistenceDisabledPreference
+        });
+
+        await actions.handleAvatarFeedPersistenceDisabledChange(true);
+
+        expect(confirm).not.toHaveBeenCalled();
+        expect(
+            setAvatarFeedPersistenceDisabledPreference
+        ).toHaveBeenCalledWith(true);
     });
 });
 

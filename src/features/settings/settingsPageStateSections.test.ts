@@ -42,6 +42,7 @@ function createInput(
         handleCropInstancePrintsChange: callback,
         handleGameLogDisabledChange: callback,
         handleFeedPersistenceDisabledChange: callback,
+        handleAvatarFeedPersistenceDisabledChange: callback,
         hmdNotificationsDialogOpen: false,
         integrationStatus: {
             youtube: 'idle',

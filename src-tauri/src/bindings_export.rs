@@ -278,6 +278,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::local::avatars::app__avatar_tags_replace,
             commands::local::avatars::app__avatar_tags_patch,
             commands::local::feed::app__feed_persistence_set_disabled,
+            commands::local::feed::app__avatar_feed_persistence_set_disabled,
             commands::local::feed::app__avatar_feed_history_cleanup,
             commands::local::feed::app__feed_latest_query,
             commands::local::feed::app__feed_search_query,

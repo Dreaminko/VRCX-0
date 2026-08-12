@@ -5,9 +5,8 @@ use serde_json::Value;
 use vrcx_0_application_core::{Error, Result};
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::feed::{
-    feed_latest_query, feed_live_search_query, feed_search_query, FeedLatestQueryInput,
-    FeedLiveEntryInput, FeedLiveQueryMatcher, FeedReadModelOutput, FeedRowOutput,
-    FeedSearchQueryInput,
+    feed_latest_query, feed_search_query, FeedLatestQueryInput, FeedLiveEntryInput,
+    FeedLiveQueryMatcher, FeedReadModelOutput, FeedRowOutput, FeedSearchQueryInput,
 };
 
 use crate::realtime::{
@@ -227,12 +226,17 @@ impl RealtimeHostRuntime {
     }
 
     pub fn query_feed_search(&self, query: FeedSearchQueryInput) -> Result<Vec<FeedRowOutput>> {
-        if self.feed_persistence_disabled.load(Ordering::Relaxed) {
-            let matcher = FeedLiveQueryMatcher::for_search(&query);
-            let (live_entries, watermark) = self.feed_live_snapshot(&query.user_id, &matcher)?;
-            return Ok(feed_live_search_query(query, live_entries, watermark).rows);
-        }
-        feed_search_query(self.deps.db.as_ref(), query).map_err(Error::from)
+        let matcher = FeedLiveQueryMatcher::for_search(&query);
+        let (live_entries, watermark) = self.feed_live_snapshot(&query.user_id, &matcher)?;
+        feed_search_query(
+            self.deps.db.as_ref(),
+            query,
+            live_entries,
+            watermark,
+            !self.feed_persistence_disabled.load(Ordering::Relaxed),
+        )
+        .map(|output| output.rows)
+        .map_err(Error::from)
     }
 
     pub(super) fn reset_feed_live_cache(&self) {

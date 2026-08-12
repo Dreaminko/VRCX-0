@@ -2610,6 +2610,8 @@
                         "gamelog_description": "Při vypnutí se nová historie neukládá. Živé funkce jako Seznam hráčů a Nyní hraje zůstanou dostupné.",
                         "feed_history": "Ukládat historii Zdroje",
                         "feed_history_description": "Při vypnutí začne Zdroj každou relaci prázdný. Funkce v reálném čase jako postranní panel přátel zůstanou dostupné.",
+                        "avatar_feed_history": "Ukládat historii změn avatarů",
+                        "avatar_feed_history_description": "Při vypnutí se nové změny avatarů nezapisují do databáze. Zobrazení Zdroje a doručování oznámení zůstávají funkční.",
                         "tools": "Diagnostika",
                         "database_usage": "Využití databáze",
                         "refresh_database_usage": "Obnovit využití databáze",

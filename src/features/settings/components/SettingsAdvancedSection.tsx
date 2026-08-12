@@ -18,6 +18,8 @@ export function SettingsAdvancedSection() {
             avatarAutoCleanup: state.avatarAutoCleanup,
             gameLogDisabled: state.gameLogDisabled,
             feedPersistenceDisabled: state.feedPersistenceDisabled,
+            avatarFeedPersistenceDisabled:
+                state.avatarFeedPersistenceDisabled,
             anonymousUsageTelemetry: state.anonymousUsageTelemetry,
             udonExceptionLogging: state.udonExceptionLogging,
             logResourceLoad: state.logResourceLoad
@@ -36,6 +38,7 @@ export function SettingsAdvancedSection() {
         saveBoolPreference,
         handleGameLogDisabledChange,
         handleFeedPersistenceDisabledChange,
+        handleAvatarFeedPersistenceDisabledChange,
         saveStringPreference,
         setPurgeDialogOpen,
         refreshSqliteTableSizes,
@@ -116,6 +119,11 @@ export function SettingsAdvancedSection() {
         },
         onFeedPersistenceDisabledChange: (checked: unknown) => {
             handleFeedPersistenceDisabledChange(normalizeCheckedState(checked));
+        },
+        onAvatarFeedPersistenceDisabledChange: (checked: unknown) => {
+            handleAvatarFeedPersistenceDisabledChange(
+                normalizeCheckedState(checked)
+            );
         },
         onAvatarAutoCleanupChange: (value: string) => {
             saveStringPreference(

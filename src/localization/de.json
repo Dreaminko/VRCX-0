@@ -2608,6 +2608,8 @@
                         "gamelog_description": "Wenn deaktiviert, wird kein neuer Verlauf gespeichert. Echtzeitfunktionen wie Aktuelle Spieler und Läuft gerade bleiben verfügbar.",
                         "feed_history": "Feed-Verlauf speichern",
                         "feed_history_description": "Wenn deaktiviert, startet der Feed jede Sitzung leer. Echtzeitfunktionen wie die Freunde-Seitenleiste bleiben verfügbar.",
+                        "avatar_feed_history": "Verlauf der Avatarwechsel speichern",
+                        "avatar_feed_history_description": "Wenn deaktiviert, werden neue Avatarwechsel nicht in der Datenbank gespeichert. Feed-Anzeige und Benachrichtigungen funktionieren weiterhin.",
                         "tools": "Diagnose",
                         "database_usage": "Datenbankbelegung",
                         "refresh_database_usage": "Datenbankbelegung aktualisieren",

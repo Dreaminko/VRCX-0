@@ -1761,6 +1761,157 @@ fn disabled_feed_persistence_keeps_projection_and_other_batch_writes() -> Result
     Ok(())
 }
 
+#[test]
+fn disabled_avatar_feed_persistence_keeps_feed_and_activity_delivery() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("avatar-feed-persistence-disabled")?;
+    runtime
+        .runtime()
+        .set_avatar_feed_persistence_disabled(true)?;
+    let avatar_entry = json!({
+        "created_at": "2026-06-21T00:00:00.000Z",
+        "type": "Avatar",
+        "userId": "usr_friend",
+        "displayName": "Friend",
+        "ownerId": "usr_author",
+        "avatarName": "New Avatar",
+        "currentAvatarImageUrl": "https://avatar.example/new.png",
+        "currentAvatarThumbnailImageUrl": "https://avatar.example/new-thumb.png",
+        "previousCurrentAvatarImageUrl": "https://avatar.example/old.png",
+        "previousCurrentAvatarThumbnailImageUrl": "https://avatar.example/old-thumb.png"
+    });
+    let gps_entry = json!({
+        "created_at": "2026-06-21T00:00:01.000Z",
+        "type": "GPS",
+        "userId": "usr_friend",
+        "displayName": "Friend",
+        "location": "wrld_test:instance",
+        "worldName": "Test World"
+    });
+    let feed_entries = vec![avatar_entry, gps_entry];
+    let mut output = RealtimeFriendOutput::from_projection(
+        active_session.user_id.clone(),
+        FriendProjection {
+            generation: 7,
+            feed_entries: feed_entries.clone(),
+            ..FriendProjection::new(7, 0)
+        },
+    );
+    output.persistence.feed_entries = feed_entries;
+
+    runtime.runtime().apply_friend_output(output);
+
+    assert!(config_store::get_bool(
+        runtime.database(),
+        "avatarFeedPersistenceDisabled",
+        false
+    )?);
+    let persisted = vrcx_0_persistence::feed::feed_rows_query(
+        runtime.database(),
+        feed_lookup_input(active_session.user_id.clone()),
+    )?;
+    assert_eq!(persisted.len(), 1);
+    assert_eq!(persisted[0].r#type.as_deref(), Some("GPS"));
+    let search_rows = runtime.runtime().query_feed_search(
+        vrcx_0_persistence::feed::FeedSearchQueryInput {
+            user_id: active_session.user_id.clone(),
+            search: String::new(),
+            filters: Vec::new(),
+            favorite_user_ids: Vec::new(),
+            scoped_user_ids: Vec::new(),
+            excluded_user_ids: Vec::new(),
+            favorites_only: false,
+            date_from: "2026-06-21T00:00:00.000Z".into(),
+            date_to: "2026-06-21T00:00:01.000Z".into(),
+            max_rows: 10,
+        },
+    )?;
+    assert_eq!(search_rows.len(), 2);
+    assert!(search_rows
+        .iter()
+        .any(|row| row.r#type.as_deref() == Some("Avatar")));
+    assert!(search_rows
+        .iter()
+        .any(|row| row.r#type.as_deref() == Some("GPS")));
+
+    let activity_projections = runtime.activity_sink_for_test().take_friend_projections();
+    assert_eq!(activity_projections.len(), 1);
+    assert!(activity_projections[0]
+        .feed_entries
+        .iter()
+        .any(|entry| entry["type"] == "Avatar"));
+
+    let events = runtime.runtime().deps.event_bus.take_events_for_test();
+    let feed_projection = events
+        .iter()
+        .find(|event| event.name == "realtimeFeedProjection")
+        .expect("avatar changes should still reach the live Feed");
+    assert!(feed_projection.payload["upserts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|upsert| upsert["entry"]["type"] == "Avatar"));
+    Ok(())
+}
+
+#[test]
+fn changing_avatar_feed_persistence_keeps_existing_live_entries() -> Result<()> {
+    let (_dir, runtime, active_session) =
+        runtime_with_active_session("avatar-feed-switch-keeps-live")?;
+    runtime.runtime().emit_feed_entries(
+        7,
+        &active_session.user_id,
+        vec![json!({
+            "created_at": "2026-06-21T00:00:00.000Z",
+            "type": "Avatar",
+            "userId": "usr_friend",
+            "displayName": "Friend",
+            "avatarName": "Transient Avatar"
+        })],
+    );
+
+    runtime
+        .runtime()
+        .set_avatar_feed_persistence_disabled(true)?;
+
+    let latest = runtime.runtime().query_feed_latest(
+        vrcx_0_persistence::feed::FeedLatestQueryInput {
+            user_id: active_session.user_id.clone(),
+            filters: vec![vrcx_0_persistence::feed::FeedFilter::Avatar],
+            favorite_user_ids: Vec::new(),
+            scoped_user_ids: Vec::new(),
+            excluded_user_ids: Vec::new(),
+            favorites_only: false,
+            max_rows: 10,
+        },
+    )?;
+    assert_eq!(latest.rows.len(), 1);
+    assert_eq!(latest.rows[0].avatar_name.as_deref(), Some("Transient Avatar"));
+    runtime
+        .runtime()
+        .set_avatar_feed_persistence_disabled(false)?;
+    let search_rows = runtime.runtime().query_feed_search(
+        vrcx_0_persistence::feed::FeedSearchQueryInput {
+            user_id: active_session.user_id,
+            search: "Transient Avatar".into(),
+            filters: vec![vrcx_0_persistence::feed::FeedFilter::Avatar],
+            favorite_user_ids: Vec::new(),
+            scoped_user_ids: Vec::new(),
+            excluded_user_ids: Vec::new(),
+            favorites_only: false,
+            date_from: "2026-06-21T00:00:00.000Z".into(),
+            date_to: "2026-06-21T00:00:00.000Z".into(),
+            max_rows: 10,
+        },
+    )?;
+    assert_eq!(search_rows.len(), 1);
+    assert_eq!(
+        search_rows[0].avatar_name.as_deref(),
+        Some("Transient Avatar")
+    );
+    Ok(())
+}
+
 fn feed_lookup_input(user_id: String) -> vrcx_0_persistence::feed::FeedRowsQueryInput {
     vrcx_0_persistence::feed::FeedRowsQueryInput {
         user_id,

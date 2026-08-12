@@ -36,6 +36,18 @@ impl RealtimeHostRuntime {
         Ok(())
     }
 
+    pub fn set_avatar_feed_persistence_disabled(&self, disabled: bool) -> Result<()> {
+        let _owner = self.lock_friend_owner();
+        config_store::set_bool(
+            self.deps.db.as_ref(),
+            "avatarFeedPersistenceDisabled",
+            disabled,
+        )?;
+        self.avatar_feed_persistence_disabled
+            .store(disabled, Ordering::Relaxed);
+        Ok(())
+    }
+
     pub(super) fn set_activity_friend_user_ids(&self, user_ids: Vec<String>) {
         if let Some(activity_sink) = &self.deps.activity_sink {
             activity_sink.set_friend_user_ids(user_ids);
@@ -101,8 +113,15 @@ impl RealtimeHostRuntime {
         }
         self.retain_current_instance_joining_entries(&mut projection, &output.owner_user_id);
         let feed_persistence_disabled = self.feed_persistence_disabled.load(Ordering::Relaxed);
+        let avatar_feed_persistence_disabled = self
+            .avatar_feed_persistence_disabled
+            .load(Ordering::Relaxed);
         if feed_persistence_disabled {
             output.persistence.feed_entries.clear();
+        } else if avatar_feed_persistence_disabled {
+            output.persistence.feed_entries.retain(|entry| {
+                entry.get("type").and_then(Value::as_str) != Some("Avatar")
+            });
         }
         let friend_note_changed = output.friend_note_changed;
         let mut world_name_fetch_ids =
@@ -125,7 +144,13 @@ impl RealtimeHostRuntime {
                         .sync
                         .record_failure("realtimeFriends", error.to_string());
                     if !feed_persistence_disabled {
-                        projection.feed_entries.clear();
+                        if avatar_feed_persistence_disabled {
+                            projection.feed_entries.retain(|entry| {
+                                entry.get("type").and_then(Value::as_str) == Some("Avatar")
+                            });
+                        } else {
+                            projection.feed_entries.clear();
+                        }
                     }
                     false
                 }

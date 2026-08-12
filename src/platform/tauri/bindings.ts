@@ -831,6 +831,13 @@ export const commands = {
             disabled
         });
     },
+    async appAvatarFeedPersistenceSetDisabled(
+        disabled: boolean
+    ): Promise<null> {
+        return await TAURI_INVOKE('app__avatar_feed_persistence_set_disabled', {
+            disabled
+        });
+    },
     async appAvatarFeedHistoryCleanup(
         cutoffDate: string | null
     ): Promise<AvatarFeedCleanupOutcome> {
