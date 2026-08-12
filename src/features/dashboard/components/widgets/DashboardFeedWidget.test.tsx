@@ -128,7 +128,7 @@ describe('DashboardFeedWidgetView', () => {
                     addGameLogEventCount={0}
                     liveFeedEntries={[]}
                     liveFeedVersion={0}
-                    remoteFavoriteFriendIds={[]}
+                    remoteFavoriteFriendIds={['usr_one']}
                     localFriendFavorites={{}}
                     friendsById={{}}
                     feedPersistenceDisabled={false}
@@ -141,6 +141,10 @@ describe('DashboardFeedWidgetView', () => {
         expect(
             view.container.querySelectorAll('[data-dashboard-widget-day]')
         ).toHaveLength(2);
+        expect(
+            view.container.querySelector('[aria-label="Favorite"]')
+        ).toBeTruthy();
+        expect(screen.queryByText('Favorite')).toBeNull();
         expect(screen.queryByText('All feed types')).toBeNull();
     });
 });

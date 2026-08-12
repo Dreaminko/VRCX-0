@@ -507,7 +507,7 @@ export function DashboardFeedWidgetView({
                                 <AffinityBadge
                                     isFriend
                                     isFavorite
-                                    className="h-auto rounded-none bg-transparent px-0 font-normal"
+                                    iconOnly
                                 />
                             ) : null}
                         </div>

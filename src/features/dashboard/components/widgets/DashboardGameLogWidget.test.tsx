@@ -47,6 +47,8 @@ import { DashboardGameLogWidget } from './DashboardGameLogWidget';
 
 describe('DashboardGameLogWidget', () => {
     beforeEach(() => {
+        mocks.favoriteState.favoriteFriendIds = [];
+        mocks.favoriteState.localFriendFavorites = {};
         mocks.runtimeState.runtimeEvents.addGameLogEvent.count = 0;
         mocks.queryGameLog.mockReset();
         mocks.queryGameLog.mockResolvedValue([]);
@@ -86,6 +88,7 @@ describe('DashboardGameLogWidget', () => {
     });
 
     it('uses session-style day grouping and localized event labels', async () => {
+        mocks.favoriteState.favoriteFriendIds = ['usr_one'];
         mocks.queryGameLog.mockResolvedValue([
             {
                 type: 'OnPlayerJoined',
@@ -121,5 +124,26 @@ describe('DashboardGameLogWidget', () => {
         expect(
             screen.getAllByText('view.game_log.filters.OnPlayerJoined')
         ).toHaveLength(2);
+        expect(
+            view.container.querySelector(
+                '[aria-label="common.affinity.favorite"]'
+            )
+        ).toBeTruthy();
+        const eventTypes = Array.from(
+            view.container.querySelectorAll(
+                '[data-dashboard-widget-event-type]'
+            )
+        );
+        expect(eventTypes).toHaveLength(3);
+        expect(
+            eventTypes.every((eventType) =>
+                eventType.classList.contains('text-right')
+            )
+        ).toBe(true);
+        expect(
+            eventTypes[0]?.previousElementSibling?.hasAttribute(
+                'data-dashboard-widget-affinity-slot'
+            )
+        ).toBe(true);
     });
 });

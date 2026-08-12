@@ -477,7 +477,22 @@ export function DashboardGameLogWidget({
                                     showDetail={showDetail}
                                 />
                             </div>
-                            <span className="text-muted-foreground max-w-24 shrink-0 truncate text-xs">
+                            <span
+                                className="flex w-4 shrink-0 justify-center"
+                                data-dashboard-widget-affinity-slot
+                            >
+                                <AffinityBadge
+                                    isFriend={Boolean(
+                                        row.isFriend || row.isFavorite
+                                    )}
+                                    isFavorite={row.isFavorite}
+                                    iconOnly
+                                />
+                            </span>
+                            <span
+                                className="text-muted-foreground w-20 shrink-0 truncate text-right text-xs"
+                                data-dashboard-widget-event-type
+                            >
                                 {t(
                                     `view.game_log.filters.${row.type || ''}`,
                                     {
@@ -485,13 +500,6 @@ export function DashboardGameLogWidget({
                                     }
                                 )}
                             </span>
-                            <AffinityBadge
-                                isFriend={Boolean(
-                                    row.isFriend || row.isFavorite
-                                )}
-                                isFavorite={row.isFavorite}
-                                className="h-auto rounded-none bg-transparent px-0 font-normal"
-                            />
                         </div>
                     </DashboardWidgetTimelineRow>
                 );
