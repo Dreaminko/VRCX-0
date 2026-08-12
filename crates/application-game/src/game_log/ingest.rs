@@ -145,9 +145,7 @@ impl GameLogIngestEngine {
                     self.state.current_location_started_at = event.created_at.clone();
                     self.state.current_location_started_at_ms =
                         parse_event_time_ms(&event.created_at);
-                    output
-                        .destination_started_at
-                        .push(event.created_at.clone());
+                    output.destination_started_at.push(event.created_at.clone());
                     output.instance_roster_changed = true;
                 }
                 GameLogEventKind::PlayerJoined {
@@ -274,10 +272,10 @@ impl GameLogIngestEngine {
         }
 
         if let Some(event) = events.last() {
-            output.projection = Some(self.state.projection(
-                &event.created_at,
-                event.compat_type(),
-            ));
+            output.projection = Some(
+                self.state
+                    .projection(&event.created_at, event.compat_type()),
+            );
         }
 
         output

@@ -504,10 +504,7 @@ impl WebClient {
         normalize_execute_result(result)
     }
 
-    async fn do_execute_fresh_standard(
-        &self,
-        request: WebExecuteRequest,
-    ) -> Result<(i32, String)> {
+    async fn do_execute_fresh_standard(&self, request: WebExecuteRequest) -> Result<(i32, String)> {
         self.do_execute_fresh_standard_with_redirects(request, true)
             .await
     }
@@ -542,7 +539,9 @@ impl WebClient {
                 file_data,
                 file_mime,
                 file_md5,
-            } => self.build_file_put_request(&request, file_data, &file_mime, file_md5.as_deref())?,
+            } => {
+                self.build_file_put_request(&request, file_data, &file_mime, file_md5.as_deref())?
+            }
             WebUploadMode::LegacyImage {
                 image_data,
                 post_data,

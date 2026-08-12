@@ -654,9 +654,10 @@ fn take_remaining_line(buffer: &mut Vec<u8>) -> Option<String> {
         return None;
     }
     let remaining = std::mem::take(buffer);
-    Some(String::from_utf8(remaining).unwrap_or_else(|error| {
-        String::from_utf8_lossy(error.as_bytes()).into_owned()
-    }))
+    Some(
+        String::from_utf8(remaining)
+            .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned()),
+    )
 }
 
 #[cfg(test)]

@@ -501,8 +501,7 @@ impl<'a> OverlayJoinLeaveSuppressionContext<'a> {
             .iter()
             .map(String::as_str)
             .chain(
-                (self.current_location == "traveling")
-                    .then_some(self.current_started_at.as_str()),
+                (self.current_location == "traveling").then_some(self.current_started_at.as_str()),
             )
             .any(|reference_at| {
                 is_within_suppression_window(

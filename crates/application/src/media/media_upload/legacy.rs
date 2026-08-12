@@ -107,12 +107,7 @@ pub async fn upload_legacy_entity_image(
     }
 
     for (kind, file_data, file_mime, file_md5) in [
-        (
-            FileUploadStageKind::File,
-            file_data,
-            "image/png",
-            file_md5,
-        ),
+        (FileUploadStageKind::File, file_data, "image/png", file_md5),
         (
             FileUploadStageKind::Signature,
             signature_file,

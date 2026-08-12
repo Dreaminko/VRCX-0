@@ -42,8 +42,7 @@ pub fn write_image_file(mut path: PathBuf, file_name: &str, bytes: &[u8]) -> Res
 }
 
 pub fn decode_file_base64(blob: &str) -> Result<Vec<u8>, Error> {
-    B64
-        .decode(blob)
+    B64.decode(blob)
         .map_err(|e| Error::Custom(format!("base64 decode: {e}")))
 }
 
@@ -88,50 +87,50 @@ fn md5_digest(input: &[u8]) -> [u8; 16] {
 
     {
         let mut process_chunk = |chunk: &[u8]| {
-        let mut words = [0u32; 16];
-        for (index, word) in words.iter_mut().enumerate() {
-            let offset = index * 4;
-            *word = u32::from_le_bytes([
-                chunk[offset],
-                chunk[offset + 1],
-                chunk[offset + 2],
-                chunk[offset + 3],
-            ]);
-        }
+            let mut words = [0u32; 16];
+            for (index, word) in words.iter_mut().enumerate() {
+                let offset = index * 4;
+                *word = u32::from_le_bytes([
+                    chunk[offset],
+                    chunk[offset + 1],
+                    chunk[offset + 2],
+                    chunk[offset + 3],
+                ]);
+            }
 
-        let mut a = a0;
-        let mut b = b0;
-        let mut c = c0;
-        let mut d = d0;
+            let mut a = a0;
+            let mut b = b0;
+            let mut c = c0;
+            let mut d = d0;
 
-        for i in 0..64 {
-            let (f, g) = if i < 16 {
-                ((b & c) | ((!b) & d), i)
-            } else if i < 32 {
-                ((d & b) | ((!d) & c), (5 * i + 1) % 16)
-            } else if i < 48 {
-                (b ^ c ^ d, (3 * i + 5) % 16)
-            } else {
-                (c ^ (b | (!d)), (7 * i) % 16)
-            };
+            for i in 0..64 {
+                let (f, g) = if i < 16 {
+                    ((b & c) | ((!b) & d), i)
+                } else if i < 32 {
+                    ((d & b) | ((!d) & c), (5 * i + 1) % 16)
+                } else if i < 48 {
+                    (b ^ c ^ d, (3 * i + 5) % 16)
+                } else {
+                    (c ^ (b | (!d)), (7 * i) % 16)
+                };
 
-            let next = a
-                .wrapping_add(f)
-                .wrapping_add(K[i])
-                .wrapping_add(words[g])
-                .rotate_left(S[i])
-                .wrapping_add(b);
-            a = d;
-            d = c;
-            c = b;
-            b = next;
-        }
+                let next = a
+                    .wrapping_add(f)
+                    .wrapping_add(K[i])
+                    .wrapping_add(words[g])
+                    .rotate_left(S[i])
+                    .wrapping_add(b);
+                a = d;
+                d = c;
+                c = b;
+                b = next;
+            }
 
-        a0 = a0.wrapping_add(a);
-        b0 = b0.wrapping_add(b);
-        c0 = c0.wrapping_add(c);
-        d0 = d0.wrapping_add(d);
-    };
+            a0 = a0.wrapping_add(a);
+            b0 = b0.wrapping_add(b);
+            c0 = c0.wrapping_add(c);
+            d0 = d0.wrapping_add(d);
+        };
 
         let complete_len = input.len() / 64 * 64;
         for chunk in input[..complete_len].chunks_exact(64) {
