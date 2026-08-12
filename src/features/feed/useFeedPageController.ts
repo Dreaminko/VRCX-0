@@ -12,8 +12,12 @@ import { useFeedRows } from './useFeedRows';
 import { useFeedTableMeta } from './useFeedTableMeta';
 import { useFeedTableState } from './useFeedTableState';
 
-export function useFeedPageController() {
-    const filters = useFeedFilters();
+export function useFeedPageController({
+    routeScopedUserIds
+}: {
+    routeScopedUserIds: readonly string[];
+}) {
+    const filters = useFeedFilters({ routeScopedUserIds });
     const tableModel = useFeedTableState({
         activeFilters: filters.activeFilters,
         dateFrom: filters.dateFrom,

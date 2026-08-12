@@ -173,6 +173,15 @@ export function buildUserDialogTabs({
             label: translate('dialog.previous_instances.header'),
             hidden: !isCurrentUser
         },
+        ...(!isCurrentUser
+            ? [
+                  {
+                      value: 'feed',
+                      label: translate('nav_tooltip.feed'),
+                      hidden: true
+                  }
+              ]
+            : []),
         ...(!isCurrentUser && !currentUserHasSharedConnectionsOptOut
             ? [
                   {

@@ -15,6 +15,14 @@ import {
 import { parseDateInput, toDateInputValue } from './feedRows';
 import type { FeedDateRange } from './feedTypes';
 
+const EMPTY_SCOPED_USER_IDS: readonly string[] = [];
+
+function normalizeScopedUserIds(userIds: readonly string[]): string[] {
+    return [
+        ...new Set(userIds.map((userId) => userId.trim()).filter(Boolean))
+    ];
+}
+
 function normalizeFeedFilters(filters: readonly unknown[]): FeedFilterType[] {
     const nextFilters = (Array.isArray(filters) ? filters : []).filter(
         (filter): filter is FeedFilterType =>
@@ -24,7 +32,11 @@ function normalizeFeedFilters(filters: readonly unknown[]): FeedFilterType[] {
     return [...new Set(nextFilters)];
 }
 
-export function useFeedFilters() {
+export function useFeedFilters({
+    routeScopedUserIds = EMPTY_SCOPED_USER_IDS
+}: {
+    routeScopedUserIds?: readonly string[];
+} = {}) {
     const [searchDraft, setSearchDraft] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFrom, setDateFrom] = useState('');
@@ -34,17 +46,19 @@ export function useFeedFilters() {
     const [dateFilterOpen, setDateFilterOpen] = useState(false);
     const [activeFilters, setActiveFilters] = useState<FeedFilterType[]>([]);
     const [favoritesOnly, setFavoritesOnly] = useState(false);
-    const [scopedUserIds, setScopedUserIds] = useState<string[]>([]);
+    const normalizedRouteScopedUserIds = useMemo(
+        () => normalizeScopedUserIds(routeScopedUserIds),
+        [routeScopedUserIds]
+    );
+    const [scopedUserIds, setScopedUserIds] = useState<string[]>(
+        normalizedRouteScopedUserIds
+    );
     const deferredSearchQuery = useDeferredValue(searchQuery);
     const deferredScopedUserIds = useDeferredValue(scopedUserIds);
     const todayDate = useTodayDate();
 
     const setUserScope = useCallback((nextUserIds: readonly string[]) => {
-        const normalized = [
-            ...new Set(
-                nextUserIds.map((userId) => userId.trim()).filter(Boolean)
-            )
-        ];
+        const normalized = normalizeScopedUserIds(nextUserIds);
         setScopedUserIds((current) =>
             current.length === normalized.length &&
             current.every((userId, index) => userId === normalized[index])
@@ -55,6 +69,10 @@ export function useFeedFilters() {
             setFavoritesOnly(false);
         }
     }, []);
+
+    useEffect(() => {
+        setUserScope(normalizedRouteScopedUserIds);
+    }, [normalizedRouteScopedUserIds, setUserScope]);
 
     const setFeedFilters = useCallback((nextFilters: readonly unknown[]) => {
         const nextUniqueFilters = normalizeFeedFilters(nextFilters);

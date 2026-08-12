@@ -30,6 +30,7 @@ describe('userDialogViewData', () => {
         expect(otherUserTabs.map((tab) => tab.value)).toEqual([
             'info',
             'instance-history',
+            'feed',
             'mutual',
             'groups',
             'worlds',

@@ -531,6 +531,10 @@ export function UserDialogTabbedView({
         changeTab('instance-history', { allowHidden: true });
     }
 
+    function openFeed() {
+        changeTab('feed', { allowHidden: true });
+    }
+
     const headerModel = {
         actionStatus,
         avatarOverrideState,
@@ -722,6 +726,7 @@ export function UserDialogTabbedView({
         changeWorldOrder,
         changeWorldSort,
         onEditMemo,
+        onOpenFeed: openFeed,
         onOpenInstanceHistory: openInstanceHistory,
         onPreviousInstancesChange,
         onRefreshLocation,

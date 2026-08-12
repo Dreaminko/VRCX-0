@@ -110,7 +110,9 @@ export type UserDialogProfileLinksSectionProps = {
 export type UserDialogActivitySummarySectionProps = {
     friendedAt: string | null | undefined;
     isCurrentUser: boolean;
+    isFriend: boolean;
     lastSeen: string | null | undefined;
+    onOpenFeed?: () => void;
     onOpenInstanceHistory?: () => void;
     presenceActivityAt: string | null | undefined;
     profile: UserDialogInfoProfile;
@@ -644,7 +646,9 @@ function UserDialogBioPanel({ profile, bioLinks }: UserDialogBioSectionProps) {
 export function UserDialogActivitySummaryPanel({
     friendedAt,
     isCurrentUser,
+    isFriend,
     lastSeen,
+    onOpenFeed,
     onOpenInstanceHistory,
     presenceActivityAt,
     profile,
@@ -676,6 +680,7 @@ export function UserDialogActivitySummaryPanel({
                         presenceActivityAt,
                         dateLocale
                     )}
+                    onClick={isFriend ? onOpenFeed : undefined}
                     subtle
                 />
                 <InfoStat
@@ -768,7 +773,9 @@ export function UserDialogInfoTab({
                     <UserDialogActivitySummaryPanel
                         friendedAt={activitySummarySection.friendedAt}
                         isCurrentUser={activitySummarySection.isCurrentUser}
+                        isFriend={activitySummarySection.isFriend}
                         lastSeen={activitySummarySection.lastSeen}
+                        onOpenFeed={activitySummarySection.onOpenFeed}
                         onOpenInstanceHistory={
                             activitySummarySection.onOpenInstanceHistory
                         }
