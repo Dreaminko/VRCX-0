@@ -323,7 +323,7 @@ export function SettingsIntegrationsTab() {
                         size="sm"
                         onClick={onOpenTranslationApiDialog}
                     >
-                        {t('common.configure')}
+                        {t('common.actions.configure')}
                     </Button>
                 </Field>
             </SettingsGroup>
@@ -355,7 +355,7 @@ export function SettingsIntegrationsTab() {
                         size="sm"
                         onClick={onOpenYoutubeApiDialog}
                     >
-                        {t('common.configure')}
+                        {t('common.actions.configure')}
                     </Button>
                 </Field>
             </SettingsGroup>
@@ -390,7 +390,7 @@ export function SettingsIntegrationsTab() {
                         size="sm"
                         onClick={onOpenAvatarProviderDialog}
                     >
-                        {t('common.configure')}
+                        {t('common.actions.configure')}
                     </Button>
                 </Field>
             </SettingsGroup>
