@@ -2,7 +2,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use vrcx_0_application::{
-    LoginSessionRuntime, MutualGraphFetchRuntime, PrintCleanupQueue, VrcStatusService,
+    LoginSessionRuntime, MutualGraphFetchRuntime, PrintCleanupQueue, RemoteMutationGate,
+    VrcStatusService,
 };
 use vrcx_0_application_activity::{
     OverlayActivityDelivery, OverlayActivityRuntime, OverlayActivitySink, OverlayActivitySnapshot,
@@ -81,6 +82,7 @@ pub struct RuntimeHostContext {
     pub auth_scope: RuntimeAuthScope,
     pub print_cleanup: PrintCleanupQueue,
     pub mutual_graph_fetch: MutualGraphFetchRuntime,
+    pub remote_mutations: Arc<RemoteMutationGate>,
     pub vrc_status: VrcStatusService,
     pub login_session: LoginSessionRuntime,
     pub avatar_cache: Arc<AvatarCache>,
@@ -145,6 +147,7 @@ impl RuntimeHostContext {
         )));
         overlay_activity.set_sink(overlay_activity_sinks.clone());
         let mutual_graph_fetch = MutualGraphFetchRuntime::with_event_bus(event_bus.clone());
+        let remote_mutations = Arc::new(RemoteMutationGate::default());
         Self {
             db,
             web,
@@ -159,6 +162,7 @@ impl RuntimeHostContext {
             auth_scope: RuntimeAuthScope::new(),
             print_cleanup: PrintCleanupQueue::new(),
             mutual_graph_fetch,
+            remote_mutations,
             vrc_status,
             login_session: LoginSessionRuntime::new(),
             avatar_cache,

@@ -10,7 +10,6 @@ import type {
 } from '@/platform/tauri/bindings';
 import { commands } from '@/platform/tauri/bindings';
 import favoriteTransferRepository from '@/repositories/favoriteTransferRepository';
-import { useFavoriteStore } from '@/state/favoriteStore';
 import type { FavoriteRecord } from '@/state/favoriteStoreTypes';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -41,8 +40,6 @@ export function useFavoritesBulkActions({
     currentEndpoint,
     kind,
     localGroups,
-    reloadLocalWorldFavorites,
-    refreshFavorites,
     remoteFavoritesByObjectId,
     remoteGroups,
     selectedContentItems,
@@ -53,8 +50,6 @@ export function useFavoritesBulkActions({
     currentEndpoint: string;
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
-    reloadLocalWorldFavorites(): Promise<unknown>;
-    refreshFavorites(options?: { silent?: boolean }): Promise<boolean>;
     remoteFavoritesByObjectId: Record<string, FavoriteRecord | undefined>;
     remoteGroups: FavoriteGroup[];
     selectedContentItems: FavoriteItem[];
@@ -65,12 +60,6 @@ export function useFavoritesBulkActions({
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const removeLocalFavorite = useFavoriteStore(
-        (state) => state.removeLocalFavorite
-    );
-    const removeRemoteFavorite = useFavoriteStore(
-        (state) => state.removeRemoteFavorite
-    );
     const moveTargets = useMemo(
         () =>
             buildFavoriteMoveTargets({
@@ -132,8 +121,6 @@ export function useFavoritesBulkActions({
             const batchResult: FavoriteBulkRemoveResult =
                 await commands.appFavoritesRemoveSelection(
                     buildFavoriteBulkRemoveInput({
-                        expectedEndpoint: currentEndpoint,
-                        expectedOwnerUserId: batchOwnerUserId,
                         items: selectedContentItems,
                         kind
                     })
@@ -147,32 +134,6 @@ export function useFavoritesBulkActions({
                 return;
             }
             if (removedKeys.size) {
-                const itemsByKey = new Map(
-                    selectedContentItems.map((item) => [item.key, item])
-                );
-                for (const key of removedKeys) {
-                    const item = itemsByKey.get(key);
-                    if (!item) {
-                        continue;
-                    }
-                    if (item.source === 'local' && item.kind !== 'world') {
-                        removeLocalFavorite({
-                            kind: item.kind,
-                            entityId: item.id,
-                            groupName: item.groupKey
-                        });
-                    } else if (item.source === 'remote') {
-                        removeRemoteFavorite(item.id);
-                    }
-                }
-                if (
-                    selectedContentItems.some(
-                        (item) =>
-                            item.source === 'local' && item.kind === 'world'
-                    )
-                ) {
-                    await reloadLocalWorldFavorites();
-                }
                 setSelectedKeys((current) =>
                     current.filter((key) => !removedKeys.has(key))
                 );
@@ -264,7 +225,6 @@ export function useFavoritesBulkActions({
                 localGroups
             });
             return buildFavoriteTransferInput({
-                endpoint: currentEndpoint,
                 kind,
                 mode,
                 sourceGroup,
@@ -298,7 +258,6 @@ export function useFavoritesBulkActions({
         );
 
         if (succeeded > 0) {
-            await refreshFavorites({ silent: true });
             setSelectedKeys((current) =>
                 current.filter((key) => !successfulKeys.has(key))
             );

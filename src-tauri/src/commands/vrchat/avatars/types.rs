@@ -1,14 +1,5 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
-use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
-
-#[derive(Debug, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct VrchatAvatarSelectionOutcome {
-    pub applied: bool,
-    pub response: VrchatApiResponse,
-}
-
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatAvatarIdInput {

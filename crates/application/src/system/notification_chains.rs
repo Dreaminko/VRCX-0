@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{future::Future, pin::Pin, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -17,13 +17,14 @@ use vrcx_0_vrchat_client::{
 };
 
 use crate::{
-    media::prepare_media_upload_request, Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot,
-    WebClient,
+    media::prepare_media_upload_request, Error, RemoteMutationGate, Result, RuntimeAuthScope,
+    RuntimeAuthScopeSnapshot, WebClient,
 };
 
 use super::notification_actions::ensure_scope_matches;
 
 const BOOP_DISMISS_QUERY_LIMIT: i64 = 50_000;
+const NOTIFICATION_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -239,6 +240,7 @@ pub struct VrchatNotificationChainActions<'a> {
     pub expected_scope: RuntimeAuthScopeSnapshot,
     pub event_bus: &'a RuntimeEventBus,
     pub world_cache: &'a WorldCache,
+    pub remote_mutation_gate: &'a RemoteMutationGate,
 }
 
 impl NotificationChainActions for VrchatNotificationChainActions<'_> {
@@ -269,6 +271,11 @@ impl NotificationChainActions for VrchatNotificationChainActions<'_> {
         Box<dyn Future<Output = std::result::Result<(), NotificationChainRemoteError>> + Send + '_>,
     > {
         Box::pin(async move {
+            ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)
+                .map_err(NotificationChainRemoteError::terminal)?;
+            self.remote_mutation_gate
+                .wait(&self.expected_scope, NOTIFICATION_REMOTE_MUTATION_INTERVAL)
+                .await;
             ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)
                 .map_err(NotificationChainRemoteError::terminal)?;
             let endpoint = self.expected_scope.endpoint.clone();

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use vrcx_0_application::MutualGraphFetchRuntime;
+use vrcx_0_application::{MutualGraphFetchRuntime, RemoteMutationGate};
 use vrcx_0_application_core::{
     RuntimeAuthScope, RuntimeDiagnostics, RuntimeSyncEngine, TaskSupervisor, WebClient,
 };
@@ -25,6 +25,7 @@ pub struct McpRuntime {
     pub(crate) auth_scope: RuntimeAuthScope,
     pub(crate) config: ConfigRepository,
     pub(crate) mutual_graph_fetch: MutualGraphFetchRuntime,
+    pub(crate) remote_mutations: Arc<RemoteMutationGate>,
     pub(crate) tasks: TaskSupervisor,
     pub(crate) caller: McpCaller,
 }
@@ -40,6 +41,7 @@ impl McpRuntime {
             auth_scope: state.runtime_context.auth_scope.clone(),
             config: state.runtime_context.config.clone(),
             mutual_graph_fetch: state.runtime_context.mutual_graph_fetch.clone(),
+            remote_mutations: Arc::clone(&state.runtime_context.remote_mutations),
             tasks: state.runtime_context.tasks.clone(),
             caller,
         }
@@ -106,8 +108,8 @@ mod tests {
 
     #[test]
     fn caller_policy_keeps_external_and_assistant_write_authority_separate() {
-        let (_dir, mut runtime) = crate::test_support::test_runtime("mcp-caller", "usr_test")
-            .expect("test runtime");
+        let (_dir, mut runtime) =
+            crate::test_support::test_runtime("mcp-caller", "usr_test").expect("test runtime");
 
         assert!(!runtime.vrchat_writes_allowed());
         runtime

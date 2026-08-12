@@ -21,8 +21,8 @@ interface NotificationActionInput {
     notification?: NotificationRecord | null;
 }
 
-interface FriendRequestNotificationInput extends NotificationActionInput {
-    endpoint?: string;
+interface FriendRequestNotificationInput {
+    notification?: NotificationRecord | null;
     targetUser?: NotificationRecord | null;
 }
 
@@ -138,8 +138,6 @@ export async function hideRemoteAndExpireNotification({
 }
 
 export async function acceptFriendRequestNotification({
-    currentUserId,
-    endpoint = '',
     notification,
     targetUser = null
 }: FriendRequestNotificationInput): Promise<
@@ -153,8 +151,6 @@ export async function acceptFriendRequestNotification({
         normalizeText(target.senderUsername);
 
     const result = await commands.appSocialFriendRequestNotificationAccept({
-        ownerUserId: normalizeText(currentUserId),
-        endpoint,
         notificationId: normalizeText(target.id),
         targetUserId,
         targetDisplayName

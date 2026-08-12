@@ -33,11 +33,12 @@ pub use favorite_transfer::{
     FavoriteTransferResult, FavoriteTransferSelectionInput, FavoriteTransferSelectionResult,
     FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
 };
+pub(crate) use local_favorites::create_local_favorite_group;
 pub use local_favorites::{
-    add_local_favorite, create_local_favorite_group, delete_local_favorite_entries,
-    delete_local_favorite_group, get_local_favorite_snapshot, list_local_favorites,
-    remove_local_favorite, rename_local_favorite_entries, rename_local_favorite_group,
-    LocalFavoriteGroupWrite, LocalFavoriteSnapshot,
+    add_local_favorite_scoped, create_local_favorite_group_scoped,
+    delete_local_favorite_group_scoped, get_local_favorite_snapshot, list_local_favorites,
+    remove_local_favorite_scoped, rename_local_favorite_group_scoped, LocalFavoriteGroupWrite,
+    LocalFavoriteMutationDeps, LocalFavoriteSnapshot,
 };
 pub use remote_favorites::{
     add_remote_favorite, clear_remote_favorite_group, delete_remote_favorite,

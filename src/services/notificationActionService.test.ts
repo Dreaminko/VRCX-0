@@ -36,7 +36,6 @@ vi.mock('@/repositories/notificationPersistenceRepository', () => ({
     }
 }));
 
-const endpoint = 'https://api.example.test/api/1';
 const notification = {
     id: 'notif_target',
     version: 2,
@@ -328,8 +327,6 @@ describe('notificationActionService', () => {
             await import('./notificationActionService');
 
         const action = acceptFriendRequestNotification({
-            currentUserId: 'usr_self',
-            endpoint,
             notification
         });
 
@@ -345,8 +342,6 @@ describe('notificationActionService', () => {
         expect(
             mocks.appSocialFriendRequestNotificationAccept
         ).toHaveBeenCalledWith({
-            ownerUserId: 'usr_self',
-            endpoint,
             notificationId: 'notif_target',
             targetUserId: 'usr_sender',
             targetDisplayName: 'Sender'
@@ -364,8 +359,6 @@ describe('notificationActionService', () => {
 
         await expect(
             acceptFriendRequestNotification({
-                currentUserId: 'usr_self',
-                endpoint,
                 notification
             })
         ).resolves.toEqual({ status: 'not-found' });
@@ -387,8 +380,6 @@ describe('notificationActionService', () => {
 
         await expect(
             acceptFriendRequestNotification({
-                currentUserId: 'usr_self',
-                endpoint,
                 notification
             })
         ).resolves.toEqual({

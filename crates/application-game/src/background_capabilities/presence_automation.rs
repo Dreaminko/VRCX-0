@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::time::Duration;
 
 use chrono::{Datelike, Local, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
+use vrcx_0_application_core::{AuthenticatedMutationContext, RemoteMutationGate, RuntimeAuthScope};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
@@ -19,6 +21,7 @@ use vrcx_0_core::json::RawJson;
 const DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_STABLE_LOCATION_MS: i64 = 30_000;
+const PRESENCE_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct BackgroundPresenceAutomationState {
@@ -144,6 +147,8 @@ pub async fn run_background_presence_automation(
     config: &ConfigRepository,
     web: &WebClient,
     db: &DatabaseService,
+    auth_scope: &RuntimeAuthScope,
+    remote_mutations: &RemoteMutationGate,
     facts: &BackgroundPresenceFacts,
     state: &mut BackgroundPresenceAutomationState,
 ) -> Result<BackgroundPresenceAutomationResult> {
@@ -214,12 +219,27 @@ pub async fn run_background_presence_automation(
         ));
     }
 
-    let (_, request) = current_user_update_input(
-        normalize_vrchat_api_endpoint(Some(&facts.endpoint)),
-        facts.current_user_id.clone(),
+    let mutation =
+        AuthenticatedMutationContext::capture(auth_scope, remote_mutations, "Presence automation")?;
+    if mutation.scope().current_user_id != facts.current_user_id
+        || mutation.scope().endpoint != normalize_vrchat_api_endpoint(Some(&facts.endpoint))
+    {
+        return Err(crate::Error::Custom(
+            "Presence automation authentication scope changed.".into(),
+        ));
+    }
+    let (_, mut request) = current_user_update_input(
+        mutation.scope().endpoint.clone(),
+        mutation.scope().current_user_id.clone(),
         Some(Value::Object(changed_patch.clone())),
     )?;
-    let response = match web.execute_api(request, ApiScope::Vrchat, db).await {
+    mutation.apply_scope_to_request(&mut request);
+    let response = match mutation
+        .run_after_wait(PRESENCE_REMOTE_MUTATION_INTERVAL, || async {
+            web.execute_api(request, ApiScope::Vrchat, db).await
+        })
+        .await
+    {
         Ok(response) if (200..=299).contains(&response.status) => response,
         Ok(response) => {
             state.last_error = format!("VRChat API returned HTTP {}", response.status);

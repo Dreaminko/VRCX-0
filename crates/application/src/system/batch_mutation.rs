@@ -1,4 +1,4 @@
-use std::{collections::HashSet, future::Future, pin::Pin};
+use std::{collections::HashSet, future::Future, pin::Pin, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -11,9 +11,13 @@ use vrcx_0_vrchat_client::{
     users::user_groups_get_input,
 };
 
-use crate::{Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient};
+use crate::{
+    is_remote_mutation_request, Error, RemoteMutationGate, Result, RuntimeAuthScope,
+    RuntimeAuthScopeSnapshot, WebClient,
+};
 
 pub const BATCH_MUTATION_MAX_ITEMS: usize = 1_000;
+const BATCH_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -110,11 +114,19 @@ pub struct VrchatBatchMutationActions<'a> {
     pub web: &'a WebClient,
     pub auth_scope: &'a RuntimeAuthScope,
     pub expected_scope: RuntimeAuthScopeSnapshot,
+    pub remote_mutation_gate: &'a RemoteMutationGate,
 }
 
 impl VrchatBatchMutationActions<'_> {
-    async fn execute_json(&self, request: HttpApiRequestInput, action: &str) -> Result<Value> {
+    async fn execute_json(&self, mut request: HttpApiRequestInput, action: &str) -> Result<Value> {
         ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)?;
+        if is_remote_mutation_request(&request) {
+            self.remote_mutation_gate
+                .wait(&self.expected_scope, BATCH_REMOTE_MUTATION_INTERVAL)
+                .await;
+            ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)?;
+            request.endpoint = Some(self.expected_scope.endpoint.clone());
+        }
         let response = self
             .web
             .execute_api(request, ApiScope::Vrchat, self.db)

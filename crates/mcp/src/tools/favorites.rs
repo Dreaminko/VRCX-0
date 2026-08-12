@@ -3,7 +3,10 @@ use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use vrcx_0_application::{add_remote_favorite, FavoriteRemoteAddInput, FavoriteRemoteMutationDeps};
+use vrcx_0_application::{
+    add_remote_favorite, AuthenticatedMutationContext, FavoriteRemoteAddInput,
+    FavoriteRemoteMutationDeps,
+};
 use vrcx_0_application_core::{
     vrchat_api::{self},
     FavoriteEntityKind, FavoritesChangedPayload,
@@ -29,10 +32,15 @@ impl VrcxMcpServer {
         Parameters(input): Parameters<FavoriteLocalParams>,
     ) -> Result<CallToolResult, String> {
         let dry_run = input.dry_run.unwrap_or(true);
-        let owner_user_id = require_current_user_id(&self.runtime)?;
+        let mutation = AuthenticatedMutationContext::capture(
+            &self.runtime.auth_scope,
+            &self.runtime.remote_mutations,
+            "MCP local favorite mutation",
+        )
+        .map_err(|error| error.to_string())?;
         let result = social_aggregates::favorite_local(
             self.runtime.db.as_ref(),
-            &owner_user_id,
+            &mutation.scope().current_user_id,
             social_aggregates::FavoriteLocalInput {
                 kind: normalize_favorite_kind(&input.kind)?,
                 entity_id: input.entity_id,
@@ -43,13 +51,17 @@ impl VrcxMcpServer {
         );
         if !dry_run {
             if let Ok(output) = &result {
-                self.runtime
-                    .realtime_runtime
-                    .notify_favorites_changed(FavoritesChangedPayload {
-                        kind: output.kind.into(),
-                        local: true,
-                        remote: false,
-                    });
+                mutation
+                    .ensure_current()
+                    .map_err(|error| error.to_string())?;
+                self.runtime.realtime_runtime.notify_favorites_changed(
+                    FavoritesChangedPayload::invalidated(
+                        mutation.scope(),
+                        output.kind.into(),
+                        true,
+                        false,
+                    ),
+                );
             }
         }
         social_aggregates_result(result)
@@ -141,9 +153,14 @@ impl VrcxMcpServer {
                 diagnostics: &self.runtime.diagnostics,
                 sync: &self.runtime.sync,
                 realtime: &self.runtime.realtime_runtime,
+                mutation: AuthenticatedMutationContext::capture(
+                    &self.runtime.auth_scope,
+                    &self.runtime.remote_mutations,
+                    "MCP remote favorite mutation",
+                )
+                .map_err(|error| error.to_string())?,
             },
             FavoriteRemoteAddInput {
-                endpoint: self.runtime.current_endpoint(),
                 kind: kind.into(),
                 entity_id: entity_id.clone(),
                 tags: tags.clone(),

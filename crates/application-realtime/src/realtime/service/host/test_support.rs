@@ -378,6 +378,7 @@ fn runtime_with_active_session_game_context(
         tasks: TaskSupervisor::new(),
         session: session.clone(),
         auth_scope,
+        remote_mutations: Arc::new(vrcx_0_application_core::RemoteMutationGate::default()),
         local_game_context,
         #[cfg(test)]
         activity_sink: Some(activity_sink.clone()),

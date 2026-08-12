@@ -16,35 +16,25 @@ use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, V
 
 use super::types::{
     VrchatAvatarFileInput, VrchatAvatarIdInput, VrchatAvatarListByUserInput,
-    VrchatAvatarModerationInput, VrchatAvatarSaveInput, VrchatAvatarSelectionOutcome,
+    VrchatAvatarModerationInput, VrchatAvatarSaveInput,
 };
 
-async fn execute_avatar_selection(
-    state: State<'_, AppState>,
-    command: &str,
-    detail: String,
-    request: VrchatApiRequest,
-    response_authority_fields: &[&str],
-) -> Result<VrchatAvatarSelectionOutcome, AppError> {
-    let expectation = state
-        .realtime_runtime
-        .capture_current_user_refresh_expectation();
-    let response = execute_avatar_api(state.clone(), command, detail, request).await?;
-    let mut applied = false;
-    if let Some(expectation) = expectation {
-        if (200..300).contains(&response.status) {
-            if let Ok(snapshot) = serde_json::from_str::<serde_json::Value>(&response.data) {
-                applied = state
-                    .realtime_runtime
-                    .apply_current_user_refreshed_snapshot_if_sequence(
-                        expectation,
-                        snapshot,
-                        response_authority_fields,
-                    );
-            }
-        }
-    }
-    Ok(VrchatAvatarSelectionOutcome { applied, response })
+fn avatar_mutation_deps<'a>(
+    state: &'a State<'_, AppState>,
+) -> Result<vrcx_0_application::AvatarRemoteMutationDeps<'a>, AppError> {
+    Ok(vrcx_0_application::AvatarRemoteMutationDeps {
+        db: &state.db,
+        web: &state.web,
+        diagnostics: &state.runtime_context.diagnostics,
+        sync: &state.runtime_context.sync,
+        realtime: &state.realtime_runtime,
+        avatar_cache: &state.runtime_context.avatar_cache,
+        mutation: vrcx_0_application::AuthenticatedMutationContext::capture(
+            &state.runtime_context.auth_scope,
+            &state.runtime_context.remote_mutations,
+            "Avatar mutation",
+        )?,
+    })
 }
 
 async fn execute_avatar_api(
@@ -149,17 +139,18 @@ pub async fn app__vrchat_avatar_file_get(
 pub async fn app__vrchat_avatar_select(
     state: State<'_, AppState>,
     input: VrchatAvatarIdInput,
-) -> Result<VrchatAvatarSelectionOutcome, AppError> {
+) -> Result<vrcx_0_application::AvatarSelectionMutationOutcome, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, request) =
-        avatar_select_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_selection(
-        state,
+        avatar_select_input(deps.mutation.scope().endpoint.clone(), input.avatar_id)?;
+    Ok(vrcx_0_application::select_avatar(
+        &deps,
         "app__vrchat_avatar_select",
         format!("Selecting avatar {avatar_id}."),
         request,
         vrcx_0_application_realtime::CURRENT_USER_AVATAR_RESPONSE_AUTHORITY_FIELDS,
     )
-    .await
+    .await?)
 }
 
 #[tauri::command]
@@ -167,17 +158,18 @@ pub async fn app__vrchat_avatar_select(
 pub async fn app__vrchat_avatar_select_fallback(
     state: State<'_, AppState>,
     input: VrchatAvatarIdInput,
-) -> Result<VrchatAvatarSelectionOutcome, AppError> {
+) -> Result<vrcx_0_application::AvatarSelectionMutationOutcome, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, request) =
-        avatar_select_fallback_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_selection(
-        state,
+        avatar_select_fallback_input(deps.mutation.scope().endpoint.clone(), input.avatar_id)?;
+    Ok(vrcx_0_application::select_avatar(
+        &deps,
         "app__vrchat_avatar_select_fallback",
         format!("Selecting fallback avatar {avatar_id}."),
         request,
         vrcx_0_application_realtime::CURRENT_USER_FALLBACK_AVATAR_RESPONSE_AUTHORITY_FIELDS,
     )
-    .await
+    .await?)
 }
 
 #[tauri::command]
@@ -186,34 +178,19 @@ pub async fn app__vrchat_avatar_save(
     state: State<'_, AppState>,
     input: VrchatAvatarSaveInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, request) = avatar_save_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        deps.mutation.scope().endpoint.clone(),
         input.avatar_id,
         input.params,
     )?;
-    let response = execute_avatar_api(
-        state.clone(),
+    Ok(vrcx_0_application::save_avatar(
+        &deps,
         "app__vrchat_avatar_save",
         format!("Saving avatar {avatar_id}."),
         request,
     )
-    .await?;
-    if (200..300).contains(&response.status) {
-        if let Ok(avatar) = serde_json::from_str::<serde_json::Value>(&response.data) {
-            let auth_scope = state.runtime_context.auth_scope.snapshot();
-            let endpoint = if auth_scope.endpoint.is_empty() {
-                VRCHAT_API_DEFAULT_ENDPOINT
-            } else {
-                auth_scope.endpoint.as_str()
-            };
-            state.runtime_context.avatar_cache.hydrate_from_payload(
-                &auth_scope.current_user_id,
-                endpoint,
-                avatar,
-            );
-        }
-    }
-    Ok(response)
+    .await?)
 }
 
 #[tauri::command]
@@ -222,34 +199,17 @@ pub async fn app__vrchat_avatar_delete(
     state: State<'_, AppState>,
     input: VrchatAvatarIdInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, request) =
-        avatar_delete_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    let response = execute_avatar_api(
-        state.clone(),
+        avatar_delete_input(deps.mutation.scope().endpoint.clone(), input.avatar_id)?;
+    Ok(vrcx_0_application::delete_avatar(
+        &deps,
+        avatar_id.clone(),
         "app__vrchat_avatar_delete",
         format!("Deleting avatar {avatar_id}."),
         request,
     )
-    .await?;
-    if (200..300).contains(&response.status) {
-        let auth_scope = state.runtime_context.auth_scope.snapshot();
-        let endpoint = if auth_scope.endpoint.is_empty() {
-            VRCHAT_API_DEFAULT_ENDPOINT
-        } else {
-            auth_scope.endpoint.as_str()
-        };
-        state.runtime_context.avatar_cache.invalidate(
-            &auth_scope.current_user_id,
-            endpoint,
-            &avatar_id,
-        );
-        if let Err(error) =
-            vrcx_0_persistence::avatars::avatar_cache_remove(state.db.as_ref(), avatar_id.clone())
-        {
-            tracing::warn!(avatar_id = %avatar_id, "Avatar cache cleanup failed: {error}");
-        }
-    }
-    Ok(response)
+    .await?)
 }
 
 #[tauri::command]
@@ -258,15 +218,16 @@ pub async fn app__vrchat_avatar_impostor_create(
     state: State<'_, AppState>,
     input: VrchatAvatarIdInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, request) =
-        avatar_impostor_create_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_api(
-        state,
+        avatar_impostor_create_input(deps.mutation.scope().endpoint.clone(), input.avatar_id)?;
+    Ok(vrcx_0_application::execute_avatar_remote_mutation(
+        &deps,
         "app__vrchat_avatar_impostor_create",
         format!("Creating avatar impostor for {avatar_id}."),
         request,
     )
-    .await
+    .await?)
 }
 
 #[tauri::command]
@@ -275,15 +236,16 @@ pub async fn app__vrchat_avatar_impostor_delete(
     state: State<'_, AppState>,
     input: VrchatAvatarIdInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, request) =
-        avatar_impostor_delete_input(VRCHAT_API_DEFAULT_ENDPOINT.into(), input.avatar_id)?;
-    execute_avatar_api(
-        state,
+        avatar_impostor_delete_input(deps.mutation.scope().endpoint.clone(), input.avatar_id)?;
+    Ok(vrcx_0_application::execute_avatar_remote_mutation(
+        &deps,
         "app__vrchat_avatar_impostor_delete",
         format!("Deleting avatar impostor for {avatar_id}."),
         request,
     )
-    .await
+    .await?)
 }
 
 #[tauri::command]
@@ -292,18 +254,19 @@ pub async fn app__vrchat_avatar_moderation_send(
     state: State<'_, AppState>,
     input: VrchatAvatarModerationInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, type_name, request) = avatar_moderation_send_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        deps.mutation.scope().endpoint.clone(),
         input.avatar_id,
         input.type_name,
     )?;
-    execute_avatar_api(
-        state,
+    Ok(vrcx_0_application::execute_avatar_remote_mutation(
+        &deps,
         "app__vrchat_avatar_moderation_send",
         format!("Sending avatar moderation {type_name} for {avatar_id}."),
         request,
     )
-    .await
+    .await?)
 }
 
 #[tauri::command]
@@ -312,16 +275,17 @@ pub async fn app__vrchat_avatar_moderation_delete(
     state: State<'_, AppState>,
     input: VrchatAvatarModerationInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = avatar_mutation_deps(&state)?;
     let (avatar_id, type_name, request) = avatar_moderation_delete_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
+        deps.mutation.scope().endpoint.clone(),
         input.avatar_id,
         input.type_name,
     )?;
-    execute_avatar_api(
-        state,
+    Ok(vrcx_0_application::execute_avatar_remote_mutation(
+        &deps,
         "app__vrchat_avatar_moderation_delete",
         format!("Deleting avatar moderation {type_name} for {avatar_id}."),
         request,
     )
-    .await
+    .await?)
 }

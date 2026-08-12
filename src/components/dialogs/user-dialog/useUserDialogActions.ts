@@ -135,8 +135,6 @@ export function useUserDialogActions({
         actionStatusRef,
         avatarOverrideState,
         confirm,
-        currentEndpoint,
-        currentUserId: currentUserId || undefined,
         isCurrentUser,
         moderationRevisionRef,
         moderationState,
@@ -319,8 +317,6 @@ export function useUserDialogActions({
                 let mutationOutcome: SocialFriendMutationOutcome | null = null;
                 if (action === 'accept') {
                     const acceptResult = await acceptFriendRequestNotification({
-                        currentUserId,
-                        endpoint: requestEndpoint,
                         notification: incomingNotification,
                         targetUser: requestProfile
                     });
@@ -345,8 +341,6 @@ export function useUserDialogActions({
                 } else {
                     mutationOutcome = await commands.appSocialFriendRequestSend(
                         {
-                            ownerUserId: normalizedCurrentUserId,
-                            endpoint: requestEndpoint,
                             targetUserId: rosterUserId,
                             targetDisplayName: requestProfile?.displayName || ''
                         }
@@ -415,8 +409,6 @@ export function useUserDialogActions({
                 } else {
                     cancelOutcome = await commands.appSocialFriendRequestCancel(
                         {
-                            ownerUserId: normalizedCurrentUserId,
-                            endpoint: requestEndpoint,
                             targetUserId: rosterUserId,
                             targetDisplayName: requestProfile?.displayName || ''
                         }

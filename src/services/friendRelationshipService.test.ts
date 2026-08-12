@@ -124,8 +124,6 @@ describe('friendRelationshipService.deleteFriends', () => {
         });
 
         expect(commandMocks.unfriendSelection).toHaveBeenCalledWith({
-            expectedEndpoint: 'https://api.example.test',
-            expectedOwnerUserId: 'usr_self',
             targets: [
                 { userId: 'usr_a', displayName: 'Alpha' },
                 { userId: 'usr_b', displayName: 'Bravo' },

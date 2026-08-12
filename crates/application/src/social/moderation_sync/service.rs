@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde_json::Value;
 use vrcx_0_core::time::now_iso;
 use vrcx_0_persistence::local_moderation::{
@@ -14,7 +16,9 @@ use super::types::{
     ModerationSyncDeps, ModerationSyncMutationInput, ModerationSyncMutationOutput,
     ModerationSyncRefreshInput, ModerationSyncRefreshOutput, RemoteModerationRow,
 };
-use crate::{Error, Result};
+use crate::{AuthenticatedMutationContext, Error, Result};
+
+const MODERATION_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum LocalPlayerModerationKind {
@@ -73,21 +77,26 @@ pub async fn update_player_moderation(
     deps: ModerationSyncDeps<'_>,
     input: ModerationSyncMutationInput,
 ) -> Result<ModerationSyncMutationOutput> {
-    let owner_user_id = normalize_text(input.owner_user_id);
     let target_user_id = normalize_text(input.target_user_id);
     let target_display_name = input.target_display_name.clone();
     let r#type = normalize_text(input.r#type);
-    if owner_user_id.is_empty() || target_user_id.is_empty() || r#type.is_empty() {
+    if target_user_id.is_empty() || r#type.is_empty() {
         return Err(Error::Custom(
-            "ModerationSyncUpdate requires ownerUserId, targetUserId and type.".into(),
+            "ModerationSyncUpdate requires targetUserId and type.".into(),
         ));
     }
-    ensure_current_auth_scope(&deps, &owner_user_id, &input.endpoint)?;
+    let mutation = AuthenticatedMutationContext::capture(
+        deps.auth_scope,
+        deps.remote_mutations,
+        "Moderation mutation",
+    )?;
+    let owner_user_id = mutation.scope().current_user_id.clone();
 
-    execute_vrchat_json_request(
+    execute_vrchat_mutation(
         &deps,
+        &mutation,
         player_moderation_update_input(
-            normalize_endpoint(&input.endpoint),
+            mutation.scope().endpoint.clone(),
             input.enabled,
             target_user_id.clone(),
             r#type.clone(),
@@ -106,7 +115,7 @@ pub async fn update_player_moderation(
         if block || mute {
             local_moderation::local_moderation_set(
                 deps.db,
-                owner_user_id,
+                owner_user_id.clone(),
                 LocalModerationInput {
                     user_id: target_user_id.clone(),
                     updated_at: updated_at.clone(),
@@ -125,7 +134,7 @@ pub async fn update_player_moderation(
         } else {
             local_moderation::local_moderation_delete(
                 deps.db,
-                owner_user_id,
+                owner_user_id.clone(),
                 target_user_id.clone(),
             )?;
             Some(LocalModerationOutput {
@@ -141,6 +150,7 @@ pub async fn update_player_moderation(
     };
 
     Ok(ModerationSyncMutationOutput {
+        owner_user_id,
         target_user_id,
         r#type,
         enabled: input.enabled,
@@ -182,6 +192,30 @@ async fn execute_vrchat_json_request(
     let response = deps
         .web
         .execute_api(request, ApiScope::Vrchat, deps.db)
+        .await?;
+
+    let response = ApiJsonResponse::from(&response);
+    if response.is_failure() {
+        return Err(Error::Custom(response.error_message_with_http_status(
+            "VRChat moderation request failed",
+        )));
+    }
+
+    Ok(response.json)
+}
+
+async fn execute_vrchat_mutation(
+    deps: &ModerationSyncDeps<'_>,
+    mutation: &AuthenticatedMutationContext<'_>,
+    mut request: HttpApiRequestInput,
+) -> Result<Value> {
+    mutation.apply_scope_to_request(&mut request);
+    let response = mutation
+        .run_after_wait(MODERATION_REMOTE_MUTATION_INTERVAL, || async {
+            deps.web
+                .execute_api(request, ApiScope::Vrchat, deps.db)
+                .await
+        })
         .await?;
 
     let response = ApiJsonResponse::from(&response);
@@ -273,20 +307,6 @@ fn should_write_refresh_snapshot(
 
     runtime_auth_scope_scope_matches(deps, user_id, endpoint)
         || rows_have_verified_owner(rows, user_id)
-}
-
-fn ensure_current_auth_scope(
-    deps: &ModerationSyncDeps<'_>,
-    user_id: &str,
-    endpoint: &str,
-) -> Result<()> {
-    if deps.auth_scope.matches(user_id, endpoint) {
-        return Ok(());
-    }
-
-    Err(Error::Custom(
-        "Backend moderation request is stale for the current auth scope.".into(),
-    ))
 }
 
 fn resolve_local_moderation_state(

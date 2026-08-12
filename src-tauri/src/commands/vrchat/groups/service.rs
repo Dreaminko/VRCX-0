@@ -20,6 +20,8 @@ fn deps(state: &State<'_, AppState>) -> GroupApiDeps {
         web: state.web.clone(),
         diagnostics: state.runtime_context.diagnostics.clone(),
         sync: state.runtime_context.sync.clone(),
+        auth_scope: state.runtime_context.auth_scope.clone(),
+        remote_mutations: state.runtime_context.remote_mutations.clone(),
     }
 }
 

@@ -262,6 +262,8 @@ impl RuntimeHostState {
                 db: Arc::clone(&self.db),
                 web: Arc::clone(&self.web),
                 event_bus: self.runtime_context.event_bus.clone(),
+                auth_scope: self.runtime_context.auth_scope.clone(),
+                remote_mutations: Arc::clone(&self.runtime_context.remote_mutations),
             },
             print_cleanup_trigger,
         );

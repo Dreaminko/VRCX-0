@@ -9,7 +9,7 @@ use crate::desktop_notification_activation::PendingDesktopNotificationActivation
 use crate::error::AppError;
 use vrcx_0_application::{
     DatabaseUpgradeRuntime, FavoriteDetailsRuntime, FriendLogNameResolutionCoordinator,
-    GroupModerationBatchCoordinator, RemoteMutationGate, UserDialogTabCountsRuntime,
+    GroupModerationBatchCoordinator, UserDialogTabCountsRuntime,
 };
 use vrcx_0_application_core::UpdaterPort;
 use vrcx_0_assistant::AssistantController;
@@ -29,7 +29,6 @@ pub struct AppState {
     pub favorite_details: FavoriteDetailsRuntime,
     pub group_moderation_batches: GroupModerationBatchCoordinator,
     pub friend_log_name_resolutions: FriendLogNameResolutionCoordinator,
-    pub remote_mutations: RemoteMutationGate,
     pub user_dialog_tab_counts: UserDialogTabCountsRuntime,
     assistant: tokio::sync::OnceCell<AssistantController>,
     background_resume_route: Mutex<Option<String>>,
@@ -95,7 +94,6 @@ impl AppState {
             favorite_details,
             group_moderation_batches: GroupModerationBatchCoordinator::default(),
             friend_log_name_resolutions: FriendLogNameResolutionCoordinator::default(),
-            remote_mutations: RemoteMutationGate::default(),
             user_dialog_tab_counts: UserDialogTabCountsRuntime::new(),
             assistant: tokio::sync::OnceCell::new(),
             background_resume_route: Mutex::new(None),

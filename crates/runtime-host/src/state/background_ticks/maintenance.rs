@@ -28,6 +28,8 @@ pub(in crate::state) fn run_background_print_cleanup(context: &BackgroundTickCon
             db: Arc::clone(context.db),
             web: Arc::clone(context.web),
             event_bus: context.runtime_context.event_bus.clone(),
+            auth_scope: context.runtime_context.auth_scope.clone(),
+            remote_mutations: Arc::clone(&context.runtime_context.remote_mutations),
         },
         PrintCleanupTrigger {
             user_id: session.current_user_id,

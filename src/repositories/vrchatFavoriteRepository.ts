@@ -37,7 +37,6 @@ interface DeleteFavoriteInput {
 }
 
 interface FavoriteGroupMutationInput {
-    ownerId?: unknown;
     type?: unknown;
     group?: unknown;
     displayName?: unknown;
@@ -178,29 +177,23 @@ async function getAllFavoriteGroups({
 }
 
 async function saveFavoriteGroup({
-    ownerId = '',
     type,
     group,
     displayName,
     visibility
 }: FavoriteGroupMutationInput = {}) {
-    const normalizedOwnerId =
-        typeof ownerId === 'string'
-            ? ownerId.trim()
-            : String(ownerId ?? '').trim();
     const normalizedType =
         typeof type === 'string' ? type.trim() : String(type ?? '').trim();
     const normalizedGroup =
         typeof group === 'string' ? group.trim() : String(group ?? '').trim();
 
-    if (!normalizedOwnerId || !normalizedType || !normalizedGroup) {
+    if (!normalizedType || !normalizedGroup) {
         throw new Error(
-            'VrchatFavoriteRepository.saveFavoriteGroup requires ownerId, type, and group.'
+            'VrchatFavoriteRepository.saveFavoriteGroup requires type and group.'
         );
     }
 
     const response = await commands.appVrchatFavoriteGroupSave({
-        ownerId: normalizedOwnerId,
         type: normalizedType,
         group: normalizedGroup,
         displayName: typeof displayName === 'string' ? displayName : null,
@@ -208,39 +201,33 @@ async function saveFavoriteGroup({
     });
     return unwrapVrchatFavoriteResponse(
         response,
-        `favorite/group/${encodeURIComponent(normalizedType)}/${encodeURIComponent(normalizedGroup)}/${encodeURIComponent(normalizedOwnerId)}`,
+        `favorite/group/${encodeURIComponent(normalizedType)}/${encodeURIComponent(normalizedGroup)}`,
         'VRChat favorite request failed'
     );
 }
 
 async function clearFavoriteGroup({
-    ownerId = '',
     type,
     group
 }: FavoriteGroupMutationInput = {}) {
-    const normalizedOwnerId =
-        typeof ownerId === 'string'
-            ? ownerId.trim()
-            : String(ownerId ?? '').trim();
     const normalizedType =
         typeof type === 'string' ? type.trim() : String(type ?? '').trim();
     const normalizedGroup =
         typeof group === 'string' ? group.trim() : String(group ?? '').trim();
 
-    if (!normalizedOwnerId || !normalizedType || !normalizedGroup) {
+    if (!normalizedType || !normalizedGroup) {
         throw new Error(
-            'VrchatFavoriteRepository.clearFavoriteGroup requires ownerId, type, and group.'
+            'VrchatFavoriteRepository.clearFavoriteGroup requires type and group.'
         );
     }
 
     const response = await commands.appVrchatFavoriteGroupClear({
-        ownerId: normalizedOwnerId,
         type: normalizedType,
         group: normalizedGroup
     });
     return unwrapVrchatFavoriteResponse(
         response,
-        `favorite/group/${encodeURIComponent(normalizedType)}/${encodeURIComponent(normalizedGroup)}/${encodeURIComponent(normalizedOwnerId)}`,
+        `favorite/group/${encodeURIComponent(normalizedType)}/${encodeURIComponent(normalizedGroup)}`,
         'VRChat favorite request failed'
     );
 }

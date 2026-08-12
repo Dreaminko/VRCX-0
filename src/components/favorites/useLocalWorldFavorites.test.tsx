@@ -44,7 +44,9 @@ describe('useLocalWorldFavorites', () => {
         act(() => {
             useFavoriteRevisionStore.getState().bumpRevision({
                 kind: 'world',
-                remote: false
+                local: true,
+                remote: false,
+                requiresRefresh: true
             });
         });
 

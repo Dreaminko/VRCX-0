@@ -25,7 +25,6 @@ type BuildFavoriteTransferTargetsInput = {
 };
 
 type BuildFavoriteTransferInputOptions = {
-    endpoint: string;
     kind: FavoriteKind;
     mode?: FavoriteTransferMode;
     sourceGroup: FavoriteGroup;
@@ -176,7 +175,6 @@ export function buildFavoriteTransferTargets({
 }
 
 export function buildFavoriteTransferInput({
-    endpoint,
     kind,
     mode = 'move',
     sourceGroup,
@@ -184,7 +182,6 @@ export function buildFavoriteTransferInput({
     selectedItems
 }: BuildFavoriteTransferInputOptions): FavoriteTransferInput {
     return {
-        endpoint,
         kind,
         mode,
         source: {

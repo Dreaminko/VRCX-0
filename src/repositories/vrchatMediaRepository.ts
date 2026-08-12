@@ -630,7 +630,6 @@ async function equipProfileDecoration({
     return executeMediaCommand(
         () =>
             commands.appVrchatMediaProfileDecorationEquip({
-                expectedUserId: normalizedExpectedUserId,
                 inventoryId: normalizedInventoryId,
                 equipSlot: normalizedEquipSlot
             }),
@@ -663,7 +662,6 @@ async function unequipProfileDecoration({
     return executeMediaCommand<string>(
         () =>
             commands.appVrchatMediaProfileDecorationUnequip({
-                expectedUserId: normalizedExpectedUserId,
                 equipSlot: normalizedEquipSlot
             }),
         {

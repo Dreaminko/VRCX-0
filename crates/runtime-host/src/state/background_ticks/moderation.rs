@@ -39,6 +39,7 @@ pub(in crate::state) async fn run_background_moderation_refresh(
         web: web.as_ref(),
         session: &runtime_context.session,
         auth_scope: &runtime_context.auth_scope,
+        remote_mutations: runtime_context.remote_mutations.as_ref(),
     };
     match refresh_player_moderations(
         deps,

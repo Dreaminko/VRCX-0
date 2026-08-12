@@ -6,7 +6,9 @@ use vrcx_0_persistence::friends::{friend_log_history_query, FriendLogHistoryQuer
 use vrcx_0_persistence::storage::StorageService;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::{RuntimeAuthScope, RuntimeEventBus, UnavailableLocalGameContextSource};
+use crate::{
+    RemoteMutationGate, RuntimeAuthScope, RuntimeEventBus, UnavailableLocalGameContextSource,
+};
 use vrcx_0_application_core::{
     HostSessionRuntime, NoopPrintCleanupInputSink, RuntimeSyncEngine, TaskSupervisor, WebClient,
     WorldCache,
@@ -59,6 +61,7 @@ struct Fixture {
     web: Arc<WebClient>,
     auth_scope: RuntimeAuthScope,
     event_bus: RuntimeEventBus,
+    remote_mutations: Arc<RemoteMutationGate>,
 }
 
 fn fixture(name: &str) -> Fixture {
@@ -81,6 +84,7 @@ fn fixture(name: &str) -> Fixture {
         512,
         Duration::from_secs(30 * 60),
     ));
+    let remote_mutations = Arc::new(RemoteMutationGate::default());
     let runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
         db: Arc::clone(&db),
         web: Arc::clone(&web),
@@ -89,6 +93,7 @@ fn fixture(name: &str) -> Fixture {
         tasks: TaskSupervisor::new(),
         session: HostSessionRuntime::new(),
         auth_scope: auth_scope.clone(),
+        remote_mutations: Arc::clone(&remote_mutations),
         local_game_context: Arc::new(UnavailableLocalGameContextSource),
         activity_sink: None,
         world_cache,
@@ -102,6 +107,7 @@ fn fixture(name: &str) -> Fixture {
         web,
         auth_scope,
         event_bus,
+        remote_mutations,
     }
 }
 
@@ -111,6 +117,7 @@ impl Fixture {
             db: self.db.as_ref(),
             web: self.web.as_ref(),
             auth_scope: &self.auth_scope,
+            remote_mutations: self.remote_mutations.as_ref(),
             realtime: &self.runtime,
         }
     }
@@ -133,8 +140,6 @@ fn history_rows(db: &DatabaseService, owner: &str, target: &str, r#type: &str) -
 async fn unfriend_rejects_stale_auth_scope_with_zero_side_effects() {
     let fixture = fixture("unfriend-auth-scope-mismatch");
     let input = SocialFriendMutationInput {
-        owner_user_id: "usr_self".into(),
-        endpoint: String::new(),
         target_user_id: "usr_target".into(),
         target_display_name: "Target".into(),
     };
@@ -152,8 +157,6 @@ async fn unfriend_rejects_stale_auth_scope_with_zero_side_effects() {
 async fn accept_friend_request_rejects_stale_auth_scope_with_zero_side_effects() {
     let fixture = fixture("accept-auth-scope-mismatch");
     let input = SocialFriendRequestAcceptInput {
-        owner_user_id: "usr_self".into(),
-        endpoint: String::new(),
         notification_id: "not_1".into(),
         target_user_id: "usr_target".into(),
         target_display_name: "Target".into(),

@@ -258,7 +258,6 @@ describe('UserProfileRepository', () => {
         expect(
             tauriMock.commands.appVrchatCurrentUserProfileUpdate
         ).toHaveBeenCalledWith({
-            expectedUserId: 'usr_target',
             params: {
                 backgroundType: 'texture',
                 backgroundTextureId: 'grid'

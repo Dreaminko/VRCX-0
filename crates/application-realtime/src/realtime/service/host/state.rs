@@ -6,7 +6,8 @@ use serde_json::Value;
 use tokio::sync::{broadcast, watch};
 use vrcx_0_application_core::{
     HostSessionRuntime, LocalGameContextSource, OverlayActivityInputSink, PrintCleanupInputSink,
-    RuntimeAuthScope, RuntimeEventBus, RuntimeSyncEngine, TaskSupervisor, WebClient, WorldCache,
+    RemoteMutationGate, RuntimeAuthScope, RuntimeEventBus, RuntimeSyncEngine, TaskSupervisor,
+    WebClient, WorldCache,
 };
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_persistence::DatabaseService;
@@ -209,6 +210,7 @@ pub struct RealtimeHostRuntimeDeps {
     pub tasks: TaskSupervisor,
     pub session: HostSessionRuntime,
     pub auth_scope: RuntimeAuthScope,
+    pub remote_mutations: Arc<RemoteMutationGate>,
     pub local_game_context: Arc<dyn LocalGameContextSource>,
     pub activity_sink: Option<Arc<dyn OverlayActivityInputSink>>,
     pub world_cache: Arc<WorldCache>,

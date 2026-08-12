@@ -17,6 +17,7 @@ fn deps<'a>(state: &'a State<'_, AppState>) -> SocialMutationDeps<'a> {
         db: &state.db,
         web: &state.web,
         auth_scope: &state.runtime_context.auth_scope,
+        remote_mutations: &state.runtime_context.remote_mutations,
         realtime: &state.realtime_runtime,
     }
 }
@@ -124,8 +125,7 @@ pub async fn app__social_unfriend_selection(
         format!("Unfriending {target_count} user(s)."),
     );
 
-    let result =
-        social_mutation::unfriend_selection(deps(&state), &state.remote_mutations, input).await;
+    let result = social_mutation::unfriend_selection(deps(&state), input).await;
     record_batch_outcome(&state, command, &result);
 
     Ok(result?)

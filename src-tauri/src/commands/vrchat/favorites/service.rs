@@ -29,14 +29,19 @@ async fn execute_favorite_api(
 
 fn mutation_deps<'a>(
     state: &'a State<'_, AppState>,
-) -> vrcx_0_application::FavoriteRemoteMutationDeps<'a> {
-    vrcx_0_application::FavoriteRemoteMutationDeps {
+) -> Result<vrcx_0_application::FavoriteRemoteMutationDeps<'a>, AppError> {
+    Ok(vrcx_0_application::FavoriteRemoteMutationDeps {
         db: &state.db,
         web: &state.web,
         diagnostics: &state.runtime_context.diagnostics,
         sync: &state.runtime_context.sync,
         realtime: &state.realtime_runtime,
-    }
+        mutation: vrcx_0_application::AuthenticatedMutationContext::capture(
+            &state.runtime_context.auth_scope,
+            &state.runtime_context.remote_mutations,
+            "Remote favorite mutation",
+        )?,
+    })
 }
 
 #[tauri::command]
@@ -87,10 +92,10 @@ pub async fn app__vrchat_favorite_add(
     state: State<'_, AppState>,
     input: VrchatFavoriteAddInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = mutation_deps(&state)?;
     Ok(vrcx_0_application::add_remote_favorite(
-        &mutation_deps(&state),
+        &deps,
         vrcx_0_application::FavoriteRemoteAddInput {
-            endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
             kind: input.type_name,
             entity_id: input.favorite_id,
             tags: input.tags,
@@ -105,10 +110,10 @@ pub async fn app__vrchat_favorite_delete(
     state: State<'_, AppState>,
     input: VrchatFavoriteDeleteInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = mutation_deps(&state)?;
     Ok(vrcx_0_application::delete_remote_favorite(
-        &mutation_deps(&state),
+        &deps,
         vrcx_0_application::FavoriteRemoteDeleteInput {
-            endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
             object_id: input.object_id,
         },
     )
@@ -121,11 +126,10 @@ pub async fn app__vrchat_favorite_group_save(
     state: State<'_, AppState>,
     input: VrchatFavoriteGroupSaveInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = mutation_deps(&state)?;
     Ok(vrcx_0_application::save_remote_favorite_group(
-        &mutation_deps(&state),
+        &deps,
         vrcx_0_application::FavoriteRemoteGroupSaveInput {
-            endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
-            owner_id: input.owner_id,
             kind: input.type_name,
             group: input.group,
             display_name: input.display_name,
@@ -141,11 +145,10 @@ pub async fn app__vrchat_favorite_group_clear(
     state: State<'_, AppState>,
     input: VrchatFavoriteGroupClearInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let deps = mutation_deps(&state)?;
     Ok(vrcx_0_application::clear_remote_favorite_group(
-        &mutation_deps(&state),
+        &deps,
         vrcx_0_application::FavoriteRemoteGroupClearInput {
-            endpoint: VRCHAT_API_DEFAULT_ENDPOINT.into(),
-            owner_id: input.owner_id,
             kind: input.type_name,
             group: input.group,
         },
@@ -188,22 +191,9 @@ pub fn app__local_favorite_group_create(
         input.group_name,
         "LocalFavoriteGroupCreate requires groupName.",
     )?;
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let write = vrcx_0_application::create_local_favorite_group(
-        state.db.as_ref(),
-        &owner_user_id,
-        kind,
-        group_name,
-    )
-    .map_err(AppError::from)?;
-    state.realtime_runtime.notify_favorites_changed(
-        vrcx_0_application_core::FavoritesChangedPayload {
-            kind: kind.into(),
-            local: true,
-            remote: false,
-        },
-    );
-    Ok(write)
+    let deps = crate::commands::local::favorites::favorite_mutation_deps(&state)?;
+    vrcx_0_application::create_local_favorite_group_scoped(&deps, kind, group_name)
+        .map_err(AppError::from)
 }
 
 #[tauri::command]
@@ -221,23 +211,9 @@ pub fn app__local_favorite_group_rename(
         input.new_group_name,
         "LocalFavoriteGroupRename requires newGroupName.",
     )?;
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let write = vrcx_0_application::rename_local_favorite_group(
-        state.db.as_ref(),
-        &owner_user_id,
-        kind,
-        group_name,
-        new_group_name,
-    )
-    .map_err(AppError::from)?;
-    state.realtime_runtime.notify_favorites_changed(
-        vrcx_0_application_core::FavoritesChangedPayload {
-            kind: kind.into(),
-            local: true,
-            remote: false,
-        },
-    );
-    Ok(write)
+    let deps = crate::commands::local::favorites::favorite_mutation_deps(&state)?;
+    vrcx_0_application::rename_local_favorite_group_scoped(&deps, kind, group_name, new_group_name)
+        .map_err(AppError::from)
 }
 
 #[tauri::command]
@@ -251,20 +227,7 @@ pub fn app__local_favorite_group_delete(
         input.group_name,
         "LocalFavoriteGroupDelete requires groupName.",
     )?;
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let write = vrcx_0_application::delete_local_favorite_group(
-        state.db.as_ref(),
-        &owner_user_id,
-        kind,
-        group_name,
-    )
-    .map_err(AppError::from)?;
-    state.realtime_runtime.notify_favorites_changed(
-        vrcx_0_application_core::FavoritesChangedPayload {
-            kind: kind.into(),
-            local: true,
-            remote: false,
-        },
-    );
-    Ok(write)
+    let deps = crate::commands::local::favorites::favorite_mutation_deps(&state)?;
+    vrcx_0_application::delete_local_favorite_group_scoped(&deps, kind, group_name)
+        .map_err(AppError::from)
 }

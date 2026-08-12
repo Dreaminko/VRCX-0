@@ -10,6 +10,7 @@ use vrcx_0_application_core::vrchat_api::media::{print_delete_input, prints_get_
 use vrcx_0_application_core::vrchat_api::VrchatScope;
 pub use vrcx_0_application_core::PrintAutoCleanupEvent;
 pub use vrcx_0_application_core::PrintCleanupTrigger;
+use vrcx_0_application_core::RuntimeAuthScope;
 use vrcx_0_application_core::{PrintCleanupInputSink, RuntimeEventBus, TaskSupervisor, WebClient};
 pub use vrcx_0_application_realtime::is_print_created_content_refresh;
 use vrcx_0_persistence::DatabaseService;
@@ -18,7 +19,7 @@ use super::favorites::{
     read_auto_delete_old_prints_enabled, read_auto_delete_prints_limit, read_favorite_ids,
     write_favorite_ids,
 };
-use crate::{Error, Result};
+use crate::{AuthenticatedMutationContext, Error, RemoteMutationGate, Result};
 
 pub const PRINT_HARD_CAP: i64 = 64;
 pub const PRINT_AUTO_DELETE_LIMIT_MIN: i64 = 30;
@@ -26,6 +27,7 @@ pub const PRINT_AUTO_DELETE_LIMIT_MAX: i64 = 60;
 pub const PRINT_FAVORITE_LIMIT_BUFFER: usize = 5;
 const PRINT_CLEANUP_DEBOUNCE: Duration = Duration::from_millis(2500);
 const PRINT_CLEANUP_LIST_COUNT: i64 = 100;
+const PRINT_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PrintListItem {
@@ -60,6 +62,8 @@ pub struct PrintCleanupDeps {
     pub db: Arc<DatabaseService>,
     pub web: Arc<WebClient>,
     pub event_bus: RuntimeEventBus,
+    pub auth_scope: RuntimeAuthScope,
+    pub remote_mutations: Arc<RemoteMutationGate>,
 }
 
 #[derive(Default)]
@@ -84,9 +88,7 @@ impl PrintCleanupQueue {
         deps: PrintCleanupDeps,
         trigger: PrintCleanupTrigger,
     ) {
-        if trigger.user_id.trim().is_empty()
-            || self.inner.pending.swap(true, Ordering::AcqRel)
-        {
+        if trigger.user_id.trim().is_empty() || self.inner.pending.swap(true, Ordering::AcqRel) {
             return;
         }
 
@@ -209,8 +211,22 @@ pub async fn run_print_auto_cleanup(
         return Ok(None);
     }
 
+    let mutation = AuthenticatedMutationContext::capture(
+        &deps.auth_scope,
+        deps.remote_mutations.as_ref(),
+        "Print cleanup",
+    )?;
+    if trigger.user_id.trim() != mutation.scope().current_user_id
+        || normalize_print_endpoint(&trigger.endpoint)
+            != normalize_print_endpoint(&mutation.scope().endpoint)
+    {
+        return Err(Error::Custom(
+            "Print cleanup authentication scope changed.".into(),
+        ));
+    }
+
     let limit = read_auto_delete_prints_limit(&deps.db)?;
-    let prints = load_prints(deps, trigger).await?;
+    let prints = load_prints(deps, &mutation).await?;
     let existing_ids = prints
         .iter()
         .map(|print| print.id.clone())
@@ -229,7 +245,7 @@ pub async fn run_print_auto_cleanup(
     let selection = select_prints_to_delete(&prints, limit, &favorite_ids);
     let mut deleted = 0usize;
     for print_id in &selection.to_delete {
-        match delete_print(deps, trigger, print_id).await {
+        match delete_print(deps, &mutation, print_id).await {
             Ok(()) => deleted += 1,
             Err(error) => {
                 tracing::warn!(
@@ -269,14 +285,14 @@ fn cleanup_warning(limit: usize, favorite_count: usize) -> Option<CleanupWarning
 
 async fn load_prints(
     deps: &PrintCleanupDeps,
-    trigger: &PrintCleanupTrigger,
+    mutation: &AuthenticatedMutationContext<'_>,
 ) -> Result<Vec<PrintListItem>> {
     let response = deps
         .web
         .execute_api(
             prints_get_input(
-                trigger.endpoint.clone(),
-                trigger.user_id.clone(),
+                mutation.scope().endpoint.clone(),
+                mutation.scope().current_user_id.clone(),
                 PRINT_CLEANUP_LIST_COUNT,
             )?,
             VrchatScope::Vrchat,
@@ -295,16 +311,17 @@ async fn load_prints(
 
 async fn delete_print(
     deps: &PrintCleanupDeps,
-    trigger: &PrintCleanupTrigger,
+    mutation: &AuthenticatedMutationContext<'_>,
     print_id: &str,
 ) -> Result<()> {
-    let response = deps
-        .web
-        .execute_api(
-            print_delete_input(trigger.endpoint.clone(), print_id.to_string())?,
-            VrchatScope::Vrchat,
-            deps.db.as_ref(),
-        )
+    let mut request = print_delete_input(mutation.scope().endpoint.clone(), print_id.to_string())?;
+    mutation.apply_scope_to_request(&mut request);
+    let response = mutation
+        .run_after_wait(PRINT_REMOTE_MUTATION_INTERVAL, || async {
+            deps.web
+                .execute_api(request, VrchatScope::Vrchat, deps.db.as_ref())
+                .await
+        })
         .await?;
     if !(200..300).contains(&response.status) {
         return Err(Error::Custom(format!(
@@ -313,6 +330,10 @@ async fn delete_print(
         )));
     }
     Ok(())
+}
+
+fn normalize_print_endpoint(endpoint: &str) -> String {
+    vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint(Some(endpoint))
 }
 
 fn cleanup_warning_event_kind(kind: &CleanupWarningKind) -> &'static str {
@@ -346,7 +367,8 @@ mod tests {
     };
     use std::time::Duration;
     use vrcx_0_application_core::{
-        RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskSupervisor,
+        RemoteMutationGate, RuntimeAuthScope, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle,
+        TaskSupervisor,
     };
     use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
@@ -575,6 +597,8 @@ mod tests {
             db,
             web,
             event_bus: vrcx_0_application_core::RuntimeEventBus::new(),
+            auth_scope: RuntimeAuthScope::new(),
+            remote_mutations: Arc::new(RemoteMutationGate::default()),
         }
     }
 }

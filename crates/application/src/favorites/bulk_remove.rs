@@ -36,8 +36,6 @@ pub struct FavoriteBulkRemoveItem {
 #[derive(Clone, Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteBulkRemoveInput {
-    pub expected_owner_user_id: String,
-    pub expected_endpoint: String,
     pub kind: FavoriteEntityKind,
     #[serde(default)]
     pub items: Vec<FavoriteBulkRemoveItem>,
@@ -212,8 +210,6 @@ pub async fn remove_favorites_bulk(
             .auth_scope
             .snapshot()
             .generation_matches(&deps.expected_scope)
-        || input.expected_owner_user_id.trim() != deps.expected_scope.current_user_id
-        || input.expected_endpoint.trim() != deps.expected_scope.endpoint
     {
         return Err(Error::Custom(
             "Favorite bulk remove is stale for the current auth scope.".into(),
@@ -234,7 +230,7 @@ pub async fn remove_favorites_selection(
         return remove_favorites_bulk(deps, input).await;
     }
     let mut result = FavoriteBulkRemoveResult {
-        owner_user_id: input.expected_owner_user_id.clone(),
+        owner_user_id: deps.expected_scope.current_user_id.clone(),
         kind: input.kind,
         total: 0,
         succeeded: 0,
@@ -248,8 +244,6 @@ pub async fn remove_favorites_selection(
         let chunk = remove_favorites_bulk(
             deps,
             FavoriteBulkRemoveInput {
-                expected_owner_user_id: input.expected_owner_user_id.clone(),
-                expected_endpoint: input.expected_endpoint.clone(),
                 kind: input.kind,
                 items: items.to_vec(),
             },
@@ -626,7 +620,6 @@ mod tests {
         .unwrap();
         let auth_scope = RuntimeAuthScope::new();
         let expected_scope = auth_scope.set("usr_self", "");
-        let expected_endpoint = expected_scope.endpoint.clone();
         let remote_mutation_gate = RemoteMutationGate::default();
         favorites::favorite_add(
             &db,
@@ -646,8 +639,6 @@ mod tests {
                 remote_mutation_gate: &remote_mutation_gate,
             },
             FavoriteBulkRemoveInput {
-                expected_owner_user_id: "usr_self".into(),
-                expected_endpoint,
                 kind: FavoriteEntityKind::Friend,
                 items: vec![FavoriteBulkRemoveItem {
                     key: "local:Friends:usr_target".into(),
@@ -682,7 +673,6 @@ mod tests {
         .unwrap();
         let auth_scope = RuntimeAuthScope::new();
         let expected_scope = auth_scope.set("usr_self", "");
-        let expected_endpoint = expected_scope.endpoint.clone();
         let remote_mutation_gate = RemoteMutationGate::default();
         let items = (0..=FAVORITE_BULK_REMOVE_MAX_ITEMS)
             .map(|index| {
@@ -713,8 +703,6 @@ mod tests {
                 remote_mutation_gate: &remote_mutation_gate,
             },
             FavoriteBulkRemoveInput {
-                expected_owner_user_id: "usr_self".into(),
-                expected_endpoint,
                 kind: FavoriteEntityKind::Friend,
                 items,
             },

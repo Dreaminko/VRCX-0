@@ -284,7 +284,6 @@ describe('vrchatMediaRepository', () => {
         expect(
             commandMocks.appVrchatMediaProfileDecorationEquip
         ).toHaveBeenCalledWith({
-            expectedUserId: 'usr_self',
             inventoryId: 'inv_frame',
             equipSlot: 'iconFrame'
         });
@@ -308,7 +307,6 @@ describe('vrchatMediaRepository', () => {
         expect(
             commandMocks.appVrchatMediaProfileDecorationUnequip
         ).toHaveBeenCalledWith({
-            expectedUserId: 'usr_self',
             equipSlot: 'profileEffect'
         });
     });

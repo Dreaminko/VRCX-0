@@ -173,8 +173,6 @@ describe('useUserDialogActions friend request mutations', () => {
         await act(() => actions().updateFriendRequest('send'));
 
         expect(mocks.appSocialFriendRequestSend).toHaveBeenCalledWith({
-            ownerUserId: 'usr_self',
-            endpoint: 'https://api.vrchat.cloud/api/1',
             targetUserId: 'usr_target',
             targetDisplayName: 'Target'
         });
@@ -185,8 +183,6 @@ describe('useUserDialogActions friend request mutations', () => {
         await act(() => actions().updateFriendRequest('cancel'));
 
         expect(mocks.appSocialFriendRequestCancel).toHaveBeenCalledWith({
-            ownerUserId: 'usr_self',
-            endpoint: 'https://api.vrchat.cloud/api/1',
             targetUserId: 'usr_target',
             targetDisplayName: 'Target'
         });

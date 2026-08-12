@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -7,7 +7,7 @@ use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::cache_entities::CacheEntityInput;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::{Error, Result};
+use crate::{AuthenticatedMutationContext, Error, Result};
 
 use super::cache_policy::{
     cache_entry_from_entity, cache_write_decision, CacheWriteDecision, FavoriteCacheKind,
@@ -24,6 +24,7 @@ use vrcx_0_vrchat_client::http_api::parse_api_json;
 const FAVORITE_RECOVERED_GROUP: &str = "Recovered";
 const FAVORITE_TRANSFER_PAGE_SIZE: i64 = 300;
 const FAVORITE_TRANSFER_MAX_PAGES: usize = 50;
+const FAVORITE_TRANSFER_REMOTE_INTERVAL: Duration = Duration::from_millis(250);
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -71,8 +72,6 @@ pub struct FavoriteTransferItem {
 #[derive(Clone, Debug, Deserialize, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoriteTransferInput {
-    #[serde(default)]
-    pub endpoint: String,
     pub kind: FavoriteEntityKind,
     pub mode: FavoriteTransferMode,
     pub source: FavoriteTransferSource,
@@ -148,13 +147,12 @@ pub struct FavoriteTransferSelectionResult {
     pub last_error: Option<String>,
 }
 
-#[derive(Clone, Copy)]
 pub struct FavoriteTransferDeps<'a> {
     pub db: &'a DatabaseService,
-    pub owner_user_id: &'a str,
     pub web: &'a WebClient,
     pub diagnostics: &'a RuntimeDiagnostics,
     pub sync: &'a RuntimeSyncEngine,
+    pub mutation: AuthenticatedMutationContext<'a>,
 }
 
 struct FavoriteTransferItemOutcome {
@@ -224,10 +222,11 @@ pub fn favorite_transfer_plan_for_item(
 }
 
 pub async fn transfer_favorites(
-    deps: FavoriteTransferDeps<'_>,
+    deps: &FavoriteTransferDeps<'_>,
     input: FavoriteTransferInput,
 ) -> Result<FavoriteTransferResult> {
-    let remote_index = precheck_remote_target(&deps, &input).await?;
+    deps.mutation.ensure_current()?;
+    let remote_index = precheck_remote_target(deps, &input).await?;
 
     let mut item_results = Vec::with_capacity(input.items.len());
     let mut succeeded = 0;
@@ -236,7 +235,7 @@ pub async fn transfer_favorites(
     let mut remote_changed = false;
 
     for item in &input.items {
-        let outcome = transfer_item(&deps, &input, item, remote_index.as_ref()).await;
+        let outcome = transfer_item(deps, &input, item, remote_index.as_ref()).await;
         if outcome.result.status == FavoriteTransferItemStatus::Failed {
             failed += 1;
         } else {
@@ -258,7 +257,7 @@ pub async fn transfer_favorites(
 }
 
 pub async fn transfer_favorite_selection(
-    deps: FavoriteTransferDeps<'_>,
+    deps: &FavoriteTransferDeps<'_>,
     input: FavoriteTransferSelectionInput,
 ) -> Result<FavoriteTransferSelectionResult> {
     if input.batches.is_empty() {
@@ -306,6 +305,17 @@ async fn transfer_item(
 ) -> FavoriteTransferItemOutcome {
     let key = item.key.clone();
     let entity_id = normalize_text(&item.entity_id);
+
+    if let Err(error) = deps.mutation.ensure_current() {
+        return failed_outcome(
+            key,
+            entity_id,
+            FavoriteTransferStage::Validate,
+            error,
+            false,
+            false,
+        );
+    }
 
     if let Err(error) = favorite_transfer_plan_for_item(input, item) {
         return failed_outcome(
@@ -363,7 +373,7 @@ async fn run_remote_to_remote_move(
     let key = item.key.clone();
     let entity_id = normalize_text(&item.entity_id);
 
-    if let Err(error) = delete_remote_favorite(deps, input, item).await {
+    if let Err(error) = delete_remote_favorite(deps, item).await {
         return failed_outcome(
             key,
             entity_id,
@@ -457,7 +467,7 @@ async fn run_remote_to_local_move(
         }
     };
 
-    match delete_remote_favorite(deps, input, item).await {
+    match delete_remote_favorite(deps, item).await {
         Ok(_) => {
             let status = if local_affected > 0 {
                 FavoriteTransferItemStatus::Moved
@@ -649,12 +659,14 @@ fn run_local_to_local_move(
 
 async fn delete_remote_favorite(
     deps: &FavoriteTransferDeps<'_>,
-    input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<i64> {
     let object_id = normalize_text(&item.entity_id);
-    let (_, request) = favorite_delete_input(input.endpoint.clone(), object_id)
+    let (_, request) = favorite_delete_input(deps.mutation.scope().endpoint.clone(), object_id)
         .map_err(|error| Error::Custom(error.to_string()))?;
+    deps.mutation
+        .wait_for_remote(FAVORITE_TRANSFER_REMOTE_INTERVAL)
+        .await?;
     let response = execute_api_command(
         deps.web,
         deps.db,
@@ -668,6 +680,7 @@ async fn delete_remote_favorite(
         VrchatScope::Vrchat,
     )
     .await?;
+    deps.mutation.ensure_current()?;
     ensure_vrchat_response_ok(response.status, &response.data, "delete remote favorite")?;
     Ok(0)
 }
@@ -689,12 +702,15 @@ async fn add_remote_favorite_with_group(
     let kind = input.kind.as_str();
     let favorite_type = remote_favorite_type(input, kind);
     let (_, _, request) = favorite_add_input(
-        input.endpoint.clone(),
+        deps.mutation.scope().endpoint.clone(),
         favorite_type,
         normalize_text(&item.entity_id),
         normalize_text(group),
     )
     .map_err(|error| Error::Custom(error.to_string()))?;
+    deps.mutation
+        .wait_for_remote(FAVORITE_TRANSFER_REMOTE_INTERVAL)
+        .await?;
     let response = execute_api_command(
         deps.web,
         deps.db,
@@ -708,6 +724,7 @@ async fn add_remote_favorite_with_group(
         VrchatScope::Vrchat,
     )
     .await?;
+    deps.mutation.ensure_current()?;
     ensure_vrchat_response_ok(response.status, &response.data, "add remote favorite")?;
     Ok(RawJson::from(parse_api_json(&response.data)))
 }
@@ -717,9 +734,10 @@ fn add_local_favorite(
     input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<i64> {
+    deps.mutation.ensure_current()?;
     let affected = vrcx_0_persistence::favorites::favorite_add(
         deps.db,
-        Some(deps.owner_user_id),
+        Some(&deps.mutation.scope().current_user_id),
         input.kind,
         normalize_text(&item.entity_id),
         normalize_text(&input.target.group),
@@ -735,15 +753,16 @@ fn add_local_fallback_favorite(
     input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<i64> {
+    deps.mutation.ensure_current()?;
     super::local_favorites::create_local_favorite_group(
         deps.db,
-        deps.owner_user_id,
+        &deps.mutation.scope().current_user_id,
         input.kind,
         FAVORITE_RECOVERED_GROUP.to_string(),
     )?;
     let affected = vrcx_0_persistence::favorites::favorite_add(
         deps.db,
-        Some(deps.owner_user_id),
+        Some(&deps.mutation.scope().current_user_id),
         input.kind,
         normalize_text(&item.entity_id),
         FAVORITE_RECOVERED_GROUP.to_string(),
@@ -759,9 +778,10 @@ fn delete_local_favorite(
     input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<i64> {
+    deps.mutation.ensure_current()?;
     Ok(vrcx_0_persistence::favorites::favorite_remove(
         deps.db,
-        Some(deps.owner_user_id),
+        Some(&deps.mutation.scope().current_user_id),
         input.kind,
         normalize_text(&item.entity_id),
         normalize_text(&input.source.group),
@@ -773,9 +793,10 @@ fn move_local_favorite(
     input: &FavoriteTransferInput,
     item: &FavoriteTransferItem,
 ) -> Result<i64> {
+    deps.mutation.ensure_current()?;
     let result = vrcx_0_persistence::favorites::favorite_move(
         deps.db,
-        Some(deps.owner_user_id),
+        Some(&deps.mutation.scope().current_user_id),
         input.kind,
         normalize_text(&item.entity_id),
         normalize_text(&input.source.group),
@@ -799,7 +820,6 @@ fn favorite_group_count_key(favorite_type: &str, group: &str) -> String {
 
 async fn fetch_online_favorite_index(
     deps: &FavoriteTransferDeps<'_>,
-    input: &FavoriteTransferInput,
     kind: &str,
 ) -> Result<OnlineFavoriteIndex> {
     let equivalent_types = kind_equivalent_favorite_types(kind);
@@ -808,8 +828,14 @@ async fn fetch_online_favorite_index(
     let mut offset = 0_i64;
 
     for _ in 0..FAVORITE_TRANSFER_MAX_PAGES {
-        let request =
-            favorites_get_input(input.endpoint.clone(), FAVORITE_TRANSFER_PAGE_SIZE, offset);
+        let request = favorites_get_input(
+            deps.mutation.scope().endpoint.clone(),
+            FAVORITE_TRANSFER_PAGE_SIZE,
+            offset,
+        );
+        deps.mutation
+            .wait_for_remote(FAVORITE_TRANSFER_REMOTE_INTERVAL)
+            .await?;
         let response = execute_api_command(
             deps.web,
             deps.db,
@@ -823,6 +849,7 @@ async fn fetch_online_favorite_index(
             VrchatScope::Vrchat,
         )
         .await?;
+        deps.mutation.ensure_current()?;
         ensure_vrchat_response_ok(response.status, &response.data, "list online favorites")?;
         let page = parse_api_json(&response.data);
         let rows = page.as_array().cloned().unwrap_or_default();
@@ -862,10 +889,12 @@ async fn fetch_online_favorite_index(
 
 async fn fetch_favorite_group_capacity(
     deps: &FavoriteTransferDeps<'_>,
-    input: &FavoriteTransferInput,
     favorite_type: &str,
 ) -> Result<i64> {
-    let request = favorite_limits_get_input(input.endpoint.clone());
+    let request = favorite_limits_get_input(deps.mutation.scope().endpoint.clone());
+    deps.mutation
+        .wait_for_remote(FAVORITE_TRANSFER_REMOTE_INTERVAL)
+        .await?;
     let response = execute_api_command(
         deps.web,
         deps.db,
@@ -879,6 +908,7 @@ async fn fetch_favorite_group_capacity(
         VrchatScope::Vrchat,
     )
     .await?;
+    deps.mutation.ensure_current()?;
     ensure_vrchat_response_ok(response.status, &response.data, "get favorite limits")?;
     let limits = parse_api_json(&response.data);
     Ok(limits
@@ -917,8 +947,8 @@ async fn precheck_remote_target(
     let favorite_type = remote_favorite_type(input, kind);
     let target_group = normalize_text(&input.target.group);
 
-    let index = fetch_online_favorite_index(deps, input, kind).await?;
-    let capacity = fetch_favorite_group_capacity(deps, input, &favorite_type).await?;
+    let index = fetch_online_favorite_index(deps, kind).await?;
+    let capacity = fetch_favorite_group_capacity(deps, &favorite_type).await?;
     let current_count = index
         .group_counts
         .get(&favorite_group_count_key(&favorite_type, &target_group))
@@ -1100,7 +1130,6 @@ mod tests {
         mode: FavoriteTransferMode,
     ) -> FavoriteTransferInput {
         FavoriteTransferInput {
-            endpoint: "https://api.vrchat.cloud/api/1".to_string(),
             kind: FavoriteEntityKind::World,
             mode,
             source: FavoriteTransferSource {

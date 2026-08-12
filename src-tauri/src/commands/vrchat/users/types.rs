@@ -26,24 +26,18 @@ pub struct VrchatUserProfileInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatCurrentUserProfileUpdateInput {
-    #[serde(default)]
-    pub(crate) expected_user_id: String,
     pub(crate) params: Option<Value>,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatCurrentUserUpdateInput {
-    #[serde(default)]
-    pub(crate) user_id: String,
     pub(crate) params: Option<Value>,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatCurrentUserBadgeInput {
-    #[serde(default)]
-    pub(crate) user_id: String,
     #[serde(default)]
     pub(crate) badge_id: String,
     #[serde(default)]
@@ -55,8 +49,6 @@ pub struct VrchatCurrentUserBadgeInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatCurrentUserTagsInput {
-    #[serde(default)]
-    pub(crate) user_id: String,
     #[serde(default)]
     pub(crate) tags: Vec<String>,
 }

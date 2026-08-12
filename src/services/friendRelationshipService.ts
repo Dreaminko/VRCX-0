@@ -89,8 +89,6 @@ async function deleteFriend({
 
     try {
         const outcome = await commands.appSocialUnfriend({
-            ownerUserId: normalizeUserId(currentUserId),
-            endpoint,
             targetUserId: normalizedUserId,
             targetDisplayName: normalizeUserId(friend?.displayName)
         });
@@ -159,8 +157,6 @@ async function deleteFriends({
         throw new Error('deleteFriends requires at least one friend user id.');
     }
     const outcome = await commands.appSocialUnfriendSelection({
-        expectedEndpoint,
-        expectedOwnerUserId,
         targets
     });
     const stale =

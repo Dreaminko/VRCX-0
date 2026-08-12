@@ -36,7 +36,6 @@ describe('moderationSyncService', () => {
 
         await expect(
             updateModerationSync({
-                ownerUserId: 'usr_current',
                 targetUserId: 'usr_target',
                 type: 'block',
                 enabled: false

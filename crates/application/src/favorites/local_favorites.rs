@@ -3,10 +3,14 @@ use vrcx_0_persistence::favorites;
 use vrcx_0_persistence::favorites::FavoriteRow;
 use vrcx_0_persistence::DatabaseService;
 
-use crate::{Error, Result};
+use std::sync::Arc;
+
+use crate::{AuthenticatedMutationContext, Error, Result};
 use vrcx_0_application_core::{
-    read_config_string_array, write_config_string_array, FavoriteEntityKind,
+    read_config_string_array, write_config_string_array, FavoriteChange, FavoriteChangeScope,
+    FavoriteEntityKind, FavoritesChangedPayload,
 };
+use vrcx_0_application_realtime::RealtimeHostRuntime;
 
 #[derive(Clone, Debug, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -21,6 +25,90 @@ pub struct LocalFavoriteGroupWrite {
 pub struct LocalFavoriteSnapshot {
     pub favorites: Vec<FavoriteRow>,
     pub group_names: Vec<String>,
+}
+
+pub struct LocalFavoriteMutationDeps<'a> {
+    pub db: &'a DatabaseService,
+    pub realtime: &'a Arc<RealtimeHostRuntime>,
+    pub mutation: AuthenticatedMutationContext<'a>,
+}
+
+fn notify_local_favorite_change(
+    deps: &LocalFavoriteMutationDeps<'_>,
+    kind: FavoriteEntityKind,
+    change: FavoriteChange,
+) {
+    let payload = if kind == FavoriteEntityKind::World {
+        FavoritesChangedPayload::invalidated(
+            deps.mutation.scope(),
+            FavoriteChangeScope::World,
+            true,
+            false,
+        )
+    } else {
+        FavoritesChangedPayload::from_changes(
+            deps.mutation.scope(),
+            kind.into(),
+            true,
+            false,
+            vec![change],
+        )
+    };
+    deps.realtime.notify_favorites_changed(payload);
+}
+
+pub fn add_local_favorite_scoped(
+    deps: &LocalFavoriteMutationDeps<'_>,
+    kind: FavoriteEntityKind,
+    entity_id: String,
+    group_name: String,
+) -> Result<i64> {
+    deps.mutation.ensure_current()?;
+    let affected = add_local_favorite(
+        deps.db,
+        &deps.mutation.scope().current_user_id,
+        kind,
+        entity_id.clone(),
+        group_name.clone(),
+    )?;
+    deps.mutation.ensure_current()?;
+    notify_local_favorite_change(
+        deps,
+        kind,
+        FavoriteChange::LocalAdded {
+            kind,
+            entity_id,
+            group_name,
+        },
+    );
+    Ok(affected)
+}
+
+pub fn remove_local_favorite_scoped(
+    deps: &LocalFavoriteMutationDeps<'_>,
+    kind: FavoriteEntityKind,
+    entity_id: String,
+    group_name: String,
+) -> Result<i64> {
+    deps.mutation.ensure_current()?;
+    let affected = remove_local_favorite(
+        deps.db,
+        &deps.mutation.scope().current_user_id,
+        kind,
+        entity_id.clone(),
+        group_name.clone(),
+    )?;
+    deps.mutation.ensure_current()?;
+    notify_local_favorite_change(
+        deps,
+        kind,
+        FavoriteChange::LocalRemoved {
+            kind,
+            entity_id,
+            group_name,
+        },
+    );
+    Ok(affected)
 }
 
 pub fn list_local_favorites(
@@ -52,7 +140,7 @@ pub fn get_local_favorite_snapshot(
     })
 }
 
-pub fn add_local_favorite(
+pub(crate) fn add_local_favorite(
     db: &DatabaseService,
     owner_user_id: &str,
     kind: FavoriteEntityKind,
@@ -63,7 +151,7 @@ pub fn add_local_favorite(
         .map_err(Error::from)
 }
 
-pub fn remove_local_favorite(
+pub(crate) fn remove_local_favorite(
     db: &DatabaseService,
     owner_user_id: &str,
     kind: FavoriteEntityKind,
@@ -72,26 +160,6 @@ pub fn remove_local_favorite(
 ) -> Result<i64> {
     favorites::favorite_remove(db, Some(owner_user_id), kind, entity_id, group_name)
         .map_err(Error::from)
-}
-
-pub fn rename_local_favorite_entries(
-    db: &DatabaseService,
-    owner_user_id: &str,
-    kind: FavoriteEntityKind,
-    group_name: String,
-    new_group_name: String,
-) -> Result<i64> {
-    favorites::favorite_group_rename(db, Some(owner_user_id), kind, group_name, new_group_name)
-        .map_err(Error::from)
-}
-
-pub fn delete_local_favorite_entries(
-    db: &DatabaseService,
-    owner_user_id: &str,
-    kind: FavoriteEntityKind,
-    group_name: String,
-) -> Result<i64> {
-    favorites::favorite_group_delete(db, Some(owner_user_id), kind, group_name).map_err(Error::from)
 }
 
 pub(super) const fn local_group_config_key(kind: FavoriteEntityKind) -> &'static str {
@@ -111,7 +179,7 @@ fn add_group_value(groups: &mut Vec<String>, group_name: &str) {
     groups.dedup();
 }
 
-pub fn create_local_favorite_group(
+pub(crate) fn create_local_favorite_group(
     db: &DatabaseService,
     owner_user_id: &str,
     kind: FavoriteEntityKind,
@@ -128,7 +196,28 @@ pub fn create_local_favorite_group(
     })
 }
 
-pub fn rename_local_favorite_group(
+pub fn create_local_favorite_group_scoped(
+    deps: &LocalFavoriteMutationDeps<'_>,
+    kind: FavoriteEntityKind,
+    group_name: String,
+) -> Result<LocalFavoriteGroupWrite> {
+    deps.mutation.ensure_current()?;
+    let write = create_local_favorite_group(
+        deps.db,
+        &deps.mutation.scope().current_user_id,
+        kind,
+        group_name.clone(),
+    )?;
+    deps.mutation.ensure_current()?;
+    notify_local_favorite_change(
+        deps,
+        kind,
+        FavoriteChange::LocalGroupCreated { kind, group_name },
+    );
+    Ok(write)
+}
+
+pub(crate) fn rename_local_favorite_group(
     db: &DatabaseService,
     owner_user_id: &str,
     kind: FavoriteEntityKind,
@@ -158,7 +247,34 @@ pub fn rename_local_favorite_group(
     })
 }
 
-pub fn delete_local_favorite_group(
+pub fn rename_local_favorite_group_scoped(
+    deps: &LocalFavoriteMutationDeps<'_>,
+    kind: FavoriteEntityKind,
+    group_name: String,
+    new_group_name: String,
+) -> Result<LocalFavoriteGroupWrite> {
+    deps.mutation.ensure_current()?;
+    let write = rename_local_favorite_group(
+        deps.db,
+        &deps.mutation.scope().current_user_id,
+        kind,
+        group_name.clone(),
+        new_group_name.clone(),
+    )?;
+    deps.mutation.ensure_current()?;
+    notify_local_favorite_change(
+        deps,
+        kind,
+        FavoriteChange::LocalGroupRenamed {
+            kind,
+            group_name,
+            new_group_name,
+        },
+    );
+    Ok(write)
+}
+
+pub(crate) fn delete_local_favorite_group(
     db: &DatabaseService,
     owner_user_id: &str,
     kind: FavoriteEntityKind,
@@ -183,6 +299,27 @@ pub fn delete_local_favorite_group(
         group_names: groups,
         affected,
     })
+}
+
+pub fn delete_local_favorite_group_scoped(
+    deps: &LocalFavoriteMutationDeps<'_>,
+    kind: FavoriteEntityKind,
+    group_name: String,
+) -> Result<LocalFavoriteGroupWrite> {
+    deps.mutation.ensure_current()?;
+    let write = delete_local_favorite_group(
+        deps.db,
+        &deps.mutation.scope().current_user_id,
+        kind,
+        group_name.clone(),
+    )?;
+    deps.mutation.ensure_current()?;
+    notify_local_favorite_change(
+        deps,
+        kind,
+        FavoriteChange::LocalGroupDeleted { kind, group_name },
+    );
+    Ok(write)
 }
 
 fn writable_group_config_key(kind: FavoriteEntityKind, owner_user_id: &str) -> String {

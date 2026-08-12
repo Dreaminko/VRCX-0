@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use vrcx_0_persistence::local_moderation::{LocalModerationOutput, RemoteModerationInput};
 use vrcx_0_persistence::DatabaseService;
 
+use crate::RemoteMutationGate;
 use vrcx_0_application_core::{HostSessionRuntime, RuntimeAuthScope, WebClient};
 
 pub struct ModerationSyncDeps<'a> {
@@ -9,6 +10,7 @@ pub struct ModerationSyncDeps<'a> {
     pub web: &'a WebClient,
     pub session: &'a HostSessionRuntime,
     pub auth_scope: &'a RuntimeAuthScope,
+    pub remote_mutations: &'a RemoteMutationGate,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]
@@ -22,10 +24,6 @@ pub struct ModerationSyncRefreshInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ModerationSyncMutationInput {
-    #[serde(default)]
-    pub(super) owner_user_id: String,
-    #[serde(default)]
-    pub(super) endpoint: String,
     pub(super) target_user_id: String,
     #[serde(default)]
     pub(super) target_display_name: String,
@@ -69,6 +67,7 @@ impl RemoteModerationRow {
 #[derive(Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ModerationSyncMutationOutput {
+    pub owner_user_id: String,
     pub target_user_id: String,
     pub r#type: String,
     pub enabled: bool,

@@ -6,7 +6,9 @@ use vrcx_0_application::{
     FavoriteBulkRemoveInput, FavoriteBulkRemoveResult, FavoriteTransferDeps,
     FavoriteTransferSelectionInput, FavoriteTransferSelectionResult,
 };
-use vrcx_0_application_core::{FavoritesChangedPayload, RuntimeOperationStatus};
+use vrcx_0_application_core::{
+    FavoritesChangedPayload, RuntimeAuthScopeSnapshot, RuntimeOperationStatus,
+};
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -14,6 +16,7 @@ use crate::state::AppState;
 fn record_bulk_remove_outcome(
     state: &State<'_, AppState>,
     command: &str,
+    scope: &RuntimeAuthScopeSnapshot,
     kind: vrcx_0_application_core::FavoriteChangeScope,
     result: &vrcx_0_application_core::Result<FavoriteBulkRemoveResult>,
 ) {
@@ -35,13 +38,16 @@ fn record_bulk_remove_outcome(
                 ),
                 0,
             );
-            state
-                .realtime_runtime
-                .notify_favorites_changed(FavoritesChangedPayload {
-                    kind,
-                    local: output.local_changed,
-                    remote: output.remote_changed,
-                });
+            if output.local_changed || output.remote_changed {
+                state.realtime_runtime.notify_favorites_changed(
+                    FavoritesChangedPayload::invalidated(
+                        scope,
+                        kind,
+                        output.local_changed,
+                        output.remote_changed,
+                    ),
+                );
+            }
         }
         Err(error) => {
             diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
@@ -65,7 +71,13 @@ pub async fn app__favorites_transfer_selection(
     let kind = input
         .batches
         .first()
-        .map(|batch| batch.kind.into())
+        .map(|first| {
+            if input.batches.iter().all(|batch| batch.kind == first.kind) {
+                first.kind.into()
+            } else {
+                vrcx_0_application_core::FavoriteChangeScope::All
+            }
+        })
         .unwrap_or(vrcx_0_application_core::FavoriteChangeScope::All);
     let diagnostics = state.runtime_context.diagnostics.clone();
     let sync = state.runtime_context.sync.clone();
@@ -74,18 +86,19 @@ pub async fn app__favorites_transfer_selection(
         RuntimeOperationStatus::Running,
         format!("Transferring {item_count} favorite item(s)."),
     );
-    let owner_user_id = state.runtime_context.auth_scope.snapshot().current_user_id;
-    let result = transfer_favorite_selection(
-        FavoriteTransferDeps {
-            db: state.db.as_ref(),
-            owner_user_id: &owner_user_id,
-            web: state.web.as_ref(),
-            diagnostics: &diagnostics,
-            sync: &sync,
-        },
-        input,
-    )
-    .await;
+    let mutation = vrcx_0_application::AuthenticatedMutationContext::capture(
+        &state.runtime_context.auth_scope,
+        &state.runtime_context.remote_mutations,
+        "Favorite transfer",
+    )?;
+    let deps = FavoriteTransferDeps {
+        db: state.db.as_ref(),
+        web: state.web.as_ref(),
+        diagnostics: &diagnostics,
+        sync: &sync,
+        mutation,
+    };
+    let result = transfer_favorite_selection(&deps, input).await;
 
     match &result {
         Ok(output) => {
@@ -103,13 +116,16 @@ pub async fn app__favorites_transfer_selection(
                 ),
                 0,
             );
-            state
-                .realtime_runtime
-                .notify_favorites_changed(FavoritesChangedPayload {
-                    kind,
-                    local: output.local_changed,
-                    remote: output.remote_changed,
-                });
+            if output.local_changed || output.remote_changed {
+                state.realtime_runtime.notify_favorites_changed(
+                    FavoritesChangedPayload::invalidated(
+                        deps.mutation.scope(),
+                        kind,
+                        output.local_changed,
+                        output.remote_changed,
+                    ),
+                );
+            }
         }
         Err(error) => {
             diagnostics.record_command(command, RuntimeOperationStatus::Error, error.to_string());
@@ -136,19 +152,20 @@ pub async fn app__favorites_remove_selection(
         format!("Removing {target_count} favorite item(s)."),
     );
     let expected_scope = super::scope::require_active_scope(&state, "Favorite bulk remove")?;
+    let event_scope = expected_scope.clone();
     let result = remove_favorites_selection(
         &FavoriteBulkRemoveDeps {
             db: state.db.as_ref(),
             web: state.web.as_ref(),
             auth_scope: &state.runtime_context.auth_scope,
             expected_scope,
-            remote_mutation_gate: &state.remote_mutations,
+            remote_mutation_gate: &state.runtime_context.remote_mutations,
         },
         input,
     )
     .await;
 
-    record_bulk_remove_outcome(&state, command, kind, &result);
+    record_bulk_remove_outcome(&state, command, &event_scope, kind, &result);
 
     Ok(result?)
 }

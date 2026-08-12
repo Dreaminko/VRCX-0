@@ -11,7 +11,8 @@ use crate::events::{
     RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeUserProjection,
 };
 use crate::ports::HostSessionProjection;
-use crate::FavoriteChangeScope;
+use crate::{FavoriteChangeScope, FavoriteEntityKind, RuntimeAuthScopeSnapshot};
+use vrcx_0_core::json::RawJson;
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 
@@ -26,9 +27,90 @@ pub trait RuntimeEventPayload: Serialize + specta::Type + Any {
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct FavoritesChangedPayload {
+    pub owner_user_id: String,
+    pub endpoint: String,
     pub kind: FavoriteChangeScope,
     pub local: bool,
     pub remote: bool,
+    pub changes: Vec<FavoriteChange>,
+    pub requires_refresh: bool,
+}
+
+#[derive(Clone, Debug, Serialize, specta::Type)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum FavoriteChange {
+    LocalAdded {
+        kind: FavoriteEntityKind,
+        #[serde(rename = "entityId")]
+        entity_id: String,
+        #[serde(rename = "groupName")]
+        group_name: String,
+    },
+    LocalRemoved {
+        kind: FavoriteEntityKind,
+        #[serde(rename = "entityId")]
+        entity_id: String,
+        #[serde(rename = "groupName")]
+        group_name: String,
+    },
+    LocalGroupCreated {
+        kind: FavoriteEntityKind,
+        #[serde(rename = "groupName")]
+        group_name: String,
+    },
+    LocalGroupRenamed {
+        kind: FavoriteEntityKind,
+        #[serde(rename = "groupName")]
+        group_name: String,
+        #[serde(rename = "newGroupName")]
+        new_group_name: String,
+    },
+    LocalGroupDeleted {
+        kind: FavoriteEntityKind,
+        #[serde(rename = "groupName")]
+        group_name: String,
+    },
+    RemoteAdded {
+        favorite: RawJson,
+    },
+    RemoteRemoved {
+        #[serde(rename = "objectId")]
+        object_id: String,
+    },
+}
+
+impl FavoritesChangedPayload {
+    pub fn invalidated(
+        scope: &RuntimeAuthScopeSnapshot,
+        kind: FavoriteChangeScope,
+        local: bool,
+        remote: bool,
+    ) -> Self {
+        Self::from_changes(scope, kind, local, remote, Vec::new())
+    }
+
+    pub fn from_changes(
+        scope: &RuntimeAuthScopeSnapshot,
+        kind: FavoriteChangeScope,
+        local: bool,
+        remote: bool,
+        changes: Vec<FavoriteChange>,
+    ) -> Self {
+        let requires_refresh = changes.is_empty();
+        Self {
+            owner_user_id: scope.current_user_id.clone(),
+            endpoint: scope.endpoint.clone(),
+            kind,
+            local,
+            remote,
+            changes,
+            requires_refresh,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize, specta::Type)]
@@ -237,7 +319,8 @@ impl RuntimeEventBus {
 mod tests {
     use serde_json::json;
 
-    use super::RuntimeEventBus;
+    use super::{FavoriteChange, FavoritesChangedPayload, RuntimeEventBus};
+    use crate::{FavoriteChangeScope, FavoriteEntityKind, RuntimeAuthScopeSnapshot};
 
     #[test]
     fn game_log_persistence_preserves_event_name_and_wire_shape() {
@@ -251,6 +334,50 @@ mod tests {
         assert_eq!(
             events[0].payload,
             json!({ "kind": "gameLogPersisted", "count": 3 })
+        );
+    }
+
+    #[test]
+    fn favorite_delta_preserves_scope_and_camel_case_wire_shape() {
+        let bus = RuntimeEventBus::new();
+        let scope = RuntimeAuthScopeSnapshot {
+            current_user_id: "usr_self".into(),
+            endpoint: "https://api.vrchat.cloud/api/1".into(),
+            generation: 7,
+            active: true,
+        };
+
+        bus.emit_favorites_changed(FavoritesChangedPayload::from_changes(
+            &scope,
+            FavoriteChangeScope::Friend,
+            true,
+            false,
+            vec![FavoriteChange::LocalAdded {
+                kind: FavoriteEntityKind::Friend,
+                entity_id: "usr_friend".into(),
+                group_name: "Close".into(),
+            }],
+        ));
+
+        let events = bus.take_events_for_test();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].name, "favoritesChanged");
+        assert_eq!(
+            events[0].payload,
+            json!({
+                "ownerUserId": "usr_self",
+                "endpoint": "https://api.vrchat.cloud/api/1",
+                "kind": "friend",
+                "local": true,
+                "remote": false,
+                "changes": [{
+                    "type": "localAdded",
+                    "kind": "friend",
+                    "entityId": "usr_friend",
+                    "groupName": "Close"
+                }],
+                "requiresRefresh": false
+            })
         );
     }
 }

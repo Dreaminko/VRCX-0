@@ -1395,12 +1395,12 @@ export const commands = {
     },
     async appVrchatAvatarSelect(
         input: VrchatAvatarIdInput
-    ): Promise<VrchatAvatarSelectionOutcome> {
+    ): Promise<AvatarSelectionMutationOutcome> {
         return await TAURI_INVOKE('app__vrchat_avatar_select', { input });
     },
     async appVrchatAvatarSelectFallback(
         input: VrchatAvatarIdInput
-    ): Promise<VrchatAvatarSelectionOutcome> {
+    ): Promise<AvatarSelectionMutationOutcome> {
         return await TAURI_INVOKE('app__vrchat_avatar_select_fallback', {
             input
         });
@@ -3002,6 +3002,10 @@ export type AvatarMemoOutput = {
     editedAt: string;
     memo: string;
 };
+export type AvatarSelectionMutationOutcome = {
+    applied: boolean;
+    response: HttpApiExecuteResponse;
+};
 export type AvatarTagInput = { tag?: string; color?: JsonValue };
 export type AvatarTagOutput = {
     avatarId: string;
@@ -3518,8 +3522,6 @@ export type FavoriteBaselineSnapshot = {
     detail: string;
 };
 export type FavoriteBulkRemoveInput = {
-    expectedOwnerUserId: string;
-    expectedEndpoint: string;
     kind: FavoriteEntityKind;
     items?: FavoriteBulkRemoveItem[];
 };
@@ -3556,6 +3558,29 @@ export type FavoriteCacheSnapshotInput = {
     entity: RawJson;
     fallbackEntityId?: string;
 };
+export type FavoriteChange =
+    | {
+          type: 'localAdded';
+          kind: FavoriteEntityKind;
+          entityId: string;
+          groupName: string;
+      }
+    | {
+          type: 'localRemoved';
+          kind: FavoriteEntityKind;
+          entityId: string;
+          groupName: string;
+      }
+    | { type: 'localGroupCreated'; kind: FavoriteEntityKind; groupName: string }
+    | {
+          type: 'localGroupRenamed';
+          kind: FavoriteEntityKind;
+          groupName: string;
+          newGroupName: string;
+      }
+    | { type: 'localGroupDeleted'; kind: FavoriteEntityKind; groupName: string }
+    | { type: 'remoteAdded'; favorite: RawJson }
+    | { type: 'remoteRemoved'; objectId: string };
 export type FavoriteChangeScope = 'avatar' | 'world' | 'friend' | 'unknown';
 export type FavoriteDetailsHydrateInput = {
     kind: FavoriteDetailsHydrateKind;
@@ -3633,7 +3658,6 @@ export type FavoriteRow = {
     worldId?: string | null;
 };
 export type FavoriteTransferInput = {
-    endpoint?: string;
     kind: FavoriteEntityKind;
     mode: FavoriteTransferMode;
     source: FavoriteTransferSource;
@@ -3695,9 +3719,13 @@ export type FavoriteTransferTarget = {
     favoriteType?: string;
 };
 export type FavoritesChangedPayload = {
+    ownerUserId: string;
+    endpoint: string;
     kind: FavoriteChangeScope;
     local: boolean;
     remote: boolean;
+    changes: FavoriteChange[];
+    requiresRefresh: boolean;
 };
 export type FeedCursorInput = {
     createdAt: string;
@@ -4363,14 +4391,13 @@ export type Message = {
     createdAt: string;
 };
 export type ModerationSyncMutationInput = {
-    ownerUserId?: string;
-    endpoint?: string;
     targetUserId: string;
     targetDisplayName?: string;
     type: string;
     enabled: boolean;
 };
 export type ModerationSyncMutationOutput = {
+    ownerUserId: string;
     targetUserId: string;
     type: string;
     enabled: boolean;
@@ -5231,8 +5258,6 @@ export type SocialFavoritesBaselineOutput = {
     snapshot: FavoriteBaselineSnapshot | null;
 };
 export type SocialFriendMutationInput = {
-    ownerUserId: string;
-    endpoint?: string;
     targetUserId: string;
     targetDisplayName?: string;
 };
@@ -5243,15 +5268,11 @@ export type SocialFriendMutationOutcome = {
 };
 export type SocialFriendMutationStatus = 'applied' | 'remoteOkLocalFailed';
 export type SocialFriendRequestAcceptInput = {
-    ownerUserId: string;
-    endpoint?: string;
     notificationId: string;
     targetUserId: string;
     targetDisplayName?: string;
 };
 export type SocialFriendRequestCancelInput = {
-    ownerUserId: string;
-    endpoint?: string;
     targetUserId: string;
     targetDisplayName?: string;
     notificationId?: string;
@@ -5279,8 +5300,6 @@ export type SocialFriendRosterBaselineOutput = {
     friendLogChanged: boolean;
 };
 export type SocialUnfriendBatchInput = {
-    expectedOwnerUserId: string;
-    expectedEndpoint: string;
     targets?: SocialUnfriendBatchTarget[];
 };
 export type SocialUnfriendBatchItemResult = {
@@ -5438,40 +5457,24 @@ export type VrchatAvatarSaveInput = {
     avatarId?: string;
     params: JsonValue | null;
 };
-export type VrchatAvatarSelectionOutcome = {
-    applied: boolean;
-    response: HttpApiExecuteResponse;
-};
 export type VrchatBoopInput = { userId?: string; emojiId?: string };
 export type VrchatConfigWriteResult = { oldCacheCleanupError: string | null };
 export type VrchatCurrentUserBadgeInput = {
-    userId?: string;
     badgeId?: string;
     hidden?: boolean;
     showcased?: boolean;
 };
-export type VrchatCurrentUserProfileUpdateInput = {
-    expectedUserId?: string;
-    params: JsonValue | null;
-};
-export type VrchatCurrentUserTagsInput = { userId?: string; tags?: string[] };
-export type VrchatCurrentUserUpdateInput = {
-    userId?: string;
-    params: JsonValue | null;
-};
+export type VrchatCurrentUserProfileUpdateInput = { params: JsonValue | null };
+export type VrchatCurrentUserTagsInput = { tags?: string[] };
+export type VrchatCurrentUserUpdateInput = { params: JsonValue | null };
 export type VrchatFavoriteAddInput = {
     type: VrchatFavoriteType;
     favoriteId?: string;
     tags?: string;
 };
 export type VrchatFavoriteDeleteInput = { objectId?: string };
-export type VrchatFavoriteGroupClearInput = {
-    ownerId?: string;
-    type?: string;
-    group?: string;
-};
+export type VrchatFavoriteGroupClearInput = { type?: string; group?: string };
 export type VrchatFavoriteGroupSaveInput = {
-    ownerId?: string;
     type?: string;
     group?: string;
     displayName: string | null;
@@ -5668,14 +5671,10 @@ export type VrchatMediaPrintUploadInput = {
 };
 export type VrchatMediaPrintsInput = { userId?: string; n?: number };
 export type VrchatMediaProfileDecorationEquipInput = {
-    expectedUserId?: string;
     inventoryId?: string;
     equipSlot?: string;
 };
-export type VrchatMediaProfileDecorationUnequipInput = {
-    expectedUserId?: string;
-    equipSlot?: string;
-};
+export type VrchatMediaProfileDecorationUnequipInput = { equipSlot?: string };
 export type VrchatMediaRewardRedeemInput = { code?: string };
 export type VrchatMediaUserInventoryItemInput = {
     userId?: string;

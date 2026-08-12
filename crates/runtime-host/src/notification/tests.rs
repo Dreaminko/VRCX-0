@@ -190,6 +190,7 @@ fn test_realtime_runtime(
             tasks: vrcx_0_application_core::TaskSupervisor::new(),
             session: vrcx_0_application_core::HostSessionRuntime::new(),
             auth_scope: vrcx_0_application_core::RuntimeAuthScope::new(),
+            remote_mutations: Arc::new(vrcx_0_application_core::RemoteMutationGate::default()),
             local_game_context: Arc::new(
                 vrcx_0_application_core::UnavailableLocalGameContextSource,
             ),

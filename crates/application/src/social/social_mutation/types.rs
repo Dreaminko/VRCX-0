@@ -12,15 +12,13 @@ pub struct SocialMutationDeps<'a> {
     pub db: &'a DatabaseService,
     pub web: &'a WebClient,
     pub auth_scope: &'a RuntimeAuthScope,
+    pub remote_mutations: &'a crate::RemoteMutationGate,
     pub realtime: &'a Arc<RealtimeHostRuntime>,
 }
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialFriendMutationInput {
-    pub owner_user_id: String,
-    #[serde(default)]
-    pub endpoint: String,
     pub target_user_id: String,
     #[serde(default)]
     pub target_display_name: String,
@@ -29,9 +27,6 @@ pub struct SocialFriendMutationInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialFriendRequestCancelInput {
-    pub owner_user_id: String,
-    #[serde(default)]
-    pub endpoint: String,
     pub target_user_id: String,
     #[serde(default)]
     pub target_display_name: String,
@@ -42,9 +37,6 @@ pub struct SocialFriendRequestCancelInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialFriendRequestAcceptInput {
-    pub owner_user_id: String,
-    #[serde(default)]
-    pub endpoint: String,
     pub notification_id: String,
     pub target_user_id: String,
     #[serde(default)]

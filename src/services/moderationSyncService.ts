@@ -73,7 +73,7 @@ export async function updateModerationSync(
     try {
         const result = await commands.appModerationSyncUpdate(input);
         publishModerationSyncChange({
-            ownerUserId: input.ownerUserId || ''
+            ownerUserId: result.ownerUserId
         });
         return result;
     } catch (error) {

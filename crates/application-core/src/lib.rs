@@ -13,6 +13,7 @@ mod image_cache;
 mod interruptible_sleep;
 pub mod ports;
 mod proxy;
+mod remote_mutation_gate;
 mod runtime_lifecycle;
 mod runtime_output;
 mod runtime_status;
@@ -44,8 +45,9 @@ pub use error::Error;
 #[cfg(any(test, feature = "test-utils"))]
 pub use event_bus::RuntimeEventForTest;
 pub use event_bus::{
-    FavoritesChangedPayload, RuntimeEventBus, RuntimeEventPayload, RuntimeEventSink,
-    RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload, VrcStatusSnapshot,
+    FavoriteChange, FavoritesChangedPayload, RuntimeEventBus, RuntimeEventPayload,
+    RuntimeEventSink, RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload,
+    VrcStatusSnapshot,
 };
 pub use events::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, FriendProjection,
@@ -68,6 +70,9 @@ pub use ports::{
     UpdaterMetadata, UpdaterPort, UpdaterProgressCallback,
 };
 pub use proxy::{load_proxy_url, test_proxy_connectivity, ProxySettingsTestResult};
+pub use remote_mutation_gate::{
+    is_remote_mutation_request, AuthenticatedMutationContext, RemoteMutationGate,
+};
 pub use runtime_lifecycle::{RuntimeLifecycle, RuntimeLifecycleSnapshot};
 pub use runtime_output::{
     format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputLine, RuntimeOutputMode,

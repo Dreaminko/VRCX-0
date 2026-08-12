@@ -9,8 +9,6 @@ describe('favoriteBulkRemove', () => {
     it('builds one mixed local and remote batch', () => {
         expect(
             buildFavoriteBulkRemoveInput({
-                expectedEndpoint: 'https://api.example.test',
-                expectedOwnerUserId: 'usr_self',
                 kind: 'world',
                 items: [
                     {
@@ -30,8 +28,6 @@ describe('favoriteBulkRemove', () => {
                 ]
             })
         ).toEqual({
-            expectedEndpoint: 'https://api.example.test',
-            expectedOwnerUserId: 'usr_self',
             kind: 'world',
             items: [
                 {
@@ -96,8 +92,6 @@ describe('favoriteBulkRemove', () => {
     it('rejects history entries instead of treating them as remote favorites', () => {
         expect(() =>
             buildFavoriteBulkRemoveInput({
-                expectedEndpoint: 'https://api.example.test',
-                expectedOwnerUserId: 'usr_self',
                 kind: 'world',
                 items: [
                     {

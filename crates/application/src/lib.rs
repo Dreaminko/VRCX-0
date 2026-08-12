@@ -6,7 +6,6 @@ mod collections;
 mod event_payloads;
 mod favorites;
 mod media;
-mod remote_mutation_gate;
 mod scope_gate;
 mod social;
 mod system;
@@ -37,6 +36,10 @@ pub use authenticated_runtime::{
     AuthenticatedRuntimeStepStatus,
 };
 pub use avatars::{
+    delete_avatar, execute_avatar_remote_mutation, save_avatar, select_avatar,
+    AvatarRemoteMutationDeps, AvatarSelectionMutationOutcome,
+};
+pub use avatars::{
     get_my_avatar_by_id, get_my_avatars, MyAvatarByIdInput, MyAvatarsDeps, MyAvatarsInput,
 };
 pub use background_capabilities::{
@@ -57,11 +60,12 @@ pub use collections::{
     VrchatSharedCollectionImportActions, SHARED_COLLECTION_IMPORT_MAX_WORLDS,
 };
 pub use collections::{preview_shared_collection, ImportPreview};
+pub(crate) use favorites::create_local_favorite_group;
 pub use favorites::{
-    add_local_favorite, create_local_favorite_group, delete_local_favorite_entries,
-    delete_local_favorite_group, get_local_favorite_snapshot, list_local_favorites,
-    remove_local_favorite, rename_local_favorite_entries, rename_local_favorite_group, FavoriteRow,
-    LocalFavoriteGroupWrite, LocalFavoriteSnapshot,
+    add_local_favorite_scoped, create_local_favorite_group_scoped,
+    delete_local_favorite_group_scoped, get_local_favorite_snapshot, list_local_favorites,
+    remove_local_favorite_scoped, rename_local_favorite_group_scoped, FavoriteRow,
+    LocalFavoriteGroupWrite, LocalFavoriteMutationDeps, LocalFavoriteSnapshot,
 };
 pub use favorites::{
     add_remote_favorite, clear_remote_favorite_group, delete_remote_favorite,
@@ -99,7 +103,6 @@ pub use media::{
     InventoryItemsCollectOutput, LegacyEntityImageKind, LegacyEntityImageUploadInput,
     LegacyMediaUploadDeps,
 };
-pub use remote_mutation_gate::RemoteMutationGate;
 pub use social::{
     accept_friend_request, accept_friend_request_notification, cancel_friend_request,
     send_friend_request, unfriend, unfriend_batch, unfriend_selection, SocialFriendMutationInput,
@@ -261,6 +264,9 @@ pub use vrcx_0_application_core::validate_config_writes;
 pub use vrcx_0_application_core::OverlayActivityInputSink;
 pub use vrcx_0_application_core::{
     format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputLine, RuntimeOutputMode,
+};
+pub use vrcx_0_application_core::{
+    is_remote_mutation_request, AuthenticatedMutationContext, RemoteMutationGate,
 };
 pub use vrcx_0_application_core::{
     recommended_tokio_max_blocking_threads, recommended_tokio_max_blocking_threads_for,

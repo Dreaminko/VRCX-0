@@ -28,8 +28,6 @@ type UserModerationActionsOptions = {
     actionStatusRef: MutableRefObject<string>;
     avatarOverrideState: AvatarOverrideState;
     confirm: ConfirmFn;
-    currentEndpoint?: string;
-    currentUserId?: string;
     isCurrentUser: boolean;
     moderationRevisionRef: MutableRefObject<number>;
     moderationState: ModerationState;
@@ -47,8 +45,6 @@ export function useUserModerationActions({
     actionStatusRef,
     avatarOverrideState,
     confirm,
-    currentEndpoint,
-    currentUserId,
     isCurrentUser,
     moderationRevisionRef,
     moderationState,
@@ -105,8 +101,6 @@ export function useUserModerationActions({
                 [type]: enabled
             };
             const result = await updateModerationSync({
-                ownerUserId: normalizedCurrentUserId || currentUserId || '',
-                endpoint: currentEndpoint,
                 targetUserId: rosterUserId,
                 targetDisplayName: profile?.displayName || rosterUserId,
                 type,
@@ -185,8 +179,6 @@ export function useUserModerationActions({
 
         try {
             await updateModerationSync({
-                ownerUserId: normalizedCurrentUserId || currentUserId || '',
-                endpoint: currentEndpoint,
                 targetUserId: rosterUserId,
                 targetDisplayName: profile?.displayName || rosterUserId,
                 type,

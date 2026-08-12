@@ -415,7 +415,6 @@ async function updateCurrentUser({
     );
     const cachedUser = getCachedQueryData(queryKey);
     const response = await commands.appVrchatCurrentUserUpdate({
-        userId: normalizedUserId,
         params
     });
     const json = unwrapVrchatUserResponse<UserRecord>(
@@ -443,7 +442,6 @@ async function updateCurrentUserProfile({
     }
 
     const response = await commands.appVrchatCurrentUserProfileUpdate({
-        expectedUserId: normalizedUserId,
         params
     });
     return unwrapVrchatUserResponse<UserProfileEntity>(
@@ -473,7 +471,6 @@ async function updateCurrentUserBadge({
     }
 
     const response = await commands.appVrchatCurrentUserBadgeUpdate({
-        userId: normalizedUserId,
         badgeId: normalizedBadgeId,
         hidden: Boolean(hidden),
         showcased: Boolean(showcased)
@@ -498,7 +495,6 @@ async function addCurrentUserTags({ userId, tags = [] }: CurrentUserTagsInput) {
     }
 
     const response = await commands.appVrchatCurrentUserTagsAdd({
-        userId: normalizedUserId,
         tags: Array.isArray(tags) ? tags.map(String) : []
     });
     const json = unwrapVrchatUserResponse(
@@ -523,7 +519,6 @@ async function removeCurrentUserTags({
     }
 
     const response = await commands.appVrchatCurrentUserTagsRemove({
-        userId: normalizedUserId,
         tags: Array.isArray(tags) ? tags.map(String) : []
     });
     const json = unwrapVrchatUserResponse(

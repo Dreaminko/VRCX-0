@@ -58,6 +58,7 @@ describe('usePlayerListModeration', () => {
             .mockResolvedValueOnce([moderation('usr_target', false)])
             .mockResolvedValueOnce([moderation('usr_target', true)]);
         mocks.appModerationSyncUpdate.mockResolvedValueOnce({
+            ownerUserId: 'usr_self',
             targetUserId: 'usr_target',
             type: 'block',
             enabled: true,
@@ -73,7 +74,6 @@ describe('usePlayerListModeration', () => {
 
         await act(async () => {
             await updateModerationSync({
-                ownerUserId: 'usr_self',
                 targetUserId: 'usr_target',
                 type: 'block',
                 enabled: true
@@ -91,6 +91,7 @@ describe('usePlayerListModeration', () => {
             moderation('usr_target', false)
         ]);
         mocks.appModerationSyncUpdate.mockResolvedValueOnce({
+            ownerUserId: 'usr_other',
             targetUserId: 'usr_target',
             type: 'block',
             enabled: true,
@@ -105,7 +106,6 @@ describe('usePlayerListModeration', () => {
 
         await act(async () => {
             await updateModerationSync({
-                ownerUserId: 'usr_other',
                 targetUserId: 'usr_target',
                 type: 'block',
                 enabled: true
@@ -121,6 +121,7 @@ describe('usePlayerListModeration', () => {
             .mockReturnValueOnce(staleLoad.promise)
             .mockResolvedValueOnce([moderation('usr_target', true)]);
         mocks.appModerationSyncUpdate.mockResolvedValueOnce({
+            ownerUserId: 'usr_self',
             targetUserId: 'usr_target',
             type: 'block',
             enabled: true,
@@ -132,7 +133,6 @@ describe('usePlayerListModeration', () => {
 
         await act(async () => {
             await updateModerationSync({
-                ownerUserId: 'usr_self',
                 targetUserId: 'usr_target',
                 type: 'block',
                 enabled: true

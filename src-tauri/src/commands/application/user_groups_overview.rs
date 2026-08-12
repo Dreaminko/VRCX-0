@@ -16,6 +16,8 @@ fn deps(state: &State<'_, AppState>) -> UserGroupsOverviewDeps {
             web: state.web.clone(),
             diagnostics: state.runtime_context.diagnostics.clone(),
             sync: state.runtime_context.sync.clone(),
+            auth_scope: state.runtime_context.auth_scope.clone(),
+            remote_mutations: state.runtime_context.remote_mutations.clone(),
         },
         auth_scope: state.runtime_context.auth_scope.clone(),
         session: state.runtime_context.session.clone(),

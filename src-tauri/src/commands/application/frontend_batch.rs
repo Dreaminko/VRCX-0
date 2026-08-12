@@ -93,6 +93,7 @@ pub async fn app__avatar_content_tags_batch(
         web: state.web.as_ref(),
         auth_scope: &state.runtime_context.auth_scope,
         expected_scope,
+        remote_mutation_gate: &state.runtime_context.remote_mutations,
     };
     Ok(run_avatar_content_tags_batch(&actions, input).await?)
 }
@@ -110,7 +111,7 @@ pub async fn app__group_moderation_batch(
         auth_scope: &state.runtime_context.auth_scope,
         expected_scope,
         event_bus: state.runtime_context.event_bus.clone(),
-        remote_mutation_gate: &state.remote_mutations,
+        remote_mutation_gate: &state.runtime_context.remote_mutations,
     };
     Ok(run_group_moderation_batch(&state.group_moderation_batches, &actions, input).await?)
 }
@@ -127,6 +128,7 @@ pub async fn app__notification_mark_seen_batch(
         web: state.web.as_ref(),
         auth_scope: &state.runtime_context.auth_scope,
         expected_scope,
+        remote_mutation_gate: &state.runtime_context.remote_mutations,
     };
     Ok(mark_notifications_seen_batch(&actions, input).await?)
 }
@@ -143,7 +145,7 @@ pub async fn app__instance_invite_batch(
         web: state.web.as_ref(),
         auth_scope: &state.runtime_context.auth_scope,
         expected_scope,
-        remote_mutation_gate: &state.remote_mutations,
+        remote_mutation_gate: &state.runtime_context.remote_mutations,
         world_cache: state.runtime_context.world_cache.as_ref(),
     };
     Ok(send_instance_invites_batch(&actions, input).await?)

@@ -31,10 +31,9 @@ vi.mock('@/state/runtimeStore', () => ({
         })
 }));
 
-import {
-    useFavoriteRemoteDetails
-} from './useFavoriteRemoteDetails';
 import { useFavoriteRevisionStore } from '@/state/favoriteRevisionStore';
+
+import { useFavoriteRemoteDetails } from './useFavoriteRemoteDetails';
 
 describe('useFavoriteRemoteDetails', () => {
     afterEach(() => {
@@ -321,7 +320,9 @@ describe('useFavoriteRemoteDetails', () => {
         act(() => {
             useFavoriteRevisionStore.getState().bumpRevision({
                 kind: 'world',
-                remote: true
+                local: false,
+                remote: true,
+                requiresRefresh: false
             });
         });
         await waitFor(() => {
@@ -343,7 +344,9 @@ describe('useFavoriteRemoteDetails', () => {
         act(() => {
             useFavoriteRevisionStore.getState().bumpRevision({
                 kind: 'avatar',
-                remote: true
+                local: false,
+                remote: true,
+                requiresRefresh: false
             });
         });
 

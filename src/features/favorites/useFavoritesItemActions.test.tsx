@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
     boopPrompt: vi.fn(),
     clearAvatarHistory: vi.fn(),
     confirm: vi.fn(),
-    createLocalFavoriteGroup: vi.fn(),
     selectAvatar: vi.fn(),
     sendInvite: vi.fn(),
     toastError: vi.fn(),
@@ -37,17 +36,6 @@ vi.mock('@/state/modalStore', () => ({
         selector({
             boopPrompt: mocks.boopPrompt,
             confirm: mocks.confirm
-        })
-}));
-
-vi.mock('@/state/favoriteStore', () => ({
-    useFavoriteStore: (
-        selector: (state: {
-            createLocalFavoriteGroup: typeof mocks.createLocalFavoriteGroup;
-        }) => unknown
-    ) =>
-        selector({
-            createLocalFavoriteGroup: mocks.createLocalFavoriteGroup
         })
 }));
 
@@ -114,7 +102,6 @@ function renderActions(
             kind: overrides.kind ?? 'friend',
             localGroups: [],
             newLocalGroupName: '',
-            reloadLocalWorldFavorites: vi.fn(),
             refreshing: false,
             selectedContentItems: [],
             selectedSource: overrides.selectedSource ?? 'remote',

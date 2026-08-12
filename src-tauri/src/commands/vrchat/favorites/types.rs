@@ -48,8 +48,6 @@ pub struct VrchatFavoriteDeleteInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatFavoriteGroupSaveInput {
-    #[serde(default)]
-    pub(crate) owner_id: String,
     #[serde(default, rename = "type")]
     pub(crate) type_name: String,
     #[serde(default)]
@@ -61,8 +59,6 @@ pub struct VrchatFavoriteGroupSaveInput {
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct VrchatFavoriteGroupClearInput {
-    #[serde(default)]
-    pub(crate) owner_id: String,
     #[serde(default, rename = "type")]
     pub(crate) type_name: String,
     #[serde(default)]

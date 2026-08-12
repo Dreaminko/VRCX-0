@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
+use vrcx_0_application::AuthenticatedMutationContext;
 use vrcx_0_application_core::vrchat_api::users::{
     current_user_badge_update_input, current_user_tags_add_input, current_user_tags_remove_input,
     current_user_update_input, profile_get_input, profile_update_input, user_groups_get_input,
@@ -29,28 +30,39 @@ async fn execute_user_read_api(
 }
 
 async fn execute_current_user_api(
-    state: State<'_, AppState>,
+    state: &AppState,
+    mutation: &AuthenticatedMutationContext<'_>,
     command: &str,
     detail: impl Into<String>,
     input: VrchatApiRequest,
 ) -> Result<VrchatApiResponse, AppError> {
-    super::super::execute::execute_vrchat_api(state, command, detail, input, VrchatScope::Vrchat)
-        .await
+    super::super::execute::execute_vrchat_mutation(
+        state,
+        mutation,
+        command,
+        detail,
+        input,
+        VrchatScope::Vrchat,
+    )
+    .await
 }
 
 async fn execute_current_user_api_then_invalidate(
-    state: State<'_, AppState>,
+    state: &AppState,
+    mutation: &AuthenticatedMutationContext<'_>,
     command: &str,
     detail: impl Into<String>,
-    user_id: String,
     input: VrchatApiRequest,
 ) -> Result<VrchatApiResponse, AppError> {
-    let realtime_runtime = state.realtime_runtime.clone();
-    let result = execute_current_user_api(state, command, detail, input).await;
+    let result = execute_current_user_api(state, mutation, command, detail, input).await;
     if let Ok(response) = &result {
         if (200..300).contains(&response.status) {
-            realtime_runtime
-                .invalidate_user_query_cache(VRCHAT_API_DEFAULT_ENDPOINT, &user_id)
+            state
+                .realtime_runtime
+                .invalidate_user_query_cache(
+                    &mutation.scope().endpoint,
+                    &mutation.scope().current_user_id,
+                )
                 .await;
         }
     }
@@ -83,21 +95,22 @@ pub async fn app__vrchat_current_user_profile_update(
     state: State<'_, AppState>,
     input: VrchatCurrentUserProfileUpdateInput,
 ) -> Result<VrchatApiResponse, AppError> {
-    super::super::execute::require_auth_scope(
+    let mutation = AuthenticatedMutationContext::capture(
         &state.runtime_context.auth_scope,
-        &input.expected_user_id,
-        "Profile mutation is stale for the current auth scope.",
+        &state.runtime_context.remote_mutations,
+        "Current-user profile mutation",
     )?;
+    let scope = mutation.scope();
     let (user_id, request) = profile_update_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.expected_user_id,
+        scope.endpoint.clone(),
+        scope.current_user_id.clone(),
         input.params,
     )?;
     execute_current_user_api_then_invalidate(
-        state,
+        state.inner(),
+        &mutation,
         "app__vrchat_current_user_profile_update",
         format!("Updating profile for current user {user_id}."),
-        user_id,
         request,
     )
     .await
@@ -180,16 +193,22 @@ pub async fn app__vrchat_current_user_update(
     state: State<'_, AppState>,
     input: VrchatCurrentUserUpdateInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let mutation = AuthenticatedMutationContext::capture(
+        &state.runtime_context.auth_scope,
+        &state.runtime_context.remote_mutations,
+        "Current-user mutation",
+    )?;
+    let scope = mutation.scope();
     let (user_id, request) = current_user_update_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.user_id,
+        scope.endpoint.clone(),
+        scope.current_user_id.clone(),
         input.params,
     )?;
     execute_current_user_api_then_invalidate(
-        state,
+        state.inner(),
+        &mutation,
         "app__vrchat_current_user_update",
         format!("Updating current user {user_id}."),
-        user_id,
         request,
     )
     .await
@@ -201,15 +220,22 @@ pub async fn app__vrchat_current_user_badge_update(
     state: State<'_, AppState>,
     input: VrchatCurrentUserBadgeInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let mutation = AuthenticatedMutationContext::capture(
+        &state.runtime_context.auth_scope,
+        &state.runtime_context.remote_mutations,
+        "Current-user badge mutation",
+    )?;
+    let scope = mutation.scope();
     let (user_id, badge_id, request) = current_user_badge_update_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.user_id,
+        scope.endpoint.clone(),
+        scope.current_user_id.clone(),
         input.badge_id,
         input.hidden,
         input.showcased,
     )?;
     execute_current_user_api(
-        state,
+        state.inner(),
+        &mutation,
         "app__vrchat_current_user_badge_update",
         format!("Updating badge {badge_id} for current user {user_id}."),
         request,
@@ -223,16 +249,22 @@ pub async fn app__vrchat_current_user_tags_add(
     state: State<'_, AppState>,
     input: VrchatCurrentUserTagsInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let mutation = AuthenticatedMutationContext::capture(
+        &state.runtime_context.auth_scope,
+        &state.runtime_context.remote_mutations,
+        "Current-user tags mutation",
+    )?;
+    let scope = mutation.scope();
     let (user_id, request) = current_user_tags_add_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.user_id,
+        scope.endpoint.clone(),
+        scope.current_user_id.clone(),
         input.tags,
     )?;
     execute_current_user_api_then_invalidate(
-        state,
+        state.inner(),
+        &mutation,
         "app__vrchat_current_user_tags_add",
         format!("Adding tags to current user {user_id}."),
-        user_id,
         request,
     )
     .await
@@ -244,16 +276,22 @@ pub async fn app__vrchat_current_user_tags_remove(
     state: State<'_, AppState>,
     input: VrchatCurrentUserTagsInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let mutation = AuthenticatedMutationContext::capture(
+        &state.runtime_context.auth_scope,
+        &state.runtime_context.remote_mutations,
+        "Current-user tags mutation",
+    )?;
+    let scope = mutation.scope();
     let (user_id, request) = current_user_tags_remove_input(
-        VRCHAT_API_DEFAULT_ENDPOINT.into(),
-        input.user_id,
+        scope.endpoint.clone(),
+        scope.current_user_id.clone(),
         input.tags,
     )?;
     execute_current_user_api_then_invalidate(
-        state,
+        state.inner(),
+        &mutation,
         "app__vrchat_current_user_tags_remove",
         format!("Removing tags from current user {user_id}."),
-        user_id,
         request,
     )
     .await

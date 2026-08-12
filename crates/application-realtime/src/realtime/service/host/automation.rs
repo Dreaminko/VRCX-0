@@ -1,9 +1,12 @@
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::time::Duration;
 use vrcx_0_application_core::RuntimeOperationStatus;
 
 use serde_json::{json, Value};
-use vrcx_0_application_core::{Error, LocalGameContextSnapshot, Result};
+use vrcx_0_application_core::{
+    AuthenticatedMutationContext, Error, LocalGameContextSnapshot, Result,
+};
 use vrcx_0_core::json::JsonExt;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::config as config_store;
@@ -25,6 +28,8 @@ use crate::social_baseline::{
 
 use super::message_dispatch::json_string_field;
 use super::RealtimeHostRuntime;
+
+const INVITE_AUTOMATION_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
 impl RealtimeHostRuntime {
     pub(super) fn schedule_invite_automation(
@@ -167,10 +172,27 @@ impl RealtimeHostRuntime {
                 "rsvp": true,
             }),
         )?;
-        let response = self
-            .deps
-            .web
-            .execute_api(request, ApiScope::Vrchat, self.deps.db.as_ref())
+        let mutation = AuthenticatedMutationContext::capture(
+            &self.deps.auth_scope,
+            self.deps.remote_mutations.as_ref(),
+            "Invite automation",
+        )?;
+        if mutation.scope().current_user_id != session.user_id
+            || mutation.scope().endpoint != session.endpoint
+        {
+            return Err(Error::Custom(
+                "Invite automation authentication scope changed.".into(),
+            ));
+        }
+        let mut request = request;
+        mutation.apply_scope_to_request(&mut request);
+        let response = mutation
+            .run_after_wait(INVITE_AUTOMATION_REMOTE_MUTATION_INTERVAL, || async {
+                self.deps
+                    .web
+                    .execute_api(request, ApiScope::Vrchat, self.deps.db.as_ref())
+                    .await
+            })
             .await?;
         if !(200..=299).contains(&response.status) {
             return Err(Error::Custom(format!(
@@ -179,7 +201,7 @@ impl RealtimeHostRuntime {
             )));
         }
 
-        self.cleanup_invite_request_notification(&session, &notification_facts)
+        self.cleanup_invite_request_notification(&mutation, &notification_facts)
             .await;
         self.deps.sync.record(
             "inviteAutomation",
@@ -275,11 +297,11 @@ impl RealtimeHostRuntime {
 
     async fn cleanup_invite_request_notification(
         &self,
-        session: &RealtimeSessionContext,
+        mutation: &AuthenticatedMutationContext<'_>,
         facts: &InviteNotificationFacts,
     ) {
         let Ok((_, request)) = notification_hide_remote_input(
-            session.endpoint.clone(),
+            mutation.scope().endpoint.clone(),
             facts.id.clone(),
             facts.version,
             facts.notification_type.clone(),
@@ -287,15 +309,23 @@ impl RealtimeHostRuntime {
         ) else {
             return;
         };
-        if let Err(error) = self
-            .deps
-            .web
-            .execute_api(request, ApiScope::Vrchat, self.deps.db.as_ref())
-            .await
-        {
+        let mut request = request;
+        mutation.apply_scope_to_request(&mut request);
+        let result = mutation
+            .run_after_wait(INVITE_AUTOMATION_REMOTE_MUTATION_INTERVAL, || async {
+                self.deps
+                    .web
+                    .execute_api(request, ApiScope::Vrchat, self.deps.db.as_ref())
+                    .await
+            })
+            .await;
+        if let Err(error) = result {
             tracing::warn!("invite automation notification hide failed: {error}");
+            return;
         }
-        if let Err(error) = self.expire_notification(session.user_id.clone(), facts.id.clone()) {
+        if let Err(error) =
+            self.expire_notification(mutation.scope().current_user_id.clone(), facts.id.clone())
+        {
             tracing::warn!("invite automation local notification expiration failed: {error}");
         }
         self.deps

@@ -60,7 +60,9 @@ export function useModerationRowActions({
               });
         if (
             !result.ok ||
-            useRuntimeStore.getState().auth.currentUserId !== ownerUserId
+            useRuntimeStore.getState().auth.currentUserId !== ownerUserId ||
+            useRuntimeStore.getState().auth.currentUserEndpoint !==
+                currentEndpoint
         ) {
             return;
         }
@@ -72,14 +74,16 @@ export function useModerationRowActions({
         setDeletingModerationKey(rowKey);
         try {
             await updateModerationSync({
-                ownerUserId,
-                endpoint: currentEndpoint,
                 targetUserId,
                 targetDisplayName: row.targetDisplayName || targetUserId,
                 type,
                 enabled: false
             });
-            if (useRuntimeStore.getState().auth.currentUserId !== ownerUserId) {
+            if (
+                useRuntimeStore.getState().auth.currentUserId !== ownerUserId ||
+                useRuntimeStore.getState().auth.currentUserEndpoint !==
+                    currentEndpoint
+            ) {
                 return;
             }
             const response = await refreshModerationSync({

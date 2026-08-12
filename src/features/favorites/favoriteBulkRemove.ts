@@ -6,13 +6,9 @@ import type {
 import type { FavoriteItem, FavoriteKind } from './favoritesTypes';
 
 export function buildFavoriteBulkRemoveInput({
-    expectedEndpoint,
-    expectedOwnerUserId,
     items,
     kind
 }: {
-    expectedEndpoint: string;
-    expectedOwnerUserId: string;
     items: FavoriteItem[];
     kind: FavoriteKind;
 }): FavoriteBulkRemoveInput {
@@ -30,8 +26,6 @@ export function buildFavoriteBulkRemoveInput({
         };
     });
     return {
-        expectedEndpoint,
-        expectedOwnerUserId,
         kind,
         items: batchItems
     };

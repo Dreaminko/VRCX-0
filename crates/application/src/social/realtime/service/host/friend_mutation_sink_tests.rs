@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::time::Duration;
+use std::{sync::OnceLock, time::Duration};
 
 use serde_json::json;
 use vrcx_0_application_core::{Result, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
@@ -18,7 +18,7 @@ use vrcx_0_persistence::realtime::{
 };
 
 use crate::social::social_mutation::{apply_friend_request_accept_locally, apply_unfriend_locally};
-use crate::{SocialFriendMutationStatus, SocialMutationDeps};
+use crate::{RemoteMutationGate, SocialFriendMutationStatus, SocialMutationDeps};
 
 #[derive(Clone, Copy)]
 struct DiscardTaskExecutor;
@@ -42,10 +42,12 @@ impl RuntimeTaskHandle for FinishedTaskHandle {
 }
 
 fn deps(runtime: &TestRealtimeHostRuntime) -> SocialMutationDeps<'_> {
+    static REMOTE_MUTATIONS: OnceLock<RemoteMutationGate> = OnceLock::new();
     SocialMutationDeps {
         db: runtime.database(),
         web: runtime.web_client(),
         auth_scope: runtime.auth_scope(),
+        remote_mutations: REMOTE_MUTATIONS.get_or_init(RemoteMutationGate::default),
         realtime: runtime.runtime(),
     }
 }

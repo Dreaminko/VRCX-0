@@ -151,7 +151,7 @@ impl SharedCollectionImportRuntime {
             #[cfg(test)]
             if let Some(test_runner) = runtime.test_runner.clone() {
                 let result = test_runner(prepared, Arc::clone(&cancel)).await;
-                runtime.finish(&run_id, result);
+                runtime.finish(&run_id, &scope, result);
                 return;
             }
             let actions = VrchatSharedCollectionImportActions {
@@ -180,7 +180,7 @@ impl SharedCollectionImportRuntime {
                 },
             )
             .await;
-            runtime.finish(&run_id, result);
+            runtime.finish(&run_id, &scope, result);
         });
 
         Ok(status)
@@ -233,24 +233,33 @@ impl SharedCollectionImportRuntime {
     fn finish(
         &self,
         run_id: &str,
+        scope: &RuntimeAuthScopeSnapshot,
         result: vrcx_0_application_core::Result<SharedCollectionImportResult>,
     ) {
         let terminal = {
-            let mut inner = self.lock_inner();
-            let Some(terminal) = apply_terminal_result(&mut inner, run_id, result) else {
+            let inner = self.lock_inner();
+            let Some(terminal) = prepare_terminal_result(&inner, run_id, result) else {
                 return;
             };
             terminal
         };
         if terminal.emit_favorites_changed {
             self.event_bus
-                .emit_favorites_changed(FavoritesChangedPayload {
-                    kind: vrcx_0_application_core::FavoriteChangeScope::World,
-                    local: true,
-                    remote: false,
-                });
+                .emit_favorites_changed(FavoritesChangedPayload::invalidated(
+                    scope,
+                    vrcx_0_application_core::FavoriteChangeScope::World,
+                    true,
+                    false,
+                ));
         }
-        self.emit_status(terminal.status);
+        let status = {
+            let mut inner = self.lock_inner();
+            if !commit_terminal_status(&mut inner, run_id, terminal.status) {
+                return;
+            }
+            inner.status.clone()
+        };
+        self.emit_status(status);
     }
 
     fn emit_status(&self, status: SharedCollectionImportStatus) {
@@ -286,37 +295,50 @@ fn mark_cancelling_if_scope_mismatch(
     true
 }
 
-fn apply_terminal_result(
-    inner: &mut SharedCollectionImportRuntimeInner,
+fn prepare_terminal_result(
+    inner: &SharedCollectionImportRuntimeInner,
     run_id: &str,
     result: vrcx_0_application_core::Result<SharedCollectionImportResult>,
 ) -> Option<AppliedSharedCollectionImportTerminal> {
     if inner.status.run_id != run_id || !is_active_status(inner.status.status) {
         return None;
     }
+    let mut status = inner.status.clone();
     match result {
         Ok(result) => {
-            inner.status.processed = result.processed;
-            inner.status.imported = result.imported;
-            inner.status.failed = result.failed;
-            inner.status.last_error = result.last_error;
-            inner.status.status = if result.cancelled {
+            status.processed = result.processed;
+            status.imported = result.imported;
+            status.failed = result.failed;
+            status.last_error = result.last_error;
+            status.status = if result.cancelled {
                 SharedCollectionImportState::Cancelled
             } else {
                 SharedCollectionImportState::Completed
             };
         }
         Err(error) => {
-            inner.status.status = SharedCollectionImportState::Error;
-            inner.status.last_error = Some(error.to_string());
+            status.status = SharedCollectionImportState::Error;
+            status.last_error = Some(error.to_string());
         }
     }
-    inner.status.finished_at = Some(Utc::now().to_rfc3339());
-    inner.cancel = None;
+    status.finished_at = Some(Utc::now().to_rfc3339());
     Some(AppliedSharedCollectionImportTerminal {
-        emit_favorites_changed: inner.status.imported > 0,
-        status: inner.status.clone(),
+        emit_favorites_changed: status.imported > 0,
+        status,
     })
+}
+
+fn commit_terminal_status(
+    inner: &mut SharedCollectionImportRuntimeInner,
+    run_id: &str,
+    status: SharedCollectionImportStatus,
+) -> bool {
+    if inner.status.run_id != run_id || !is_active_status(inner.status.status) {
+        return false;
+    }
+    inner.status = status;
+    inner.cancel = None;
+    true
 }
 
 struct AppliedSharedCollectionImportTerminal {
@@ -327,7 +349,9 @@ struct AppliedSharedCollectionImportTerminal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{path::PathBuf, time::Duration};
+    use serde_json::Value;
+    use std::{any::Any, path::PathBuf, sync::Condvar, time::Duration};
+    use vrcx_0_application_core::RuntimeEventSink;
     use vrcx_0_persistence::storage::StorageService;
 
     struct TestDir(PathBuf);
@@ -419,8 +443,13 @@ mod tests {
             ..Default::default()
         };
 
-        let terminal = apply_terminal_result(&mut inner, "run-1", Ok(result.clone()));
-        let duplicate = apply_terminal_result(&mut inner, "run-1", Ok(result));
+        let terminal = prepare_terminal_result(&inner, "run-1", Ok(result.clone()));
+        assert!(commit_terminal_status(
+            &mut inner,
+            "run-1",
+            terminal.as_ref().unwrap().status.clone()
+        ));
+        let duplicate = prepare_terminal_result(&inner, "run-1", Ok(result));
 
         assert_eq!(
             terminal.as_ref().unwrap().status.status,
@@ -430,8 +459,59 @@ mod tests {
         assert!(duplicate.is_none());
     }
 
+    #[derive(Clone, Default)]
+    struct BlockingFavoritesSink {
+        state: Arc<(Mutex<BlockingFavoritesSinkState>, Condvar)>,
+    }
+
+    #[derive(Default)]
+    struct BlockingFavoritesSinkState {
+        entered: bool,
+        released: bool,
+    }
+
+    impl BlockingFavoritesSink {
+        fn wait_until_entered(&self) {
+            let (state, changed) = self.state.as_ref();
+            let deadline = std::time::Instant::now() + Duration::from_secs(2);
+            let mut state = state.lock().unwrap();
+            while !state.entered {
+                let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+                assert!(!remaining.is_zero(), "favoritesChanged was not emitted");
+                let (next, timeout) = changed.wait_timeout(state, remaining).unwrap();
+                state = next;
+                assert!(
+                    !timeout.timed_out() || state.entered,
+                    "favoritesChanged was not emitted"
+                );
+            }
+        }
+
+        fn release(&self) {
+            let (state, changed) = self.state.as_ref();
+            let mut state = state.lock().unwrap();
+            state.released = true;
+            changed.notify_all();
+        }
+    }
+
+    impl RuntimeEventSink for BlockingFavoritesSink {
+        fn emit(&self, event: &str, _payload: Value, _typed_payload: &dyn Any) {
+            if event != "favoritesChanged" {
+                return;
+            }
+            let (state, changed) = self.state.as_ref();
+            let mut state = state.lock().unwrap();
+            state.entered = true;
+            changed.notify_all();
+            while !state.released {
+                state = changed.wait(state).unwrap();
+            }
+        }
+    }
+
     #[test]
-    fn runtime_start_is_single_flight_and_cancel_emits_one_terminal_refresh() {
+    fn terminal_status_is_committed_after_favorites_changed_delivery() {
         let dir = TestDir::new("lifecycle");
         let db = Arc::new(DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap());
         let storage = StorageService::new(&dir.0.join("storage.json")).unwrap();
@@ -446,6 +526,8 @@ mod tests {
         );
         let world_cache = Arc::new(WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60)));
         let event_bus = RuntimeEventBus::new();
+        let blocking_sink = BlockingFavoritesSink::default();
+        event_bus.set_sink(blocking_sink.clone());
         let tasks = TaskSupervisor::new();
         let auth_scope = RuntimeAuthScope::new();
         auth_scope.set("usr_current", "https://api.vrchat.cloud/api/1");
@@ -486,6 +568,12 @@ mod tests {
 
         let cancelling = runtime.cancel();
         assert_eq!(cancelling.status, SharedCollectionImportState::Cancelling);
+        blocking_sink.wait_until_entered();
+        assert_eq!(
+            runtime.status().status,
+            SharedCollectionImportState::Cancelling
+        );
+        blocking_sink.release();
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         while is_active_status(runtime.status().status) && std::time::Instant::now() < deadline {
             std::thread::sleep(Duration::from_millis(10));

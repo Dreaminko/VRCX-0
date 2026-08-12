@@ -933,6 +933,7 @@ mod activity_output_tests {
             512,
             Duration::from_secs(30 * 60),
         ));
+        let remote_mutations = Arc::new(vrcx_0_application::RemoteMutationGate::default());
         let realtime_runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
             db: Arc::clone(&db),
             web: Arc::clone(&web),
@@ -941,6 +942,7 @@ mod activity_output_tests {
             tasks: tasks.clone(),
             session,
             auth_scope: auth_scope.clone(),
+            remote_mutations: Arc::clone(&remote_mutations),
             local_game_context: Arc::new(UnavailableLocalGameContextSource),
             activity_sink: None,
             world_cache,
@@ -956,6 +958,7 @@ mod activity_output_tests {
             auth_scope,
             config: ConfigRepository::new(db),
             mutual_graph_fetch: MutualGraphFetchRuntime::new(),
+            remote_mutations,
             tasks,
             caller: crate::runtime::McpCaller::ExternalServer,
         };

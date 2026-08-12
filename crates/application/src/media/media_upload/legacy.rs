@@ -1,4 +1,6 @@
+use std::time::Duration;
 use vrcx_0_media::media_files;
+
 use vrcx_0_vrchat_client::http_api::{
     normalize_text, ApiScope, HttpApiExecuteResponse, HttpApiRequestInput,
 };
@@ -12,6 +14,8 @@ use crate::{Error, Result};
 use serde_json::{json, Map, Value};
 
 use super::{LegacyEntityImageKind, LegacyEntityImageUploadInput, LegacyMediaUploadDeps};
+
+const LEGACY_MEDIA_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
 struct LegacyEntityImageTarget {
     entity_label: &'static str,
@@ -44,7 +48,7 @@ pub async fn upload_legacy_entity_image(
             target.entity_label
         ),
     )?;
-    let endpoint = normalize_media_endpoint(&input.endpoint);
+    let endpoint = normalize_media_endpoint(&deps.mutation.scope().endpoint);
     let source_file_id = extract_file_id(&input.image_url);
     if source_file_id.is_empty() {
         return Err(Error::Custom(format!(
@@ -125,12 +129,7 @@ pub async fn upload_legacy_entity_image(
         }
         execute_media_success(
             &deps,
-            file_put_input(
-                upload_url,
-                file_data,
-                file_mime.to_string(),
-                file_md5,
-            ),
+            file_put_input(upload_url, file_data, file_mime.to_string(), file_md5),
             &format!("{} image file PUT failed", target.entity_label),
         )
         .await?;
@@ -189,12 +188,7 @@ async fn execute_media_json(
     input: HttpApiRequestInput,
     fallback_message: &str,
 ) -> Result<Value> {
-    response_json(
-        deps.web
-            .execute_api(input, ApiScope::VrchatMedia, deps.db)
-            .await?,
-        fallback_message,
-    )
+    response_json(execute_media_request(deps, input).await?, fallback_message)
 }
 
 async fn execute_media_success(
@@ -202,10 +196,7 @@ async fn execute_media_success(
     input: HttpApiRequestInput,
     fallback_message: &str,
 ) -> Result<()> {
-    let response = deps
-        .web
-        .execute_api(input, ApiScope::VrchatMedia, deps.db)
-        .await?;
+    let response = execute_media_request(deps, input).await?;
     if response.status < 200 || response.status >= 300 {
         return Err(Error::Custom(format!(
             "{fallback_message} ({})",
@@ -213,6 +204,20 @@ async fn execute_media_success(
         )));
     }
     Ok(())
+}
+
+async fn execute_media_request(
+    deps: &LegacyMediaUploadDeps<'_>,
+    mut input: HttpApiRequestInput,
+) -> Result<HttpApiExecuteResponse> {
+    deps.mutation.apply_scope_to_request(&mut input);
+    deps.mutation
+        .run_after_wait(LEGACY_MEDIA_REMOTE_MUTATION_INTERVAL, || async move {
+            deps.web
+                .execute_api(input, ApiScope::VrchatMedia, deps.db)
+                .await
+        })
+        .await
 }
 
 fn response_json(response: HttpApiExecuteResponse, fallback_message: &str) -> Result<Value> {

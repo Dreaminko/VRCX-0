@@ -479,6 +479,7 @@ impl RuntimeHostStateBuilder {
             tasks: self.runtime_context.tasks.clone(),
             session: self.runtime_context.session.clone(),
             auth_scope: self.runtime_context.auth_scope.clone(),
+            remote_mutations: Arc::clone(&self.runtime_context.remote_mutations),
             local_game_context,
             activity_sink: Some(Arc::new(self.runtime_context.overlay_activity())),
             world_cache: Arc::clone(&self.runtime_context.world_cache),
@@ -489,6 +490,8 @@ impl RuntimeHostStateBuilder {
                     db: Arc::clone(&self.runtime_context.db),
                     web: Arc::clone(&self.runtime_context.web),
                     event_bus: self.runtime_context.event_bus.clone(),
+                    auth_scope: self.runtime_context.auth_scope.clone(),
+                    remote_mutations: Arc::clone(&self.runtime_context.remote_mutations),
                 },
             )),
             friend_note_change_sink,
@@ -527,6 +530,7 @@ impl RuntimeHostStateBuilder {
             self.runtime_context.event_bus.clone(),
             self.runtime_context.tasks.clone(),
             self.runtime_context.auth_scope.clone(),
+            Arc::clone(&self.runtime_context.remote_mutations),
         );
         let group_ban_import = GroupBanImportRuntime::new(
             Arc::new(VrchatGroupBanImportActions {
@@ -535,6 +539,8 @@ impl RuntimeHostStateBuilder {
                     web: Arc::clone(&self.web),
                     diagnostics: self.runtime_context.diagnostics.clone(),
                     sync: self.runtime_context.sync.clone(),
+                    auth_scope: self.runtime_context.auth_scope.clone(),
+                    remote_mutations: Arc::clone(&self.runtime_context.remote_mutations),
                 },
             }),
             self.runtime_context.event_bus.clone(),

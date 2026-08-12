@@ -15,7 +15,12 @@ interface FavoriteRevisionStoreState {
     lastAttemptedRevision: number;
     pendingRemote: boolean;
     pendingUnknown: boolean;
-    bumpRevision(change: { kind: FavoriteRevisionKind; remote: boolean }): void;
+    bumpRevision(change: {
+        kind: FavoriteRevisionKind;
+        local: boolean;
+        remote: boolean;
+        requiresRefresh: boolean;
+    }): void;
     getPending(): FavoritePendingRevision;
     markAttempted(revision: number): void;
     acknowledge(revision: number): void;
@@ -37,11 +42,13 @@ const initialState = {
 export const useFavoriteRevisionStore = create<FavoriteRevisionStoreState>(
     (set, get) => ({
         ...initialState,
-        bumpRevision({ kind, remote }) {
+        bumpRevision({ kind, local, remote, requiresRefresh }) {
             set((state) => ({
                 revision: state.revision + 1,
                 localWorldRevision:
-                    !remote && (kind === 'world' || kind === 'unknown')
+                    requiresRefresh &&
+                    local &&
+                    (kind === 'world' || kind === 'unknown')
                         ? state.localWorldRevision + 1
                         : state.localWorldRevision,
                 remoteDetailsRevisionByKind: {
@@ -54,8 +61,11 @@ export const useFavoriteRevisionStore = create<FavoriteRevisionStoreState>(
                             ? state.remoteDetailsRevisionByKind.world + 1
                             : state.remoteDetailsRevisionByKind.world
                 },
-                pendingRemote: state.pendingRemote || remote,
-                pendingUnknown: state.pendingUnknown || kind === 'unknown'
+                pendingRemote:
+                    state.pendingRemote || (requiresRefresh && remote),
+                pendingUnknown:
+                    state.pendingUnknown ||
+                    (requiresRefresh && kind === 'unknown')
             }));
         },
         getPending() {

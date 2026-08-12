@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use vrcx_0_application_core::RuntimeOperationStatus;
 
 use vrcx_0_persistence::DatabaseService;
 
-use crate::Result;
+use crate::{is_remote_mutation_request, AuthenticatedMutationContext, RemoteMutationGate, Result};
 use vrcx_0_application_core::vrchat_api::groups::{
     current_user_group_instances_get_input, gallery_get_input, group_block_input,
     group_get_no_params_input, group_paged_get_input, invite_delete_input, invite_send_input,
@@ -15,9 +15,9 @@ use vrcx_0_application_core::vrchat_api::groups::{
     user_groups_get_input,
 };
 use vrcx_0_application_core::vrchat_api::{VrchatApiRequest, VrchatApiResponse, VrchatScope};
-use vrcx_0_application_core::RuntimeDiagnostics;
 use vrcx_0_application_core::RuntimeSyncEngine;
 use vrcx_0_application_core::WebClient;
+use vrcx_0_application_core::{RuntimeAuthScope, RuntimeDiagnostics};
 use vrcx_0_core::vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT;
 
 use super::types::{
@@ -35,12 +35,31 @@ pub struct GroupApiDeps {
     pub web: Arc<WebClient>,
     pub diagnostics: RuntimeDiagnostics,
     pub sync: RuntimeSyncEngine,
+    pub auth_scope: RuntimeAuthScope,
+    pub remote_mutations: Arc<RemoteMutationGate>,
 }
+
+const GROUP_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
 pub(super) async fn execute_group_api_raw(
     deps: &GroupApiDeps,
-    input: VrchatApiRequest,
+    mut input: VrchatApiRequest,
 ) -> Result<VrchatApiResponse> {
+    if is_remote_mutation_request(&input) {
+        let mutation = AuthenticatedMutationContext::capture(
+            &deps.auth_scope,
+            &deps.remote_mutations,
+            "Group mutation",
+        )?;
+        mutation.apply_scope_to_request(&mut input);
+        return mutation
+            .run_after_wait(GROUP_REMOTE_MUTATION_INTERVAL, || async move {
+                deps.web
+                    .execute_api(input, VrchatScope::Vrchat, deps.db.as_ref())
+                    .await
+            })
+            .await;
+    }
     deps.web
         .execute_api(input, VrchatScope::Vrchat, deps.db.as_ref())
         .await

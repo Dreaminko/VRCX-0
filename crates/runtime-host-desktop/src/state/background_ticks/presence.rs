@@ -75,6 +75,8 @@ pub(in crate::state) async fn run_background_presence_tick(
         context.runtime_context.config(),
         context.web.as_ref(),
         context.db.as_ref(),
+        &context.runtime_context.auth_scope,
+        context.runtime_context.remote_mutations.as_ref(),
         &facts,
         presence_state,
     )

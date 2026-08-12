@@ -28,8 +28,8 @@ use vrcx_0_vrchat_client::{
 };
 
 use crate::{
-    Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus, TaskSupervisor,
-    WebClient, WorldCache,
+    Error, RemoteMutationGate, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus,
+    TaskSupervisor, WebClient, WorldCache,
 };
 
 use super::local_favorites::local_group_config_key;
@@ -153,6 +153,7 @@ pub struct FavoriteImportRuntime {
     event_bus: RuntimeEventBus,
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
+    remote_mutations: Arc<RemoteMutationGate>,
 }
 
 struct FavoriteImportRuntimeShared {
@@ -164,6 +165,7 @@ struct FavoriteImportRuntimeShared {
 struct FavoriteImportRuntimeInner {
     status: FavoriteImportStatus,
     cancel: Option<Arc<AtomicBool>>,
+    scope: Option<RuntimeAuthScopeSnapshot>,
 }
 
 struct PreparedFavoriteImport {
@@ -181,6 +183,7 @@ impl FavoriteImportRuntime {
         event_bus: RuntimeEventBus,
         tasks: TaskSupervisor,
         auth_scope: RuntimeAuthScope,
+        remote_mutations: Arc<RemoteMutationGate>,
     ) -> Self {
         Self {
             shared: Arc::new(FavoriteImportRuntimeShared {
@@ -193,6 +196,7 @@ impl FavoriteImportRuntime {
             event_bus,
             tasks,
             auth_scope,
+            remote_mutations,
         }
     }
 
@@ -225,6 +229,7 @@ impl FavoriteImportRuntime {
             };
             inner.status = status.clone();
             inner.cancel = Some(Arc::clone(&cancel));
+            inner.scope = Some(scope.clone());
             status
         };
         self.emit_status(status.clone());
@@ -262,6 +267,7 @@ impl FavoriteImportRuntime {
             return false;
         }
         inner.cancel = None;
+        inner.scope = None;
         true
     }
 
@@ -460,6 +466,10 @@ impl FavoriteImportRuntime {
                     id.to_string(),
                     target.group.clone(),
                 )?;
+                self.remote_mutations
+                    .wait(scope, FAVORITE_IMPORT_INTERVAL)
+                    .await;
+                ensure_scope_matches(&self.auth_scope.snapshot(), scope)?;
                 self.execute_json(scope, request, "favorite import remote add")
                     .await?;
                 remote_ids.insert(id.to_string());
@@ -603,7 +613,7 @@ impl FavoriteImportRuntime {
         error: Option<String>,
         location: Option<FavoriteImportLocation>,
     ) {
-        let status = {
+        let (status, scope) = {
             let mut inner = self.lock_inner();
             if inner.status.run_id != run_id || !is_active_state(inner.status.status) {
                 return;
@@ -615,15 +625,19 @@ impl FavoriteImportRuntime {
                 inner.status.last_error = error;
             }
             inner.cancel = None;
-            inner.status.clone()
+            let scope = inner.scope.take();
+            (inner.status.clone(), scope)
         };
         if status.operation == FavoriteImportOperation::Import && status.succeeded > 0 {
-            self.event_bus
-                .emit_favorites_changed(FavoritesChangedPayload {
-                    kind: status.kind.into(),
-                    local: location == Some(FavoriteImportLocation::Local),
-                    remote: location == Some(FavoriteImportLocation::Remote),
-                });
+            if let Some(scope) = scope {
+                self.event_bus
+                    .emit_favorites_changed(FavoritesChangedPayload::invalidated(
+                        &scope,
+                        status.kind.into(),
+                        location == Some(FavoriteImportLocation::Local),
+                        location == Some(FavoriteImportLocation::Remote),
+                    ));
+            }
         }
         self.emit_status(status);
     }

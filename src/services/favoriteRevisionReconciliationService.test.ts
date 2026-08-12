@@ -22,15 +22,21 @@ describe('favoriteRevisionReconciliationService', () => {
                     finishRefresh = resolve;
                 })
         );
-        useFavoriteRevisionStore
-            .getState()
-            .bumpRevision({ kind: 'world', remote: true });
+        useFavoriteRevisionStore.getState().bumpRevision({
+            kind: 'world',
+            local: false,
+            remote: true,
+            requiresRefresh: true
+        });
 
         const reconciliation =
             reconcilePendingFavoriteRevision(refreshFavorites);
-        useFavoriteRevisionStore
-            .getState()
-            .bumpRevision({ kind: 'avatar', remote: true });
+        useFavoriteRevisionStore.getState().bumpRevision({
+            kind: 'avatar',
+            local: false,
+            remote: true,
+            requiresRefresh: true
+        });
         finishRefresh(true);
         await reconciliation;
 
@@ -51,9 +57,12 @@ describe('favoriteRevisionReconciliationService', () => {
 
     it('keeps a failed revision pending without retrying it immediately', async () => {
         const refreshFavorites = vi.fn().mockResolvedValue(false);
-        useFavoriteRevisionStore
-            .getState()
-            .bumpRevision({ kind: 'unknown', remote: false });
+        useFavoriteRevisionStore.getState().bumpRevision({
+            kind: 'unknown',
+            local: true,
+            remote: false,
+            requiresRefresh: true
+        });
 
         await reconcilePendingFavoriteRevision(refreshFavorites);
         await reconcilePendingFavoriteRevision(refreshFavorites);

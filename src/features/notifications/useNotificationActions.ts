@@ -262,8 +262,6 @@ export function useNotificationActions({
                     return;
                 }
                 const acceptResult = await acceptFriendRequestNotification({
-                    currentUserId,
-                    endpoint,
                     notification
                 });
                 reload();
@@ -292,7 +290,7 @@ export function useNotificationActions({
                 );
             }
         },
-        [confirm, currentUserId, endpoint, reload, t]
+        [confirm, reload, t]
     );
 
     const hideNotification = useCallback(

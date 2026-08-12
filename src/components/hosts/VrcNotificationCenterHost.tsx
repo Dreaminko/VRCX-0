@@ -214,8 +214,6 @@ export function VrcNotificationCenterHost() {
                 return;
             }
             const acceptResult = await acceptFriendRequestNotification({
-                currentUserId,
-                endpoint,
                 notification
             });
             await refreshCenter();

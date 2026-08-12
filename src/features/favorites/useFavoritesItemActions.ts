@@ -15,7 +15,6 @@ import {
 import { selfInviteToInstance } from '@/services/launchService';
 import { checkCanInviteSelf } from '@/shared/utils/invite';
 import { parseLocation } from '@/shared/utils/location';
-import { useFavoriteStore } from '@/state/favoriteStore';
 import { useModalStore } from '@/state/modalStore';
 
 import { normalizeFavoriteEntityId as normalizeEntityId } from './favoritesItems';
@@ -44,7 +43,6 @@ export function useFavoritesItemActions({
     kind,
     localGroups,
     newLocalGroupName,
-    reloadLocalWorldFavorites,
     refreshing,
     selectedContentItems,
     selectedSource,
@@ -64,7 +62,6 @@ export function useFavoritesItemActions({
     kind: FavoriteKind;
     localGroups: FavoriteGroup[];
     newLocalGroupName: string;
-    reloadLocalWorldFavorites(): Promise<unknown>;
     refreshing: boolean;
     selectedContentItems: FavoriteItem[];
     selectedSource: FavoriteSource;
@@ -80,10 +77,6 @@ export function useFavoritesItemActions({
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const boopPrompt = useModalStore((state) => state.boopPrompt);
-    const createLocalFavoriteGroup = useFavoriteStore(
-        (state) => state.createLocalFavoriteGroup
-    );
-
     function isFavoriteFriendRecord(
         value: unknown
     ): value is FavoriteFriendRecord {
@@ -411,14 +404,6 @@ export function useFavoritesItemActions({
                 kind,
                 groupName: nextName
             });
-            if (kind === 'world') {
-                await reloadLocalWorldFavorites();
-            } else {
-                createLocalFavoriteGroup({
-                    kind,
-                    groupName: nextName
-                });
-            }
             setSelectedSource('local');
             setSelectedGroupKey(nextName);
             setCreatingLocalGroup(false);

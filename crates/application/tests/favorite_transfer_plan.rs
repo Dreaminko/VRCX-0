@@ -11,7 +11,6 @@ fn transfer_input(
     mode: FavoriteTransferMode,
 ) -> FavoriteTransferInput {
     FavoriteTransferInput {
-        endpoint: "https://api.vrchat.cloud/api/1".to_string(),
         kind: FavoriteEntityKind::World,
         mode,
         source: FavoriteTransferSource {

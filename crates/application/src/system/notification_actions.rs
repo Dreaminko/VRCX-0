@@ -8,10 +8,13 @@ use vrcx_0_persistence::{
 };
 use vrcx_0_vrchat_client::{http_api::ApiScope, notifications::notification_mark_seen_input};
 
-use crate::{Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient};
+use crate::{
+    Error, RemoteMutationGate, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient,
+};
 
 const NOTIFICATION_MARK_SEEN_MAX_RETRIES: usize = 3;
 const NOTIFICATION_MARK_SEEN_BASE_DELAY: Duration = Duration::from_millis(1_000);
+const NOTIFICATION_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 pub const NOTIFICATION_MARK_SEEN_MAX_ITEMS: usize = 1_000;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
@@ -108,6 +111,7 @@ pub struct VrchatNotificationMarkSeenActions<'a> {
     pub web: &'a WebClient,
     pub auth_scope: &'a RuntimeAuthScope,
     pub expected_scope: RuntimeAuthScopeSnapshot,
+    pub remote_mutation_gate: &'a RemoteMutationGate,
 }
 
 impl NotificationMarkSeenActions for VrchatNotificationMarkSeenActions<'_> {
@@ -130,6 +134,11 @@ impl NotificationMarkSeenActions for VrchatNotificationMarkSeenActions<'_> {
         >,
     > {
         Box::pin(async move {
+            ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)
+                .map_err(NotificationRemoteActionError::terminal)?;
+            self.remote_mutation_gate
+                .wait(&self.expected_scope, NOTIFICATION_REMOTE_MUTATION_INTERVAL)
+                .await;
             ensure_scope_matches(&self.auth_scope.snapshot(), &self.expected_scope)
                 .map_err(NotificationRemoteActionError::terminal)?;
             let (_, id, request) = notification_mark_seen_input(

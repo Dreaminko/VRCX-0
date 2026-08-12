@@ -1809,6 +1809,7 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
         tasks: TaskSupervisor::new(),
         session,
         auth_scope: RuntimeAuthScope::new(),
+        remote_mutations: Arc::new(vrcx_0_application_core::RemoteMutationGate::default()),
         local_game_context: Arc::new(UnavailableLocalGameContextSource),
         activity_sink: None,
         world_cache,

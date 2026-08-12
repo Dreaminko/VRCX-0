@@ -6,7 +6,6 @@ import avatarLocalRepository from '@/repositories/avatarLocalRepository';
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
 import { bootstrapFavorites } from '@/services/favoriteBootstrapService';
-import { useFavoriteStore } from '@/state/favoriteStore';
 import { useModalStore } from '@/state/modalStore';
 import type { CurrentUserSnapshotState } from '@/state/runtimeStore';
 
@@ -58,19 +57,6 @@ export function useFavoritesCollectionActions({
     const { t } = useTranslation();
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
-    const removeLocalFavorite = useFavoriteStore(
-        (state) => state.removeLocalFavorite
-    );
-    const removeRemoteFavorite = useFavoriteStore(
-        (state) => state.removeRemoteFavorite
-    );
-    const renameLocalFavoriteGroup = useFavoriteStore(
-        (state) => state.renameLocalFavoriteGroup
-    );
-    const deleteLocalFavoriteGroup = useFavoriteStore(
-        (state) => state.deleteLocalFavoriteGroup
-    );
-
     const refreshFavorites = async ({
         silent = false
     }: { silent?: boolean } = {}): Promise<boolean> => {
@@ -162,15 +148,6 @@ export function useFavoritesCollectionActions({
                 entityId: item.id,
                 groupName: item.groupKey
             });
-            if (item.kind === 'world') {
-                await reloadLocalWorldFavorites();
-            } else {
-                removeLocalFavorite({
-                    kind: item.kind,
-                    entityId: item.id,
-                    groupName: item.groupKey
-                });
-            }
             if (!silent) {
                 toast.success(
                     t('view.favorite.success.local_favorite_removed')
@@ -238,7 +215,6 @@ export function useFavoritesCollectionActions({
             await vrchatFavoriteRepository.deleteFavorite({
                 objectId: item.id
             });
-            removeRemoteFavorite(item.id);
             if (!silent) {
                 toast.success(
                     t('view.favorite.success.vrchat_favorite_removed')
@@ -293,12 +269,10 @@ export function useFavoritesCollectionActions({
         }
         try {
             await vrchatFavoriteRepository.saveFavoriteGroup({
-                ownerId: currentUserId,
                 type: favoriteGroupType(kind, group),
                 group: group.name,
                 displayName: nextName
             });
-            await refreshFavorites();
             toast.success(t('view.favorite.label.favorite_group_renamed'));
         } catch (error) {
             toast.error(
@@ -318,12 +292,10 @@ export function useFavoritesCollectionActions({
         }
         try {
             await vrchatFavoriteRepository.saveFavoriteGroup({
-                ownerId: currentUserId,
                 type: favoriteGroupType(kind, group),
                 group: group.name,
                 visibility
             });
-            await refreshFavorites();
             toast.success(t('view.favorite.label.group_visibility_changed'));
         } catch (error) {
             toast.error(
@@ -351,11 +323,9 @@ export function useFavoritesCollectionActions({
         }
         try {
             await vrchatFavoriteRepository.clearFavoriteGroup({
-                ownerId: currentUserId,
                 type: favoriteGroupType(kind, group),
                 group: group.name
             });
-            await refreshFavorites();
             toast.success(t('view.favorite.success.favorite_group_cleared'));
         } catch (error) {
             toast.error(
@@ -398,15 +368,6 @@ export function useFavoritesCollectionActions({
                 groupName: group.key,
                 newGroupName: nextName
             });
-            if (kind === 'world') {
-                await reloadLocalWorldFavorites();
-            } else {
-                renameLocalFavoriteGroup({
-                    kind,
-                    groupName: group.key,
-                    newGroupName: nextName
-                });
-            }
             if (selectedSource === 'local' && selectedGroupKey === group.key) {
                 setSelectedGroupKey(nextName);
             }
@@ -442,14 +403,6 @@ export function useFavoritesCollectionActions({
                 kind,
                 groupName: group.key
             });
-            if (kind === 'world') {
-                await reloadLocalWorldFavorites();
-            } else {
-                deleteLocalFavoriteGroup({
-                    kind,
-                    groupName: group.key
-                });
-            }
             if (selectedSource === 'local' && selectedGroupKey === group.key) {
                 setSelectedGroupKey('');
             }

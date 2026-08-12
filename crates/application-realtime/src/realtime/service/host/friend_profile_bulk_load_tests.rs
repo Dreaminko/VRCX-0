@@ -111,6 +111,7 @@ fn start_requires_active_realtime_session() -> Result<()> {
         tasks: TaskSupervisor::new(),
         session: HostSessionRuntime::new(),
         auth_scope: RuntimeAuthScope::new(),
+        remote_mutations: Arc::new(vrcx_0_application_core::RemoteMutationGate::default()),
         local_game_context: Arc::new(UnavailableLocalGameContextSource),
         activity_sink: None,
         world_cache,

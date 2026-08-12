@@ -25,6 +25,7 @@ fn chain_actions(state: &AppState) -> Result<VrchatNotificationChainActions<'_>,
         expected_scope: active_scope(state)?,
         event_bus: &state.runtime_context.event_bus,
         world_cache: state.runtime_context.world_cache.as_ref(),
+        remote_mutation_gate: &state.runtime_context.remote_mutations,
     })
 }
 
