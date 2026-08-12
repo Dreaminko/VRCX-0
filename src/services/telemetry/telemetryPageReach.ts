@@ -20,10 +20,6 @@ const EXACT_ROUTES: Record<string, TelemetryPageRouteKey> = {
     '/social/friend-list': 'friend_list',
     '/charts/mutual': 'charts_mutual',
     '/tools': 'tools',
-    '/tools/gallery': 'gallery',
-    '/tools/inventory': 'inventory',
-    '/tools/screenshot-metadata': 'screenshot_metadata',
-    '/tools/vrchat-log': 'vrchat_log',
     '/settings': 'settings'
 };
 

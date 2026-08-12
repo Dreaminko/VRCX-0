@@ -29,7 +29,10 @@ describe('page reach telemetry', () => {
         expect(mod.normalizeRouteKey('/charts/instance')).toBeNull();
         expect(mod.normalizeRouteKey('/charts/mutual')).toBe('charts_mutual');
         expect(mod.normalizeRouteKey('/themes')).toBeNull();
-        expect(mod.normalizeRouteKey('/tools/gallery/')).toBe('gallery');
+        expect(mod.normalizeRouteKey('/tools/gallery/')).toBeNull();
+        expect(mod.normalizeRouteKey('/tools/inventory')).toBeNull();
+        expect(mod.normalizeRouteKey('/tools/screenshot-metadata')).toBeNull();
+        expect(mod.normalizeRouteKey('/tools/vrchat-log')).toBeNull();
         expect(mod.normalizeRouteKey('/unknown-page')).toBeNull();
     });
 
@@ -45,11 +48,7 @@ describe('page reach telemetry', () => {
             type: 'pageVisit',
             route: 'game_log'
         });
-        expect(appTelemetryRecordEvent).toHaveBeenNthCalledWith(2, {
-            type: 'pageVisit',
-            route: 'gallery'
-        });
-        expect(appTelemetryRecordEvent).toHaveBeenCalledTimes(2);
+        expect(appTelemetryRecordEvent).toHaveBeenCalledTimes(1);
     });
 
     it('forwards route errors only after a recognized current route', async () => {

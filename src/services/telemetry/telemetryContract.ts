@@ -15,10 +15,6 @@ export const TELEMETRY_ROUTE_KEYS = [
     'friend_list',
     'charts_mutual',
     'tools',
-    'gallery',
-    'inventory',
-    'screenshot_metadata',
-    'vrchat_log',
     'settings'
 ] as const;
 

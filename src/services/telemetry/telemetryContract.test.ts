@@ -10,6 +10,10 @@ describe('telemetry contract', () => {
         expect(TELEMETRY_ROUTE_KEYS).toContain('charts_mutual');
         expect(TELEMETRY_ROUTE_KEYS).not.toContain('charts_instance');
         expect(TELEMETRY_ROUTE_KEYS).not.toContain('themes');
+        expect(TELEMETRY_ROUTE_KEYS).not.toContain('gallery');
+        expect(TELEMETRY_ROUTE_KEYS).not.toContain('inventory');
+        expect(TELEMETRY_ROUTE_KEYS).not.toContain('screenshot_metadata');
+        expect(TELEMETRY_ROUTE_KEYS).not.toContain('vrchat_log');
     });
 
     it('contains every current tool key', () => {
