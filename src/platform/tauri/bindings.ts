@@ -5339,6 +5339,7 @@ export type StartupBootstrapSnapshot = {
 };
 export type TelemetryClientEvent =
     | { type: 'pageVisit'; route: string }
+    | { type: 'toolOpen'; tool: string }
     | {
           type: 'routeError';
           error_class: string;

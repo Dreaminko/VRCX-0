@@ -2,11 +2,13 @@ use std::collections::HashMap;
 
 use vrcx_0_integrations::telemetry::{
     build_error_detail, sanitize_error_summary, RouteUsageEntry, TelemetryErrorDetail,
+    ToolUsageEntry,
 };
 
 use super::event::TelemetryClientEvent;
 
 const MAX_ROUTE_KEYS: usize = 64;
+const MAX_TOOL_KEYS: usize = 32;
 const MAX_VALUE_LENGTH: usize = 64;
 const MAX_DETAILS_PER_CHANNEL: usize = 64;
 pub(super) const MAX_DETAILS_PER_PAYLOAD: usize = 20;
@@ -16,10 +18,12 @@ const MAX_COUNT: u32 = 100_000;
 pub struct TelemetryAccumulator {
     current_route: Option<String>,
     routes: HashMap<String, RouteUsage>,
+    tools: HashMap<String, ToolUsage>,
     assistant: AssistantHealthAccumulator,
     client_errors: DetailAccumulator,
     revision: u64,
     routes_sent_revision: u64,
+    tools_sent_revision: u64,
     assistant_sent_revision: u64,
     client_errors_revision: u64,
     client_errors_sent_revision: u64,
@@ -31,6 +35,12 @@ struct RouteUsage {
     load_fail: u32,
     render_crash: u32,
     details: DetailAccumulator,
+    revision: u64,
+}
+
+#[derive(Default)]
+struct ToolUsage {
+    opens: u32,
     revision: u64,
 }
 
@@ -59,6 +69,11 @@ pub(super) struct RouteSnapshot {
     pub revision: u64,
 }
 
+pub(super) struct ToolSnapshot {
+    pub entries: Vec<ToolUsageEntry>,
+    pub revision: u64,
+}
+
 pub(super) struct AssistantHealthSnapshot {
     pub entry: AssistantHealthEntry,
     pub revision: u64,
@@ -73,6 +88,7 @@ impl TelemetryAccumulator {
     pub fn record(&mut self, event: TelemetryClientEvent) {
         match event {
             TelemetryClientEvent::PageVisit { route } => self.record_page_visit(route),
+            TelemetryClientEvent::ToolOpen { tool } => self.record_tool_open(tool),
             TelemetryClientEvent::RouteError {
                 error_class,
                 name,
@@ -157,6 +173,16 @@ impl TelemetryAccumulator {
         entries
     }
 
+    pub fn tool_entries(&self) -> Vec<ToolUsageEntry> {
+        let mut entries = self
+            .tools
+            .iter()
+            .map(|(tool, usage)| tool_usage_entry(tool, usage))
+            .collect::<Vec<_>>();
+        entries.sort_by(|left, right| left.tool.cmp(&right.tool));
+        entries
+    }
+
     pub fn assistant_health_entry(&self) -> Option<AssistantHealthEntry> {
         if self.assistant.tool_errors == 0 && self.assistant.turn_errors == 0 {
             return None;
@@ -191,6 +217,25 @@ impl TelemetryAccumulator {
 
     pub(super) fn mark_routes_sent(&mut self, revision: u64) {
         self.routes_sent_revision = self.routes_sent_revision.max(revision);
+    }
+
+    pub(super) fn tool_snapshot(&self) -> Option<ToolSnapshot> {
+        let revision = self.revision;
+        let mut entries = self
+            .tools
+            .iter()
+            .filter(|(_, usage)| usage.revision > self.tools_sent_revision)
+            .map(|(tool, usage)| tool_usage_entry(tool, usage))
+            .collect::<Vec<_>>();
+        if entries.is_empty() {
+            return None;
+        }
+        entries.sort_by(|left, right| left.tool.cmp(&right.tool));
+        Some(ToolSnapshot { entries, revision })
+    }
+
+    pub(super) fn mark_tools_sent(&mut self, revision: u64) {
+        self.tools_sent_revision = self.tools_sent_revision.max(revision);
     }
 
     pub(super) fn assistant_health_snapshot(&self) -> Option<AssistantHealthSnapshot> {
@@ -229,6 +274,24 @@ impl TelemetryAccumulator {
             return;
         };
         self.current_route = Some(route.clone());
+        self.record_visit(route);
+    }
+
+    fn record_tool_open(&mut self, tool: String) {
+        let Some(tool) = sanitize_dimension_value(tool) else {
+            return;
+        };
+        let Some(usage) = ensure_entry(&mut self.tools, tool.clone(), MAX_TOOL_KEYS) else {
+            return;
+        };
+        usage.opens = increment(usage.opens);
+        let revision = self.advance_revision();
+        if let Some(usage) = self.tools.get_mut(&tool) {
+            usage.revision = revision;
+        }
+    }
+
+    fn record_visit(&mut self, route: String) {
         let Some(usage) = ensure_entry(&mut self.routes, route.clone(), MAX_ROUTE_KEYS) else {
             return;
         };
@@ -321,6 +384,13 @@ fn route_usage_entry(route: &str, usage: &RouteUsage) -> RouteUsageEntry {
         load_fail: (usage.load_fail > 0).then_some(usage.load_fail),
         render_crash: (usage.render_crash > 0).then_some(usage.render_crash),
         details: usage.details.serialize(),
+    }
+}
+
+fn tool_usage_entry(tool: &str, usage: &ToolUsage) -> ToolUsageEntry {
+    ToolUsageEntry {
+        tool: tool.to_string(),
+        opens: usage.opens,
     }
 }
 
@@ -455,6 +525,14 @@ mod tests {
         });
         let second = acc.route_snapshot().expect("new visit should be dirty");
         assert_eq!(second.entries[0].visits, 2);
+
+        acc.record(TelemetryClientEvent::ToolOpen {
+            tool: "inventory".into(),
+        });
+        let tools = acc.tool_snapshot().expect("tool should be dirty");
+        assert_eq!(tools.entries[0].opens, 1);
+        acc.mark_tools_sent(tools.revision);
+        assert!(acc.tool_snapshot().is_none());
     }
 
     #[test]

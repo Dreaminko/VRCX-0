@@ -6,6 +6,9 @@ pub enum TelemetryClientEvent {
     PageVisit {
         route: String,
     },
+    ToolOpen {
+        tool: String,
+    },
     RouteError {
         error_class: String,
         name: Option<String>,

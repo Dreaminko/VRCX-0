@@ -32,6 +32,37 @@ fn telemetry_accumulator_keeps_session_totals_without_resetting() {
 }
 
 #[test]
+fn tool_opens_use_separate_session_counts_without_changing_error_attribution() {
+    let mut acc = TelemetryAccumulator::default();
+
+    acc.record(TelemetryClientEvent::PageVisit {
+        route: "tools".into(),
+    });
+    acc.record(TelemetryClientEvent::ToolOpen {
+        tool: "profile-backup".into(),
+    });
+    acc.record(TelemetryClientEvent::ToolOpen {
+        tool: "profile-backup".into(),
+    });
+    acc.record(TelemetryClientEvent::RouteError {
+        error_class: "render_crash".into(),
+        name: Some("TypeError".into()),
+        summary: Some("failed to render tools".into()),
+    });
+
+    let tools = acc.tool_entries();
+    assert_eq!(tools.len(), 1);
+    assert_eq!(tools[0].tool, "profile-backup");
+    assert_eq!(tools[0].opens, 2);
+
+    let routes = acc.route_entries();
+    assert_eq!(routes.len(), 1);
+    assert_eq!(routes[0].route, "tools");
+    assert_eq!(routes[0].visits, 1);
+    assert_eq!(routes[0].render_crash, Some(1));
+}
+
+#[test]
 fn telemetry_accumulator_filters_cancelled_turn_errors() {
     let mut acc = TelemetryAccumulator::default();
 

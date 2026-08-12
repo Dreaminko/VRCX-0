@@ -7,6 +7,7 @@ import {
     isHostCapabilitySupported
 } from '@/services/hostCapabilityService';
 import i18n from '@/services/i18nService';
+import { recordToolOpen } from '@/services/telemetry/telemetryToolUsage';
 import {
     toolDefinitionMap,
     type ToolAppApiMethod,
@@ -139,6 +140,8 @@ export async function triggerToolByKey(
         toast.error(getToolCapabilityUnavailableReason(tool));
         return;
     }
+
+    recordToolOpen(resolvedToolKey);
 
     if (action.type === 'route') {
         navigate(toolRouteMap[action.routeName] ?? '/tools');

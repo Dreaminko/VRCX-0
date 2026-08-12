@@ -17,7 +17,7 @@ use vrcx_0_host::{
 use vrcx_0_integrations::telemetry::{
     resolve_endpoint, AssistantHealthPayload, ClientErrorPayload, ConfigSnapshotPayload,
     PageHealthPayload, TelemetryClient, TelemetryConfigSnapshot, TelemetryContext,
-    TelemetryRuntimeMode,
+    TelemetryRuntimeMode, ToolUsagePayload,
 };
 use vrcx_0_persistence::config::ConfigRepository;
 
@@ -408,12 +408,13 @@ impl TelemetryRuntime {
     }
 
     async fn flush_collectors_locked(&self, session: &TelemetrySession) {
-        let (routes, assistant_health) = {
+        let (routes, tools, assistant_health) = {
             let Ok(state) = self.inner.state.lock() else {
                 return;
             };
             (
                 state.acc.route_snapshot(),
+                state.acc.tool_snapshot(),
                 state.acc.assistant_health_snapshot(),
             )
         };
@@ -429,6 +430,20 @@ impl TelemetryRuntime {
             {
                 if let Ok(mut state) = self.inner.state.lock() {
                     state.acc.mark_routes_sent(routes.revision);
+                }
+            }
+        }
+        if let Some(tools) = tools {
+            let payload = ToolUsagePayload {
+                context: context.clone(),
+                tools: tools.entries,
+            };
+            if self
+                .post_debug("/api/v1/telemetry/tool-usage", &payload, "tool usage")
+                .await
+            {
+                if let Ok(mut state) = self.inner.state.lock() {
+                    state.acc.mark_tools_sent(tools.revision);
                 }
             }
         }

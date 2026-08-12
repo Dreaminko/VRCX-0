@@ -181,6 +181,21 @@ pub struct PageHealthPayload {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ToolUsageEntry {
+    pub tool: String,
+    pub opens: u32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolUsagePayload {
+    #[serde(flatten)]
+    pub context: TelemetryContext,
+    pub tools: Vec<ToolUsageEntry>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssistantHealthPayload {
     #[serde(flatten)]
     pub context: TelemetryContext,
