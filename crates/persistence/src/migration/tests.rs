@@ -242,6 +242,9 @@ fn runs_inside_an_upgrade_work_copy() {
     db.begin_upgrade_with_progress(
         crate::VRCX0_SCHEMA_VERSION,
         crate::VRCX0_SCHEMA_VERSION,
+        None,
+        None,
+        None,
         |_, _| {},
     )
     .unwrap();

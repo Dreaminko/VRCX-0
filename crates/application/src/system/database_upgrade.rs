@@ -9,7 +9,7 @@ use vrcx_0_persistence::migration::{
 use vrcx_0_persistence::migrations::migrations;
 use vrcx_0_persistence::{
     prepare_vrcx0_schema_version, write_database_schema_versions, DatabaseService,
-    DatabaseUpgradeStatus, VRCX0_SCHEMA_VERSION,
+    DatabaseUpgradeStatus, SqliteErrorCategory, VRCX0_SCHEMA_VERSION,
 };
 
 use crate::Error;
@@ -138,6 +138,7 @@ pub struct DatabaseUpgradeRunResult {
 struct UpgradeFailure {
     from_version: i64,
     stage: DatabaseUpgradeStage,
+    operation: String,
     error: Error,
     upgrade_started: bool,
 }
@@ -146,11 +147,13 @@ impl UpgradeFailure {
     fn before_upgrade(
         from_version: i64,
         stage: DatabaseUpgradeStage,
+        operation: impl Into<String>,
         error: impl Into<Error>,
     ) -> Self {
         Self {
             from_version,
             stage,
+            operation: operation.into(),
             error: error.into(),
             upgrade_started: false,
         }
@@ -159,11 +162,13 @@ impl UpgradeFailure {
     fn during_upgrade(
         from_version: i64,
         stage: DatabaseUpgradeStage,
+        operation: impl Into<String>,
         error: impl Into<Error>,
     ) -> Self {
         Self {
             from_version,
             stage,
+            operation: operation.into(),
             error: error.into(),
             upgrade_started: true,
         }
@@ -257,15 +262,30 @@ fn run_database_upgrade_inner(
     db: &DatabaseService,
     on_progress: &mut impl FnMut(DatabaseUpgradeProgress),
 ) -> Result<DatabaseUpgradeRunResult, UpgradeFailure> {
-    report_stage(db, on_progress, DatabaseUpgradeStage::Preflight);
+    report_stage(
+        db,
+        on_progress,
+        DatabaseUpgradeStage::Preflight,
+        "database_upgrade_preflight",
+    );
     let preflight = database_upgrade_preflight(db).map_err(|error| {
         let from_version = prepare_vrcx0_schema_version(db).unwrap_or(0);
-        UpgradeFailure::before_upgrade(from_version, DatabaseUpgradeStage::Preflight, error)
+        UpgradeFailure::before_upgrade(
+            from_version,
+            DatabaseUpgradeStage::Preflight,
+            "database_upgrade_preflight",
+            error,
+        )
     })?;
     let from_version = preflight.from_version;
     let to_version = preflight.to_version;
     let schema_version = prepare_vrcx0_schema_version(db).map_err(|error| {
-        UpgradeFailure::before_upgrade(from_version, DatabaseUpgradeStage::Preflight, error)
+        UpgradeFailure::before_upgrade(
+            from_version,
+            DatabaseUpgradeStage::Preflight,
+            "prepare_vrcx0_schema_version",
+            error,
+        )
     })?;
 
     match preflight.status {
@@ -274,6 +294,7 @@ fn run_database_upgrade_inner(
                 return Err(UpgradeFailure::before_upgrade(
                     from_version,
                     DatabaseUpgradeStage::Preflight,
+                    "database_upgrade_preflight",
                     Error::Custom("Blocked database upgrade has no failure status.".into()),
                 ));
             };
@@ -301,11 +322,17 @@ fn run_database_upgrade_inner(
             });
         }
         DatabaseUpgradePreflightStatus::Current => {
-            report_stage(db, on_progress, DatabaseUpgradeStage::InitializeSchema);
+            report_stage(
+                db,
+                on_progress,
+                DatabaseUpgradeStage::InitializeSchema,
+                "ensure_required_database_schema",
+            );
             ensure_required_database_schema(db).map_err(|error| {
                 UpgradeFailure::before_upgrade(
                     from_version,
                     DatabaseUpgradeStage::InitializeSchema,
+                    "ensure_required_database_schema",
                     error,
                 )
             })?;
@@ -319,6 +346,7 @@ fn run_database_upgrade_inner(
             return Err(UpgradeFailure::before_upgrade(
                 from_version,
                 DatabaseUpgradeStage::Preflight,
+                "database_upgrade_preflight",
                 Error::Custom(
                     "Runtime-only database upgrade state reached the static runner.".into(),
                 ),
@@ -326,39 +354,78 @@ fn run_database_upgrade_inner(
         }
     }
 
-    report_stage(db, on_progress, DatabaseUpgradeStage::CreateWorkCopy);
-    db.begin_upgrade_with_progress(schema_version, VRCX0_SCHEMA_VERSION, |completed, total| {
-        on_progress(DatabaseUpgradeProgress::determinate(
-            DatabaseUpgradeStage::CreateWorkCopy,
-            completed,
-            total,
-        ));
-    })
+    report_stage(
+        db,
+        on_progress,
+        DatabaseUpgradeStage::CreateWorkCopy,
+        "begin_upgrade_with_progress",
+    );
+    let create_work_copy_stage = stage_label(DatabaseUpgradeStage::CreateWorkCopy);
+    db.begin_upgrade_with_progress(
+        schema_version,
+        VRCX0_SCHEMA_VERSION,
+        Some(env!("CARGO_PKG_VERSION")),
+        Some(&create_work_copy_stage),
+        Some("begin_upgrade_with_progress"),
+        |completed, total| {
+            on_progress(DatabaseUpgradeProgress::determinate(
+                DatabaseUpgradeStage::CreateWorkCopy,
+                completed,
+                total,
+            ));
+        },
+    )
     .map_err(|error| {
-        UpgradeFailure::before_upgrade(from_version, DatabaseUpgradeStage::CreateWorkCopy, error)
+        UpgradeFailure::before_upgrade(
+            from_version,
+            DatabaseUpgradeStage::CreateWorkCopy,
+            "begin_upgrade_with_progress",
+            error,
+        )
     })?;
 
-    report_stage(db, on_progress, DatabaseUpgradeStage::InitializeSchema);
+    report_stage(
+        db,
+        on_progress,
+        DatabaseUpgradeStage::InitializeSchema,
+        "ensure_required_database_schema",
+    );
     ensure_required_database_schema(db).map_err(|error| {
-        UpgradeFailure::during_upgrade(from_version, DatabaseUpgradeStage::InitializeSchema, error)
+        UpgradeFailure::during_upgrade(
+            from_version,
+            DatabaseUpgradeStage::InitializeSchema,
+            "ensure_required_database_schema",
+            error,
+        )
     })?;
 
     if schema_version < LEGACY_SCHEMA_VERSION {
-        report_stage(db, on_progress, DatabaseUpgradeStage::LegacySchemaMigration);
+        report_stage(
+            db,
+            on_progress,
+            DatabaseUpgradeStage::LegacySchemaMigration,
+            "database_maintenance_run",
+        );
         for &task in LEGACY_DATA_CLEANUP_TASKS {
+            let operation = maintenance_operation(task);
+            persist_upgrade_context(db, DatabaseUpgradeStage::LegacySchemaMigration, &operation);
             run_task(db, task).map_err(|error| {
                 UpgradeFailure::during_upgrade(
                     from_version,
                     DatabaseUpgradeStage::LegacySchemaMigration,
+                    operation,
                     error,
                 )
             })?;
         }
         for &task in LEGACY_SCHEMA_MIGRATION_TASKS {
+            let operation = maintenance_operation(task);
+            persist_upgrade_context(db, DatabaseUpgradeStage::LegacySchemaMigration, &operation);
             run_task(db, task).map_err(|error| {
                 UpgradeFailure::during_upgrade(
                     from_version,
                     DatabaseUpgradeStage::LegacySchemaMigration,
+                    operation,
                     error,
                 )
             })?;
@@ -387,9 +454,19 @@ fn run_database_upgrade_inner(
         DatabaseMaintenanceTask::AddNotificationPerformanceIndexes,
     )?;
 
-    report_stage(db, on_progress, DatabaseUpgradeStage::SchemaMigrations);
+    report_stage(
+        db,
+        on_progress,
+        DatabaseUpgradeStage::SchemaMigrations,
+        "run_schema_migrations",
+    );
     run_schema_migrations(db, &migrations(), &NoopProgress).map_err(|error| {
-        UpgradeFailure::during_upgrade(from_version, DatabaseUpgradeStage::SchemaMigrations, error)
+        UpgradeFailure::during_upgrade(
+            from_version,
+            DatabaseUpgradeStage::SchemaMigrations,
+            "run_schema_migrations",
+            error,
+        )
     })?;
 
     run_optional_task(
@@ -398,13 +475,33 @@ fn run_database_upgrade_inner(
         DatabaseUpgradeStage::Optimize,
         DatabaseMaintenanceTask::Optimize,
     );
-    report_stage(db, on_progress, DatabaseUpgradeStage::WriteVersion);
+    report_stage(
+        db,
+        on_progress,
+        DatabaseUpgradeStage::WriteVersion,
+        "write_database_schema_versions",
+    );
     write_database_schema_versions(db, VRCX0_SCHEMA_VERSION).map_err(|error| {
-        UpgradeFailure::during_upgrade(from_version, DatabaseUpgradeStage::WriteVersion, error)
+        UpgradeFailure::during_upgrade(
+            from_version,
+            DatabaseUpgradeStage::WriteVersion,
+            "write_database_schema_versions",
+            error,
+        )
     })?;
-    report_stage(db, on_progress, DatabaseUpgradeStage::Commit);
+    report_stage(
+        db,
+        on_progress,
+        DatabaseUpgradeStage::Commit,
+        "commit_upgrade",
+    );
     db.commit_upgrade().map_err(|error| {
-        UpgradeFailure::during_upgrade(from_version, DatabaseUpgradeStage::Commit, error)
+        UpgradeFailure::during_upgrade(
+            from_version,
+            DatabaseUpgradeStage::Commit,
+            "commit_upgrade",
+            error,
+        )
     })?;
 
     Ok(success_result(
@@ -417,11 +514,16 @@ fn report_stage(
     db: &DatabaseService,
     on_progress: &mut impl FnMut(DatabaseUpgradeProgress),
     stage: DatabaseUpgradeStage,
+    operation: &str,
 ) {
-    if let Err(error) = db.set_upgrade_stage(&stage_label(stage)) {
-        tracing::debug!(?stage, error = %error, "database upgrade stage not persisted");
-    }
+    persist_upgrade_context(db, stage, operation);
     on_progress(DatabaseUpgradeProgress::indeterminate(stage));
+}
+
+fn persist_upgrade_context(db: &DatabaseService, stage: DatabaseUpgradeStage, operation: &str) {
+    if let Err(error) = db.set_upgrade_context(&stage_label(stage), operation) {
+        tracing::debug!(?stage, operation, error = %error, "database upgrade context not persisted");
+    }
 }
 
 fn stage_label(stage: DatabaseUpgradeStage) -> String {
@@ -437,7 +539,8 @@ fn run_optional_task(
     stage: DatabaseUpgradeStage,
     task: DatabaseMaintenanceTask,
 ) {
-    report_stage(db, on_progress, stage);
+    let operation = maintenance_operation(task);
+    report_stage(db, on_progress, stage, &operation);
     if let Err(error) = run_task(db, task) {
         tracing::warn!(?stage, error = %error, "optional database upgrade task failed");
     }
@@ -450,8 +553,14 @@ fn run_required_task(
     stage: DatabaseUpgradeStage,
     task: DatabaseMaintenanceTask,
 ) -> Result<(), UpgradeFailure> {
-    report_stage(db, on_progress, stage);
-    run_task(db, task).map_err(|error| UpgradeFailure::during_upgrade(from_version, stage, error))
+    let operation = maintenance_operation(task);
+    report_stage(db, on_progress, stage, &operation);
+    run_task(db, task)
+        .map_err(|error| UpgradeFailure::during_upgrade(from_version, stage, operation, error))
+}
+
+fn maintenance_operation(task: DatabaseMaintenanceTask) -> String {
+    format!("database_maintenance_run:{}", task.as_str())
 }
 
 fn run_task(db: &DatabaseService, task: DatabaseMaintenanceTask) -> Result<(), Error> {
@@ -474,7 +583,36 @@ fn recover_failed_upgrade(
     db: &DatabaseService,
     failure: UpgradeFailure,
 ) -> DatabaseUpgradeRunResult {
-    let mut error = failure.error.to_string();
+    let operation = failure.operation.clone();
+    let sqlite_category = sqlite_category_label(&failure.error);
+    let telemetry_reason = failure.error.to_string();
+    let active_upgrade = failure
+        .upgrade_started
+        .then(|| db.get_failed_upgrade().ok().flatten())
+        .flatten();
+    let started_app_version = active_upgrade
+        .as_ref()
+        .and_then(|status| status.app_version.as_deref())
+        .filter(|version| !version.is_empty())
+        .unwrap_or(env!("CARGO_PKG_VERSION"));
+    let telemetry_from_version = active_upgrade
+        .as_ref()
+        .map(|status| status.from_version)
+        .unwrap_or(failure.from_version);
+    let telemetry_to_version = active_upgrade
+        .as_ref()
+        .map(|status| status.to_version)
+        .unwrap_or_else(target_migration_version);
+    log_database_upgrade_failure(
+        failure.stage,
+        &operation,
+        sqlite_category,
+        telemetry_from_version,
+        telemetry_to_version,
+        started_app_version,
+        &telemetry_reason,
+    );
+    let mut error = telemetry_reason.clone();
     if failure.upgrade_started {
         if let Err(recovery_error) = db.fail_upgrade(error.clone()) {
             error = format!(
@@ -500,6 +638,44 @@ fn recover_failed_upgrade(
         failed_upgrade,
         repair_warning: None,
     }
+}
+
+fn sqlite_category_label(error: &Error) -> &'static str {
+    match error {
+        Error::Sqlite {
+            category: Some(SqliteErrorCategory::Malformed),
+            ..
+        } => "malformed",
+        Error::Sqlite {
+            category: Some(SqliteErrorCategory::DiskFull),
+            ..
+        } => "disk_full",
+        Error::Sqlite {
+            category: Some(SqliteErrorCategory::Locked),
+            ..
+        } => "locked",
+        Error::Sqlite {
+            category: Some(SqliteErrorCategory::IoError),
+            ..
+        } => "io_error",
+        Error::Sqlite { category: None, .. } => "unclassified",
+        _ => "none",
+    }
+}
+
+pub(super) fn log_database_upgrade_failure(
+    stage: DatabaseUpgradeStage,
+    operation: &str,
+    sqlite_category: &str,
+    from_version: i64,
+    to_version: i64,
+    started_app_version: &str,
+    reason: &str,
+) {
+    let stage = stage_label(stage);
+    tracing::error!(
+        "database upgrade failure [status=failed stage={stage} operation={operation} sqliteCategory={sqlite_category} from={from_version} to={to_version} appVersion={started_app_version}]: {reason}"
+    );
 }
 
 fn run_copresence_duration_repair_once(db: &DatabaseService) -> Result<(), String> {
@@ -551,6 +727,27 @@ mod tests {
             "legacySchemaMigration"
         );
         assert_eq!(stage_label(DatabaseUpgradeStage::Commit), "commit");
+    }
+
+    #[test]
+    fn sqlite_categories_use_stable_telemetry_labels() {
+        for (category, expected) in [
+            (Some(SqliteErrorCategory::Malformed), "malformed"),
+            (Some(SqliteErrorCategory::DiskFull), "disk_full"),
+            (Some(SqliteErrorCategory::Locked), "locked"),
+            (Some(SqliteErrorCategory::IoError), "io_error"),
+            (None, "unclassified"),
+        ] {
+            let error = Error::Sqlite {
+                message: "injected SQLite failure".into(),
+                category,
+            };
+            assert_eq!(sqlite_category_label(&error), expected);
+        }
+        assert_eq!(
+            sqlite_category_label(&Error::Custom("injected non-SQLite failure".into())),
+            "none"
+        );
     }
 
     impl Drop for TestDir {
@@ -749,7 +946,16 @@ mod tests {
             failed.failed_stage,
             Some(DatabaseUpgradeStage::LegacyPerformanceIndexes)
         );
+        let error = failed.error.as_deref().expect("database upgrade error");
+        assert!(error.contains("no such column: created_at"));
+        assert!(error.contains(
+            "CREATE INDEX IF NOT EXISTS gamelog_location_created_at_idx ON gamelog_location (created_at)"
+        ));
         let failed_upgrade = failed.failed_upgrade.expect("failed upgrade status");
+        assert_eq!(
+            failed_upgrade.operation.as_deref(),
+            Some("database_maintenance_run:addLegacyPerformanceIndexes")
+        );
         assert!(std::path::Path::new(&failed_upgrade.work_db_path).exists());
         assert!(db.is_main_mode());
         assert_eq!(prepare_vrcx0_schema_version(&db).unwrap(), 17);

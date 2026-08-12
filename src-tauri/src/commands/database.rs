@@ -15,6 +15,36 @@ const ERROR_LOG_FILE: &str = "error-log.txt";
 const ANONYMOUS_USAGE_TELEMETRY_CONFIG_KEY: &str = "anonymousUsageTelemetry";
 const FAILURE_TELEMETRY_FLUSH_TIMEOUT: Duration = Duration::from_secs(1);
 
+fn database_upgrade_failure_token(value: Option<&str>, fallback: &str) -> String {
+    let value = value.unwrap_or(fallback);
+    let token = value
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | ':' | '+' | '-'))
+        .take(64)
+        .collect::<String>();
+    if token.is_empty() {
+        fallback.to_string()
+    } else {
+        token
+    }
+}
+
+fn log_interrupted_database_upgrade(
+    stage: Option<&str>,
+    operation: Option<&str>,
+    from_version: i64,
+    to_version: i64,
+    started_app_version: Option<&str>,
+    reason: &str,
+) {
+    let stage = database_upgrade_failure_token(stage, "beforeFirstStage");
+    let operation = database_upgrade_failure_token(operation, "unknown");
+    let started_app_version = database_upgrade_failure_token(started_app_version, "unknown");
+    tracing::error!(
+        "database upgrade failure [status=interrupted stage={stage} operation={operation} sqliteCategory=none from={from_version} to={to_version} appVersion={started_app_version}]: {reason}"
+    );
+}
+
 pub(crate) async fn flush_pending_upgrade_failure_telemetry(state: &AppState) {
     let telemetry = state.desktop.telemetry.clone();
     if tokio::time::timeout(
@@ -41,16 +71,19 @@ pub async fn app__database_upgrade_preflight(
         })?
         .map_err(AppError::from)?;
     if preflight.status == DatabaseUpgradePreflightStatus::Blocked {
-        let reason = preflight
-            .failed_upgrade
-            .as_ref()
-            .and_then(|failure| failure.reason.as_deref())
-            .unwrap_or("previous database upgrade did not finish");
-        tracing::error!(
-            from_version = preflight.from_version,
-            to_version = preflight.to_version,
-            "database upgrade blocked: {reason}"
-        );
+        let failure = preflight.failed_upgrade.as_ref();
+        if failure.is_none_or(|failure| failure.failed_at.is_none()) {
+            log_interrupted_database_upgrade(
+                failure.and_then(|failure| failure.stage.as_deref()),
+                failure.and_then(|failure| failure.operation.as_deref()),
+                preflight.from_version,
+                preflight.to_version,
+                failure.and_then(|failure| failure.app_version.as_deref()),
+                failure
+                    .and_then(|failure| failure.reason.as_deref())
+                    .unwrap_or("previous database upgrade did not finish"),
+            );
+        }
         flush_pending_upgrade_failure_telemetry(&state).await;
     }
     Ok(preflight)

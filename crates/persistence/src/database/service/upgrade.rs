@@ -17,13 +17,16 @@ use super::{
 
 impl DatabaseService {
     pub fn begin_upgrade(&self, from_version: i64, to_version: i64) -> Result<(), Error> {
-        self.begin_upgrade_with_progress(from_version, to_version, |_, _| {})
+        self.begin_upgrade_with_progress(from_version, to_version, None, None, None, |_, _| {})
     }
 
     pub fn begin_upgrade_with_progress(
         &self,
         from_version: i64,
         to_version: i64,
+        app_version: Option<&str>,
+        stage: Option<&str>,
+        operation: Option<&str>,
         mut on_progress: impl FnMut(u64, u64),
     ) -> Result<(), Error> {
         let mut inner = self
@@ -85,7 +88,9 @@ impl DatabaseService {
             to_version,
             work_db_path: work_db_path.to_string_lossy().into_owned(),
             started_at: Utc::now().to_rfc3339(),
-            stage: None,
+            app_version: app_version.map(str::to_owned),
+            stage: stage.map(str::to_owned),
+            operation: operation.map(str::to_owned),
             failed_at: None,
             reason: None,
         };
@@ -99,7 +104,7 @@ impl DatabaseService {
         Ok(())
     }
 
-    pub fn set_upgrade_stage(&self, stage: &str) -> Result<(), Error> {
+    pub fn set_upgrade_context(&self, stage: &str, operation: &str) -> Result<(), Error> {
         let status = {
             let mut inner = self
                 .inner
@@ -109,6 +114,7 @@ impl DatabaseService {
                 return Err(Error::Database("No database upgrade is running.".into()));
             };
             session.status.stage = Some(stage.to_string());
+            session.status.operation = Some(operation.to_string());
             session.status.clone()
         };
         self.write_status(&self.active_status_path(), &status)

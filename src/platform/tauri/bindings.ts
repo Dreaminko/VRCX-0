@@ -3523,7 +3523,9 @@ export type DatabaseUpgradeStatus = {
     toVersion: number;
     workDbPath: string;
     startedAt: string;
+    appVersion?: string | null;
     stage?: string | null;
+    operation?: string | null;
     failedAt?: string | null;
     reason?: string | null;
 };

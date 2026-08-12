@@ -32,7 +32,11 @@ pub struct DatabaseUpgradeStatus {
     pub work_db_path: String,
     pub started_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub stage: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operation: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub failed_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -274,7 +278,9 @@ impl DatabaseService {
     {
         let inner = read_lock_interruptibly(&self.inner, &should_interrupt)?;
         match &*inner {
-            DatabaseMode::Main(main) => main.execute_read_interruptible(sql, args, should_interrupt),
+            DatabaseMode::Main(main) => {
+                main.execute_read_interruptible(sql, args, should_interrupt)
+            }
             DatabaseMode::Upgrade(upgrade) => {
                 let conn = lock_interruptibly(&upgrade.conn, &should_interrupt)?;
                 execute_on_connection_interruptible(&conn, sql, args, should_interrupt)

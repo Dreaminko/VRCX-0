@@ -13,6 +13,7 @@ const MAX_VALUE_LENGTH: usize = 64;
 const MAX_DETAILS_PER_CHANNEL: usize = 64;
 pub(super) const MAX_DETAILS_PER_PAYLOAD: usize = 20;
 const MAX_COUNT: u32 = 100_000;
+const DATABASE_UPGRADE_FAILURE_PREFIX: &str = "database upgrade failure [";
 
 #[derive(Default)]
 pub struct TelemetryAccumulator {
@@ -147,14 +148,18 @@ impl TelemetryAccumulator {
                 ));
                 detail
             }
-            "rust:tracing" => build_error_detail(
-                "rust_error",
-                Some(source),
-                None,
-                None,
-                Some(message),
-                Some(app_version),
-            ),
+            "rust:tracing" => {
+                database_upgrade_error_detail(message, app_version).unwrap_or_else(|| {
+                    build_error_detail(
+                        "rust_error",
+                        Some(source),
+                        None,
+                        None,
+                        Some(message),
+                        Some(app_version),
+                    )
+                })
+            }
             _ => return,
         };
         if self.client_errors.record(detail) {
@@ -409,6 +414,76 @@ fn ensure_entry<T: Default>(
 fn sanitize_dimension_value(value: String) -> Option<String> {
     let value = value.trim();
     (!value.is_empty()).then(|| value.chars().take(MAX_VALUE_LENGTH).collect())
+}
+
+fn database_upgrade_error_detail(
+    message: &str,
+    fallback_app_version: &str,
+) -> Option<TelemetryErrorDetail> {
+    let (_, envelope) = message.split_once(DATABASE_UPGRADE_FAILURE_PREFIX)?;
+    let (metadata, reason) = envelope.split_once("]: ")?;
+    let mut status = None;
+    let mut stage = None;
+    let mut operation = None;
+    let mut sqlite_category = None;
+    let mut from_version = None;
+    let mut to_version = None;
+    let mut started_app_version = None;
+    for field in metadata.split_ascii_whitespace() {
+        let (key, value) = field.split_once('=')?;
+        match key {
+            "status" => status = Some(value),
+            "stage" => stage = Some(value),
+            "operation" => operation = Some(value),
+            "sqliteCategory" => sqlite_category = Some(value),
+            "from" => from_version = value.parse::<i64>().ok(),
+            "to" => to_version = value.parse::<i64>().ok(),
+            "appVersion" => started_app_version = Some(value),
+            _ => return None,
+        }
+    }
+    let status = status.filter(|value| matches!(*value, "interrupted" | "failed"))?;
+    let stage = stage.filter(|value| !value.is_empty())?;
+    let operation = operation.filter(|value| !value.is_empty());
+    let sqlite_category = sqlite_category.filter(|value| !value.is_empty());
+    let from_version = from_version?;
+    let to_version = to_version?;
+    let started_app_version = started_app_version.filter(|value| !value.is_empty())?;
+    let detail_app_version = if started_app_version == "unknown" {
+        fallback_app_version
+    } else {
+        started_app_version
+    };
+    let operation_summary = operation.unwrap_or("unknown");
+    let sqlite_category_summary = sqlite_category.unwrap_or("unknown");
+    let fingerprint_summary = if status == "interrupted" {
+        format!(
+            "stage={stage}; operation={operation_summary}; sqliteCategory={sqlite_category_summary}; fromVersion={from_version}; toVersion={to_version}"
+        )
+    } else {
+        format!(
+            "stage={stage}; operation={operation_summary}; sqliteCategory={sqlite_category_summary}; fromVersion={from_version}; toVersion={to_version}; reason={reason}"
+        )
+    };
+    let code = match (status, sqlite_category) {
+        ("failed", Some(category)) if category != "none" => {
+            format!("failed.sqlite_{category}")
+        }
+        _ => status.to_string(),
+    };
+    let mut detail = build_error_detail(
+        "rust_error",
+        Some("database_upgrade"),
+        Some(&code),
+        Some(operation.unwrap_or(stage)),
+        Some(&fingerprint_summary),
+        Some(detail_app_version),
+    );
+    let summary = sanitize_error_summary(format!(
+        "stage={stage}; operation={operation_summary}; sqliteCategory={sqlite_category_summary}; fromVersion={from_version}; toVersion={to_version}; startedVersion={started_app_version}; reason={reason}"
+    ));
+    detail.summary = (!summary.is_empty()).then_some(summary);
+    Some(detail)
 }
 
 fn detail_key(detail: &TelemetryErrorDetail) -> String {

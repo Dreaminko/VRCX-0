@@ -86,8 +86,14 @@ fn interruptible_read_stops_work_and_releases_its_reader() -> Result<(), Error> 
         Err(Error::Sqlite { ref message, .. }) if message.contains("interrupted")
     ));
 
-    assert_eq!(db.execute("SELECT 1", &empty)?, vec![vec![serde_json::json!(1)]]);
-    assert_eq!(db.execute("SELECT 2", &empty)?, vec![vec![serde_json::json!(2)]]);
+    assert_eq!(
+        db.execute("SELECT 1", &empty)?,
+        vec![vec![serde_json::json!(1)]]
+    );
+    assert_eq!(
+        db.execute("SELECT 2", &empty)?,
+        vec![vec![serde_json::json!(2)]]
+    );
     Ok(())
 }
 
@@ -436,15 +442,23 @@ fn discarding_failed_upgrade_preserves_main_database_and_allows_retry() -> Resul
 }
 
 #[test]
-fn set_upgrade_stage_persists_the_in_flight_stage_for_diagnosing_a_crash() -> Result<(), Error> {
+fn set_upgrade_context_persists_the_in_flight_operation_for_diagnosing_a_crash() -> Result<(), Error>
+{
     let dir = TestDir::new("database-upgrade-stage-crash");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
     db.begin_upgrade(17, 18)?;
 
-    db.set_upgrade_stage("legacySchemaMigration")?;
+    db.set_upgrade_context(
+        "legacySchemaMigration",
+        "database_maintenance_run:fixNegativeGPS",
+    )?;
 
     let blocked = db.get_failed_upgrade()?.expect("unfinished upgrade status");
     assert_eq!(blocked.stage.as_deref(), Some("legacySchemaMigration"));
+    assert_eq!(
+        blocked.operation.as_deref(),
+        Some("database_maintenance_run:fixNegativeGPS")
+    );
     let reason = blocked.reason.expect("reason for the unfinished upgrade");
     assert!(
         reason.contains("during 'legacySchemaMigration'"),
@@ -475,11 +489,13 @@ fn get_failed_upgrade_reports_no_stage_when_the_process_died_before_the_first_st
 }
 
 #[test]
-fn set_upgrade_stage_fails_when_no_upgrade_is_running() -> Result<(), Error> {
+fn set_upgrade_context_fails_when_no_upgrade_is_running() -> Result<(), Error> {
     let dir = TestDir::new("database-upgrade-stage-no-session");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
 
-    assert!(db.set_upgrade_stage("preflight").is_err());
+    assert!(db
+        .set_upgrade_context("preflight", "database_upgrade_preflight")
+        .is_err());
     Ok(())
 }
 
@@ -631,7 +647,14 @@ fn failed_status_write_keeps_active_journal_for_recovery() -> Result<(), Error> 
 fn status_reader_recovers_a_synced_temporary_journal() -> Result<(), Error> {
     let dir = TestDir::new("database-upgrade-temporary-status");
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
-    db.begin_upgrade(17, 18)?;
+    db.begin_upgrade_with_progress(
+        17,
+        18,
+        Some("2.23.0"),
+        Some("createWorkCopy"),
+        Some("begin_upgrade_with_progress"),
+        |_, _| {},
+    )?;
     let active_path = db.active_status_path();
     let temporary_path = status_temporary_path(&active_path)?;
     fs::rename(&active_path, &temporary_path)?;
@@ -640,6 +663,12 @@ fn status_reader_recovers_a_synced_temporary_journal() -> Result<(), Error> {
 
     assert_eq!(status.from_version, 17);
     assert_eq!(status.to_version, 18);
+    assert_eq!(status.app_version.as_deref(), Some("2.23.0"));
+    assert_eq!(status.stage.as_deref(), Some("createWorkCopy"));
+    assert_eq!(
+        status.operation.as_deref(),
+        Some("begin_upgrade_with_progress")
+    );
     assert!(Path::new(&status.work_db_path).exists());
     db.fail_upgrade("test complete".into())?;
     Ok(())

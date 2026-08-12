@@ -156,6 +156,81 @@ fn telemetry_accumulator_records_rust_error_versions() {
 }
 
 #[test]
+fn telemetry_accumulator_structures_interrupted_database_upgrades() {
+    let mut acc = TelemetryAccumulator::default();
+
+    for started_at in [
+        "2026-06-26T17:20:02.105560800+00:00",
+        "2026-07-01T01:02:03.004000000+00:00",
+    ] {
+        acc.record_rust_error(
+            "rust:tracing",
+            "2.23.0",
+            &format!(
+                "2026-08-10T04:07:00Z ERROR vrcx_0::commands::database: database upgrade failure [status=interrupted stage=legacySchemaMigration operation=database_maintenance_run:fixNegativeGPS sqliteCategory=none from=17 to=18 appVersion=2.17.0]: Upgrade stopped during 'legacySchemaMigration' (started {started_at}); work database C:\\Users\\example\\VRCX-0.sqlite3"
+            ),
+        );
+    }
+
+    let errors = acc.client_error_entries();
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].source.as_deref(), Some("database_upgrade"));
+    assert_eq!(errors[0].code.as_deref(), Some("interrupted"));
+    assert_eq!(
+        errors[0].name.as_deref(),
+        Some("database_maintenance_run:fixNegativeGPS")
+    );
+    assert_eq!(errors[0].app_version.as_deref(), Some("2.17.0"));
+    assert_eq!(errors[0].count, 2);
+    let summary = errors[0].summary.as_deref().unwrap();
+    assert!(summary.starts_with(
+        "stage=legacySchemaMigration; operation=database_maintenance_run:fixNegativeGPS; sqliteCategory=none; fromVersion=17; toVersion=18; startedVersion=2.17.0;"
+    ));
+    assert!(summary.contains("work database <path>"));
+    assert!(!summary.contains("C:\\Users"));
+}
+
+#[test]
+fn telemetry_accumulator_keeps_sqlite_reason_and_migration_sql() {
+    let mut acc = TelemetryAccumulator::default();
+
+    acc.record_rust_error(
+        "rust:tracing",
+        "2.23.0",
+        "database upgrade failure [status=failed stage=legacyPerformanceIndexes operation=database_maintenance_run:addLegacyPerformanceIndexes sqliteCategory=unclassified from=17 to=18 appVersion=2.23.0]: Database error: no such column: created_at in SELECT created_at FROM gamelog_location at offset 7",
+    );
+
+    let error = &acc.client_error_entries()[0];
+    assert_eq!(error.code.as_deref(), Some("failed.sqlite_unclassified"));
+    assert_eq!(
+        error.name.as_deref(),
+        Some("database_maintenance_run:addLegacyPerformanceIndexes")
+    );
+    let summary = error.summary.as_deref().unwrap();
+    assert!(summary.contains("sqliteCategory=unclassified"));
+    assert!(summary.contains("no such column: created_at"));
+    assert!(summary.contains("SELECT created_at FROM gamelog_location at offset 7"));
+}
+
+#[test]
+fn telemetry_accumulator_uses_reporting_version_for_legacy_upgrade_status() {
+    let mut acc = TelemetryAccumulator::default();
+
+    acc.record_rust_error(
+        "rust:tracing",
+        "2.23.0",
+        "database upgrade failure [status=interrupted stage=beforeFirstStage from=17 to=18 appVersion=unknown]: previous database upgrade did not finish",
+    );
+
+    let error = &acc.client_error_entries()[0];
+    assert_eq!(error.app_version.as_deref(), Some("2.23.0"));
+    assert!(error
+        .summary
+        .as_deref()
+        .is_some_and(|summary| summary.contains("startedVersion=unknown")));
+}
+
+#[test]
 fn telemetry_accumulator_keeps_only_sanitized_panic_frame_locations() {
     let mut acc = TelemetryAccumulator::default();
 
