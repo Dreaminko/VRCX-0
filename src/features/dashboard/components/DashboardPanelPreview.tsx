@@ -2,6 +2,7 @@ import { ArrowRightIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
+import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
 import { DashboardEmbeddedPagePanel } from './DashboardEmbeddedPagePanel';
@@ -13,6 +14,12 @@ import type {
     DashboardPageMetrics,
     DashboardPanelPreviewProps
 } from '../dashboardPanelPreviewModel';
+
+export type DashboardPanelFrameMode = 'card' | 'docked';
+
+type DashboardPanelPreviewComponentProps = DashboardPanelPreviewProps & {
+    frameMode?: DashboardPanelFrameMode;
+};
 
 type PreviewMetricProps = {
     label: string;
@@ -161,16 +168,28 @@ export function DashboardPanelPreview({
     definition,
     config,
     pageMetrics,
-    onConfigChange
-}: DashboardPanelPreviewProps) {
+    onConfigChange,
+    frameMode = 'card'
+}: DashboardPanelPreviewComponentProps) {
     const { t } = useTranslation();
 
     const canEmbedPagePanel =
         definition?.category === 'page' && canEmbedDashboardPagePanel(panelKey);
+    const frameClassName = cn(
+        'bg-card relative h-full min-h-[180px] overflow-hidden',
+        frameMode === 'docked'
+            ? 'rounded-none border-0'
+            : 'rounded-md border'
+    );
+    const placeholderFrameClassName = cn(
+        frameClassName,
+        'text-muted-foreground flex items-center justify-center text-sm',
+        frameMode === 'card' && 'border-dashed'
+    );
 
     if (!panelKey) {
         return (
-            <div className="bg-card text-muted-foreground relative flex h-full min-h-[180px] items-center justify-center overflow-hidden rounded-md border border-dashed text-sm">
+            <div className={placeholderFrameClassName}>
                 <div className="py-10 text-center">
                     {t('view.dashboard.label.panel_not_configured')}
                 </div>
@@ -180,7 +199,7 @@ export function DashboardPanelPreview({
 
     if (!definition) {
         return (
-            <div className="bg-card text-muted-foreground relative flex h-full min-h-[180px] items-center justify-center overflow-hidden rounded-md border border-dashed text-sm">
+            <div className={placeholderFrameClassName}>
                 {t('view.dashboard.error.unsupported_panel')} {panelKey}
             </div>
         );
@@ -188,7 +207,12 @@ export function DashboardPanelPreview({
 
     if (canEmbedPagePanel) {
         return (
-            <div className="dashboard-panel is-compact-table bg-card relative flex h-full min-h-[180px] overflow-hidden rounded-md border">
+            <div
+                className={cn(
+                    frameClassName,
+                    'dashboard-panel is-compact-table flex'
+                )}
+            >
                 <div className="h-full w-full overflow-y-auto">
                     <DashboardEmbeddedPagePanel panelKey={panelKey} />
                 </div>
@@ -198,7 +222,12 @@ export function DashboardPanelPreview({
 
     if (definition.category === 'widget') {
         return (
-            <div className="dashboard-panel is-compact-table bg-card relative flex h-full min-h-[180px] overflow-hidden rounded-md border">
+            <div
+                className={cn(
+                    frameClassName,
+                    'dashboard-panel is-compact-table flex'
+                )}
+            >
                 <div className="h-full w-full overflow-y-auto">
                     <DashboardWidgetPreview
                         definition={definition}
@@ -211,7 +240,7 @@ export function DashboardPanelPreview({
     }
 
     return (
-        <div className="bg-card relative flex h-full min-h-[180px] overflow-hidden rounded-md border p-3">
+        <div className={cn(frameClassName, 'flex p-3')}>
             <DashboardPagePreview
                 definition={definition}
                 pageMetrics={pageMetrics}

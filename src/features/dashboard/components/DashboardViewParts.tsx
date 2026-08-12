@@ -24,7 +24,6 @@ import {
     DialogTitle
 } from '@/ui/shadcn/dialog';
 import {
-    ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup
 } from '@/ui/shadcn/resizable';
@@ -44,7 +43,11 @@ import {
     createDashboardPanelPreviewProps,
     type DashboardPageMetrics
 } from '../dashboardPanelPreviewModel';
-import { DashboardPanelPreview } from './DashboardPanelPreview';
+import {
+    DashboardPanelPreview,
+    type DashboardPanelFrameMode
+} from './DashboardPanelPreview';
+import { DashboardResizeHandle } from './DashboardResizeHandle';
 
 export function DashboardFilterConfig({
     title,
@@ -348,10 +351,12 @@ function useDashboardPagePreviewMetrics(): DashboardPageMetrics {
 
 export function DashboardPanelPreviewForPanel({
     panel,
-    onPanelChange
+    onPanelChange,
+    frameMode = 'card'
 }: {
     panel: DashboardPanel | null;
     onPanelChange?: (panel: DashboardPanel | null) => void;
+    frameMode?: DashboardPanelFrameMode;
 }) {
     const pageMetrics = useDashboardPagePreviewMetrics();
     const previewProps = createDashboardPanelPreviewProps({
@@ -360,7 +365,7 @@ export function DashboardPanelPreviewForPanel({
         onPanelChange
     });
 
-    return <DashboardPanelPreview {...previewProps} />;
+    return <DashboardPanelPreview {...previewProps} frameMode={frameMode} />;
 }
 
 export function DashboardReadRow({
@@ -400,13 +405,14 @@ export function DashboardReadRow({
                         <div className="h-full min-h-[180px] min-w-0">
                             <DashboardPanelPreviewForPanel
                                 panel={panels[0]}
+                                frameMode="docked"
                                 onPanelChange={(nextPanel) =>
                                     onPanelChange?.(0, nextPanel)
                                 }
                             />
                         </div>
                     </ResizablePanel>
-                    <ResizableHandle />
+                    <DashboardResizeHandle />
                     <ResizablePanel
                         id={secondPanelId}
                         defaultSize="50%"
@@ -415,6 +421,7 @@ export function DashboardReadRow({
                         <div className="h-full min-h-[180px] min-w-0">
                             <DashboardPanelPreviewForPanel
                                 panel={panels[1]}
+                                frameMode="docked"
                                 onPanelChange={(nextPanel) =>
                                     onPanelChange?.(1, nextPanel)
                                 }
@@ -430,6 +437,7 @@ export function DashboardReadRow({
         <div className="relative h-full min-h-[180px]">
             <DashboardPanelPreviewForPanel
                 panel={panels[0]}
+                frameMode="docked"
                 onPanelChange={(nextPanel) => onPanelChange?.(0, nextPanel)}
             />
         </div>

@@ -20,13 +20,13 @@ import {
 } from '@/ui/shadcn/card';
 import { Input } from '@/ui/shadcn/input';
 import {
-    ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup
 } from '@/ui/shadcn/resizable';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { DashboardEditorWorkspace } from './components/DashboardEditorWorkspace';
+import { DashboardResizeHandle } from './components/DashboardResizeHandle';
 import { DashboardReadRow } from './components/DashboardViewParts';
 import { getDashboardRowKey } from './dashboardConfig';
 import { useDashboardPageController } from './useDashboardPageController';
@@ -132,7 +132,7 @@ export function DashboardPage() {
     const rowCount = dashboard.rows?.length || 0;
 
     return (
-        <PageScaffold className="gap-3">
+        <PageScaffold className="gap-2 p-2">
             {editor.isEditing ? (
                 <div className="bg-card flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2">
                     <Input
@@ -186,7 +186,7 @@ export function DashboardPage() {
                     </div>
                 </div>
             ) : null}
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 {editor.isEditing ? (
                     <DashboardEditorWorkspace
                         rows={editor.editRows}
@@ -200,7 +200,7 @@ export function DashboardPage() {
                     <ResizablePanelGroup
                         id={`dashboard-${id}`}
                         orientation="vertical"
-                        className="min-h-0 flex-1"
+                        className="bg-card border-border min-h-0 flex-1 overflow-hidden rounded-md border-2"
                         defaultLayout={dashboardLayout.defaultLayout}
                         onLayoutChanged={dashboardLayout.onLayoutChanged}
                     >
@@ -229,7 +229,7 @@ export function DashboardPage() {
                                         />
                                     </ResizablePanel>
                                     {rowIndex < rowCount - 1 ? (
-                                        <ResizableHandle />
+                                        <DashboardResizeHandle />
                                     ) : null}
                                 </Fragment>
                             );
