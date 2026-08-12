@@ -157,7 +157,7 @@ export function normalizeGitHubRelease(
     }
 
     return {
-        ...(asset || {}),
+        ...asset,
         canonicalVersion: parsedVersion.canonicalVersion,
         channel: 'Stable',
         displayVersion: parsedVersion.displayVersion,

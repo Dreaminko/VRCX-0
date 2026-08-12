@@ -337,7 +337,7 @@ function UserDialogPresenceSection({
                         <LocationWorld
                             className="min-w-0"
                             locationObject={{
-                                ...(locationInstance || {}),
+                                ...locationInstance,
                                 tag: visiblePresenceLocation,
                                 location: visiblePresenceLocation,
                                 userId: locationOwnerId,
@@ -470,7 +470,7 @@ function buildRepresentedGroupSeedData(representedGroup: RepresentedGroup) {
         $memberId: representedGroup.id,
         id: representedGroup.groupId,
         myMember: {
-            ...(representedGroup.myMember || {}),
+            ...representedGroup.myMember,
             id: representedGroup.id,
             groupId: representedGroup.groupId,
             isRepresenting: Boolean(representedGroup.isRepresenting),

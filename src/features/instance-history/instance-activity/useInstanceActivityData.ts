@@ -72,7 +72,7 @@ async function loadMissingWorldProfiles(
             continue;
         }
         nextWorldDetailsById[worldId] = {
-            ...(nextWorldDetailsById[worldId] || {}),
+            ...nextWorldDetailsById[worldId],
             ...world
         };
     }

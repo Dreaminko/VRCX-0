@@ -205,8 +205,10 @@ export function FullscreenImageViewer({
                     onWheel={handleWheel}
                 >
                     <div
+                        role="presentation"
                         className="bg-background/80 absolute top-3 right-3 left-3 z-20 flex max-w-[calc(100vw-1.5rem)] flex-wrap items-center justify-end gap-2 rounded-lg border px-2 py-1 shadow-sm backdrop-blur sm:left-auto sm:max-w-none"
                         onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
                     >
                         <Tooltip>
                             <TooltipTrigger
@@ -388,8 +390,12 @@ export function FullscreenImageViewer({
                         <>
                             {imageLoading ? (
                                 <div
+                                    role="status"
                                     className="text-muted-foreground flex flex-col items-center gap-3 text-sm"
                                     onClick={(event) => event.stopPropagation()}
+                                    onKeyDown={(event) =>
+                                        event.stopPropagation()
+                                    }
                                 >
                                     <Spinner className="size-6" />
                                     <span>{t('message.image.loading')}</span>
@@ -397,8 +403,12 @@ export function FullscreenImageViewer({
                             ) : null}
                             {imageLoadError ? (
                                 <div
+                                    role="status"
                                     className="text-muted-foreground text-sm"
                                     onClick={(event) => event.stopPropagation()}
+                                    onKeyDown={(event) =>
+                                        event.stopPropagation()
+                                    }
                                 >
                                     {t('message.image.load_failed')}
                                 </div>
@@ -421,6 +431,7 @@ export function FullscreenImageViewer({
                                     setImageLoadError(true);
                                 }}
                                 onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
                                 onDragStart={(event) => event.preventDefault()}
                                 onPointerDown={handlePointerDown}
                                 onPointerMove={handlePointerMove}

@@ -54,7 +54,7 @@ export function usePlayerListActions({
                             seedData || resolved.seedData
                                 ? {
                                       ...resolvedSeedData,
-                                      ...(seedData || {}),
+                                      ...seedData,
                                       id: resolved.userId,
                                       userId: resolved.userId
                                   }

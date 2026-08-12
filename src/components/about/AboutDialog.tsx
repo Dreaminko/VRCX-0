@@ -73,7 +73,6 @@ function ensureWordmarkFontLoaded() {
 }
 
 function getAppDisplayVersion(): string {
-    // oxlint-disable-next-line no-undef
     return formatReleaseDisplayVersion(VERSION || '') || String(VERSION || '');
 }
 

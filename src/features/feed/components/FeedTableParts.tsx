@@ -120,7 +120,7 @@ function FeedUserLink({
     const knownUser = useKnownUserFact(userId, { endpoint: currentEndpoint });
     const displayUser = friend
         ? {
-              ...(knownUser || {}),
+              ...knownUser,
               ...friend,
               displayName: friend.displayName || knownUser?.displayName,
               username: friend.username || knownUser?.username
@@ -396,7 +396,7 @@ function FeedUserAvatarButton({
     const knownUser = useKnownUserFact(userId, { endpoint: currentEndpoint });
     const displayUser = friend
         ? {
-              ...(knownUser || {}),
+              ...knownUser,
               ...friend,
               displayName: friend.displayName || knownUser?.displayName,
               username: friend.username || knownUser?.username

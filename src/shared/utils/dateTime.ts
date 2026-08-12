@@ -274,7 +274,7 @@ export function timeToTextWithLabels(
     }
     const labels: TimeUnitLabels = {
         ...DEFAULT_TIME_UNIT_LABELS,
-        ...(unitLabels || {})
+        ...unitLabels
     };
     if (n >= SECONDS_PER_YEAR) {
         arr.push(`${Math.floor(n / SECONDS_PER_YEAR)}${labels.y}`);

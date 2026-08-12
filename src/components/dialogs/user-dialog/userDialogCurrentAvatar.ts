@@ -181,7 +181,7 @@ export async function getCurrentAvatarDetails({
         );
         if (!isUnknownAvatarName(imageAvatarName)) {
             return {
-                ...(avatarProfile || myAvatar || {}),
+                ...(avatarProfile || myAvatar),
                 id: avatarId,
                 name: imageAvatarName,
                 imageUrl:

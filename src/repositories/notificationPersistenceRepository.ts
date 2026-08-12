@@ -215,7 +215,7 @@ async function addNotificationToDatabase({
         senderUsername: '',
         receiverUserId: '',
         message: '',
-        ...(notification || {}),
+        ...notification,
         details: {
             worldId: '',
             worldName: '',

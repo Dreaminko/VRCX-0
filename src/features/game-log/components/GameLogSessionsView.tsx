@@ -100,7 +100,7 @@ function SessionFriendList({
     const knownFriendsById = useKnownUserFacts(friendUserIds);
 
     return (
-        <ul className="max-h-72 overflow-y-auto py-1" role="list">
+        <ul className="max-h-72 overflow-y-auto py-1">
             {friends.map((friend) => {
                 const knownFriend = knownFriendsById[friend.userId] || null;
                 const displayName =

@@ -65,7 +65,6 @@ export function UpdaterDialog({ open, onOpenChange }: UpdaterDialogProps) {
         (downloading ||
             (autoDownloadState === 'downloading' && hasMatchingDownload));
     const currentVersionText =
-        // oxlint-disable-next-line no-undef
         formatReleaseDisplayVersion(VERSION || '') || '-';
     const latestVersionText =
         latestRelease?.displayVersion ||

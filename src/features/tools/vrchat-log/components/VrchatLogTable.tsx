@@ -80,6 +80,9 @@ export function VrchatLogTable({
                             <ContextMenuTrigger
                                 render={
                                     <div
+                                        role="checkbox"
+                                        aria-checked={selected}
+                                        tabIndex={0}
                                         style={{
                                             height: `${LOG_ROW_HEIGHT}px`,
                                             transform: `translateY(${row.start + LOG_HEADER_HEIGHT}px)`
@@ -94,6 +97,19 @@ export function VrchatLogTable({
                                             ) {
                                                 return;
                                             }
+                                            toggleEntrySelected(
+                                                entry,
+                                                !selected
+                                            );
+                                        }}
+                                        onKeyDown={(event) => {
+                                            if (
+                                                event.key !== 'Enter' &&
+                                                event.key !== ' '
+                                            ) {
+                                                return;
+                                            }
+                                            event.preventDefault();
                                             toggleEntrySelected(
                                                 entry,
                                                 !selected

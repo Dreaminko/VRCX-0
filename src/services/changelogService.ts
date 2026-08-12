@@ -189,7 +189,6 @@ export function resolvePostUpdateChangelogToastState({
 }
 
 function getCurrentVersion() {
-    // oxlint-disable-next-line no-undef
     return typeof VERSION === 'undefined' ? '' : VERSION || '';
 }
 

@@ -242,7 +242,7 @@ export function updateRuleAction<TRule extends PresenceAutomationRule>(
     return {
         ...rule,
         actions: {
-            ...(rule.actions || {}),
+            ...rule.actions,
             ...patch
         }
     };
@@ -252,7 +252,7 @@ export function removeRuleAction<TRule extends PresenceAutomationRule>(
     rule: TRule,
     key: string
 ): TRule {
-    const actions: PresenceRuleActions = { ...(rule.actions || {}) };
+    const actions: PresenceRuleActions = { ...rule.actions };
     delete actions[key];
     return {
         ...rule,

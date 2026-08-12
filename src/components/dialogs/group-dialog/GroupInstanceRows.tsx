@@ -148,7 +148,7 @@ function normalizeGroupInstance(
     const title = getInstanceTitle(instance);
 
     return {
-        ...(instance.ref || {}),
+        ...instance.ref,
         ...instance,
         location,
         tag: location,

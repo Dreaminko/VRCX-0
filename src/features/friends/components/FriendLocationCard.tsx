@@ -528,6 +528,7 @@ export function FriendLocationCard({
     ) : null;
     const cardActions = (
         <div
+            role="presentation"
             className="pointer-events-none absolute top-[var(--friend-card-padding)] right-[var(--friend-card-padding)] z-20 flex items-center gap-0.5 opacity-0 transition-opacity duration-150 ease-out group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 group-hover/card:pointer-events-auto group-hover/card:opacity-100 motion-reduce:transition-none"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => event.stopPropagation()}
@@ -654,8 +655,12 @@ export function FriendLocationCard({
                                     {titleNode}
                                     {showLocationInfo ? (
                                         <div
+                                            role="presentation"
                                             className="text-muted-foreground min-w-0 text-left text-xs leading-4"
                                             onClick={(event) =>
+                                                event.stopPropagation()
+                                            }
+                                            onKeyDown={(event) =>
                                                 event.stopPropagation()
                                             }
                                         >
@@ -692,8 +697,12 @@ export function FriendLocationCard({
                                     <CardContent className="flex min-h-0 flex-1 flex-col gap-[var(--friend-card-inner-gap)] overflow-hidden px-[var(--friend-card-padding)]">
                                         {showLocationInfo ? (
                                             <div
+                                                role="presentation"
                                                 className="text-muted-foreground w-full min-w-0 text-left text-xs leading-4"
                                                 onClick={(event) =>
+                                                    event.stopPropagation()
+                                                }
+                                                onKeyDown={(event) =>
                                                     event.stopPropagation()
                                                 }
                                             >

@@ -1,13 +1,21 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
     "categories": {
-        "correctness": "off"
+        "correctness": "error"
     },
     "plugins": ["unicorn", "typescript", "oxc", "react", "jsx-a11y"],
-    "ignorePatterns": ["node_modules/**", "src/services/confusables.ts"],
+    "ignorePatterns": ["node_modules/**"],
+    "options": {
+        "reportUnusedDisableDirectives": "error"
+    },
     "env": {
         "builtin": true,
         "browser": true
+    },
+    "globals": {
+        "VERSION": "readonly",
+        "VRCX_0_BUILD_LABEL": "readonly",
+        "VRCX_0_BUILD_BADGE": "readonly"
     },
     "rules": {
         "no-unused-vars": "warn",
@@ -24,7 +32,10 @@
         "jsx-a11y/iframe-has-title": "error",
         "jsx-a11y/img-redundant-alt": "error",
         "jsx-a11y/no-access-key": "error",
+        "jsx-a11y/no-autofocus": "off",
         "jsx-a11y/no-distracting-elements": "error",
+        "jsx-a11y/no-noninteractive-tabindex": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
         "jsx-a11y/role-has-required-aria-props": "error",
         "jsx-a11y/scope": "error",
         "jsx-a11y/tabindex-no-positive": "error"
@@ -54,7 +65,7 @@
         },
         {
             "files": ["src/{services,state}/**/*.{ts,tsx}"],
-            "excludeFiles": ["**/*.test.{ts,tsx}"],
+            "excludeFiles": ["src/services/preferencesService.test.ts"],
             "rules": {
                 "no-restricted-imports": [
                     "error",
@@ -70,71 +81,30 @@
             }
         },
         {
-            "files": ["**/*.{js,jsx,mjs,cjs}"],
+            "files": ["src/services/confusables.ts"],
             "rules": {
-                "constructor-super": "error",
-                "for-direction": "error",
-                "no-async-promise-executor": "error",
-                "no-class-assign": "error",
-                "no-compare-neg-zero": "error",
-                "no-cond-assign": "error",
-                "no-const-assign": "error",
-                "no-constant-binary-expression": "error",
-                "no-constant-condition": "error",
-                "no-debugger": "error",
-                "no-delete-var": "error",
-                "no-dupe-class-members": "error",
-                "no-dupe-else-if": "error",
-                "no-dupe-keys": "error",
-                "no-duplicate-case": "error",
-                "no-empty": "error",
-                "no-empty-character-class": "error",
-                "no-empty-pattern": "error",
-                "no-empty-static-block": "error",
-                "no-ex-assign": "error",
-                "no-extra-boolean-cast": "error",
-                "no-fallthrough": "error",
-                "no-func-assign": "error",
-                "no-global-assign": "error",
-                "no-import-assign": "error",
-                "no-invalid-regexp": "error",
-                "no-irregular-whitespace": "error",
-                "no-loss-of-precision": "error",
-                "no-misleading-character-class": "error",
-                "no-new-native-nonconstructor": "error",
-                "no-nonoctal-decimal-escape": "error",
-                "no-obj-calls": "error",
-                "no-prototype-builtins": "error",
-                "no-redeclare": "error",
-                "no-regex-spaces": "error",
-                "no-self-assign": "error",
-                "no-setter-return": "error",
-                "no-shadow-restricted-names": "error",
-                "no-sparse-arrays": "error",
-                "no-this-before-super": "error",
-                "no-unexpected-multiline": "error",
-                "no-unsafe-finally": "error",
-                "no-unsafe-negation": "error",
-                "no-unsafe-optional-chaining": "error",
-                "no-unused-labels": "error",
-                "no-unused-private-class-members": "error",
-                "no-useless-backreference": "error",
-                "no-useless-catch": "error",
-                "no-useless-escape": "error",
-                "no-with": "error",
-                "require-yield": "error",
-                "use-isnan": "error",
-                "valid-typeof": "error"
-            },
-            "globals": {
-                "VERSION": "readonly"
+                "no-control-regex": "off",
+                "no-irregular-whitespace": "off",
+                "no-misleading-character-class": "off"
             }
         },
         {
-            "files": ["src/services/confusables.ts"],
+            "files": ["src/ui/shadcn/label.tsx"],
             "rules": {
-                "no-irregular-whitespace": "off",
-                "no-misleading-character-class": "off"
+                "jsx-a11y/label-has-associated-control": "off"
+            }
+        },
+        {
+            "files": ["src/ui/shadcn/input-group.tsx"],
+            "rules": {
+                "jsx-a11y/click-events-have-key-events": "off",
+                "jsx-a11y/no-noninteractive-element-interactions": "off"
+            }
+        },
+        {
+            "files": ["src/components/media/FullscreenImageViewer.tsx"],
+            "rules": {
+                "jsx-a11y/no-noninteractive-element-interactions": "off"
             }
         }
     ]

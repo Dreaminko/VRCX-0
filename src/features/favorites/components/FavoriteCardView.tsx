@@ -132,6 +132,7 @@ export function FavoriteCardView({
                     {slots.selection}
                     {slots.actions ? (
                         <span
+                            role="presentation"
                             className="absolute top-1.5 right-1.5 z-10"
                             onClick={interactions.stop}
                             onKeyDown={interactions.stop}
@@ -273,8 +274,10 @@ export function FavoriteCardView({
                 </div>
                 {friendShowsLocation ? (
                     <div
+                        role="presentation"
                         className="text-muted-foreground truncate text-xs"
                         onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
                     >
                         <Location
                             location={friendLocation}

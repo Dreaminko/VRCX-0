@@ -3,6 +3,7 @@ import {
     useEffect,
     useMemo,
     useState,
+    type HTMLAttributes,
     type KeyboardEvent,
     type ReactElement,
     type ReactNode,
@@ -325,6 +326,16 @@ export function StaticSidebarLocation({
         openWorld(event);
     }
 
+    const locationInteractionProps: HTMLAttributes<HTMLSpanElement> =
+        isLocationLink
+            ? {
+                  role: 'button',
+                  tabIndex: 0,
+                  onClick: openWorld,
+                  onKeyDown: openWorldFromKeyboard
+              }
+            : {};
+
     function openGroup(event: Pick<SyntheticEvent, 'stopPropagation'>) {
         event?.stopPropagation?.();
         const groupId = normalizeId(parsedLocation.groupId);
@@ -384,18 +395,13 @@ export function StaticSidebarLocation({
                 content={tooltipContent}
             >
                 <span
-                    role={isLocationLink ? 'button' : undefined}
-                    tabIndex={isLocationLink ? 0 : undefined}
+                    {...locationInteractionProps}
                     className={cn(
                         'x-location inline-flex max-w-full min-w-0 flex-nowrap items-center truncate overflow-hidden text-left',
                         isLocationLink
                             ? 'hover:text-primary cursor-pointer text-inherit underline-offset-4'
                             : 'cursor-default'
                     )}
-                    onClick={isLocationLink ? openWorld : undefined}
-                    onKeyDown={
-                        isLocationLink ? openWorldFromKeyboard : undefined
-                    }
                 >
                     {normalizeLocationStatus(location) === 'traveling' ? (
                         <Spinner

@@ -296,7 +296,7 @@ export function normalizeGroupEvent(
         groupId: event?.groupId || fallbackGroupId,
         ownerId: event?.ownerId || event?.groupId || fallbackGroupId,
         userInterest: {
-            ...(event?.userInterest || {}),
+            ...event?.userInterest,
             isFollowing: Boolean(resolvedFollowing)
         },
         title: replaceBioSymbols(event?.title || ''),

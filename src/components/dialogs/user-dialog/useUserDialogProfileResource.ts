@@ -237,7 +237,7 @@ export function useUserDialogProfileResource({
                 }
                 const remoteProfile = {
                     ...stripSyntheticSnapshotDefaults(nextProfile, {}),
-                    ...(friendStatus ?? {})
+                    ...friendStatus
                 };
 
                 setBaseProfile((currentProfile) =>

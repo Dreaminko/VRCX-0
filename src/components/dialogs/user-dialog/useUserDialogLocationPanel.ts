@@ -503,7 +503,7 @@ export function useUserDialogLocationPanel({
                         instances: [
                             {
                                 ...locationMetadata,
-                                ...(instance || {}),
+                                ...instance,
                                 location: activeLocation,
                                 worldId: parsedLocation.worldId,
                                 instanceId: parsedLocation.instanceId,

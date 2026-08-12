@@ -85,6 +85,7 @@ export function AppTitleBar() {
                 >
                     {isSessionReady ? (
                         <div
+                            role="presentation"
                             data-titlebar-interactive="true"
                             className="h-full shrink-0"
                             onMouseDown={(event) => {

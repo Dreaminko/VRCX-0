@@ -337,7 +337,7 @@ export function buildQuickSearchResults({
         const note =
             userNoteById.get(friendId) || friend.note || knownUser?.note || '';
         const profile: QuickSearchRecord = {
-            ...(knownUser || {}),
+            ...knownUser,
             ...friend,
             displayName: friend.displayName || knownUser?.displayName,
             username: friend.username || knownUser?.username,

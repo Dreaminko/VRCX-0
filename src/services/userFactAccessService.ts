@@ -80,7 +80,7 @@ function mergeUserFactInput(
     incoming: Record<string, unknown>,
     userId: string
 ): Record<string, unknown> {
-    const merged = { ...(existing || {}) };
+    const merged = { ...existing };
     for (const [field, value] of Object.entries(incoming)) {
         if (
             value === null ||

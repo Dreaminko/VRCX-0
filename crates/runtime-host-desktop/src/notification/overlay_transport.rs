@@ -36,7 +36,7 @@ impl OverlayNotificationTransport {
                 send_xs_overlay_notification(render, preferences, local_image);
             }
             if plan.ovrt {
-                send_ovrt_notification(&self.ovrt, plan, render, preferences, local_image);
+                send_ovrt_notification(&self.ovrt, plan, render, local_image);
             }
         }
 

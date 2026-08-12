@@ -134,7 +134,6 @@ export function AppMenuBar({
     );
     const hostCapabilities = useRuntimeStore((state) => state.hostCapabilities);
     const currentZoom = normalizeZoomLevel(zoomLevel);
-    // oxlint-disable-next-line no-undef
     const appVersion = formatReleaseDisplayVersion(VERSION || '') || '-';
     const buildBadgeLabel = getBuildBadgeLabel(t);
     const developerToolsAvailable = isDeveloperToolsBuild();

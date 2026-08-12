@@ -417,8 +417,8 @@ export function GroupDialogTabbedView({
                                   ...row,
                                   ...nextEvent,
                                   userInterest: {
-                                      ...(row?.userInterest || {}),
-                                      ...(nextEvent?.userInterest || {}),
+                                      ...row?.userInterest,
+                                      ...nextEvent?.userInterest,
                                       isFollowing: nextFollowing
                                   }
                               },

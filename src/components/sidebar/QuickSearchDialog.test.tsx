@@ -69,7 +69,7 @@ function renderQuickSearch(
 ) {
     render(
         <MemoryRouter>
-            <div onKeyDown={onKeyDown}>
+            <div role="presentation" onKeyDown={onKeyDown}>
                 <QuickSearchDialog open onOpenChange={onOpenChange} />
             </div>
         </MemoryRouter>

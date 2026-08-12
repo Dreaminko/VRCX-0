@@ -73,6 +73,7 @@ vi.mock('@/ui/shadcn/dialog', () => ({
         open ? (
             <div>
                 <button
+                    aria-label="close"
                     data-testid="dialog-close-signal"
                     onClick={() => onOpenChange(false)}
                 />

@@ -197,6 +197,12 @@ fn later_timestamp<'a>(left: &'a str, right: &'a str) -> Option<&'a str> {
     }
 }
 
+impl GameProcessEventSink for GameLogHostRuntime {
+    fn on_game_process_event(&self, event: GameProcessEvent) -> RuntimeResult<()> {
+        self.inner.on_game_process_event(event)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::later_timestamp;
@@ -215,11 +221,5 @@ mod tests {
             later_timestamp("2026-08-06T12:00:00.000Z", ""),
             Some("2026-08-06T12:00:00.000Z")
         );
-    }
-}
-
-impl GameProcessEventSink for GameLogHostRuntime {
-    fn on_game_process_event(&self, event: GameProcessEvent) -> RuntimeResult<()> {
-        self.inner.on_game_process_event(event)
     }
 }

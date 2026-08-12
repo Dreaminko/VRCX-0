@@ -143,7 +143,7 @@ export function createLocalFavoriteGroupState(
     }
 
     return {
-        ...(source || {}),
+        ...source,
         [normalizedGroupName]: Array.isArray(source?.[normalizedGroupName])
             ? source[normalizedGroupName]
             : []
@@ -165,7 +165,7 @@ export function renameLocalFavoriteGroupState(
         return source || {};
     }
 
-    const next: FavoriteGroupMap = { ...(source || {}) };
+    const next: FavoriteGroupMap = { ...source };
     if (next[normalizedNewGroupName]) {
         return next;
     }
@@ -185,7 +185,7 @@ export function deleteLocalFavoriteGroupState(
         return source || {};
     }
 
-    const next: FavoriteGroupMap = { ...(source || {}) };
+    const next: FavoriteGroupMap = { ...source };
     delete next[normalizedGroupName];
     return next;
 }

@@ -119,7 +119,7 @@ async function loadInventoryRows(definition: InventoryTabDefinition) {
     }
     const { items, truncated } = await mediaRepository.collectInventoryItems({
         order: 'newest',
-        ...(definition.params || {})
+        ...definition.params
     });
     if (truncated) {
         console.warn('Inventory listing truncated at the page limit.');

@@ -538,8 +538,12 @@ export function AppLauncherDialog({
                                                 </TableCell>
                                                 <TableCell>
                                                     <div
+                                                        role="presentation"
                                                         className="flex justify-end"
                                                         onClick={(event) =>
+                                                            event.stopPropagation()
+                                                        }
+                                                        onKeyDown={(event) =>
                                                             event.stopPropagation()
                                                         }
                                                     >

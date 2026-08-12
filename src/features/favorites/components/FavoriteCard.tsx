@@ -159,7 +159,7 @@ const FavoriteCard = memo(function FavoriteCard({
     );
     const friendStatusSource: SidebarFriendRecord | null = isFriendCard
         ? {
-              ...(item.seedData || {}),
+              ...item.seedData,
               id: item.seedData?.id || item.id,
               displayName: item.seedData?.displayName || item.title
           }
@@ -226,6 +226,7 @@ const FavoriteCard = memo(function FavoriteCard({
     const isCardInteractive = Boolean(openHandler) || isSelectionActive;
     const selectionCheckbox = (
         <span
+            role="presentation"
             className={cn(
                 'absolute top-2 left-2 z-20',
                 'opacity-0 transition-opacity',

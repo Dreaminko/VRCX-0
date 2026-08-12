@@ -2,14 +2,12 @@ const PREVIEW_LABELS = new Set(['preview', 'test']);
 const DEVKIT_LABEL = 'devkit';
 
 export function getVrcxBuildLabel(): string {
-    // oxlint-disable-next-line no-undef
     return typeof VRCX_0_BUILD_LABEL === 'string'
         ? VRCX_0_BUILD_LABEL.trim().toLowerCase()
         : '';
 }
 
 export function getVrcxBuildBadge(): string {
-    // oxlint-disable-next-line no-undef
     return typeof VRCX_0_BUILD_BADGE === 'string'
         ? VRCX_0_BUILD_BADGE.trim()
         : '';

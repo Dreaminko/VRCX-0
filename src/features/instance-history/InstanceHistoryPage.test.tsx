@@ -83,7 +83,9 @@ vi.mock('@/components/layout/PageScaffold', () => ({
 }));
 
 vi.mock('@/components/layout/ToolbarControls', () => ({
-    toolbarDateRangeTrigger: () => <button type="button" />,
+    toolbarDateRangeTrigger: () => (
+        <button type="button" aria-label="date range" />
+    ),
     ToolbarActions: ({ children }: { children?: ReactNode }) => (
         <div>{children}</div>
     ),

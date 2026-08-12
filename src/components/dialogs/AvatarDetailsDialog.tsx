@@ -232,7 +232,7 @@ export function AvatarDetailsDialog({
                 hasOwn(params, 'primaryStyle') ||
                 hasOwn(params, 'secondaryStyle')
                     ? {
-                          ...(avatar?.styles || {}),
+                          ...avatar?.styles,
                           ...(hasOwn(params, 'primaryStyle')
                               ? { primary: primaryStyle }
                               : {}),

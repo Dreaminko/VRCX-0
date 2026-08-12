@@ -90,7 +90,6 @@ fn flush_telemetry_before_task_shutdown(state: &AppState) {
 
 #[tauri::command]
 #[specta::specta]
-#[allow(unused_variables)]
 pub fn app__language_changed(app_handle: AppHandle, language: String) -> Result<(), AppError> {
     #[cfg(target_os = "macos")]
     let _ = crate::macos_menu::configure_macos_app_menu(&app_handle, &language);

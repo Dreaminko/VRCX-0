@@ -225,7 +225,7 @@ function buildFriendFavoriteItem({
     const normalizedId = normalizeEntityId(friendId);
     const profile = friend
         ? {
-              ...(knownUser || {}),
+              ...knownUser,
               ...friend,
               displayName: friend.displayName || knownUser?.displayName,
               username: friend.username || knownUser?.username

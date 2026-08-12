@@ -280,7 +280,7 @@ export function WorldDialogTabPanels({
                                             <LocationWorld
                                                 className="min-w-0 text-sm"
                                                 locationObject={{
-                                                    ...(instance.ref || {}),
+                                                    ...record(instance.ref),
                                                     ...instance,
                                                     tag: location,
                                                     location,

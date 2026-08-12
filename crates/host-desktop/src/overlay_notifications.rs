@@ -39,15 +39,12 @@ impl OvrToolkit {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn send_notification(
         &self,
         hud_notification: bool,
         wrist_notification: bool,
         title: &str,
         body: &str,
-        _timeout: i32,
-        _opacity: f64,
         image: Option<&str>,
     ) {
         let messages =

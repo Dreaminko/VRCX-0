@@ -104,7 +104,7 @@ function mergeCurrentUserProjectionSnapshot(
     const completeFriendBucketSource =
         getCurrentUserProjectionFriendBucketSource(payload);
     const nextSnapshot: ProjectionRecord = {
-        ...(currentSnapshot || {}),
+        ...currentSnapshot,
         ...source
     };
 

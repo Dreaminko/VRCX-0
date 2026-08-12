@@ -91,6 +91,11 @@ pub(super) fn send_desktop_notification(
     }
 }
 
+fn non_empty(value: &str) -> Option<&str> {
+    let value = value.trim();
+    (!value.is_empty()).then_some(value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::DesktopNotificationAction;
@@ -115,9 +120,4 @@ mod tests {
         )
         .is_none());
     }
-}
-
-fn non_empty(value: &str) -> Option<&str> {
-    let value = value.trim();
-    (!value.is_empty()).then_some(value)
 }

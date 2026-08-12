@@ -90,8 +90,10 @@ export function useFriendListColumns({
 
                     return (
                         <div
+                            role="presentation"
                             className="flex items-center justify-center"
                             onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => event.stopPropagation()}
                         >
                             <Checkbox
                                 checked={selectedFriendIds.has(friendId)}

@@ -17,7 +17,6 @@ function toUpdaterReleaseSnapshot(release: UpdaterReleaseSnapshotSource) {
     return {
         title: release.displayName || release.tagName || '',
         currentVersion:
-            // oxlint-disable-next-line no-undef
             formatReleaseDisplayVersion(VERSION || '') || String(VERSION || ''),
         latestVersion:
             release.displayVersion ||
