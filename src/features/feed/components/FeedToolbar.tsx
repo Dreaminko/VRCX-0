@@ -50,6 +50,7 @@ type FeedToolbarProps = {
     };
     modeToggle: ReactNode;
     feedPersistenceDisabled: boolean;
+    isSearching: boolean;
 };
 
 function FeedTypeFilterChips({
@@ -168,7 +169,8 @@ export const FeedToolbar = memo(function FeedToolbar({
     filterCommands,
     filterModel,
     modeToggle,
-    feedPersistenceDisabled
+    feedPersistenceDisabled,
+    isSearching
 }: FeedToolbarProps) {
     const { t } = useTranslation();
     const {
@@ -234,6 +236,7 @@ export const FeedToolbar = memo(function FeedToolbar({
                 </ToolbarViews>
 
                 <FeedSearchBox
+                    isSearching={isSearching}
                     scopedUserIds={scopedUserIds}
                     searchDraft={searchDraft}
                     onClearSearch={onClearSearch}

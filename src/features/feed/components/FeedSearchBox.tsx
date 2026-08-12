@@ -20,6 +20,7 @@ import {
     useComboboxAnchor
 } from '@/ui/shadcn/combobox';
 import { Kbd } from '@/ui/shadcn/kbd';
+import { Spinner } from '@/ui/shadcn/spinner';
 
 const MAX_FRIEND_CANDIDATES = 50;
 
@@ -43,6 +44,7 @@ function FriendAvatar({
 }
 
 type FeedSearchBoxProps = {
+    isSearching: boolean;
     onClearSearch(): void;
     onCommitSearch(): void;
     onScopeChange(userIds: readonly string[]): void;
@@ -52,6 +54,7 @@ type FeedSearchBoxProps = {
 };
 
 export const FeedSearchBox = memo(function FeedSearchBox({
+    isSearching,
     onClearSearch,
     onCommitSearch,
     onScopeChange,
@@ -117,8 +120,13 @@ export const FeedSearchBox = memo(function FeedSearchBox({
                 ref={anchorRef}
                 className="w-64 shrink-0 sm:w-96"
                 aria-label={t('view.feed.search_scope.aria_label')}
+                aria-busy={isSearching}
             >
-                <SearchIcon className="text-muted-foreground pointer-events-none size-4 shrink-0" />
+                {isSearching ? (
+                    <Spinner className="text-muted-foreground pointer-events-none size-4 shrink-0" />
+                ) : (
+                    <SearchIcon className="text-muted-foreground pointer-events-none size-4 shrink-0" />
+                )}
                 <ComboboxValue>
                     {(userIds: string[]) => (
                         <>

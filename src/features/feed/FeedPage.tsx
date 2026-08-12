@@ -17,10 +17,7 @@ import { FeedColumnsMode } from './columns/FeedColumnsMode';
 import { FeedTableShell } from './components/FeedTableShell';
 import { FeedToolbar } from './components/FeedToolbar';
 import type { FeedViewMode } from './feedColumnsState';
-import {
-    readFeedRouteUserIds,
-    withFeedRouteUserIds
-} from './feedRouteScope';
+import { readFeedRouteUserIds, withFeedRouteUserIds } from './feedRouteScope';
 import { useFeedPageController } from './useFeedPageController';
 import { useFeedRowArrivals } from './useFeedRowArrivals';
 import { useFeedViewModeState } from './useFeedViewModeState';
@@ -104,10 +101,9 @@ export function FeedPage({ embedded = false }: FeedPageProps = {}) {
             if (embedded) {
                 return;
             }
-            setSearchParams(
-                withFeedRouteUserIds(searchParams, userIds),
-                { replace: true }
-            );
+            setSearchParams(withFeedRouteUserIds(searchParams, userIds), {
+                replace: true
+            });
         },
         [embedded, searchParams, setSearchParams]
     );
@@ -175,6 +171,12 @@ function FeedTableMode({
     } = useFeedPageController({ routeScopedUserIds });
     const arrivals = useFeedRowArrivals(rows, loadStatus);
     const setUserScope = filters.setUserScope;
+    const isSearching =
+        loadStatus === 'running' &&
+        Boolean(
+            filters.deferredSearchQuery.trim() ||
+            filters.deferredScopedUserIds.length
+        );
     const columnsMenu = useMemo(
         () => <TableColumnVisibilityMenu table={table} />,
         [table, tableModel.columnOrderLocked, tableModel.columnVisibility]
@@ -251,6 +253,7 @@ function FeedTableMode({
                 filterCommands={filterCommands}
                 modeToggle={modeToggle}
                 feedPersistenceDisabled={feedPersistenceDisabled}
+                isSearching={isSearching}
             />
             <PageBody>
                 <FeedTableShell
