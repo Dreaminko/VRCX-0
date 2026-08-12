@@ -35,7 +35,7 @@ describe('legacyVrcxMigrationService', () => {
         vi.resetAllMocks();
         commandMocks.appGetLegacyVrcxForceMigrationStatus.mockResolvedValue({
             available: true,
-            dbPath: 'C:/Users/about/AppData/Roaming/VRCX/VRCX.sqlite3'
+            dbPath: 'C:/Users/Example/AppData/Roaming/VRCX/VRCX.sqlite3'
         });
         commandMocks.appIsLegacyVrcxRunning.mockResolvedValue(false);
         commandMocks.appRequestLegacyVrcxForceMigration.mockResolvedValue(true);
@@ -84,7 +84,7 @@ describe('legacyVrcxMigrationService', () => {
             expect.objectContaining({
                 destructive: true,
                 description:
-                    'view.settings.advanced.advanced.database_cleanup.legacy_migration_confirm_description:C:/Users/about/AppData/Roaming/VRCX/VRCX.sqlite3'
+                    'view.settings.advanced.advanced.database_cleanup.legacy_migration_confirm_description:C:/Users/Example/AppData/Roaming/VRCX/VRCX.sqlite3'
             })
         );
         expect(

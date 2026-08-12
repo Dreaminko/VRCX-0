@@ -232,9 +232,6 @@ pub async fn mint_world_collection_token(
     })
 }
 
-/// Validates a collection shortcode is a plain base62-ish token before it is
-/// interpolated into the fetch URL, per the deep link "id, not URL" decision
-/// in `docs/WORLD_COLLECTION_SHARING.md` §4.6 (blocks SSRF via a crafted id).
 pub fn validate_collection_shortcode(id: &str) -> Result<String, WorldCollectionShareError> {
     let id = id.trim();
     let valid_len =

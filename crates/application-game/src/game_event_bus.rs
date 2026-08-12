@@ -208,8 +208,6 @@ impl RuntimeGameEventBusExt for RuntimeEventBus {
     }
 
     fn emit_game_log_persistence_fallback(&self, payload: GameLogPersistenceFallbackPayload) {
-        // Compatibility event name. This is telemetry-only; the WebView must not
-        // write the batch as a fallback for runtime-originated GameLog events.
         self.emit(payload);
     }
 

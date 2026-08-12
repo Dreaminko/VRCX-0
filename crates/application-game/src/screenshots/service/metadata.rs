@@ -253,16 +253,16 @@ mod tests {
             "Pictures/VRChat/Prints/VRChat_2026.png"
         )));
         assert!(is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/stickers/asset.png"
+            "/home/example/Pictures/VRChat/stickers/asset.png"
         )));
         assert!(is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/Emoji/asset.png"
+            "/home/example/Pictures/VRChat/Emoji/asset.png"
         )));
         assert!(!is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/Printscreens/VRChat_2026.png"
+            "/home/example/Pictures/VRChat/Printscreens/VRChat_2026.png"
         )));
         assert!(!is_screenshot_content_asset_path(Path::new(
-            "/home/about/Pictures/VRChat/VRChat_2026.png"
+            "/home/example/Pictures/VRChat/VRChat_2026.png"
         )));
     }
 }
