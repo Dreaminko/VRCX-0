@@ -184,17 +184,23 @@ function PlayerCell({ item }: { item: GameLogSessionMember }) {
 
 function PlayerActivityRow({
     durationByKey,
-    item
+    item,
+    showDuration
 }: {
     durationByKey: Map<string, number>;
     item: GameLogSessionMember;
+    showDuration: boolean;
 }) {
     return (
         <div className="hover:bg-muted/35 grid min-h-7 grid-cols-[4.75rem_minmax(0,1fr)_5rem] items-center gap-2 rounded-md px-2 py-0.5 text-sm">
             <EventTime value={item?.created_at} />
             <PlayerCell item={item} />
             <DurationText
-                value={getGameLogSessionPlayerDuration(durationByKey, item)}
+                value={
+                    showDuration
+                        ? getGameLogSessionPlayerDuration(durationByKey, item)
+                        : 0
+                }
             />
         </div>
     );
@@ -202,10 +208,12 @@ function PlayerActivityRow({
 
 function SinglePlayerActivityRow({
     durationByKey,
-    event
+    event,
+    showDuration
 }: {
     durationByKey: Map<string, number>;
     event: GameLogSessionEvent;
+    showDuration: boolean;
 }) {
     const item = normalizeSessionMember(event, event?.created_at);
 
@@ -221,7 +229,11 @@ function SinglePlayerActivityRow({
             <PlayerCell item={item} />
             <EventLabel event={event} />
             <DurationText
-                value={getGameLogSessionPlayerDuration(durationByKey, item)}
+                value={
+                    showDuration
+                        ? getGameLogSessionPlayerDuration(durationByKey, item)
+                        : 0
+                }
             />
         </div>
     );
@@ -285,6 +297,7 @@ function GroupActivityRow({
                                 key={`${member.userId}:${member.created_at}:${member.displayName}:${index}`}
                                 durationByKey={durationByKey}
                                 item={member}
+                                showDuration={event?.type === 'LeftGroup'}
                             />
                         ))}
                     </div>
@@ -417,6 +430,7 @@ function SessionEventRow({
             <SinglePlayerActivityRow
                 durationByKey={durationByKey}
                 event={event}
+                showDuration={isLeave}
             />
         );
     }
