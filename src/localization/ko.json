@@ -2821,7 +2821,7 @@
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "VRCX-0이 플레이어 활동을 감지할 때까지 인스턴스에 머무르세요. 이 목록은 자동으로 업데이트됩니다.",
                 "current_players_follow_live_instance_locations": "VRCX-0이 다음 위치를 감지하면 현재 플레이어가 표시됩니다.",
                 "local_join_leave_history_has_no_current_players": "로컬 가입/탈퇴 기록에는 아직 활성 위치에 대한 현재 플레이어가 없습니다.",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "이 페이지가 현재 인스턴스를 다시 빌드하기 전에 VRChat을 시작하고 VRCX-0이 게임 로그 이벤트를 수신하도록 하세요."
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "VRChat을 실행하고 인스턴스에 입장하면 같은 곳에 있는 플레이어가 여기에 표시됩니다. 누군가 들어오거나 나가면 목록도 자동으로 업데이트됩니다."
             },
             "label": {
                 "instance_master": "인스턴스 마스터",

@@ -2866,7 +2866,7 @@
                 "no_current_instance_detected": "No current instance detected",
                 "no_players_reconstructed_for_this_instance_yet": "No current players found yet",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "Enable game log in Settings to see current players.",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Start VRChat to see current players. VRCX-0 will populate this list from game-log events.",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Start VRChat and join an instance. Players in the same instance will appear here, and the list will update as people join or leave.",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "Stay in the instance until VRCX-0 detects player activity. This list will update automatically.",
                 "current_players_follow_live_instance_locations": "Current players will appear after VRCX-0 detects your next location.",
                 "local_join_leave_history_has_no_current_players": "The local join/leave history does not have any current players for the active location yet."

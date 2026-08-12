@@ -2862,7 +2862,7 @@
                 "no_current_instance_detected": "現在のインスタンスが検出されていません",
                 "no_players_reconstructed_for_this_instance_yet": "現在のプレイヤーはまだ見つかっていません",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "現在のプレイヤーを表示するには、設定でゲームログを有効にしてください。",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "VRChat を起動し、VRCX-0 がゲームログイベントを受信すると、このページで現在のインスタンスを再構築できます。",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "VRChat を起動してインスタンスに入ると、同じ場所にいるプレイヤーがここに表示されます。参加・退出に合わせて自動で更新されます。",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "VRCX-0 がプレイヤーの動きを検出するまでインスタンスに留まってください。この一覧は自動的に更新されます。",
                 "current_players_follow_live_instance_locations": "VRCX-0 が次の移動先を検出すると、現在のプレイヤーが表示されます。",
                 "local_join_leave_history_has_no_current_players": "ローカルの参加/退出履歴には、現在の場所のプレイヤーがまだありません。"

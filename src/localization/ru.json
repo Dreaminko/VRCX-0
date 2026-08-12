@@ -2868,7 +2868,7 @@
                 "no_current_instance_detected": "Текущий инстанс не обнаружен",
                 "no_players_reconstructed_for_this_instance_yet": "Текущие игроки пока не найдены",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "Включите игровой журнал в настройках, чтобы видеть текущих игроков.",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Запустите VRChat и позвольте VRCX-0 получать события игрового журнала, прежде чем эта страница сможет восстановить текущий инстанс.",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Запустите VRChat и войдите в инстанс. Здесь появятся игроки из того же инстанса, а список будет обновляться, когда кто-то входит или выходит.",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "Оставайтесь в инстансе, пока VRCX-0 не обнаружит активность игроков. Список обновится автоматически.",
                 "current_players_follow_live_instance_locations": "Текущие игроки появятся, когда VRCX-0 определит вашу следующую локацию.",
                 "local_join_leave_history_has_no_current_players": "В локальной истории входов/выходов пока нет текущих игроков для активной локации."

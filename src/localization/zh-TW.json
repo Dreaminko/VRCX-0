@@ -2866,7 +2866,7 @@
                 "no_current_instance_detected": "未檢測到目前房間",
                 "no_players_reconstructed_for_this_instance_yet": "目前尚未找到任何玩家",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "請在「設定」中啟用遊戲日誌，以查看當前玩家。",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "啟動 VRChat 並讓 VRCX-0 接收到遊戲紀錄事件後，此頁面才能重建目前房間。",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "啟動 VRChat 並進入一個房間後，這裡會顯示同一房間的玩家；有人加入或離開時，列表也會自動更新。",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "請留在這個房間，直到 VRCX-0 偵測到玩家活動為止。此清單將自動更新。",
                 "current_players_follow_live_instance_locations": "VRCX-0 偵測到你的下一個位置後，目前房間中的玩家將會顯示。",
                 "local_join_leave_history_has_no_current_players": "本機加入/離開歷史中還沒有目前房間的用戶。"

@@ -2866,7 +2866,7 @@
                 "no_current_instance_detected": "No se detectó ninguna instancia actual",
                 "no_players_reconstructed_for_this_instance_yet": "Aún no se encontraron jugadores actuales",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "Activa el registro de juego en Ajustes para ver los jugadores actuales.",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Inicia VRChat y deja que VRCX-0 reciba los eventos del registro de juego para que esta página pueda reconstruir la instancia actual.",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Inicia VRChat y entra en una instancia. Aquí aparecerán los jugadores que estén contigo, y la lista se actualizará cuando alguien entre o salga.",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "Permanece en la instancia hasta que VRCX-0 detecte actividad de jugadores. Esta lista se actualizará automáticamente.",
                 "current_players_follow_live_instance_locations": "Los jugadores actuales aparecerán cuando VRCX-0 detecte tu próxima ubicación.",
                 "local_join_leave_history_has_no_current_players": "El historial local de entradas/salidas aún no tiene jugadores actuales para la ubicación activa."

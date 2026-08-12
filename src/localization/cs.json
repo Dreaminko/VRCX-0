@@ -2868,7 +2868,7 @@
                 "no_current_instance_detected": "Nebyla zjištěna žádná aktuální instance",
                 "no_players_reconstructed_for_this_instance_yet": "Zatím nebyli nalezeni žádní aktuální hráči",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "Chcete-li zobrazit aktuální hráče, povolte v nastavení záznam hry.",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Než tato stránka dokáže obnovit aktuální instanci, spusťte VRChat a nechte VRCX-0 přijímat události ze záznamu hry.",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Spusťte VRChat a připojte se k instanci. Hráči ve stejné instanci se zobrazí zde a seznam se automaticky aktualizuje, když se někdo připojí nebo odejde.",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "Zůstaňte v instanci, dokud VRCX-0 nezaznamená aktivitu hráčů. Seznam se aktualizuje automaticky.",
                 "current_players_follow_live_instance_locations": "Aktuální hráči se zobrazí, až VRCX-0 zjistí vaši další lokaci.",
                 "local_join_leave_history_has_no_current_players": "Místní historie připojení/odchodů zatím neobsahuje žádné aktuální hráče pro aktivní lokaci."
