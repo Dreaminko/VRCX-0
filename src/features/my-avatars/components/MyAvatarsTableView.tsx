@@ -23,6 +23,7 @@ import {
     ContextMenuContent,
     ContextMenuGroup,
     ContextMenuItem,
+    ContextMenuLabel,
     ContextMenuSeparator,
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
@@ -60,7 +61,7 @@ function MyAvatarsTableHeader({ table }: { table: AppTable<MyAvatarRow> }) {
     const columnDnd = useDataTableColumnDnd();
 
     return (
-        <TableHeader>
+        <TableHeader className="z-20">
             {table.getHeaderGroups().map((headerGroup) => (
                 <DataTableColumnSortableContext
                     key={headerGroup.id}
@@ -208,7 +209,7 @@ export function MyAvatarsTableView({
                                                 </TableRow>
                                             }
                                         />
-                                        <ContextMenuContent className="w-max max-w-[90vw] min-w-52">
+                                        <ContextMenuContent className="bg-popover! w-max max-w-[90vw] min-w-52">
                                             <AvatarActionMenuItems
                                                 avatar={row.original}
                                                 isActive={
@@ -225,6 +226,7 @@ export function MyAvatarsTableView({
                                                 }
                                                 Item={ContextMenuItem}
                                                 Group={ContextMenuGroup}
+                                                Label={ContextMenuLabel}
                                                 Separator={ContextMenuSeparator}
                                                 onAction={(action, avatar) => {
                                                     onAvatarAction(

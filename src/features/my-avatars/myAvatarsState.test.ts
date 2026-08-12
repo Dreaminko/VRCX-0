@@ -6,6 +6,8 @@ import {
     MY_AVATARS_DEFAULT_SORTING,
     normalizeMyAvatarsColumnId,
     readPersistedMyAvatarsState,
+    resolveMyAvatarsColumnOrder,
+    resolveMyAvatarsColumnVisibility,
     resolveMyAvatarsGridDensity,
     resolveMyAvatarsPageSize,
     sanitizeMyAvatarsColumnOrder,
@@ -60,13 +62,13 @@ describe('myAvatarsState', () => {
         });
 
         writePersistedMyAvatarsState({
-            columnVisibility: { thumbnail: false }
+            columnVisibility: { version: true }
         });
 
         expect(readPersistedMyAvatarsState()).toMatchObject({
             sorting: [{ id: 'name', desc: false }],
             pageSize: 50,
-            columnVisibility: { thumbnail: false }
+            columnVisibility: { version: true }
         });
         expect(readPersistedMyAvatarsState().updatedAt).toEqual(
             expect.any(Number)
@@ -161,13 +163,23 @@ describe('myAvatarsState', () => {
         expect(
             sanitizeMyAvatarsColumnVisibility({
                 thumbnail: false,
+                version: true,
                 action: true,
                 unknown: false,
                 name: 'yes'
             })
         ).toEqual({
             thumbnail: false,
+            version: true,
             actions: true
+        });
+
+        expect(resolveMyAvatarsColumnVisibility()).toMatchObject({
+            version: false,
+            pcPerf: false,
+            androidPerf: false,
+            iosPerf: false,
+            created_at: false
         });
 
         expect(
@@ -180,15 +192,28 @@ describe('myAvatarsState', () => {
             )
         ]);
 
+        const resolvedColumnOrder = resolveMyAvatarsColumnOrder([
+            'actions',
+            'name',
+            'thumbnail',
+            'customTags'
+        ]);
+        expect(resolvedColumnOrder[0]).toBe('thumbnail');
+        expect(resolvedColumnOrder.at(-1)).toBe('actions');
+        expect(new Set(resolvedColumnOrder)).toEqual(
+            new Set(MY_AVATARS_COLUMN_IDS)
+        );
+
         expect(
             sanitizeMyAvatarsColumnSizing({
                 thumbnail: '120px',
                 releaseStatus: 160,
                 unknown: 200,
-                name: 0
+                name: 240
             })
         ).toEqual({
             thumbnail: 120,
+            name: 240,
             visibility: 160
         });
     });

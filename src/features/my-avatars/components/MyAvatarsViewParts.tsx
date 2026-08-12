@@ -3,7 +3,7 @@ import {
     MoreHorizontalIcon,
     RectangleGogglesIcon
 } from 'lucide-react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
@@ -22,6 +22,7 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
@@ -29,6 +30,7 @@ import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     MY_AVATAR_TAG_BADGE_CLASS_NAME,
@@ -54,6 +56,11 @@ export { DataTableSortButton as SortButton };
 
 type PlatformBadgesProps = {
     unityPackages?: MyAvatarRow['unityPackages'];
+};
+
+type PlatformBadgeProps = {
+    children: ReactNode;
+    label: string;
 };
 
 type MyAvatarsEmptyStateProps = {
@@ -85,22 +92,42 @@ type GridSettingsMenuProps = {
     onGridDensityChange: (value: string) => void;
 };
 
+function PlatformBadge({ children, label }: PlatformBadgeProps) {
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Badge variant="outline" aria-label={label}>
+                        {children}
+                    </Badge>
+                }
+            />
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
 export function PlatformBadges({ unityPackages }: PlatformBadgesProps) {
     const platforms = getAvailablePlatforms(unityPackages);
 
     return (
         <div className="flex items-center gap-1">
             {platforms?.isPC ? (
-                <Badge variant="outline">
-                    <MonitorIcon className="size-3.5" />
-                </Badge>
+                <PlatformBadge label="PC">
+                    <MonitorIcon aria-hidden="true" className="size-3.5" />
+                </PlatformBadge>
             ) : null}
             {platforms?.isQuest ? (
-                <Badge variant="outline">
-                    <RectangleGogglesIcon className="size-3.5" />
-                </Badge>
+                <PlatformBadge label="Android">
+                    <RectangleGogglesIcon
+                        aria-hidden="true"
+                        className="size-3.5"
+                    />
+                </PlatformBadge>
             ) : null}
-            {platforms?.isIos ? <Badge variant="outline">iOS</Badge> : null}
+            {platforms?.isIos ? (
+                <PlatformBadge label="iOS">iOS</PlatformBadge>
+            ) : null}
         </div>
     );
 }
@@ -163,7 +190,7 @@ export function AvatarActionsDropdown({
             />
             <DropdownMenuContent
                 align="end"
-                className="w-max max-w-[90vw] min-w-52"
+                className="bg-popover! w-max max-w-[90vw] min-w-52"
             >
                 <AvatarActionMenuItems
                     avatar={avatar}
@@ -171,6 +198,7 @@ export function AvatarActionsDropdown({
                     disabled={disabled}
                     Item={DropdownMenuItem}
                     Group={DropdownMenuGroup}
+                    Label={DropdownMenuLabel}
                     Separator={DropdownMenuSeparator}
                     onAction={onAction}
                 />

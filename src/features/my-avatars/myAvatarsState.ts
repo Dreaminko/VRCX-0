@@ -38,7 +38,6 @@ export const MY_AVATARS_GRID_DENSITY_OPTIONS = Object.freeze([
     }
 ]);
 export const MY_AVATARS_COLUMN_IDS = [
-    'active',
     'thumbnail',
     'name',
     'customTags',
@@ -55,6 +54,7 @@ export const MY_AVATARS_COLUMN_IDS = [
 ];
 export const MY_AVATARS_DEFAULT_COLUMN_VISIBILITY: Record<string, boolean> =
     Object.freeze({
+        version: false,
         pcPerf: false,
         androidPerf: false,
         iosPerf: false,
@@ -281,6 +281,17 @@ export function sanitizeMyAvatarsColumnOrder(value: unknown): string[] {
     }
 
     return ordered;
+}
+
+export function resolveMyAvatarsColumnOrder(value: unknown): string[] {
+    const ordered = sanitizeMyAvatarsColumnOrder(value);
+    return [
+        'thumbnail',
+        ...ordered.filter(
+            (columnId) => columnId !== 'thumbnail' && columnId !== 'actions'
+        ),
+        'actions'
+    ];
 }
 
 export function sanitizeMyAvatarsColumnSizing(

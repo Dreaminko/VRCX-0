@@ -30,6 +30,7 @@ vi.mock('./MyAvatarsViewParts', () => ({
     openAvatarDetails: vi.fn()
 }));
 
+import { MY_AVATARS_COLUMN_IDS } from '../myAvatarsState';
 import type { MyAvatarActionHandler } from '../myAvatarsTypes';
 import { useMyAvatarsTableMeta } from '../useMyAvatarsTableMeta';
 import { useMyAvatarsColumns } from './MyAvatarsColumns';
@@ -58,6 +59,31 @@ describe('useMyAvatarsColumns', () => {
         );
         const initialColumns = result.current.columns;
         const nextAction = vi.fn<MyAvatarActionHandler>();
+
+        expect(initialColumns.map((column) => column.id)).toEqual(
+            MY_AVATARS_COLUMN_IDS
+        );
+        expect(initialColumns.map((column) => column.id)).not.toContain(
+            'active'
+        );
+        expect(initialColumns[0]?.meta).toMatchObject({
+            disableReorder: true
+        });
+        expect(initialColumns.at(-1)?.meta?.tableHeadClassName).toContain(
+            'top-0'
+        );
+        expect(initialColumns.at(-1)?.meta?.tableHeadClassName).toContain(
+            'right-0'
+        );
+        expect(initialColumns.at(-1)?.meta?.tableHeadClassName).toContain(
+            'vrcx-0-table-header'
+        );
+        expect(initialColumns.at(-1)?.meta?.tableHeadClassName).not.toContain(
+            'border-l'
+        );
+        expect(initialColumns.at(-1)?.meta?.tableCellClassName).not.toContain(
+            'border-l'
+        );
 
         rerender({ onAvatarAction: nextAction });
 

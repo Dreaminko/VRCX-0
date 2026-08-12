@@ -2,12 +2,15 @@ import {
     CheckCircle2Icon,
     CheckIcon,
     EyeIcon,
+    GlobeIcon,
     ImageIcon,
+    LockIcon,
     MoreHorizontalIcon,
     PencilIcon,
     PersonStandingIcon,
-    RefreshCwIcon,
-    TagIcon
+    ScanFaceIcon,
+    ShieldCheckIcon,
+    TagsIcon
 } from 'lucide-react';
 import type { CSSProperties, ElementType, MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +27,7 @@ import {
     ContextMenuContent,
     ContextMenuGroup,
     ContextMenuItem,
+    ContextMenuLabel,
     ContextMenuSeparator,
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
@@ -32,6 +36,7 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
@@ -63,6 +68,7 @@ type AvatarActionMenuItemsProps = {
     disabled: boolean;
     Item: MenuComponent;
     Group: MenuComponent;
+    Label: MenuComponent;
     Separator: MenuComponent;
     onAction: MyAvatarActionHandler;
 };
@@ -73,13 +79,17 @@ export function AvatarActionMenuItems({
     disabled,
     Item,
     Group,
+    Label,
     Separator,
     onAction
 }: AvatarActionMenuItemsProps) {
     const { t } = useTranslation();
 
-    const releaseAction: MyAvatarAction =
-        avatar?.releaseStatus === 'public' ? 'makePrivate' : 'makePublic';
+    const isPublic = avatar?.releaseStatus === 'public';
+    const releaseAction: MyAvatarAction = isPublic
+        ? 'makePrivate'
+        : 'makePublic';
+    const ReleaseIcon = isPublic ? LockIcon : GlobeIcon;
 
     const handleAction = (action: MyAvatarAction) => {
         onAction(action, avatar);
@@ -94,6 +104,12 @@ export function AvatarActionMenuItems({
 
     return (
         <>
+            <Label className="max-w-64 truncate">
+                {avatar?.name ||
+                    avatar?.id ||
+                    t('view.my_avatars.label.untitled_avatar')}
+            </Label>
+            <Separator />
             <Group>
                 <Item {...actionItemProps('details')}>
                     <EyeIcon />
@@ -110,7 +126,7 @@ export function AvatarActionMenuItems({
             <Separator />
             <Group>
                 <Item disabled={disabled} {...actionItemProps('manageTags')}>
-                    <TagIcon />
+                    <TagsIcon />
                     {t('dialog.avatar.actions.manage_tags')}
                 </Item>
                 <Item disabled={disabled} {...actionItemProps('editDetails')}>
@@ -121,7 +137,7 @@ export function AvatarActionMenuItems({
                     disabled={disabled}
                     {...actionItemProps('changeContentTags')}
                 >
-                    <TagIcon />
+                    <ShieldCheckIcon />
                     {t('dialog.avatar.actions.change_content_tags')}
                 </Item>
                 <Item disabled={disabled} {...actionItemProps('changeImage')}>
@@ -132,8 +148,8 @@ export function AvatarActionMenuItems({
             <Separator />
             <Group>
                 <Item disabled={disabled} {...actionItemProps(releaseAction)}>
-                    <PersonStandingIcon />
-                    {avatar?.releaseStatus === 'public'
+                    <ReleaseIcon />
+                    {isPublic
                         ? t('dialog.avatar.actions.make_private')
                         : t('dialog.avatar.actions.make_public')}
                 </Item>
@@ -141,7 +157,7 @@ export function AvatarActionMenuItems({
                     disabled={disabled}
                     {...actionItemProps('createImpostor')}
                 >
-                    <RefreshCwIcon />
+                    <ScanFaceIcon />
                     {t('dialog.avatar.actions.create_impostor')}
                 </Item>
             </Group>
@@ -401,7 +417,7 @@ export function MyAvatarGridCard({
                             />
                             <DropdownMenuContent
                                 align="end"
-                                className="w-max max-w-[90vw] min-w-52"
+                                className="bg-popover! w-max max-w-[90vw] min-w-52"
                             >
                                 <AvatarActionMenuItems
                                     avatar={avatar}
@@ -409,6 +425,7 @@ export function MyAvatarGridCard({
                                     disabled={disabled}
                                     Item={DropdownMenuItem}
                                     Group={DropdownMenuGroup}
+                                    Label={DropdownMenuLabel}
                                     Separator={DropdownMenuSeparator}
                                     onAction={onAction}
                                 />
@@ -417,13 +434,14 @@ export function MyAvatarGridCard({
                     </div>
                 }
             />
-            <ContextMenuContent className="w-max max-w-[90vw] min-w-52">
+            <ContextMenuContent className="bg-popover! w-max max-w-[90vw] min-w-52">
                 <AvatarActionMenuItems
                     avatar={avatar}
                     isActive={isActive}
                     disabled={disabled}
                     Item={ContextMenuItem}
                     Group={ContextMenuGroup}
+                    Label={ContextMenuLabel}
                     Separator={ContextMenuSeparator}
                     onAction={onAction}
                 />
