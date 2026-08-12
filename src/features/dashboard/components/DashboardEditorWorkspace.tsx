@@ -125,14 +125,11 @@ function DashboardEditorCanvasPanel({
     return (
         <div
             className={cn(
-                'bg-card relative min-h-[220px] min-w-0 flex-1 overflow-hidden rounded-lg border transition-[border-color,box-shadow] duration-150 ease-out motion-reduce:transition-none',
+                'bg-card relative h-full min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border transition-[border-color,box-shadow] duration-150 ease-out motion-reduce:transition-none',
                 selected && 'border-primary ring-primary/20 ring-2'
             )}
         >
-            <div
-                className="pointer-events-none h-full min-h-[220px]"
-                inert
-            >
+            <div className="pointer-events-none size-full min-h-0" inert>
                 <DashboardPanelPreviewForPanel panel={panel} />
             </div>
             <button
@@ -232,7 +229,7 @@ function DashboardEditorRow({
             </div>
             <div
                 className={cn(
-                    'flex min-h-[220px] gap-2',
+                    'flex h-[28rem] min-h-0 gap-2',
                     direction === 'vertical' && panels.length === 2
                         ? 'flex-col'
                         : 'flex-row'

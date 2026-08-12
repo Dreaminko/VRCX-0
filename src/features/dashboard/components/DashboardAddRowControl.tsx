@@ -24,20 +24,23 @@ export function DashboardAddRowControl({
 
     if (!showOptions) {
         return (
-            <div className="group flex h-9 items-center gap-2">
-                <div className="bg-border group-hover:bg-primary/30 h-px flex-1 transition-colors" />
+            <div className="group flex h-11 items-center gap-3">
+                <div className="bg-border/80 group-hover:bg-primary/40 h-px flex-1 transition-colors duration-150 ease-out" />
                 <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="text-muted-foreground hover:text-foreground h-7 rounded-full px-3"
+                    className="bg-card text-foreground hover:bg-accent hover:border-primary/50 h-8 rounded-md px-4 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] motion-reduce:transform-none"
                     aria-label={t('view.dashboard.action.add_row')}
                     onClick={() => setShowOptions(true)}
                 >
-                    <PlusIcon data-icon="inline-start" />
+                    <PlusIcon
+                        data-icon="inline-start"
+                        className="text-primary"
+                    />
                     {t('view.dashboard.action.add_row')}
                 </Button>
-                <div className="bg-border group-hover:bg-primary/30 h-px flex-1 transition-colors" />
+                <div className="bg-border/80 group-hover:bg-primary/40 h-px flex-1 transition-colors duration-150 ease-out" />
             </div>
         );
     }
