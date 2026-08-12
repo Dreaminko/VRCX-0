@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -36,6 +36,17 @@ export function useDashboardEditorState({
     const [editRows, setEditRows] = useState<DashboardRow[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const previousDashboardIdRef = useRef<string | null>(null);
+    const isDirty = useMemo(() => {
+        if (!dashboard) {
+            return false;
+        }
+
+        return (
+            editName !== dashboard.name ||
+            JSON.stringify(editRows) !==
+                JSON.stringify(cloneDashboardRows(dashboard.rows))
+        );
+    }, [dashboard, editName, editRows]);
 
     const resetEditDraft = useCallback(() => {
         setEditName(dashboard?.name || '');
@@ -75,19 +86,29 @@ export function useDashboardEditorState({
 
     const handleAddRow = (
         panelCount: number,
-        direction: DashboardDirection = 'horizontal'
+        direction: DashboardDirection = 'horizontal',
+        insertIndex?: number
     ) => {
-        setEditRows((current) => [
-            ...current,
-            {
+        setEditRows((current) => {
+            const nextRow: DashboardRow = {
                 id: generateDashboardRowId(),
                 direction,
                 panels: Array.from(
                     { length: panelCount },
                     (): DashboardPanel | null => null
                 )
-            }
-        ]);
+            };
+            const targetIndex = Math.max(
+                0,
+                Math.min(insertIndex ?? current.length, current.length)
+            );
+
+            return [
+                ...current.slice(0, targetIndex),
+                nextRow,
+                ...current.slice(targetIndex)
+            ];
+        });
     };
 
     const handleUpdatePanel = (
@@ -156,7 +177,7 @@ export function useDashboardEditorState({
     };
 
     const handleSave = async () => {
-        if (!dashboard) {
+        if (!dashboard || !isDirty) {
             return;
         }
 
@@ -198,6 +219,7 @@ export function useDashboardEditorState({
         handleSave,
         handleUpdatePanel,
         isEditing,
+        isDirty,
         isSaving,
         setEditName,
         setIsEditing

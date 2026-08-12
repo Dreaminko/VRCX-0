@@ -1,25 +1,16 @@
-import { Trash2Icon, XIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDefaultLayout } from 'react-resizable-panels';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
-    createDashboardPanelValue,
     DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS,
     getDashboardInstanceWidgetColumnLabel,
     getDashboardPanelDefinition,
     getDashboardPanelDescription,
-    getDashboardPanelLabel,
-    resolveDashboardPanelKey
+    getDashboardPanelLabel
 } from '../dashboardRegistry';
-import { cn } from '@/lib/utils';
-import type {
-    DashboardDirection,
-    DashboardPanel,
-    DashboardRow
-} from '@/repositories/dashboardRepository';
+import type { DashboardPanel, DashboardRow } from '@/repositories/dashboardRepository';
 import { FEED_FILTER_TYPES } from '@/repositories/feedRepository';
 import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -37,22 +28,12 @@ import {
     ResizablePanel,
     ResizablePanelGroup
 } from '@/ui/shadcn/resizable';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@/ui/shadcn/select';
 import { Switch } from '@/ui/shadcn/switch';
 
 import {
     createDashboardPanelSelectOptions,
-    createDashboardWidgetPanelValue,
     type DashboardConfig,
     getDashboardFilterList,
-    getDashboardPanelConfig,
     getDashboardRowKey,
     getKnownDashboardInstanceWidgetColumns,
     getNextDashboardFilterConfig,
@@ -336,219 +317,6 @@ export function DashboardPanelSelectorDialog({
     );
 }
 
-export function DashboardEditorPanel({
-    panel,
-    onChange,
-    onRemove,
-    showRemove = true
-}: {
-    panel: DashboardPanel | null;
-    onChange: (panel: DashboardPanel | null) => void;
-    onRemove?: () => void;
-    showRemove?: boolean;
-}) {
-    const { t } = useTranslation();
-
-    const [selectorOpen, setSelectorOpen] = useState(false);
-    const panelKey = resolveDashboardPanelKey(panel) ?? '__none__';
-    const panelDefinition = getDashboardPanelDefinition(panelKey);
-    const panelConfig = getDashboardPanelConfig(panel);
-    const canConfigure = Boolean(panelDefinition?.category === 'widget');
-
-    function updatePanelConfig(nextConfig: DashboardConfig) {
-        if (!canConfigure || panelKey === '__none__') {
-            return;
-        }
-        onChange(createDashboardWidgetPanelValue(panelKey, nextConfig));
-    }
-
-    return (
-        <div className="bg-card relative flex min-h-0 flex-1 overflow-hidden rounded-md border">
-            {showRemove ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="absolute top-1 right-1 z-20"
-                    aria-label={'Remove panel'}
-                    onClick={onRemove}
-                >
-                    <XIcon data-icon="inline-start" />
-                </Button>
-            ) : null}
-            <div className="flex min-h-0 w-full flex-col items-center justify-center gap-3 p-3">
-                {panelKey !== '__none__' ? (
-                    <div className="flex w-full flex-col gap-3">
-                        <div className="text-muted-foreground flex items-center justify-center gap-2 text-base">
-                            <span>
-                                {panelDefinition
-                                    ? getDashboardPanelLabel(panelDefinition, t)
-                                    : panelKey}
-                            </span>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={'Clear panel'}
-                                onClick={() => onChange(null)}
-                            >
-                                <Trash2Icon data-icon="inline-start" />
-                            </Button>
-                        </div>
-                        {canConfigure ? (
-                            <DashboardWidgetConfigEditor
-                                panelKey={panelKey}
-                                config={panelConfig}
-                                onConfigChange={updatePanelConfig}
-                            />
-                        ) : null}
-                    </div>
-                ) : (
-                    <>
-                        <span className="text-muted-foreground text-base">
-                            {t('view.dashboard.success.panel_not_selected')}
-                        </span>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setSelectorOpen(true)}
-                        >
-                            {t('common.actions.select')}
-                        </Button>
-                    </>
-                )}
-            </div>
-            {panelKey !== '__none__' ? (
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="absolute bottom-2 left-1/2 -translate-x-1/2"
-                    onClick={() => setSelectorOpen(true)}
-                >
-                    {t('common.actions.select')}
-                </Button>
-            ) : null}
-            <DashboardPanelSelectorDialog
-                open={selectorOpen}
-                currentPanelKey={panelKey}
-                onOpenChange={setSelectorOpen}
-                onSelect={(value) => {
-                    onChange(createDashboardPanelValue(value));
-                    setSelectorOpen(false);
-                }}
-            />
-        </div>
-    );
-}
-
-export function DashboardEditorRow({
-    row,
-    rowIndex,
-    onPanelChange,
-    onPanelRemove,
-    onRowRemove,
-    onDirectionChange
-}: {
-    row: DashboardRow;
-    rowIndex: number;
-    onPanelChange: (panelIndex: number, panel: DashboardPanel | null) => void;
-    onPanelRemove: (panelIndex: number) => void;
-    onRowRemove: () => void;
-    onDirectionChange: (direction: DashboardDirection) => void;
-}) {
-    const { t } = useTranslation();
-
-    const direction = row?.direction === 'vertical' ? 'vertical' : 'horizontal';
-    const panels = Array.isArray(row?.panels) ? row.panels : [];
-    const panelEditClass =
-        panels.length === 1
-            ? 'w-full'
-            : direction === 'vertical'
-              ? 'h-1/2'
-              : 'w-1/2';
-
-    return (
-        <div className="relative flex h-full min-h-[180px] flex-col gap-2 rounded-md border border-dashed p-2">
-            <div className="flex items-center justify-between gap-2">
-                <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                    {t('view.dashboard.label.row')} {rowIndex + 1}
-                </div>
-                <div className="flex items-center gap-2">
-                    {panels.length === 2 ? (
-                        <Select
-                            value={direction}
-                            items={[
-                                {
-                                    value: 'horizontal',
-                                    label: t('view.dashboard.label.horizontal')
-                                },
-                                {
-                                    value: 'vertical',
-                                    label: t('view.dashboard.label.vertical')
-                                }
-                            ]}
-                            onValueChange={(value) => {
-                                if (value) {
-                                    onDirectionChange(
-                                        value === 'vertical'
-                                            ? 'vertical'
-                                            : 'horizontal'
-                                    );
-                                }
-                            }}
-                        >
-                            <SelectTrigger size="sm" className="h-7 w-32">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem value="horizontal">
-                                        {t('view.dashboard.label.horizontal')}
-                                    </SelectItem>
-                                    <SelectItem value="vertical">
-                                        {t('view.dashboard.label.vertical')}
-                                    </SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    ) : null}
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={'Remove row'}
-                        onClick={onRowRemove}
-                    >
-                        <Trash2Icon data-icon="inline-start" />
-                    </Button>
-                </div>
-            </div>
-            <div
-                className={cn(
-                    'flex min-h-[180px] gap-2',
-                    direction === 'vertical' ? 'flex-col' : 'flex-row'
-                )}
-            >
-                {panels.map((panel, panelIndex) => (
-                    <div
-                        key={`${rowIndex}-${panelIndex}`}
-                        className={panelEditClass}
-                    >
-                        <DashboardEditorPanel
-                            panel={panel}
-                            onChange={(nextPanel) =>
-                                onPanelChange(panelIndex, nextPanel)
-                            }
-                            onRemove={() => onPanelRemove(panelIndex)}
-                        />
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 function useDashboardPagePreviewMetrics(): DashboardPageMetrics {
     const { friendCount, onlineCount } = useFriendRosterStore(
         useShallow((state) => ({
@@ -578,7 +346,7 @@ function useDashboardPagePreviewMetrics(): DashboardPageMetrics {
     };
 }
 
-function DashboardPanelPreviewForPanel({
+export function DashboardPanelPreviewForPanel({
     panel,
     onPanelChange
 }: {
