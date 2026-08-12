@@ -91,10 +91,7 @@ pub(crate) fn feed_entry_correction_id(object: &serde_json::Map<String, Value>) 
     if !id.is_empty() {
         return format!("id:{id}");
     }
-    let row_id = first_non_empty([
-        object_str(object, "rowId"),
-        object_str(object, "row_id"),
-    ]);
+    let row_id = first_non_empty([object_str(object, "rowId"), object_str(object, "row_id")]);
     if !row_id.is_empty() {
         let source_rank = first_non_empty([
             object_str(object, "sourceRank"),
@@ -201,10 +198,7 @@ fn nested_object_string(object: &serde_json::Map<String, Value>, path: &[&str]) 
     nested_object_str(object, path).to_string()
 }
 
-fn nested_object_str<'a>(
-    object: &'a serde_json::Map<String, Value>,
-    path: &[&str],
-) -> &'a str {
+fn nested_object_str<'a>(object: &'a serde_json::Map<String, Value>, path: &[&str]) -> &'a str {
     let Some((first, rest)) = path.split_first() else {
         return "";
     };
@@ -217,10 +211,7 @@ fn nested_object_str<'a>(
         };
         current = next;
     }
-    current
-        .as_str()
-        .map(str::trim)
-        .unwrap_or_default()
+    current.as_str().map(str::trim).unwrap_or_default()
 }
 
 fn first_world_id<const N: usize>(values: [&str; N]) -> String {

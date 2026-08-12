@@ -38,9 +38,7 @@ import {
     useSettingsPageSection
 } from './SettingsPageStateContext';
 
-function createSections(
-    purgeDialogOpen: boolean
-): SettingsPageStateSections {
+function createSections(purgeDialogOpen: boolean): SettingsPageStateSections {
     const action = () => undefined;
     return {
         shell: {

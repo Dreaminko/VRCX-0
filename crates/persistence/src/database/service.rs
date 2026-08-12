@@ -330,8 +330,7 @@ impl DatabaseService {
             }
         };
         checkpoint(&conn)?;
-        conn.execute_batch("VACUUM;")
-            .map_err(Error::sqlite)?;
+        conn.execute_batch("VACUUM;").map_err(Error::sqlite)?;
         checkpoint(&conn)?;
         Ok(())
     }
@@ -505,15 +504,10 @@ fn execute_write_transaction<T, F>(conn: &mut Connection, f: F) -> Result<T, Err
 where
     F: FnOnce(&mut DatabaseWriteTransaction<'_>) -> Result<T, Error>,
 {
-    let tx = conn
-        .transaction()
-        .map_err(Error::sqlite)?;
+    let tx = conn.transaction().map_err(Error::sqlite)?;
     let mut wrapped = DatabaseWriteTransaction { tx };
     let value = f(&mut wrapped)?;
-    wrapped
-        .tx
-        .commit()
-        .map_err(Error::sqlite)?;
+    wrapped.tx.commit().map_err(Error::sqlite)?;
     Ok(value)
 }
 
@@ -542,9 +536,7 @@ fn execute_on_connection(
     sql: &str,
     args: &HashMap<String, serde_json::Value>,
 ) -> Result<Vec<Vec<serde_json::Value>>, Error> {
-    let mut stmt = conn
-        .prepare_cached(sql)
-        .map_err(Error::sqlite)?;
+    let mut stmt = conn.prepare_cached(sql).map_err(Error::sqlite)?;
 
     let param_names = statement_param_names(&stmt);
     let params = statement_param_values(&param_names, args)?;
@@ -580,9 +572,7 @@ fn execute_non_query_on_connection(
     sql: &str,
     args: &HashMap<String, serde_json::Value>,
 ) -> Result<i64, Error> {
-    let mut stmt = conn
-        .prepare_cached(sql)
-        .map_err(Error::sqlite)?;
+    let mut stmt = conn.prepare_cached(sql).map_err(Error::sqlite)?;
 
     let param_names = statement_param_names(&stmt);
     let params = statement_param_values(&param_names, args)?;
@@ -593,9 +583,7 @@ fn execute_non_query_on_connection(
         .map(|(name, val)| (name.as_str(), val as &dyn ToSql))
         .collect();
 
-    let affected = stmt
-        .execute(&*param_refs)
-        .map_err(Error::sqlite)?;
+    let affected = stmt.execute(&*param_refs).map_err(Error::sqlite)?;
 
     Ok(affected as i64)
 }

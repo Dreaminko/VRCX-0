@@ -5,8 +5,7 @@ use vrcx_0_application_activity::OverlayActivityDelivery;
 
 use super::{webhook_local_time_string, RenderedNotification};
 
-const DEFAULT_WEBHOOK_FIELDS_JSON: &str =
-    include_str!("../../../../webhook-generic-fields.json");
+const DEFAULT_WEBHOOK_FIELDS_JSON: &str = include_str!("../../../../webhook-generic-fields.json");
 static DEFAULT_WEBHOOK_FIELDS: LazyLock<Vec<String>> = LazyLock::new(|| {
     serde_json::from_str(DEFAULT_WEBHOOK_FIELDS_JSON)
         .expect("webhook-generic-fields.json must contain a string array")

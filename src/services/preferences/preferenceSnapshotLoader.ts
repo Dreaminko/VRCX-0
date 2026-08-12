@@ -40,13 +40,13 @@ import {
 
 import { POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY } from '../changelogService';
 import { configureRecentActionCooldown } from '../recentActionService';
-import { applyTrustColorClasses } from '../trustColorService';
 import {
     APP_CJK_FONT_PACK_DEFAULT_KEY,
     APP_FONT_DEFAULT_KEY,
     normalizeAppCjkFontPack,
     normalizeAppFontFamily
 } from '../themeService';
+import { applyTrustColorClasses } from '../trustColorService';
 import {
     DEFAULT_NOTIFICATION_LAYOUT,
     DEFAULT_TABLE_LIMITS,
@@ -349,10 +349,7 @@ export async function loadPreferenceSnapshot() {
         ),
         configRepository.getString('translationAPIPrompt', ''),
         configRepository.getString('translationAPIReasoningEffort', ''),
-        configRepository.getString(
-            'VRCX_fontFamily',
-            APP_FONT_DEFAULT_KEY
-        ),
+        configRepository.getString('VRCX_fontFamily', APP_FONT_DEFAULT_KEY),
         configRepository.getString(
             'VRCX_cjkFontPack',
             APP_CJK_FONT_PACK_DEFAULT_KEY
@@ -492,9 +489,7 @@ export async function loadPreferenceSnapshot() {
         webhookAuthEventsEnabled: Boolean(webhookAuthEventsEnabled),
         webhookUrl: String(webhookUrl || ''),
         webhookFormat: webhookFormat === 'discord' ? 'discord' : 'generic',
-        webhookFields: String(
-            webhookFields || DEFAULT_GENERIC_WEBHOOK_FIELDS
-        ),
+        webhookFields: String(webhookFields || DEFAULT_GENERIC_WEBHOOK_FIELDS),
         vrOverlayPanelEnabled: false,
         vrOverlayPanelAllFriendsIncludesFavorites: false,
         wristOverlayEnabled: Boolean(wristOverlayEnabled),

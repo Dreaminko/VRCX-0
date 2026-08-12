@@ -1106,7 +1106,10 @@ mod tests {
         )?;
 
         assert_eq!(
-            built.headers().get(CONTENT_TYPE).and_then(|v| v.to_str().ok()),
+            built
+                .headers()
+                .get(CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok()),
             Some("application/octet-stream")
         );
         assert_ne!(
@@ -1116,7 +1119,10 @@ mod tests {
                 .and_then(|value| value.to_str().ok()),
             Some("caller-override")
         );
-        assert_eq!(built.body().and_then(|body| body.as_bytes()), Some(&payload[..]));
+        assert_eq!(
+            built.body().and_then(|body| body.as_bytes()),
+            Some(&payload[..])
+        );
         Ok(())
     }
 

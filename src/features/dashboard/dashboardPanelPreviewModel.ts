@@ -1,14 +1,14 @@
-import type { DashboardPanelDefinition } from './dashboardRegistry';
-import {
-    getDashboardPanelDefinition,
-    resolveDashboardPanelKey
-} from './dashboardRegistry';
 import type { DashboardPanel } from '@/repositories/dashboardRepository';
 
 import {
     createDashboardWidgetPanelValue,
     getDashboardPanelConfig
 } from './dashboardConfig';
+import type { DashboardPanelDefinition } from './dashboardRegistry';
+import {
+    getDashboardPanelDefinition,
+    resolveDashboardPanelKey
+} from './dashboardRegistry';
 
 export type DashboardPageMetrics = {
     friendCount: number;

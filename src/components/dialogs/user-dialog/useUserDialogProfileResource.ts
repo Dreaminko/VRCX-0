@@ -365,8 +365,7 @@ export function useUserDialogProfileResource({
                             previousTargetProfile(
                                 currentProfile,
                                 normalizedUserId
-                            ) ||
-                                profileRef.current,
+                            ) || profileRef.current,
                             avatar
                         ),
                         normalizedUserId

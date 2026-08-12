@@ -95,15 +95,9 @@ export function useFriendListRowActions({
         friendProfileLoadStatus === 'cancelling';
 
     const applyCachedMutualFriendStats = useCallback(
-        async ({
-            endpoint,
-            ownerUserId,
-            runId
-        }: MutualGraphSnapshotScope) => {
+        async ({ endpoint, ownerUserId, runId }: MutualGraphSnapshotScope) => {
             const { snapshot, meta } =
-                await mutualGraphPersistenceRepository.getSnapshot(
-                    ownerUserId
-                );
+                await mutualGraphPersistenceRepository.getSnapshot(ownerUserId);
             const runtimeState = useRuntimeStore.getState();
             if (
                 runtimeState.auth.currentUserId !== ownerUserId ||
@@ -114,8 +108,7 @@ export function useFriendListRowActions({
             ) {
                 return;
             }
-            const friendsById =
-                useFriendRosterStore.getState().friendsById;
+            const friendsById = useFriendRosterStore.getState().friendsById;
             for (const friendId of Object.keys(friendsById)) {
                 const mutualIds =
                     snapshot instanceof Map ? snapshot.get(friendId) : [];

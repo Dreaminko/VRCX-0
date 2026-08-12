@@ -528,10 +528,7 @@ async fn execute_vrchat_json_request(
     }
 }
 
-fn validate_vrchat_mutation_response(
-    status: i32,
-    data: &str,
-) -> Result<Value> {
+fn validate_vrchat_mutation_response(status: i32, data: &str) -> Result<Value> {
     let trimmed = data.trim();
     let payload = if trimmed.is_empty() {
         Value::Null

@@ -14,6 +14,7 @@ import {
     UserDialogMutualTab,
     UserDialogWorldsTab
 } from './UserDialogDataTabs';
+import { UserDialogFeedTab } from './UserDialogFeedTab';
 import { UserDialogGroupsTab } from './UserDialogGroupsTab';
 import {
     UserDialogInfoTab,
@@ -23,7 +24,6 @@ import {
     type UserDialogPresenceSectionProps,
     type UserDialogProfileLinksSectionProps
 } from './UserDialogInfoTab';
-import { UserDialogFeedTab } from './UserDialogFeedTab';
 
 type MutualTabProps = ComponentProps<typeof UserDialogMutualTab>;
 type GroupsTabProps = ComponentProps<typeof UserDialogGroupsTab>;

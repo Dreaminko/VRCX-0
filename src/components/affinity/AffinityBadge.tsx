@@ -38,17 +38,13 @@ export function AffinityBadge({
                     'size-4 justify-center rounded-none bg-transparent p-0',
                 iconOnly && favorite && 'text-amber-400/70',
                 iconOnly && !favorite && 'text-rose-300/70',
-                !iconOnly && favorite &&
-                    'bg-amber-500/10 text-amber-300',
+                !iconOnly && favorite && 'bg-amber-500/10 text-amber-300',
                 !iconOnly && !favorite && 'bg-rose-500/10 text-rose-300',
                 className
             )}
         >
             <Icon
-                className={cn(
-                    'size-3 shrink-0',
-                    !iconOnly && 'fill-current'
-                )}
+                className={cn('size-3 shrink-0', !iconOnly && 'fill-current')}
             />
             {!iconOnly ? label : null}
         </span>

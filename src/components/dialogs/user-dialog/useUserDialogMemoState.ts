@@ -194,9 +194,7 @@ export function useUserDialogMemoState({
                       }
                     : currentProfile
             );
-            if (
-                useFriendRosterStore.getState().friendsById[targetUserId]
-            ) {
+            if (useFriendRosterStore.getState().friendsById[targetUserId]) {
                 useFriendRosterStore.getState().applyFriendPatch({
                     userId: targetUserId,
                     patch: savedFields,

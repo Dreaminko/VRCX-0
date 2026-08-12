@@ -130,10 +130,7 @@ pub fn auth_webhook_is_enabled(config: &ConfigRepository) -> bool {
             .is_empty()
 }
 
-fn auth_webhook_job(
-    config: &ConfigRepository,
-    event: &AuthWebhookEvent,
-) -> Option<AuthWebhookJob> {
+fn auth_webhook_job(config: &ConfigRepository, event: &AuthWebhookEvent) -> Option<AuthWebhookJob> {
     if !auth_webhook_is_enabled(config) {
         return None;
     }

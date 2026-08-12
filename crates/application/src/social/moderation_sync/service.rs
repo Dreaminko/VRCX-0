@@ -291,12 +291,9 @@ mod tests {
 
     #[test]
     fn moderation_error_preserves_typed_status() {
-        let failure = ApiJsonResponse::parse(
-            500,
-            r#"{"error":{"message":"Application error."}}"#,
-        )
-        .failure_or("VRChat moderation request failed")
-        .unwrap();
+        let failure = ApiJsonResponse::parse(500, r#"{"error":{"message":"Application error."}}"#)
+            .failure_or("VRChat moderation request failed")
+            .unwrap();
         let error = Error::from(failure);
 
         assert!(matches!(

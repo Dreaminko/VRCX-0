@@ -16,6 +16,7 @@ import { formatDateFilter, timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import { copyTextToClipboard } from '@/services/clipboardService';
 import { openExternalLink } from '@/services/entityMediaService';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import { normalizeString as normalizeId } from '@/shared/utils/string';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -38,7 +39,6 @@ import type {
     GameLogSessionEvent,
     GameLogSessionMember
 } from '../gameLogTypes';
-import { openGameLogUser } from '@/services/gameLogUserDialogService';
 
 const VIDEO_SOURCE_WITHOUT_LINK = new Set(['LSMedia', 'PopcornPalace']);
 const PLAYER_EVENT_GRID_CLASS =

@@ -85,10 +85,8 @@ export function useGameLogPageController() {
     useEffect(() => {
         const maxPageIndex = Math.max(
             0,
-            Math.ceil(
-                annotations.annotatedRows.length /
-                    pagination.pageSize
-            ) - 1
+            Math.ceil(annotations.annotatedRows.length / pagination.pageSize) -
+                1
         );
         if (pagination.pageIndex > maxPageIndex) {
             setPagination((current) => ({

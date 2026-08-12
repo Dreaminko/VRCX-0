@@ -512,12 +512,8 @@ export function DataTableView<TData extends RowData>({
                   columnSizing
               }
             : undefined,
-        onColumnOrderChange: persistTableLayout
-            ? setColumnOrder
-            : undefined,
-        onColumnSizingChange: persistTableLayout
-            ? setColumnSizing
-            : undefined,
+        onColumnOrderChange: persistTableLayout ? setColumnOrder : undefined,
+        onColumnSizingChange: persistTableLayout ? setColumnSizing : undefined,
         enableColumnResizing: persistTableLayout,
         columnResizeMode: 'onChange'
     });

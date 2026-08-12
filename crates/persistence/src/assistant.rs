@@ -251,9 +251,7 @@ mod tests {
 
         assistant_session_delete(&db, "usr_a", "ses_1").unwrap();
 
-        assert!(assistant_sessions_load(&db, "usr_a")
-            .unwrap()
-            .is_empty());
+        assert!(assistant_sessions_load(&db, "usr_a").unwrap().is_empty());
         let remaining = db
             .execute(
                 "SELECT id FROM assistant_message WHERE session_id = @session_id",

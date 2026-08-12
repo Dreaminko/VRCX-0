@@ -19,10 +19,7 @@ import {
     CardTitle
 } from '@/ui/shadcn/card';
 import { Input } from '@/ui/shadcn/input';
-import {
-    ResizablePanel,
-    ResizablePanelGroup
-} from '@/ui/shadcn/resizable';
+import { ResizablePanel, ResizablePanelGroup } from '@/ui/shadcn/resizable';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { DashboardEditorWorkspace } from './components/DashboardEditorWorkspace';
@@ -141,7 +138,7 @@ export function DashboardPage() {
                             editor.setEditName(event.target.value)
                         }
                         placeholder={t('view.dashboard.label.dashboard_name')}
-                        className="h-8 min-w-0 max-w-64 text-sm"
+                        className="h-8 max-w-64 min-w-0 text-sm"
                     />
                     <Tooltip>
                         <TooltipTrigger
@@ -152,9 +149,7 @@ export function DashboardPage() {
                                     size="icon-sm"
                                     className="text-muted-foreground hover:text-destructive"
                                     aria-label={t('common.actions.delete')}
-                                    onClick={
-                                        actions.deleteCurrentDashboard
-                                    }
+                                    onClick={actions.deleteCurrentDashboard}
                                 >
                                     <Trash2Icon data-icon="icon" />
                                 </Button>

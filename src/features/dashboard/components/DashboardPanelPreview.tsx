@@ -5,15 +5,15 @@ import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 
-import { DashboardEmbeddedPagePanel } from './DashboardEmbeddedPagePanel';
-import { DashboardFeedWidget } from './widgets/DashboardFeedWidget';
-import { DashboardGameLogWidget } from './widgets/DashboardGameLogWidget';
-import { DashboardInstanceWidget } from './widgets/DashboardInstanceWidget';
 import { canEmbedDashboardPagePanel } from '../dashboardPagePanelRegistry';
 import type {
     DashboardPageMetrics,
     DashboardPanelPreviewProps
 } from '../dashboardPanelPreviewModel';
+import { DashboardEmbeddedPagePanel } from './DashboardEmbeddedPagePanel';
+import { DashboardFeedWidget } from './widgets/DashboardFeedWidget';
+import { DashboardGameLogWidget } from './widgets/DashboardGameLogWidget';
+import { DashboardInstanceWidget } from './widgets/DashboardInstanceWidget';
 
 export type DashboardPanelFrameMode = 'card' | 'docked';
 
@@ -177,9 +177,7 @@ export function DashboardPanelPreview({
         definition?.category === 'page' && canEmbedDashboardPagePanel(panelKey);
     const frameClassName = cn(
         'bg-card relative h-full min-h-[180px] overflow-hidden',
-        frameMode === 'docked'
-            ? 'rounded-none border-0'
-            : 'rounded-md border'
+        frameMode === 'docked' ? 'rounded-none border-0' : 'rounded-md border'
     );
     const placeholderFrameClassName = cn(
         frameClassName,

@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { DialogErrorState } from '@/components/dialogs/previous-instances-table/PreviousInstancesViewParts';
+import { FeedDetailCell } from '@/features/feed/components/FeedDetailCell';
+import { FeedTypeIndicator } from '@/features/feed/components/FeedTypeIndicator';
 import {
     mergeFeedRowsWithLiveEntries,
     prepareFeedRowsForCommit,
@@ -12,8 +14,6 @@ import {
 import { buildFeedRoute } from '@/features/feed/feedRouteScope';
 import { getFeedRowId } from '@/features/feed/feedRows';
 import type { FeedLoadStatus, FeedRow } from '@/features/feed/feedTypes';
-import { FeedDetailCell } from '@/features/feed/components/FeedDetailCell';
-import { FeedTypeIndicator } from '@/features/feed/components/FeedTypeIndicator';
 import {
     formatCompactDateTime,
     formatDateFilterOrFallback
@@ -211,10 +211,7 @@ export function UserDialogFeedTab({
     }
 
     return (
-        <EntityDialogTabContent
-            value="feed"
-            className="flex min-h-0 flex-col"
-        >
+        <EntityDialogTabContent value="feed" className="flex min-h-0 flex-col">
             <UserDialogFeedPanel
                 active={active}
                 currentUserId={currentUserId}

@@ -3,9 +3,7 @@ const FEED_USER_QUERY_KEY = 'user';
 function normalizeUserIds(userIds: readonly unknown[]): string[] {
     return [
         ...new Set(
-            userIds
-                .map((userId) => String(userId ?? '').trim())
-                .filter(Boolean)
+            userIds.map((userId) => String(userId ?? '').trim()).filter(Boolean)
         )
     ];
 }

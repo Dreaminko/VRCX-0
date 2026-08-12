@@ -1,14 +1,12 @@
-use crate::notification::{
-    auth_webhook_should_recover, AuthWebhookEvent, AuthWebhookEventKind,
-};
+use crate::notification::{auth_webhook_should_recover, AuthWebhookEvent, AuthWebhookEventKind};
 
 use super::{
     normalize_vrchat_api_endpoint, AtomicFlagGuard, AuthenticatedRuntimeSession,
     AuthenticatedSessionSnapshot, BackendRuntimeMode, BackendRuntimeSnapshot,
     BackendRuntimeTelemetryKind, NonInteractiveAuthError, RuntimeHostState,
 };
-use vrcx_0_core::time::now_iso;
 use vrcx_0_application_core::RuntimeAuthScope;
+use vrcx_0_core::time::now_iso;
 
 #[derive(Clone, Debug)]
 struct BackgroundAuthRecoveryContext {
@@ -42,11 +40,8 @@ impl RuntimeHostState {
         let Some(session) = self.authenticated_session_projection().session else {
             return snapshot;
         };
-        let context = BackgroundAuthRecoveryContext::from_session(
-            snapshot.mode,
-            &session,
-            reason.into(),
-        );
+        let context =
+            BackgroundAuthRecoveryContext::from_session(snapshot.mode, &session, reason.into());
         self.emit_backend_runtime_telemetry_snapshot(
             BackendRuntimeTelemetryKind::AuthRecoveryStarted,
             context.reason.clone(),

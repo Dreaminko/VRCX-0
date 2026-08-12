@@ -107,9 +107,7 @@ pub fn files_list() -> Result<Vec<VrchatLogFileOutput>, Error> {
     list_log_files(&vrchat_paths::vrchat_app_data())
 }
 
-pub fn entries_read(
-    input: VrchatLogEntriesReadInput,
-) -> Result<VrchatLogEntriesReadOutput, Error> {
+pub fn entries_read(input: VrchatLogEntriesReadInput) -> Result<VrchatLogEntriesReadOutput, Error> {
     require_host_capability(HostCapability::VrchatPathDiscovery)?;
     read_log_entries(&vrchat_paths::vrchat_app_data(), input)
 }
@@ -397,9 +395,7 @@ fn validate_log_file_name(file_name: &str) -> Result<&str, Error> {
         || file_name.contains('\\')
         || file_name.contains(':')
     {
-        return Err(Error::Custom(
-            "Invalid VRChat output log file name.".into(),
-        ));
+        return Err(Error::Custom("Invalid VRChat output log file name.".into()));
     }
 
     if !file_name.starts_with("output_log_") || !file_name.ends_with(".txt") {

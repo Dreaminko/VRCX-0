@@ -226,8 +226,7 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
                 ))))
             } else if dispatched_tools.insert(signature) {
                 let outcome = match await_tool_call(
-                    ctx.tools
-                        .call_tool(call.function.name.clone(), arguments),
+                    ctx.tools.call_tool(call.function.name.clone(), arguments),
                     &ctx.cancel,
                     TOOL_CALL_TIMEOUT,
                 )

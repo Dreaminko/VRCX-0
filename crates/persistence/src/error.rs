@@ -50,10 +50,7 @@ impl Error {
         Self::database_message(format!("{context}: {error}"), category)
     }
 
-    pub(crate) fn database_message(
-        message: String,
-        category: Option<SqliteErrorCategory>,
-    ) -> Self {
+    pub(crate) fn database_message(message: String, category: Option<SqliteErrorCategory>) -> Self {
         match category {
             Some(category) => Self::Sqlite {
                 message,

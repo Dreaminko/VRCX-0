@@ -157,9 +157,7 @@ fn notification_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
 
 fn notification_actor_display_name(value: &Value) -> String {
     first_non_empty_owned([
-        value
-            .trimmed_field("senderDisplayName")
-            .unwrap_or_default(),
+        value.trimmed_field("senderDisplayName").unwrap_or_default(),
         value.trimmed_field("displayName").unwrap_or_default(),
         value.trimmed_field("senderUsername").unwrap_or_default(),
         nested_str(value, &["details", "senderDisplayName"]),

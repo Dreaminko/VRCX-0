@@ -201,11 +201,7 @@ impl EndpointStore {
         let last_detected_at = existing
             .as_ref()
             .filter(|endpoint| {
-                endpoint_matches_detect_target(
-                    endpoint,
-                    &base_url,
-                    &deobfuscate_api_key(&api_key),
-                )
+                endpoint_matches_detect_target(endpoint, &base_url, &deobfuscate_api_key(&api_key))
             })
             .and_then(|endpoint| endpoint.last_detected_at.clone());
 

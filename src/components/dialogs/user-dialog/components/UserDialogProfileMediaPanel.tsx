@@ -255,37 +255,40 @@ export function UserDialogProfileMediaPanel({
     const [mutatingKey, setMutatingKey] = useState('');
     const busy = actionStatus !== 'idle';
 
-    const refreshSection = useCallback(async (section: MediaSection) => {
-        setLoadingBySection((current) => ({
-            ...current,
-            [section.assetKey]: true
-        }));
-        try {
-            const { json } = await mediaRepository.getFileList({
-                n: 100,
-                tag: section.fileTag
-            });
-            setFilesBySection((current) => ({
-                ...current,
-                [section.assetKey]: Array.isArray(json)
-                    ? [...json].reverse()
-                    : []
-            }));
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('view.tools.toast.failed_to_load_value', {
-                          value: section.fileTag
-                      })
-            );
-        } finally {
+    const refreshSection = useCallback(
+        async (section: MediaSection) => {
             setLoadingBySection((current) => ({
                 ...current,
-                [section.assetKey]: false
+                [section.assetKey]: true
             }));
-        }
-    }, [t]);
+            try {
+                const { json } = await mediaRepository.getFileList({
+                    n: 100,
+                    tag: section.fileTag
+                });
+                setFilesBySection((current) => ({
+                    ...current,
+                    [section.assetKey]: Array.isArray(json)
+                        ? [...json].reverse()
+                        : []
+                }));
+            } catch (error) {
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : t('view.tools.toast.failed_to_load_value', {
+                              value: section.fileTag
+                          })
+                );
+            } finally {
+                setLoadingBySection((current) => ({
+                    ...current,
+                    [section.assetKey]: false
+                }));
+            }
+        },
+        [t]
+    );
 
     useEffect(() => {
         for (const section of MEDIA_SECTIONS) {

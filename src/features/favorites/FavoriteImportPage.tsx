@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams } from 'react-router';
 
 import { DataTableScrollArea } from '@/components/data-table/DataTableView';
+import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import {
     PageBackButton,
     PageBody,
@@ -52,8 +53,6 @@ import {
 } from '@/ui/shadcn/table';
 import { Textarea } from '@/ui/shadcn/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
-
-import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 
 type ImportKind = 'world' | 'avatar' | 'friend';
 type ImportLocation = 'remote' | 'local';

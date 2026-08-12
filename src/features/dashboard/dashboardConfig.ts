@@ -1,4 +1,10 @@
 import {
+    cloneRows as cloneRepositoryDashboardRows,
+    type DashboardPanel,
+    type DashboardRow
+} from '@/repositories/dashboardRepository';
+
+import {
     DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS,
     DASHBOARD_INSTANCE_WIDGET_DEFAULT_COLUMNS,
     DASHBOARD_SELECTABLE_PAGE_DEFINITIONS,
@@ -6,11 +12,6 @@ import {
     getDashboardPanelDefinition,
     getDashboardPanelLabel
 } from './dashboardRegistry';
-import {
-    cloneRows as cloneRepositoryDashboardRows,
-    type DashboardPanel,
-    type DashboardRow
-} from '@/repositories/dashboardRepository';
 
 const DASHBOARD_INSTANCE_WIDGET_COLUMN_KEYS = new Set(
     DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS.map((column) => column.key)

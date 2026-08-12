@@ -41,9 +41,7 @@ pub(super) fn build_activity_content(
     ]);
     let parsed_location = parse_location(&location);
     let display_location = first_non_empty([
-        payload
-            .trimmed_field("displayLocation")
-            .unwrap_or_default(),
+        payload.trimmed_field("displayLocation").unwrap_or_default(),
         nested_str(payload, &["details", "displayLocation"]),
     ]);
     let display_location = if display_location.is_empty() {
@@ -166,9 +164,7 @@ pub(super) fn build_activity_content(
             titled_body(
                 "request",
                 &title_name,
-                OverlayActivityText::message(OverlayMessage::notifications_request_invite(
-                    message,
-                )),
+                OverlayActivityText::message(OverlayMessage::notifications_request_invite(message)),
             )
         }
         "inviteResponse" => {
@@ -461,8 +457,5 @@ pub(super) fn nested_str<'a>(value: &'a Value, path: &[&str]) -> &'a str {
         };
         current = next;
     }
-    current
-        .as_str()
-        .map(str::trim)
-        .unwrap_or_default()
+    current.as_str().map(str::trim).unwrap_or_default()
 }

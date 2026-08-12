@@ -100,9 +100,7 @@ export function useScreenshotThumbnailTitleMap(
 ) {
     const safeItems = useMemo(
         () =>
-            Array.isArray(items)
-                ? items.filter(isScreenshotThumbnailItem)
-                : [],
+            Array.isArray(items) ? items.filter(isScreenshotThumbnailItem) : [],
         [items]
     );
     const entries = useMemo(
@@ -272,9 +270,7 @@ export function ScreenshotThumbnailGrid({
     const { t } = useTranslation();
     const safeItems = useMemo(
         () =>
-            Array.isArray(items)
-                ? items.filter(isScreenshotThumbnailItem)
-                : [],
+            Array.isArray(items) ? items.filter(isScreenshotThumbnailItem) : [],
         [items]
     );
     const titleMap = useScreenshotThumbnailTitleMap(safeItems, {

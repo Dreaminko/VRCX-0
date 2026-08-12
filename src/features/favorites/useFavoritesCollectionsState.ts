@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import { useKnownUserFacts } from '@/lib/useKnownUser';
 import avatarLocalRepository from '@/repositories/avatarLocalRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -16,7 +17,6 @@ import {
 import type { FavoriteKind, FavoriteSource } from './favoritesTypes';
 import { useAvatarDetailFallbacks } from './useAvatarDetailFallbacks';
 import { useFavoriteRemoteDetails } from './useFavoriteRemoteDetails';
-import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import { useWorldDetailFallbacks } from './useWorldDetailFallbacks';
 
 function selectRequestedRemoteEntityIds({

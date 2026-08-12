@@ -68,9 +68,8 @@ pub(crate) async fn execute_vrchat_json_request(
     if response.is_failure() {
         return Err(Error::VrchatApi {
             status_code: response.status,
-            message: response.error_message_with_http_status(
-                "VRChat social baseline request failed",
-            ),
+            message: response
+                .error_message_with_http_status("VRChat social baseline request failed"),
         });
     }
 

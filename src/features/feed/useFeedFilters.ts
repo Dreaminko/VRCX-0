@@ -18,9 +18,7 @@ import type { FeedDateRange } from './feedTypes';
 const EMPTY_SCOPED_USER_IDS: readonly string[] = [];
 
 function normalizeScopedUserIds(userIds: readonly string[]): string[] {
-    return [
-        ...new Set(userIds.map((userId) => userId.trim()).filter(Boolean))
-    ];
+    return [...new Set(userIds.map((userId) => userId.trim()).filter(Boolean))];
 }
 
 function normalizeFeedFilters(filters: readonly unknown[]): FeedFilterType[] {

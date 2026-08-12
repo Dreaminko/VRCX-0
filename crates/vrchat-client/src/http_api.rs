@@ -205,9 +205,7 @@ impl ApiJsonResponse {
     pub fn to_failure(&self, fallback: &str) -> VrchatApiFailure {
         VrchatApiFailure {
             status_code: self.status,
-            message: self
-                .error_message()
-                .unwrap_or_else(|| fallback.to_string()),
+            message: self.error_message().unwrap_or_else(|| fallback.to_string()),
         }
     }
 }
@@ -224,9 +222,7 @@ pub fn vrchat_auth_error_message(response: &HttpApiExecuteResponse) -> Option<St
     let error = object.and_then(|record| record.get("error"));
     json.as_str()
         .map(ToOwned::to_owned)
-        .or_else(|| {
-            auth_scalar_text(object.and_then(|record| record.get("message")))
-        })
+        .or_else(|| auth_scalar_text(object.and_then(|record| record.get("message"))))
         .or_else(|| {
             auth_scalar_text(
                 error
@@ -247,9 +243,7 @@ fn auth_scalar_text(value: Option<&Value>) -> Option<String> {
     .filter(|text| !text.is_empty())
 }
 
-pub fn classify_vrchat_auth_failure(
-    response: &HttpApiExecuteResponse,
-) -> VrchatAuthFailureKind {
+pub fn classify_vrchat_auth_failure(response: &HttpApiExecuteResponse) -> VrchatAuthFailureKind {
     if response.status == 401 {
         let message = vrchat_auth_error_message(response).unwrap_or_default();
         if message.contains("Invalid Username/Email or Password") {
@@ -720,16 +714,11 @@ mod tests {
             401,
             r#"{"error":{"message":"Invalid Username/Email or Password"}}"#.into(),
         );
-        let missing_credentials = execute_response(
-            401,
-            r#"{"error":{"message":"Missing Credentials"}}"#.into(),
-        );
-        let generic_unauthorized = execute_response(
-            401,
-            r#"{"error":{"message":"Unauthorized"}}"#.into(),
-        );
-        let forbidden =
-            execute_response(403, r#"{"error":{"message":"Forbidden"}}"#.into());
+        let missing_credentials =
+            execute_response(401, r#"{"error":{"message":"Missing Credentials"}}"#.into());
+        let generic_unauthorized =
+            execute_response(401, r#"{"error":{"message":"Unauthorized"}}"#.into());
+        let forbidden = execute_response(403, r#"{"error":{"message":"Forbidden"}}"#.into());
         let conflicting_messages = execute_response(
             401,
             r#"{"message":"Missing Credentials","error":{"message":"Invalid Username/Email or Password"}}"#.into(),
@@ -763,8 +752,7 @@ mod tests {
             401,
             r#"{"error":{"message":"  Missing Credentials  "}}"#.into(),
         );
-        let numeric_top_level =
-            execute_response(401, r#"{"message":401}"#.into());
+        let numeric_top_level = execute_response(401, r#"{"message":401}"#.into());
 
         assert_eq!(
             vrchat_auth_error_message(&padded_nested).as_deref(),

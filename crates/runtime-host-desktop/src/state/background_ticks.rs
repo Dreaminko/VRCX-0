@@ -22,8 +22,7 @@ pub(in crate::state) const BACKGROUND_DISCORD_CADENCE_SECONDS: u64 = 3;
 pub(in crate::state) struct BackgroundTickContext<'a> {
     pub(in crate::state) db: &'a Arc<vrcx_0_persistence::DatabaseService>,
     pub(in crate::state) web: &'a Arc<vrcx_0_application_core::WebClient>,
-    pub(in crate::state) session_slot:
-        &'a Arc<Mutex<AuthenticatedSessionProjection>>,
+    pub(in crate::state) session_slot: &'a Arc<Mutex<AuthenticatedSessionProjection>>,
     pub(in crate::state) realtime_runtime: &'a Arc<RealtimeHostRuntime>,
     pub(in crate::state) runtime_context: &'a Arc<RuntimeHostContext>,
     pub(in crate::state) desktop_services: &'a Arc<crate::DesktopRuntimeServices>,
@@ -37,13 +36,15 @@ pub(in crate::state) fn background_capability_session(
     let slot = session_slot
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    slot.session.as_ref().map(|session| BackgroundCapabilitySession {
-        auth_scope_generation: session.auth_scope_generation,
-        current_user_id: session.user_id.clone(),
-        endpoint: session.endpoint.clone(),
-        websocket: session.websocket.clone(),
-        current_user_snapshot: session.current_user_snapshot.clone(),
-    })
+    slot.session
+        .as_ref()
+        .map(|session| BackgroundCapabilitySession {
+            auth_scope_generation: session.auth_scope_generation,
+            current_user_id: session.user_id.clone(),
+            endpoint: session.endpoint.clone(),
+            websocket: session.websocket.clone(),
+            current_user_snapshot: session.current_user_snapshot.clone(),
+        })
 }
 
 pub(in crate::state) fn background_capability_session_matches(

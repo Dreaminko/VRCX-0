@@ -59,43 +59,25 @@ mod tests {
 
     #[test]
     fn json_to_sql_maps_null_to_sql_null() {
-        assert_eq!(
-            json_to_sql(&serde_json::json!(null)),
-            SqlValue::Null
-        );
+        assert_eq!(json_to_sql(&serde_json::json!(null)), SqlValue::Null);
     }
 
     #[test]
     fn json_to_sql_maps_bools_to_zero_or_one() {
-        assert_eq!(
-            json_to_sql(&serde_json::json!(true)),
-            SqlValue::Integer(1)
-        );
-        assert_eq!(
-            json_to_sql(&serde_json::json!(false)),
-            SqlValue::Integer(0)
-        );
+        assert_eq!(json_to_sql(&serde_json::json!(true)), SqlValue::Integer(1));
+        assert_eq!(json_to_sql(&serde_json::json!(false)), SqlValue::Integer(0));
     }
 
     #[test]
     fn json_to_sql_keeps_integers_as_integers_and_floats_as_reals() {
-        assert_eq!(
-            json_to_sql(&serde_json::json!(42)),
-            SqlValue::Integer(42)
-        );
-        assert_eq!(
-            json_to_sql(&serde_json::json!(1.5)),
-            SqlValue::Real(1.5)
-        );
+        assert_eq!(json_to_sql(&serde_json::json!(42)), SqlValue::Integer(42));
+        assert_eq!(json_to_sql(&serde_json::json!(1.5)), SqlValue::Real(1.5));
     }
 
     #[test]
     fn json_to_sql_degrades_integers_beyond_i64_range_to_a_float_approximation() {
         let huge = serde_json::from_str::<serde_json::Value>("18446744073709551616").unwrap();
-        assert_eq!(
-            json_to_sql(&huge),
-            SqlValue::Real(18446744073709551616.0)
-        );
+        assert_eq!(json_to_sql(&huge), SqlValue::Real(18446744073709551616.0));
     }
 
     #[test]

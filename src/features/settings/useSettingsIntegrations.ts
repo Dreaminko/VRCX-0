@@ -115,8 +115,7 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
             translationAPIEndpoint: state.translationAPIEndpoint,
             translationAPIModel: state.translationAPIModel,
             translationAPIPrompt: state.translationAPIPrompt,
-            translationAPIReasoningEffort:
-                state.translationAPIReasoningEffort
+            translationAPIReasoningEffort: state.translationAPIReasoningEffort
         }))
     );
     const discordPrefs = usePreferencesStore(

@@ -14,7 +14,6 @@ import {
     PageToolbar,
     PageToolbarRow
 } from '@/components/layout/PageScaffold';
-import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import {
     formatClock,
     formatDateFilterOrFallback,
@@ -26,6 +25,7 @@ import { cn } from '@/lib/utils';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import { openUserDialog, openWorldDialog } from '@/services/dialogService';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import { parseLocation } from '@/shared/utils/location';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';

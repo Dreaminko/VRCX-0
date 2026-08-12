@@ -39,13 +39,9 @@ impl From<vrcx_0_persistence::Error> for Error {
     fn from(value: vrcx_0_persistence::Error) -> Self {
         match value {
             vrcx_0_persistence::Error::Database(message) => Self::Database(message),
-            vrcx_0_persistence::Error::Sqlite {
-                message,
-                category,
-            } => Self::Sqlite {
-                message,
-                category,
-            },
+            vrcx_0_persistence::Error::Sqlite { message, category } => {
+                Self::Sqlite { message, category }
+            }
             vrcx_0_persistence::Error::Io(error) => Self::Io(error),
             vrcx_0_persistence::Error::Json(error) => Self::Json(error),
             vrcx_0_persistence::Error::InvalidData(message) => Self::Custom(message),

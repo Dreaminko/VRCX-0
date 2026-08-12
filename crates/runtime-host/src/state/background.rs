@@ -24,11 +24,10 @@ impl RuntimeHostState {
         let current = self.backend_runtime.snapshot();
         let auth_scope = self.runtime_context.auth_scope.snapshot();
         let active_runtime = is_authenticated_maintenance_active_snapshot(&current);
-        let active_session =
-            background_session_scope_matches_auth(
-                &self.authenticated_session_projection,
-                &auth_scope,
-            );
+        let active_session = background_session_scope_matches_auth(
+            &self.authenticated_session_projection,
+            &auth_scope,
+        );
         if !active_runtime || !active_session {
             return;
         }
@@ -233,8 +232,7 @@ impl RuntimeHostState {
     pub async fn refresh_social_baseline_now(
         &self,
     ) -> vrcx_0_application_core::Result<SocialBaselineRefreshOutput> {
-        let Some(session) =
-            background_capability_session(&self.authenticated_session_projection)
+        let Some(session) = background_capability_session(&self.authenticated_session_projection)
         else {
             return Err(vrcx_0_application_core::Error::Custom(
                 "Social baseline refresh requires an authenticated session.".into(),
@@ -391,13 +389,15 @@ pub(super) fn background_capability_session(
     let slot = session_slot
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    slot.session.as_ref().map(|session| BackgroundCapabilitySession {
-        auth_scope_generation: session.auth_scope_generation,
-        current_user_id: session.user_id.clone(),
-        endpoint: session.endpoint.clone(),
-        websocket: session.websocket.clone(),
-        current_user_snapshot: session.current_user_snapshot.clone(),
-    })
+    slot.session
+        .as_ref()
+        .map(|session| BackgroundCapabilitySession {
+            auth_scope_generation: session.auth_scope_generation,
+            current_user_id: session.user_id.clone(),
+            endpoint: session.endpoint.clone(),
+            websocket: session.websocket.clone(),
+            current_user_snapshot: session.current_user_snapshot.clone(),
+        })
 }
 
 fn background_capability_session_scope_key(

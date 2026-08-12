@@ -2,13 +2,13 @@ import type { TFunction } from 'i18next';
 import { BadgeCheckIcon, DownloadIcon, ExternalLinkIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import type { CommunityThemeManifest } from '@/domain/themes/communityThemeTypes';
 import { openExternalLink } from '@/services/entityMediaService';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import type { CommunityThemeManifest } from '@/domain/themes/communityThemeTypes';
 import { resolveThemeAuthorUrl } from '../themeHelpers';
 
 export function ThemeTags({ tags }: { tags: string[] }) {

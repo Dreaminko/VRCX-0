@@ -6,13 +6,13 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import type { CommunityThemeInstallMetadata } from '@/domain/themes/communityThemeTypes';
 import { openExternalLink } from '@/services/entityMediaService';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import type { CommunityThemeInstallMetadata } from '@/domain/themes/communityThemeTypes';
 import {
     COMMUNITY_THEMES_REPOSITORY_URL,
     isSameThemeVersion

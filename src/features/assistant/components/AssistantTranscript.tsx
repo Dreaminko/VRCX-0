@@ -1,6 +1,7 @@
 import { ArrowDownIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import type { UIMessage } from '@/domain/assistant/assistantTypes';
 import {
     MessageScroller,
     MessageScrollerButton,
@@ -10,7 +11,6 @@ import {
     MessageScrollerViewport
 } from '@/ui/shadcn/message-scroller';
 
-import type { UIMessage } from '@/domain/assistant/assistantTypes';
 import { AssistantMessage } from './AssistantMessage';
 
 interface AssistantTranscriptProps {

@@ -607,9 +607,8 @@ export function useUserDialogTabData({
 
     useEffect(
         () =>
-            onPreferenceChanged(
-                AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS,
-                () => handleAvatarProviderPreferenceChanged()
+            onPreferenceChanged(AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS, () =>
+                handleAvatarProviderPreferenceChanged()
             ),
         []
     );

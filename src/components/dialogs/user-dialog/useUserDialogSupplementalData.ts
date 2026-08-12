@@ -258,10 +258,7 @@ export function useUserDialogSupplementalData({
                 force: reloadToken > 0
             })
             .then((group) => {
-                if (
-                    !active ||
-                    !targetIsActive(targetUserId, targetEndpoint)
-                ) {
+                if (!active || !targetIsActive(targetUserId, targetEndpoint)) {
                     return;
                 }
                 setRepresentedGroupState({
@@ -272,10 +269,7 @@ export function useUserDialogSupplementalData({
                 });
             })
             .catch(() => {
-                if (
-                    !active ||
-                    !targetIsActive(targetUserId, targetEndpoint)
-                ) {
+                if (!active || !targetIsActive(targetUserId, targetEndpoint)) {
                     return;
                 }
                 setRepresentedGroupState({

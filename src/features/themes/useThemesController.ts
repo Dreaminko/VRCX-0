@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import type {
+    CommunityThemeInstallMetadata,
+    CommunityThemeManifest,
+    CommunityThemeStatsById
+} from '@/domain/themes/communityThemeTypes';
 import { commands } from '@/platform/tauri/bindings';
 import type { BackgroundImageMode } from '@/platform/tauri/bindings';
 import {
@@ -32,11 +37,6 @@ import {
 import { isDevToolsBuild } from '@/shared/buildLabel';
 import { communityThemeControlsAccent } from '@/state/communityThemeStore';
 
-import type {
-    CommunityThemeInstallMetadata,
-    CommunityThemeManifest,
-    CommunityThemeStatsById
-} from '@/domain/themes/communityThemeTypes';
 import { resolveActiveThemeSource, type ThemeSource } from './themeHelpers';
 import { useThemesRuntimeState } from './useThemesRuntimeState';
 

@@ -7,9 +7,7 @@ use std::sync::{
 #[cfg(test)]
 use std::time::Duration;
 use vrcx_0_core::time::now_iso;
-use vrcx_0_persistence::mutual_graph::{
-    MutualGraphMetaInput, MutualGraphSnapshotEntryInput,
-};
+use vrcx_0_persistence::mutual_graph::{MutualGraphMetaInput, MutualGraphSnapshotEntryInput};
 use vrcx_0_persistence::DatabaseService;
 
 use crate::{
@@ -20,11 +18,11 @@ use crate::{
 mod request;
 mod types;
 
-pub use request::{get_user_mutual_friends_list, refresh_mutual_graph_friend};
 use request::{
     fetch_friend_mutuals, fetch_should_cancel, normalize_friend_ids, normalize_id,
     preserve_failed_friend_cache, resolve_fetch_scope, FriendFetchResult, MutualGraphFetchContext,
 };
+pub use request::{get_user_mutual_friends_list, refresh_mutual_graph_friend};
 pub use types::{
     MutualGraphFetchCancelInput, MutualGraphFetchStartInput, MutualGraphFetchState,
     MutualGraphFetchStatus, MutualGraphFriendRefreshInput, MutualGraphFriendRefreshOutput,

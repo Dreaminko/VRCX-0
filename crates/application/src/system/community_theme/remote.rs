@@ -9,11 +9,10 @@ use vrcx_0_integrations::external_api::ExternalApiScope;
 
 use crate::{Error, Result};
 
-use super::types::{
-    CommunityThemeCatalog, CommunityThemeManifest, CommunityThemeStatsById,
-};
+use super::types::{CommunityThemeCatalog, CommunityThemeManifest, CommunityThemeStatsById};
 
-pub(super) type CommunityThemeRemoteFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T>> + Send + 'a>>;
+pub(super) type CommunityThemeRemoteFuture<'a, T> =
+    Pin<Box<dyn Future<Output = Result<T>> + Send + 'a>>;
 
 pub(super) trait CommunityThemeRemote: Send + Sync {
     fn load_catalog(&self) -> CommunityThemeRemoteFuture<'_, CommunityThemeCatalog>;

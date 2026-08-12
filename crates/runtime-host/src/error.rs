@@ -37,13 +37,9 @@ impl From<vrcx_0_persistence::Error> for Error {
     fn from(value: vrcx_0_persistence::Error) -> Self {
         match value {
             vrcx_0_persistence::Error::Database(message) => Error::Database(message),
-            vrcx_0_persistence::Error::Sqlite {
-                message,
-                category,
-            } => Error::Sqlite {
-                message,
-                category,
-            },
+            vrcx_0_persistence::Error::Sqlite { message, category } => {
+                Error::Sqlite { message, category }
+            }
             vrcx_0_persistence::Error::Io(error) => Error::Io(error),
             vrcx_0_persistence::Error::Json(error) => Error::Json(error),
             vrcx_0_persistence::Error::InvalidData(message) => Error::Custom(message),
@@ -75,13 +71,9 @@ impl From<vrcx_0_application_core::Error> for Error {
     fn from(value: vrcx_0_application_core::Error) -> Self {
         match value {
             vrcx_0_application_core::Error::Database(message) => Error::Database(message),
-            vrcx_0_application_core::Error::Sqlite {
-                message,
-                category,
-            } => Error::Sqlite {
-                message,
-                category,
-            },
+            vrcx_0_application_core::Error::Sqlite { message, category } => {
+                Error::Sqlite { message, category }
+            }
             vrcx_0_application_core::Error::Io(error) => Error::Io(error),
             vrcx_0_application_core::Error::Json(error) => Error::Json(error),
             vrcx_0_application_core::Error::UpdateArtifactInvalid(message) => {

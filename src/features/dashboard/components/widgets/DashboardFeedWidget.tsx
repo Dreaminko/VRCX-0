@@ -504,11 +504,7 @@ export function DashboardFeedWidgetView({
                                 </span>
                             ) : null}
                             {row.isFavorite ? (
-                                <AffinityBadge
-                                    isFriend
-                                    isFavorite
-                                    iconOnly
-                                />
+                                <AffinityBadge isFriend isFavorite iconOnly />
                             ) : null}
                         </div>
                     </DashboardWidgetTimelineRow>

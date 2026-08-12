@@ -232,9 +232,7 @@ fn prune_expired_world_name_fetches(
     fetches: &mut std::collections::HashMap<String, i64>,
     now_ms: i64,
 ) {
-    fetches.retain(|_, last_ms| {
-        now_ms.saturating_sub(*last_ms) < WORLD_NAME_FETCH_THROTTLE_MS
-    });
+    fetches.retain(|_, last_ms| now_ms.saturating_sub(*last_ms) < WORLD_NAME_FETCH_THROTTLE_MS);
 }
 
 fn string_value(value: &Value, key: &str) -> String {

@@ -274,11 +274,7 @@ impl SessionStore {
     ) -> Option<Session> {
         self.ensure_owner_loaded(owner_user_id);
         let Some(id) = session_id else {
-            return Some(self.insert_new(
-                owner_user_id,
-                format!("ses_{}", random_hex()),
-                runtime,
-            ));
+            return Some(self.insert_new(owner_user_id, format!("ses_{}", random_hex()), runtime));
         };
         if self.sessions.lock().unwrap().contains_key(&id)
             && !self.is_loaded_session_visible_to(&id, owner_user_id)
@@ -770,8 +766,7 @@ mod tests {
         let db = test_db();
         assistant::assistant_session_upsert(&db, "usr_a", "ses_a", "a", "t0", "t0").unwrap();
         assistant::assistant_session_upsert(&db, "usr_b", "ses_b", "b", "t0", "t0").unwrap();
-        assistant::assistant_session_upsert(&db, "", "ses_shared", "shared", "t0", "t0")
-            .unwrap();
+        assistant::assistant_session_upsert(&db, "", "ses_shared", "shared", "t0", "t0").unwrap();
         let store = SessionStore::with_db(db);
 
         assert!(store.sessions.lock().unwrap().is_empty());

@@ -1,8 +1,4 @@
-import {
-    lazy,
-    type ComponentType,
-    type LazyExoticComponent
-} from 'react';
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 
 type DashboardEmbeddedPage = ComponentType<{ embedded?: boolean }>;
 function lazyDashboardPage<ExportName extends string>(

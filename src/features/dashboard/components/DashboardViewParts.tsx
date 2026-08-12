@@ -3,14 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useDefaultLayout } from 'react-resizable-panels';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-    DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS,
-    getDashboardInstanceWidgetColumnLabel,
-    getDashboardPanelDefinition,
-    getDashboardPanelDescription,
-    getDashboardPanelLabel
-} from '../dashboardRegistry';
-import type { DashboardPanel, DashboardRow } from '@/repositories/dashboardRepository';
+import type {
+    DashboardPanel,
+    DashboardRow
+} from '@/repositories/dashboardRepository';
 import { FEED_FILTER_TYPES } from '@/repositories/feedRepository';
 import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -23,10 +19,7 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
-import {
-    ResizablePanel,
-    ResizablePanelGroup
-} from '@/ui/shadcn/resizable';
+import { ResizablePanel, ResizablePanelGroup } from '@/ui/shadcn/resizable';
 import { Switch } from '@/ui/shadcn/switch';
 
 import {
@@ -43,6 +36,13 @@ import {
     createDashboardPanelPreviewProps,
     type DashboardPageMetrics
 } from '../dashboardPanelPreviewModel';
+import {
+    DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS,
+    getDashboardInstanceWidgetColumnLabel,
+    getDashboardPanelDefinition,
+    getDashboardPanelDescription,
+    getDashboardPanelLabel
+} from '../dashboardRegistry';
 import {
     DashboardPanelPreview,
     type DashboardPanelFrameMode

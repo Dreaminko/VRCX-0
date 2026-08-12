@@ -21,8 +21,9 @@ type SettingsPageStateRef = {
     current: SettingsPageStateSections;
 };
 
-const SettingsPageStateContext =
-    createContext<SettingsPageStateStore | null>(null);
+const SettingsPageStateContext = createContext<SettingsPageStateStore | null>(
+    null
+);
 
 function createSectionSnapshot<Section extends SettingsPageSection>(
     section: Section,
@@ -37,7 +38,8 @@ function createSectionSnapshot<Section extends SettingsPageSection>(
     const entries = Object.entries(sourceRecord);
     const nextRecord: Record<string, unknown> = {};
     let changed =
-        !previousRecord || Object.keys(previousRecord).length !== entries.length;
+        !previousRecord ||
+        Object.keys(previousRecord).length !== entries.length;
 
     for (const [key, value] of entries) {
         const previousValue = previousRecord?.[key];
@@ -123,12 +125,7 @@ function createSettingsPageStateSnapshot(
             sourceRef,
             previous?.notifications
         ),
-        vr: createSectionSnapshot(
-            'vr',
-            source.vr,
-            sourceRef,
-            previous?.vr
-        ),
+        vr: createSectionSnapshot('vr', source.vr, sourceRef, previous?.vr),
         advanced: createSectionSnapshot(
             'advanced',
             source.advanced,

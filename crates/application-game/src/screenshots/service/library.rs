@@ -95,13 +95,9 @@ pub fn find_screenshots(
                     meta.contains_player_name_lowercase(lowercase_query)
                 }
                 ScreenshotSearchType::UserId => meta.contains_player_id(query),
-                ScreenshotSearchType::WorldName => meta
-                    .world
-                    .name
-                    .as_ref()
-                    .is_some_and(|name| {
-                        contains_lowercase_query_case_insensitive(name, lowercase_query)
-                    }),
+                ScreenshotSearchType::WorldName => meta.world.name.as_ref().is_some_and(|name| {
+                    contains_lowercase_query_case_insensitive(name, lowercase_query)
+                }),
                 ScreenshotSearchType::WorldId => meta.world.id == query,
             };
             if matched {

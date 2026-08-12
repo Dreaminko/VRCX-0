@@ -325,12 +325,7 @@ export function useFeedFriendActions(): FeedFriendActions {
                 );
             }
         },
-        [
-            confirm,
-            currentUserSnapshot,
-            normalizedCurrentUserId,
-            t
-        ]
+        [confirm, currentUserSnapshot, normalizedCurrentUserId, t]
     );
 
     const sendFeedFriendBoop = useCallback(

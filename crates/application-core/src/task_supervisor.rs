@@ -352,11 +352,6 @@ mod tests {
         supervisor.stop_all();
 
         assert!(stopped.load(Ordering::Acquire));
-        assert!(supervisor
-            .inner
-            .fallback_threads
-            .lock()
-            .unwrap()
-            .is_empty());
+        assert!(supervisor.inner.fallback_threads.lock().unwrap().is_empty());
     }
 }

@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { toolDefinitions } from '@/shared/constants/tools';
 
-import {
-    TELEMETRY_ROUTE_KEYS,
-    TELEMETRY_TOOL_KEYS
-} from './telemetryContract';
+import { TELEMETRY_ROUTE_KEYS, TELEMETRY_TOOL_KEYS } from './telemetryContract';
 
 describe('telemetry contract', () => {
     it('contains current route keys without retired route telemetry', () => {

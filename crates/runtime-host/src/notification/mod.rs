@@ -56,8 +56,8 @@ pub use webhook::{
     discord_webhook_url_with_wait, send_json_webhook_with_retry, webhook_local_time_string,
     WebhookDeliveryFailure, WebhookDeliveryFailureKind, WebhookDeliveryOutcome,
 };
+pub(crate) use webhook_delivery::WebhookDeliveryMonitor;
 pub use webhook_delivery::{
     WebhookDeliveryChannelSnapshot, WebhookDeliveryRecord, WebhookDeliverySnapshot,
 };
-pub(crate) use webhook_delivery::WebhookDeliveryMonitor;
 pub(crate) use webhook_sink::{NotificationWebhookSink, NotificationWebhookSinkDeps};

@@ -12,6 +12,7 @@ import type { AppRow } from '@/components/data-table/appTable';
 import { formatDateFilter } from '@/lib/dateTime';
 import { openWorldDialog } from '@/services/dialogService';
 import { openExternalLink } from '@/services/entityMediaService';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
@@ -30,7 +31,6 @@ import {
     shouldLinkGameLogPrimaryDetailToWorld as shouldLinkPrimaryDetailToWorld
 } from '../gameLogRows';
 import type { GameLogColumns, GameLogRow } from '../gameLogTypes';
-import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import {
     EmptyTableValue,
     GameLogLocationDetail,

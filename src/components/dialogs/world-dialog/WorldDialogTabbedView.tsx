@@ -251,10 +251,7 @@ export function WorldDialogTabbedView({
     const [creatorGroupsById, setCreatorGroupsById] = useState<
         Record<string, GroupProfileRecord>
     >({});
-    const instanceRows = useMemo(
-        () => resolveInstanceRows(world),
-        [world]
-    );
+    const instanceRows = useMemo(() => resolveInstanceRows(world), [world]);
     const instanceDetailTargets = useMemo(() => {
         const targetsByLocation = new Map<
             string,

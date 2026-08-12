@@ -50,11 +50,9 @@ export function SettingsVrSection() {
             wristOverlayHand: state.wristOverlayHand,
             wristOverlaySize: state.wristOverlaySize,
             wristOverlayDarkBackground: state.wristOverlayDarkBackground,
-            wristOverlayHidePrivateWorlds:
-                state.wristOverlayHidePrivateWorlds,
+            wristOverlayHidePrivateWorlds: state.wristOverlayHidePrivateWorlds,
             wristOverlayShowDevices: state.wristOverlayShowDevices,
-            wristOverlayShowBatteryPercent:
-                state.wristOverlayShowBatteryPercent
+            wristOverlayShowBatteryPercent: state.wristOverlayShowBatteryPercent
         }))
     );
     const {

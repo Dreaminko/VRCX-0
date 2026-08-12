@@ -256,9 +256,7 @@ async fn execute_group_quick_moderation_action(
 
     let request = quick_action_request(&endpoint, &group_id, &target_user_id, action)?;
     let response = execute_vrchat_api(&deps, request).await?;
-    if let Some(failure) =
-        response.failure_or("VRChat group quick moderation action failed")
-    {
+    if let Some(failure) = response.failure_or("VRChat group quick moderation action failed") {
         return Err(failure.into());
     }
 

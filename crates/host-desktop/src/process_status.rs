@@ -81,10 +81,7 @@ struct ProcessHandleCache<H> {
 impl<H> ProcessHandleCache<H> {
     fn retain_running(&mut self, mut is_running: impl FnMut(&H) -> bool) -> VrcProcessStatus {
         self.game = self.game.take().filter(|handle| is_running(handle));
-        self.steamvr = self
-            .steamvr
-            .take()
-            .filter(|handle| is_running(handle));
+        self.steamvr = self.steamvr.take().filter(|handle| is_running(handle));
         VrcProcessStatus {
             is_game_running: self.game.is_some(),
             is_steamvr_running: self.steamvr.is_some(),
@@ -337,9 +334,8 @@ mod tests {
         let steamvr_pid = Pid::from_u32(20);
         let mut cache = ProcessHandleCache::default();
 
-        let initial = cache.update_from_processes([(game_pid, "VRChat.exe")], |pid| {
-            Some(pid.as_u32())
-        });
+        let initial =
+            cache.update_from_processes([(game_pid, "VRChat.exe")], |pid| Some(pid.as_u32()));
         assert!(initial.is_game_running);
         assert!(!initial.is_steamvr_running);
 
@@ -347,10 +343,9 @@ mod tests {
         assert!(cached_status.is_game_running);
         assert!(!cached_status.is_steamvr_running);
 
-        let status = cache.update_from_processes(
-            [(steamvr_pid, STEAMVR_PROCESS_FIXTURE)],
-            |pid| Some(pid.as_u32()),
-        );
+        let status = cache.update_from_processes([(steamvr_pid, STEAMVR_PROCESS_FIXTURE)], |pid| {
+            Some(pid.as_u32())
+        });
 
         assert!(status.is_game_running);
         assert!(status.is_steamvr_running);
@@ -372,9 +367,8 @@ mod tests {
         assert!(!cached_status.is_game_running);
         assert!(cached_status.is_steamvr_running);
 
-        let status = cache.update_from_processes([(new_game_pid, "VRChat.exe")], |pid| {
-            Some(pid.as_u32())
-        });
+        let status =
+            cache.update_from_processes([(new_game_pid, "VRChat.exe")], |pid| Some(pid.as_u32()));
 
         assert!(status.is_game_running);
         assert!(status.is_steamvr_running);

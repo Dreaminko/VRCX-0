@@ -21,6 +21,7 @@ import { useKnownUserFacts } from '@/lib/useKnownUser';
 import { cn } from '@/lib/utils';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import { userImage } from '@/services/entityMediaService';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -49,7 +50,6 @@ import {
     type GameLogSessionDurationDetails
 } from '../gameLogSessionDurations';
 import type { GameLogSession, GameLogSessionEvent } from '../gameLogTypes';
-import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import { SessionEventGroups } from './GameLogSessionEventRow';
 
 const EMPTY_DURATION_BY_KEY = new Map<string, number>();

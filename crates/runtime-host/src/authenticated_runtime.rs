@@ -316,13 +316,7 @@ impl AuthenticatedRuntimeOrchestrator {
         let mut roster_stale = false;
         loop {
             let termination = self
-                .run_realtime_transport(
-                    session,
-                    scope,
-                    run_id,
-                    stop_token,
-                    attempt,
-                )
+                .run_realtime_transport(session, scope, run_id, stop_token, attempt)
                 .await;
             let (reason, probe_auth) = match termination {
                 Some(RealtimeTransportTermination::UnexpectedExit {
@@ -486,10 +480,9 @@ impl AuthenticatedRuntimeOrchestrator {
         .and_then(|baseline| {
             let output = baseline.output;
             match baseline.friends_by_id {
-                Some(friends_by_id) => Ok((
-                    output,
-                    friend_ids_by_roster_id_from_records(friends_by_id),
-                )),
+                Some(friends_by_id) => {
+                    Ok((output, friend_ids_by_roster_id_from_records(friends_by_id)))
+                }
                 None => Err(Error::Custom(if output.detail.trim().is_empty() {
                     "Friend roster baseline was stale.".into()
                 } else {

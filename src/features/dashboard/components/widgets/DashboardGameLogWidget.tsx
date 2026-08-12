@@ -6,16 +6,11 @@ import {
     SettingsIcon,
     WaypointsIcon
 } from 'lucide-react';
-import {
-    useEffect,
-    useMemo,
-    useState,
-    type ReactNode
-} from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Location } from '@/components/Location';
 import { AffinityBadge } from '@/components/affinity/AffinityBadge';
+import { Location } from '@/components/Location';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
@@ -493,12 +488,9 @@ export function DashboardGameLogWidget({
                                 className="text-muted-foreground w-20 shrink-0 truncate text-right text-xs"
                                 data-dashboard-widget-event-type
                             >
-                                {t(
-                                    `view.game_log.filters.${row.type || ''}`,
-                                    {
-                                        defaultValue: row.type || ''
-                                    }
-                                )}
+                                {t(`view.game_log.filters.${row.type || ''}`, {
+                                    defaultValue: row.type || ''
+                                })}
                             </span>
                         </div>
                     </DashboardWidgetTimelineRow>

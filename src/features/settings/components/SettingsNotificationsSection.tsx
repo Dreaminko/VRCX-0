@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 import { usePreferencesStore } from '@/state/preferencesStore';
+
 import { useSettingsPageSection } from '../SettingsPageStateContext';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsNotificationsTab } from './settings-tabs/SettingsNotificationsTab';

@@ -12,18 +12,18 @@ import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
+    createDashboardWidgetPanelValue,
+    type DashboardConfig,
+    getDashboardPanelConfig,
+    getDashboardRowKey
+} from '../dashboardConfig';
+import {
     createDashboardPanelValue,
     getDashboardPanelDefinition,
     getDashboardPanelDescription,
     getDashboardPanelLabel,
     resolveDashboardPanelKey
 } from '../dashboardRegistry';
-import {
-    createDashboardWidgetPanelValue,
-    type DashboardConfig,
-    getDashboardPanelConfig,
-    getDashboardRowKey
-} from '../dashboardConfig';
 import { DashboardAddRowControl } from './DashboardAddRowControl';
 import {
     DashboardPanelPreviewForPanel,
@@ -56,9 +56,13 @@ type DashboardEditorWorkspaceProps = {
     onRowRemove: (rowIndex: number) => void;
 };
 
-function LayoutPreview({ direction }: { direction: 'single' | DashboardDirection }) {
+function LayoutPreview({
+    direction
+}: {
+    direction: 'single' | DashboardDirection;
+}) {
     if (direction === 'single') {
-        return <span className="bg-current/25 h-3.5 w-6 rounded-[3px]" />;
+        return <span className="h-3.5 w-6 rounded-[3px] bg-current/25" />;
     }
 
     return (
@@ -68,8 +72,8 @@ function LayoutPreview({ direction }: { direction: 'single' | DashboardDirection
                 direction === 'vertical' && 'flex-col'
             )}
         >
-            <span className="bg-current/25 min-h-0 min-w-0 flex-1 rounded-[2px]" />
-            <span className="bg-current/25 min-h-0 min-w-0 flex-1 rounded-[2px]" />
+            <span className="min-h-0 min-w-0 flex-1 rounded-[2px] bg-current/25" />
+            <span className="min-h-0 min-w-0 flex-1 rounded-[2px] bg-current/25" />
         </span>
     );
 }
@@ -134,7 +138,7 @@ function DashboardEditorCanvasPanel({
             </div>
             <button
                 type="button"
-                className="focus-visible:ring-ring/50 absolute inset-0 z-10 cursor-pointer rounded-lg outline-none hover:bg-primary/[0.03] focus-visible:ring-[3px]"
+                className="focus-visible:ring-ring/50 hover:bg-primary/[0.03] absolute inset-0 z-10 cursor-pointer rounded-lg outline-none focus-visible:ring-[3px]"
                 aria-label={label}
                 aria-pressed={selected}
                 onClick={onSelect}
@@ -310,7 +314,8 @@ export function DashboardEditorWorkspace({
     const selectorPanel = selectorTarget
         ? rows[selectorTarget.rowIndex]?.panels[selectorTarget.panelIndex]
         : null;
-    const selectorPanelKey = resolveDashboardPanelKey(selectorPanel) ?? '__none__';
+    const selectorPanelKey =
+        resolveDashboardPanelKey(selectorPanel) ?? '__none__';
 
     return (
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_20rem] lg:overflow-hidden">
@@ -394,9 +399,7 @@ export function DashboardEditorWorkspace({
                                           selectedDefinition,
                                           t
                                       )
-                                    : t(
-                                          'view.dashboard.label.not_configured'
-                                      )}
+                                    : t('view.dashboard.label.not_configured')}
                             </div>
                             {selectedDefinition ? (
                                 <div className="text-muted-foreground mt-1 text-xs">
@@ -412,9 +415,7 @@ export function DashboardEditorWorkspace({
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
-                                    setSelectorTarget(selectedPanel)
-                                }
+                                onClick={() => setSelectorTarget(selectedPanel)}
                             >
                                 {t('view.dashboard.action.select_panel')}
                             </Button>

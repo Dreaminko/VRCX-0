@@ -374,8 +374,7 @@ mod tests {
 
     #[test]
     fn sync_accepts_a_snapshot_for_the_current_auth_scope_generation() -> Result<()> {
-        let (_dir, test_runtime, session) =
-            runtime_with_active_session("current-user-auth-scope")?;
+        let (_dir, test_runtime, session) = runtime_with_active_session("current-user-auth-scope")?;
         let runtime = test_runtime.runtime();
         let auth_scope_generation = test_runtime.auth_scope().snapshot().generation;
         let generation = runtime

@@ -1,8 +1,7 @@
 #![allow(non_snake_case)]
 
 use vrcx_0_host_desktop::vrchat_log::{
-    self,
-    VrchatLogEntriesReadInput, VrchatLogEntriesReadOutput, VrchatLogFileOutput,
+    self, VrchatLogEntriesReadInput, VrchatLogEntriesReadOutput, VrchatLogFileOutput,
     VrchatLogTailReadInput,
 };
 

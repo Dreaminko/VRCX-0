@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
-import type { PreferencesSnapshot } from '@/state/preferencesStore';
 import {
     isValidTrustColor,
     TRUST_COLOR_DEFAULTS,
     TRUST_COLOR_ENTRIES
 } from '@/shared/utils/trustColors';
+import type { PreferencesSnapshot } from '@/state/preferencesStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Collapsible,

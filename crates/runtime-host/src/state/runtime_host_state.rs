@@ -7,9 +7,7 @@ use std::sync::{
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{
-    profile_lock::ProfileLock, replace_authenticated_session_user_if_session_matches,
-};
+use super::{profile_lock::ProfileLock, replace_authenticated_session_user_if_session_matches};
 use crate::{
     AuthenticatedRuntimeDeps, AuthenticatedRuntimeOrchestrator, GroupOrderSource,
     NoteExportRuntime, Result, RuntimeHostComposition, RuntimeHostContext, RuntimeHostProfile,
@@ -135,8 +133,7 @@ pub struct RuntimeHostState {
     pub(super) social_maintenance_running: Arc<AtomicBool>,
     pub(super) activity_warmup_generation: Arc<AtomicU64>,
     pub(super) background_group_instances_refresh_running: Arc<AtomicBool>,
-    pub(super) authenticated_session_projection:
-        Arc<Mutex<AuthenticatedSessionProjection>>,
+    pub(super) authenticated_session_projection: Arc<Mutex<AuthenticatedSessionProjection>>,
     pub(super) authenticated_session_maintenance:
         Mutex<Option<AuthenticatedSessionMaintenanceOutcome>>,
     pub(super) _profile_lock: ProfileLock,
@@ -485,9 +482,8 @@ impl RuntimeHostStateBuilder {
             favorites_sink,
             profile_extension,
         } = composition;
-        let authenticated_session_projection = Arc::new(Mutex::new(
-            AuthenticatedSessionProjection::default(),
-        ));
+        let authenticated_session_projection =
+            Arc::new(Mutex::new(AuthenticatedSessionProjection::default()));
         let current_user_snapshot_sink: Option<RealtimeCurrentUserSnapshotSink> = {
             let session_slot = Arc::clone(&authenticated_session_projection);
             Some(Arc::new(

@@ -159,7 +159,10 @@ mod tests {
         );
 
         let snapshot = monitor.snapshot();
-        assert_eq!(snapshot.notification.last_success.unwrap().status, Some(204));
+        assert_eq!(
+            snapshot.notification.last_success.unwrap().status,
+            Some(204)
+        );
         assert_eq!(snapshot.auth.dropped_count, 1);
         assert_eq!(snapshot.auth.last_failure.unwrap().attempts, 0);
     }

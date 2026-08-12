@@ -2,11 +2,10 @@ import { GlobeIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { UserHoverCardContent } from '@/components/user-hover-card/UserHoverCardContent';
+import type { Entity } from '@/domain/assistant/assistantTypes';
 import { openWorldDialog } from '@/services/dialogService';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
-
-import type { Entity } from '@/domain/assistant/assistantTypes';
 
 const EMPTY: Entity[] = [];
 

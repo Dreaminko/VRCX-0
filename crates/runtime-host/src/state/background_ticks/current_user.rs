@@ -10,9 +10,8 @@ use crate::RuntimeHostContext;
 
 use super::super::{
     background_capability_session, background_capability_session_matches, emit_background_info,
-    emit_background_warning, gui_maintenance_runtime_mode,
-    AuthenticatedSessionProjection, BACKGROUND_CURRENT_USER_CADENCE_SECONDS,
-    BACKGROUND_CURRENT_USER_REFRESH_JOB,
+    emit_background_warning, gui_maintenance_runtime_mode, AuthenticatedSessionProjection,
+    BACKGROUND_CURRENT_USER_CADENCE_SECONDS, BACKGROUND_CURRENT_USER_REFRESH_JOB,
 };
 
 pub(in crate::state) async fn run_background_current_user_refresh(

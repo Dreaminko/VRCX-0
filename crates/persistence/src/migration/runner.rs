@@ -123,7 +123,10 @@ fn apply(db: &DatabaseService, migration: &Migration) -> Result<(), Error> {
 
 fn migration_failure(migration: &Migration, detail: &str, error: Error) -> Error {
     Error::database_with_context(
-        format!("Migration {} ({}) {detail}", migration.version, migration.label),
+        format!(
+            "Migration {} ({}) {detail}",
+            migration.version, migration.label
+        ),
         error,
     )
 }

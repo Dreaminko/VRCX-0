@@ -223,7 +223,9 @@ pub(super) fn override_state_mutations(css_text: &str, enabled: bool) -> Vec<Con
     ]
 }
 
-pub(super) fn projection_from_state(state: &PersistedCommunityThemeState) -> CommunityThemeProjection {
+pub(super) fn projection_from_state(
+    state: &PersistedCommunityThemeState,
+) -> CommunityThemeProjection {
     CommunityThemeProjection {
         revision: 0,
         catalog_url: protocol::COMMUNITY_THEME_CATALOG_URL.into(),

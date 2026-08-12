@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use serde_json::Value;
-use vrcx_0_application_realtime::RealtimeSessionContext;
 use vrcx_0_application_game::{
     build_background_presence_facts, run_background_presence_automation,
     BackgroundPresenceAutomationState, BackgroundPresenceFactsInput,
 };
+use vrcx_0_application_realtime::RealtimeSessionContext;
 
 use super::BackgroundTickContext;
 use super::{

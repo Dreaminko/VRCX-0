@@ -494,13 +494,7 @@ export function useNotificationActions({
                 );
             }
         },
-        [
-            currentUserId,
-            openNotificationLink,
-            reload,
-            setBoopReplyRequest,
-            t
-        ]
+        [currentUserId, openNotificationLink, reload, setBoopReplyRequest, t]
     );
 
     return {

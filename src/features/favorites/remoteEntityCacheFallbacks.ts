@@ -98,7 +98,9 @@ export function useRemoteEntityCacheFallbackLoader(
     const stableFallbackIds = useMemo(() => {
         const parsed: unknown = JSON.parse(fallbackKey);
         return Array.isArray(parsed)
-            ? parsed.filter((value): value is string => typeof value === 'string')
+            ? parsed.filter(
+                  (value): value is string => typeof value === 'string'
+              )
             : [];
     }, [fallbackKey]);
     const [fallbacksById, setFallbacksById] =

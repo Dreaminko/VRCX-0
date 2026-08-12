@@ -1,13 +1,12 @@
 import { CheckIcon, XIcon } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
-import { Marker, MarkerContent, MarkerIcon } from '@/ui/shadcn/marker';
-import { Spinner } from '@/ui/shadcn/spinner';
-
 import type {
     ToolCallStatus as Status,
     UIToolCall
 } from '@/domain/assistant/assistantTypes';
+import { cn } from '@/lib/utils';
+import { Marker, MarkerContent, MarkerIcon } from '@/ui/shadcn/marker';
+import { Spinner } from '@/ui/shadcn/spinner';
 
 interface ToolCallStatusProps {
     toolCall: UIToolCall;

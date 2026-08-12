@@ -179,9 +179,8 @@ pub(super) fn replace_authenticated_session_user_if_session_matches(
         return false;
     };
     session.current_user_snapshot = snapshot;
-    if let Some(display_name) =
-        string_field(&session.current_user_snapshot, "displayName")
-            .or_else(|| string_field(&session.current_user_snapshot, "username"))
+    if let Some(display_name) = string_field(&session.current_user_snapshot, "displayName")
+        .or_else(|| string_field(&session.current_user_snapshot, "username"))
     {
         session.display_name = display_name;
     }
@@ -233,14 +232,8 @@ mod authenticated_session_projection_tests {
         assert_eq!(projected_session.auth_scope_generation, 7);
         assert_eq!(projected_session.user_id, "usr_owner");
         assert_eq!(projected_session.display_name, "Projected User");
-        assert_eq!(
-            projected_session.endpoint,
-            "https://api.example.test/api/1"
-        );
-        assert_eq!(
-            projected_session.websocket,
-            "wss://pipeline.example.test"
-        );
+        assert_eq!(projected_session.endpoint, "https://api.example.test/api/1");
+        assert_eq!(projected_session.websocket, "wss://pipeline.example.test");
         assert_eq!(projected_session.current_user_snapshot["id"], "usr_owner");
     }
 
@@ -281,10 +274,7 @@ mod authenticated_session_projection_tests {
 
         let projection = slot.lock().unwrap().clone();
         assert_eq!(projection.revision, 2);
-        assert_eq!(
-            projection.session.unwrap().display_name,
-            "Updated User"
-        );
+        assert_eq!(projection.session.unwrap().display_name, "Updated User");
     }
 
     #[test]

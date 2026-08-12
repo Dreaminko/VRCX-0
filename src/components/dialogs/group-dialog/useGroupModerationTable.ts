@@ -118,10 +118,7 @@ export function useGroupModerationTable<TData extends RowData>({
             return;
         }
         writePersistedState({
-            columnOrder: sanitizeTableColumnOrder(
-                columnOrder,
-                columnIds
-            ),
+            columnOrder: sanitizeTableColumnOrder(columnOrder, columnIds),
             columnVisibility: sanitizeTableColumnVisibility(
                 columnVisibility,
                 columnIds
