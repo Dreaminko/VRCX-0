@@ -1,25 +1,27 @@
 import { toast } from 'sonner';
 
 import type {
-    CompanionApiStartFailedPayload,
-    CompanionApiStatus
+    IntegrationApiStartFailedPayload,
+    IntegrationApiStatus
 } from '@/platform/tauri/bindings';
 
 import i18n from './i18nService';
 
-type CompanionApiStatusRefreshListener = () => void;
+type IntegrationApiStatusRefreshListener = () => void;
 
-const statusRefreshListeners = new Set<CompanionApiStatusRefreshListener>();
+const statusRefreshListeners = new Set<IntegrationApiStatusRefreshListener>();
 let lastPresentedFailure: { key: string; at: number } | null = null;
 
-export function handleCompanionApiStartFailed(
-    failure: CompanionApiStartFailedPayload
+export function handleIntegrationApiStartFailed(
+    failure: IntegrationApiStartFailedPayload
 ): void {
     presentStartFailure(failure);
-    requestCompanionApiStatusRefresh();
+    requestIntegrationApiStatusRefresh();
 }
 
-export function hydrateCompanionApiStatus(status: CompanionApiStatus): void {
+export function hydrateIntegrationApiStatus(
+    status: IntegrationApiStatus
+): void {
     if (status.state !== 'error' || !status.lastError) {
         lastPresentedFailure = null;
         return;
@@ -28,17 +30,17 @@ export function hydrateCompanionApiStatus(status: CompanionApiStatus): void {
         port: status.lastError.port ?? status.port,
         reason: status.lastError.code === 'portInUse' ? 'portInUse' : 'bind'
     });
-    requestCompanionApiStatusRefresh();
+    requestIntegrationApiStatusRefresh();
 }
 
-export function requestCompanionApiStatusRefresh(): void {
+export function requestIntegrationApiStatusRefresh(): void {
     for (const listener of statusRefreshListeners) {
         listener();
     }
 }
 
-export function subscribeCompanionApiStatusRefresh(
-    listener: CompanionApiStatusRefreshListener
+export function subscribeIntegrationApiStatusRefresh(
+    listener: IntegrationApiStatusRefreshListener
 ): () => void {
     statusRefreshListeners.add(listener);
     return () => {
@@ -46,7 +48,7 @@ export function subscribeCompanionApiStatusRefresh(
     };
 }
 
-function presentStartFailure(failure: CompanionApiStartFailedPayload): void {
+function presentStartFailure(failure: IntegrationApiStartFailedPayload): void {
     const key = `${failure.reason}:${failure.port}`;
     const now = Date.now();
     if (
@@ -58,11 +60,11 @@ function presentStartFailure(failure: CompanionApiStartFailedPayload): void {
     lastPresentedFailure = { key, at: now };
     const reasonKey =
         failure.reason === 'portInUse'
-            ? 'view.settings.integrations.companion_api.port_in_use'
-            : 'view.settings.integrations.companion_api.bind_failed';
+            ? 'view.settings.integrations.integration_api.port_in_use'
+            : 'view.settings.integrations.integration_api.bind_failed';
     const reason = i18n.t(reasonKey, { port: failure.port });
     toast.error(
-        i18n.t('view.settings.integrations.companion_api.start_failed', {
+        i18n.t('view.settings.integrations.integration_api.start_failed', {
             reason
         })
     );

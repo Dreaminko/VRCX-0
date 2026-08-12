@@ -5,21 +5,23 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
-use crate::auth::{generate_companion_api_token, CompanionApiAuthPolicy};
+use crate::auth::{generate_integration_api_token, IntegrationApiAuthPolicy};
 use crate::config::{
-    CompanionApiConfigStore, COMPANION_API_ALLOW_LAN_CONFIG_KEY, COMPANION_API_ENABLED_CONFIG_KEY,
-    COMPANION_API_PORT_CONFIG_KEY, COMPANION_API_TOKEN_CONFIG_KEY, DEFAULT_COMPANION_API_PORT,
+    IntegrationApiConfigStore, DEFAULT_INTEGRATION_API_PORT, INTEGRATION_API_ALLOW_LAN_CONFIG_KEY,
+    INTEGRATION_API_ENABLED_CONFIG_KEY, INTEGRATION_API_PORT_CONFIG_KEY,
+    INTEGRATION_API_TOKEN_CONFIG_KEY,
 };
 use crate::state::RoomState;
 use crate::transport::{
-    bind_companion_api_listener, build_companion_api_router, CompanionApiRouterState, ServerHub,
+    bind_integration_api_listener, build_integration_api_router, IntegrationApiRouterState,
+    ServerHub,
 };
-use crate::types::{CompanionApiFailure, CompanionApiServerState, CompanionApiStatus};
+use crate::types::{IntegrationApiFailure, IntegrationApiServerState, IntegrationApiStatus};
 use crate::wire::ByeReason;
-use crate::CompanionApiError;
+use crate::IntegrationApiError;
 
-pub struct CompanionApiController {
-    config: Arc<dyn CompanionApiConfigStore>,
+pub struct IntegrationApiController {
+    config: Arc<dyn IntegrationApiConfigStore>,
     app_version: String,
     active_connections: Arc<AtomicU32>,
     next_listener_id: AtomicU64,
@@ -31,7 +33,7 @@ struct ControllerState {
     token: String,
     handle: Option<ListenerHandle>,
     hub: Option<Arc<ServerHub>>,
-    last_error: Option<CompanionApiFailure>,
+    last_error: Option<IntegrationApiFailure>,
     session_generation: u64,
 }
 
@@ -43,11 +45,11 @@ struct ListenerHandle {
     join: JoinHandle<()>,
 }
 
-impl CompanionApiController {
+impl IntegrationApiController {
     pub fn new(
-        config: Arc<dyn CompanionApiConfigStore>,
+        config: Arc<dyn IntegrationApiConfigStore>,
         app_version: String,
-    ) -> Result<Self, CompanionApiError> {
+    ) -> Result<Self, IntegrationApiError> {
         let token = ensure_token(config.as_ref())?;
         Ok(Self {
             config,
@@ -65,13 +67,13 @@ impl CompanionApiController {
         })
     }
 
-    pub async fn start_from_config(&self) -> Result<CompanionApiStatus, CompanionApiError> {
+    pub async fn start_from_config(&self) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let mut state = self.state.lock().await;
         if !self.configured_enabled()? || !state.game_running || state.handle.is_some() {
             return self.status_locked(&state);
         }
         if let Err(error) = self.start_new_session(&mut state).await {
-            state.last_error = Some(CompanionApiFailure::from_error(&error));
+            state.last_error = Some(IntegrationApiFailure::from_error(&error));
             return Err(error);
         }
         self.status_locked(&state)
@@ -80,7 +82,7 @@ impl CompanionApiController {
     pub async fn set_game_running(
         &self,
         game_running: bool,
-    ) -> Result<CompanionApiStatus, CompanionApiError> {
+    ) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let mut state = self.state.lock().await;
         if state.game_running == game_running {
             return self.status_locked(&state);
@@ -89,7 +91,7 @@ impl CompanionApiController {
         if game_running {
             if self.configured_enabled()? {
                 if let Err(error) = self.start_new_session(&mut state).await {
-                    state.last_error = Some(CompanionApiFailure::from_error(&error));
+                    state.last_error = Some(IntegrationApiFailure::from_error(&error));
                     return Err(error);
                 }
             }
@@ -119,7 +121,7 @@ impl CompanionApiController {
     pub async fn set_enabled(
         &self,
         enabled: bool,
-    ) -> Result<CompanionApiStatus, CompanionApiError> {
+    ) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let mut state = self.state.lock().await;
         if enabled == self.configured_enabled()? {
             return self.status_locked(&state);
@@ -135,13 +137,16 @@ impl CompanionApiController {
                 {
                     Ok(handle) => handle,
                     Err(error) => {
-                        state.last_error = Some(CompanionApiFailure::from_error(&error));
+                        state.last_error = Some(IntegrationApiFailure::from_error(&error));
                         return Err(error);
                     }
                 };
-                if let Err(error) = self.config.set_bool(COMPANION_API_ENABLED_CONFIG_KEY, true) {
+                if let Err(error) = self
+                    .config
+                    .set_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, true)
+                {
                     self.stop_listener(handle, false).await;
-                    state.last_error = Some(CompanionApiFailure::from_error(&error));
+                    state.last_error = Some(IntegrationApiFailure::from_error(&error));
                     return Err(error);
                 }
                 state.handle = Some(handle);
@@ -149,11 +154,11 @@ impl CompanionApiController {
                 state.session_generation = state.session_generation.saturating_add(1);
             } else {
                 self.config
-                    .set_bool(COMPANION_API_ENABLED_CONFIG_KEY, true)?;
+                    .set_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, true)?;
             }
         } else {
             self.config
-                .set_bool(COMPANION_API_ENABLED_CONFIG_KEY, false)?;
+                .set_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, false)?;
             if let Some(hub) = state.hub.take() {
                 hub.send_bye(ByeReason::Disabled);
                 hub.clear();
@@ -167,7 +172,7 @@ impl CompanionApiController {
         self.status_locked(&state)
     }
 
-    pub async fn set_port(&self, port: u16) -> Result<CompanionApiStatus, CompanionApiError> {
+    pub async fn set_port(&self, port: u16) -> Result<IntegrationApiStatus, IntegrationApiError> {
         validate_port(port)?;
         let mut state = self.state.lock().await;
         let previous_port = self.configured_port()?;
@@ -185,16 +190,16 @@ impl CompanionApiController {
                 {
                     Ok(handle) => handle,
                     Err(error) => {
-                        state.last_error = Some(CompanionApiFailure::from_error(&error));
+                        state.last_error = Some(IntegrationApiFailure::from_error(&error));
                         return Err(error);
                     }
                 };
                 if let Err(error) = self
                     .config
-                    .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+                    .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
                 {
                     self.stop_listener(handle, false).await;
-                    state.last_error = Some(CompanionApiFailure::from_error(&error));
+                    state.last_error = Some(IntegrationApiFailure::from_error(&error));
                     return Err(error);
                 }
                 state.handle = Some(handle);
@@ -203,9 +208,9 @@ impl CompanionApiController {
                 state.last_error = None;
                 return self.status_locked(&state);
             }
-            drop(bind_companion_api_listener(port, allow_lan_connections)?);
+            drop(bind_integration_api_listener(port, allow_lan_connections)?);
             self.config
-                .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())?;
+                .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())?;
             state.last_error = None;
             return self.status_locked(&state);
         };
@@ -216,16 +221,16 @@ impl CompanionApiController {
         {
             Ok(handle) => handle,
             Err(error) => {
-                state.last_error = Some(CompanionApiFailure::from_error(&error));
+                state.last_error = Some(IntegrationApiFailure::from_error(&error));
                 return Err(error);
             }
         };
         if let Err(error) = self
             .config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
         {
             self.stop_listener(new_handle, false).await;
-            state.last_error = Some(CompanionApiFailure::from_error(&error));
+            state.last_error = Some(IntegrationApiFailure::from_error(&error));
             return Err(error);
         }
         let previous_handle = state.handle.replace(new_handle);
@@ -239,7 +244,7 @@ impl CompanionApiController {
     pub async fn set_allow_lan_connections(
         &self,
         allow_lan_connections: bool,
-    ) -> Result<CompanionApiStatus, CompanionApiError> {
+    ) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let mut state = self.state.lock().await;
         let previous_allow_lan_connections = self.configured_allow_lan_connections()?;
         if allow_lan_connections == previous_allow_lan_connections {
@@ -256,16 +261,16 @@ impl CompanionApiController {
                 {
                     Ok(handle) => handle,
                     Err(error) => {
-                        state.last_error = Some(CompanionApiFailure::from_error(&error));
+                        state.last_error = Some(IntegrationApiFailure::from_error(&error));
                         return Err(error);
                     }
                 };
                 if let Err(error) = self
                     .config
-                    .set_bool(COMPANION_API_ALLOW_LAN_CONFIG_KEY, allow_lan_connections)
+                    .set_bool(INTEGRATION_API_ALLOW_LAN_CONFIG_KEY, allow_lan_connections)
                 {
                     self.stop_listener(handle, false).await;
-                    state.last_error = Some(CompanionApiFailure::from_error(&error));
+                    state.last_error = Some(IntegrationApiFailure::from_error(&error));
                     return Err(error);
                 }
                 state.handle = Some(handle);
@@ -274,9 +279,9 @@ impl CompanionApiController {
                 state.last_error = None;
                 return self.status_locked(&state);
             }
-            drop(bind_companion_api_listener(port, allow_lan_connections)?);
+            drop(bind_integration_api_listener(port, allow_lan_connections)?);
             self.config
-                .set_bool(COMPANION_API_ALLOW_LAN_CONFIG_KEY, allow_lan_connections)?;
+                .set_bool(INTEGRATION_API_ALLOW_LAN_CONFIG_KEY, allow_lan_connections)?;
             state.last_error = None;
             return self.status_locked(&state);
         };
@@ -294,20 +299,20 @@ impl CompanionApiController {
                     .start_listener(port, previous_allow_lan_connections, &state.token, hub)
                     .await
                     .ok();
-                state.last_error = Some(CompanionApiFailure::from_error(&error));
+                state.last_error = Some(IntegrationApiFailure::from_error(&error));
                 return Err(error);
             }
         };
         if let Err(error) = self
             .config
-            .set_bool(COMPANION_API_ALLOW_LAN_CONFIG_KEY, allow_lan_connections)
+            .set_bool(INTEGRATION_API_ALLOW_LAN_CONFIG_KEY, allow_lan_connections)
         {
             self.stop_listener(new_handle, false).await;
             state.handle = self
                 .start_listener(port, previous_allow_lan_connections, &state.token, hub)
                 .await
                 .ok();
-            state.last_error = Some(CompanionApiFailure::from_error(&error));
+            state.last_error = Some(IntegrationApiFailure::from_error(&error));
             return Err(error);
         }
         state.handle = Some(new_handle);
@@ -315,12 +320,12 @@ impl CompanionApiController {
         self.status_locked(&state)
     }
 
-    pub async fn rotate_token(&self) -> Result<CompanionApiStatus, CompanionApiError> {
-        let token = generate_companion_api_token()?;
+    pub async fn rotate_token(&self) -> Result<IntegrationApiStatus, IntegrationApiError> {
+        let token = generate_integration_api_token()?;
         let mut state = self.state.lock().await;
         let Some(hub) = state.hub.clone() else {
             self.config
-                .set_string(COMPANION_API_TOKEN_CONFIG_KEY, &token)?;
+                .set_string(INTEGRATION_API_TOKEN_CONFIG_KEY, &token)?;
             state.token = token;
             state.last_error = None;
             return self.status_locked(&state);
@@ -342,20 +347,20 @@ impl CompanionApiController {
                     .start_listener(port, allow_lan_connections, &previous_token, hub)
                     .await
                     .ok();
-                state.last_error = Some(CompanionApiFailure::from_error(&error));
+                state.last_error = Some(IntegrationApiFailure::from_error(&error));
                 return Err(error);
             }
         };
         if let Err(error) = self
             .config
-            .set_string(COMPANION_API_TOKEN_CONFIG_KEY, &token)
+            .set_string(INTEGRATION_API_TOKEN_CONFIG_KEY, &token)
         {
             self.stop_listener(new_handle, false).await;
             state.handle = self
                 .start_listener(port, allow_lan_connections, &previous_token, hub)
                 .await
                 .ok();
-            state.last_error = Some(CompanionApiFailure::from_error(&error));
+            state.last_error = Some(IntegrationApiFailure::from_error(&error));
             return Err(error);
         }
         state.token = token;
@@ -364,7 +369,7 @@ impl CompanionApiController {
         self.status_locked(&state)
     }
 
-    pub async fn status(&self) -> Result<CompanionApiStatus, CompanionApiError> {
+    pub async fn status(&self) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let state = self.state.lock().await;
         self.status_locked(&state)
     }
@@ -389,7 +394,7 @@ impl CompanionApiController {
     async fn start_new_session(
         &self,
         state: &mut ControllerState,
-    ) -> Result<(), CompanionApiError> {
+    ) -> Result<(), IntegrationApiError> {
         let port = self.configured_port()?;
         let allow_lan_connections = self.configured_allow_lan_connections()?;
         let hub = Arc::new(ServerHub::new(self.app_version.clone()));
@@ -409,14 +414,14 @@ impl CompanionApiController {
         allow_lan_connections: bool,
         token: &str,
         hub: Arc<ServerHub>,
-    ) -> Result<ListenerHandle, CompanionApiError> {
-        let listener = bind_companion_api_listener(port, allow_lan_connections)?;
+    ) -> Result<ListenerHandle, IntegrationApiError> {
+        let listener = bind_integration_api_listener(port, allow_lan_connections)?;
         let bound_port = listener.local_addr()?.port();
         let id = self.next_listener_id.fetch_add(1, Ordering::AcqRel) + 1;
         let accept_cancel = CancellationToken::new();
         let session_cancel = CancellationToken::new();
-        let router = build_companion_api_router(CompanionApiRouterState {
-            policy: CompanionApiAuthPolicy {
+        let router = build_integration_api_router(IntegrationApiRouterState {
+            policy: IntegrationApiAuthPolicy {
                 port: bound_port,
                 token: token.into(),
                 allow_lan_connections,
@@ -437,14 +442,14 @@ impl CompanionApiController {
                 return;
             }
             let failure = match result {
-                Ok(()) => CompanionApiFailure {
-                    code: crate::types::CompanionApiFailureCode::Io,
-                    message: "Companion API listener stopped unexpectedly".into(),
+                Ok(()) => IntegrationApiFailure {
+                    code: crate::types::IntegrationApiFailureCode::Io,
+                    message: "Integration API listener stopped unexpectedly".into(),
                     port: Some(bound_port),
                 },
                 Err(error) => {
-                    tracing::warn!(error = %error, "Companion API listener stopped with error");
-                    CompanionApiFailure::from_error(&CompanionApiError::Bind {
+                    tracing::warn!(error = %error, "Integration API listener stopped with error");
+                    IntegrationApiFailure::from_error(&IntegrationApiError::Bind {
                         port: bound_port,
                         source: error,
                     })
@@ -465,7 +470,7 @@ impl CompanionApiController {
     async fn record_listener_exit(
         controller_state: Arc<tokio::sync::Mutex<ControllerState>>,
         listener_id: u64,
-        failure: CompanionApiFailure,
+        failure: IntegrationApiFailure,
     ) {
         let mut state = controller_state.lock().await;
         if !state
@@ -501,27 +506,27 @@ impl CompanionApiController {
         }
     }
 
-    fn configured_enabled(&self) -> Result<bool, CompanionApiError> {
+    fn configured_enabled(&self) -> Result<bool, IntegrationApiError> {
         self.config
-            .get_bool(COMPANION_API_ENABLED_CONFIG_KEY, false)
+            .get_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, false)
     }
 
-    fn configured_allow_lan_connections(&self) -> Result<bool, CompanionApiError> {
+    fn configured_allow_lan_connections(&self) -> Result<bool, IntegrationApiError> {
         self.config
-            .get_bool(COMPANION_API_ALLOW_LAN_CONFIG_KEY, false)
+            .get_bool(INTEGRATION_API_ALLOW_LAN_CONFIG_KEY, false)
     }
 
-    fn configured_port(&self) -> Result<u16, CompanionApiError> {
+    fn configured_port(&self) -> Result<u16, IntegrationApiError> {
         let raw = self.config.get_string(
-            COMPANION_API_PORT_CONFIG_KEY,
-            &DEFAULT_COMPANION_API_PORT.to_string(),
+            INTEGRATION_API_PORT_CONFIG_KEY,
+            &DEFAULT_INTEGRATION_API_PORT.to_string(),
         )?;
         let port = raw
             .trim()
             .parse::<u16>()
-            .unwrap_or(DEFAULT_COMPANION_API_PORT);
+            .unwrap_or(DEFAULT_INTEGRATION_API_PORT);
         if port < 1024 {
-            return Ok(DEFAULT_COMPANION_API_PORT);
+            return Ok(DEFAULT_INTEGRATION_API_PORT);
         }
         Ok(port)
     }
@@ -529,22 +534,22 @@ impl CompanionApiController {
     fn status_locked(
         &self,
         state: &ControllerState,
-    ) -> Result<CompanionApiStatus, CompanionApiError> {
+    ) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let enabled = self.configured_enabled()?;
         let allow_lan_connections = self.configured_allow_lan_connections()?;
         let configured_port = self.configured_port()?;
         let server_state = if state.handle.is_some() {
-            CompanionApiServerState::Running
+            IntegrationApiServerState::Running
         } else if state.last_error.is_some() {
-            CompanionApiServerState::Error
+            IntegrationApiServerState::Error
         } else if enabled && !state.game_running {
-            CompanionApiServerState::WaitingForGame
+            IntegrationApiServerState::WaitingForGame
         } else if enabled {
-            CompanionApiServerState::Error
+            IntegrationApiServerState::Error
         } else {
-            CompanionApiServerState::Disabled
+            IntegrationApiServerState::Disabled
         };
-        Ok(CompanionApiStatus {
+        Ok(IntegrationApiStatus {
             enabled,
             allow_lan_connections,
             state: server_state,
@@ -560,19 +565,19 @@ impl CompanionApiController {
     }
 }
 
-fn ensure_token(config: &dyn CompanionApiConfigStore) -> Result<String, CompanionApiError> {
-    let existing = config.get_string(COMPANION_API_TOKEN_CONFIG_KEY, "")?;
+fn ensure_token(config: &dyn IntegrationApiConfigStore) -> Result<String, IntegrationApiError> {
+    let existing = config.get_string(INTEGRATION_API_TOKEN_CONFIG_KEY, "")?;
     if !existing.trim().is_empty() {
         return Ok(existing);
     }
-    let token = generate_companion_api_token()?;
-    config.set_string(COMPANION_API_TOKEN_CONFIG_KEY, &token)?;
+    let token = generate_integration_api_token()?;
+    config.set_string(INTEGRATION_API_TOKEN_CONFIG_KEY, &token)?;
     Ok(token)
 }
 
-fn validate_port(port: u16) -> Result<(), CompanionApiError> {
+fn validate_port(port: u16) -> Result<(), IntegrationApiError> {
     if port < 1024 {
-        return Err(CompanionApiError::InvalidPort { port });
+        return Err(IntegrationApiError::InvalidPort { port });
     }
     Ok(())
 }
@@ -593,35 +598,35 @@ mod tests {
         values: Mutex<HashMap<String, String>>,
     }
 
-    impl CompanionApiConfigStore for MemoryConfig {
-        fn get_bool(&self, key: &str, default: bool) -> Result<bool, CompanionApiError> {
+    impl IntegrationApiConfigStore for MemoryConfig {
+        fn get_bool(&self, key: &str, default: bool) -> Result<bool, IntegrationApiError> {
             Ok(self
                 .values
                 .lock()
-                .map_err(|error| CompanionApiError::Config(error.to_string()))?
+                .map_err(|error| IntegrationApiError::Config(error.to_string()))?
                 .get(key)
                 .and_then(|value| value.parse().ok())
                 .unwrap_or(default))
         }
 
-        fn get_string(&self, key: &str, default: &str) -> Result<String, CompanionApiError> {
+        fn get_string(&self, key: &str, default: &str) -> Result<String, IntegrationApiError> {
             Ok(self
                 .values
                 .lock()
-                .map_err(|error| CompanionApiError::Config(error.to_string()))?
+                .map_err(|error| IntegrationApiError::Config(error.to_string()))?
                 .get(key)
                 .cloned()
                 .unwrap_or_else(|| default.into()))
         }
 
-        fn set_bool(&self, key: &str, value: bool) -> Result<(), CompanionApiError> {
+        fn set_bool(&self, key: &str, value: bool) -> Result<(), IntegrationApiError> {
             self.set_string(key, if value { "true" } else { "false" })
         }
 
-        fn set_string(&self, key: &str, value: &str) -> Result<(), CompanionApiError> {
+        fn set_string(&self, key: &str, value: &str) -> Result<(), IntegrationApiError> {
             self.values
                 .lock()
-                .map_err(|error| CompanionApiError::Config(error.to_string()))?
+                .map_err(|error| IntegrationApiError::Config(error.to_string()))?
                 .insert(key.into(), value.into());
             Ok(())
         }
@@ -635,14 +640,14 @@ mod tests {
             .port()
     }
 
-    fn controller(config: Arc<MemoryConfig>) -> CompanionApiController {
-        CompanionApiController::new(config, "1.2.3".into()).unwrap()
+    fn controller(config: Arc<MemoryConfig>) -> IntegrationApiController {
+        IntegrationApiController::new(config, "1.2.3".into()).unwrap()
     }
 
     async fn connect_stream(port: u16, token: &str) -> TcpStream {
         let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
         let request = format!(
-            "GET /v1/stream HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: vrcx0.companion.v1, vrcx0.companion.token.{token}\r\n\r\n"
+            "GET /v1/stream HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Protocol: vrcx0.integration.v1, vrcx0.integration.token.{token}\r\n\r\n"
         );
         stream.write_all(request.as_bytes()).await.unwrap();
         let mut response = Vec::new();
@@ -653,7 +658,7 @@ mod tests {
         }
         let response = String::from_utf8(response).unwrap().to_ascii_lowercase();
         assert!(response.starts_with("http/1.1 101"));
-        assert!(response.contains("sec-websocket-protocol: vrcx0.companion.v1"));
+        assert!(response.contains("sec-websocket-protocol: vrcx0.integration.v1"));
         stream
     }
 
@@ -696,16 +701,16 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         let port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
             .unwrap();
         let controller = controller(config);
 
         let waiting = controller.set_enabled(true).await.unwrap();
-        assert_eq!(waiting.state, CompanionApiServerState::WaitingForGame);
+        assert_eq!(waiting.state, IntegrationApiServerState::WaitingForGame);
         let running = controller.set_game_running(true).await.unwrap();
-        assert_eq!(running.state, CompanionApiServerState::Running);
+        assert_eq!(running.state, IntegrationApiServerState::Running);
         let stopped = controller.set_game_running(false).await.unwrap();
-        assert_eq!(stopped.state, CompanionApiServerState::WaitingForGame);
+        assert_eq!(stopped.state, IntegrationApiServerState::WaitingForGame);
         assert!(std::net::TcpListener::bind(("127.0.0.1", port)).is_ok());
     }
 
@@ -715,20 +720,20 @@ mod tests {
         let port = occupied.local_addr().unwrap().port();
         let config = Arc::new(MemoryConfig::default());
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
             .unwrap();
         let controller = controller(config.clone());
         controller.set_game_running(true).await.unwrap();
 
         assert!(matches!(
             controller.set_enabled(true).await,
-            Err(CompanionApiError::PortInUse { port: error_port }) if error_port == port
+            Err(IntegrationApiError::PortInUse { port: error_port }) if error_port == port
         ));
         assert!(!config
-            .get_bool(COMPANION_API_ENABLED_CONFIG_KEY, false)
+            .get_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, false)
             .unwrap());
         let status = controller.status().await.unwrap();
-        assert_eq!(status.state, CompanionApiServerState::Error);
+        assert_eq!(status.state, IntegrationApiServerState::Error);
     }
 
     #[tokio::test]
@@ -736,7 +741,7 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         let first_port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &first_port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &first_port.to_string())
             .unwrap();
         let controller = controller(config.clone());
         controller.set_game_running(true).await.unwrap();
@@ -752,17 +757,17 @@ mod tests {
 
         assert!(matches!(
             controller.set_port(occupied_port).await,
-            Err(CompanionApiError::PortInUse { .. })
+            Err(IntegrationApiError::PortInUse { .. })
         ));
         assert_eq!(
             config
-                .get_string(COMPANION_API_PORT_CONFIG_KEY, "")
+                .get_string(INTEGRATION_API_PORT_CONFIG_KEY, "")
                 .unwrap(),
             first_port.to_string()
         );
         assert_eq!(
             controller.status().await.unwrap().state,
-            CompanionApiServerState::Running
+            IntegrationApiServerState::Running
         );
         assert!(std::net::TcpListener::bind(("127.0.0.1", first_port)).is_err());
         send_client_message(&mut stream, r#"{"type":"resync"}"#).await;
@@ -779,7 +784,7 @@ mod tests {
         let first_port = unused_port();
         let second_port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &first_port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &first_port.to_string())
             .unwrap();
         let controller = controller(config);
         controller.set_game_running(true).await.unwrap();
@@ -797,7 +802,7 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         let port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
             .unwrap();
         let controller = controller(config.clone());
 
@@ -805,7 +810,7 @@ mod tests {
         assert_eq!(status.port, port);
         assert_eq!(
             config
-                .get_string(COMPANION_API_PORT_CONFIG_KEY, "")
+                .get_string(INTEGRATION_API_PORT_CONFIG_KEY, "")
                 .unwrap(),
             port.to_string()
         );
@@ -816,7 +821,7 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         let original_port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &original_port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &original_port.to_string())
             .unwrap();
         let occupied = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
         let occupied_port = occupied.local_addr().unwrap().port();
@@ -824,11 +829,11 @@ mod tests {
 
         assert!(matches!(
             controller.set_port(occupied_port).await,
-            Err(CompanionApiError::PortInUse { port }) if port == occupied_port
+            Err(IntegrationApiError::PortInUse { port }) if port == occupied_port
         ));
         assert_eq!(
             config
-                .get_string(COMPANION_API_PORT_CONFIG_KEY, "")
+                .get_string(INTEGRATION_API_PORT_CONFIG_KEY, "")
                 .unwrap(),
             original_port.to_string()
         );
@@ -840,20 +845,20 @@ mod tests {
         let port = occupied.local_addr().unwrap().port();
         let config = Arc::new(MemoryConfig::default());
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
             .unwrap();
         config
-            .set_bool(COMPANION_API_ENABLED_CONFIG_KEY, true)
+            .set_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, true)
             .unwrap();
         let controller = controller(config.clone());
 
         assert!(controller.set_game_running(true).await.is_err());
         assert!(config
-            .get_bool(COMPANION_API_ENABLED_CONFIG_KEY, false)
+            .get_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, false)
             .unwrap());
         assert_eq!(
             controller.status().await.unwrap().state,
-            CompanionApiServerState::Error
+            IntegrationApiServerState::Error
         );
     }
 
@@ -864,16 +869,16 @@ mod tests {
         let replacement_port = unused_port();
         let config = Arc::new(MemoryConfig::default());
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &occupied_port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &occupied_port.to_string())
             .unwrap();
         config
-            .set_bool(COMPANION_API_ENABLED_CONFIG_KEY, true)
+            .set_bool(INTEGRATION_API_ENABLED_CONFIG_KEY, true)
             .unwrap();
         let controller = controller(config);
 
         assert!(controller.set_game_running(true).await.is_err());
         let status = controller.set_port(replacement_port).await.unwrap();
-        assert_eq!(status.state, CompanionApiServerState::Running);
+        assert_eq!(status.state, IntegrationApiServerState::Running);
         assert_eq!(status.port, replacement_port);
         assert!(std::net::TcpListener::bind(("127.0.0.1", replacement_port)).is_err());
         controller.set_enabled(false).await.unwrap();
@@ -884,7 +889,7 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         let port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
             .unwrap();
         let controller = controller(config);
         controller.set_game_running(true).await.unwrap();
@@ -916,18 +921,18 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         let port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
             .unwrap();
         let controller = controller(config);
         controller.set_game_running(true).await.unwrap();
         controller.set_enabled(true).await.unwrap();
         let listener_id = controller.state.lock().await.handle.as_ref().unwrap().id;
 
-        CompanionApiController::record_listener_exit(
+        IntegrationApiController::record_listener_exit(
             Arc::clone(&controller.state),
             listener_id,
-            CompanionApiFailure {
-                code: crate::types::CompanionApiFailureCode::Io,
+            IntegrationApiFailure {
+                code: crate::types::IntegrationApiFailureCode::Io,
                 message: "listener failed".into(),
                 port: Some(port),
             },
@@ -935,7 +940,7 @@ mod tests {
         .await;
 
         let status = controller.status().await.unwrap();
-        assert_eq!(status.state, CompanionApiServerState::Error);
+        assert_eq!(status.state, IntegrationApiServerState::Error);
         assert_eq!(status.last_error.unwrap().message, "listener failed");
         assert!(controller.running_generation().await.is_none());
     }
@@ -945,7 +950,7 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         let port = unused_port();
         config
-            .set_string(COMPANION_API_PORT_CONFIG_KEY, &port.to_string())
+            .set_string(INTEGRATION_API_PORT_CONFIG_KEY, &port.to_string())
             .unwrap();
         let controller = controller(config);
         controller.set_game_running(true).await.unwrap();

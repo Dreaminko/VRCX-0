@@ -361,29 +361,31 @@ export const commands = {
     async appMcpServerRotateToken(): Promise<McpServerStatus> {
         return await TAURI_INVOKE('app__mcp_server_rotate_token');
     },
-    async appCompanionApiStatus(): Promise<CompanionApiStatus> {
-        return await TAURI_INVOKE('app__companion_api_status');
+    async appIntegrationApiStatus(): Promise<IntegrationApiStatus> {
+        return await TAURI_INVOKE('app__integration_api_status');
     },
-    async appCompanionApiSetEnabled(
+    async appIntegrationApiSetEnabled(
         enabled: boolean
-    ): Promise<CompanionApiStatus> {
-        return await TAURI_INVOKE('app__companion_api_set_enabled', {
+    ): Promise<IntegrationApiStatus> {
+        return await TAURI_INVOKE('app__integration_api_set_enabled', {
             enabled
         });
     },
-    async appCompanionApiSetPort(port: number): Promise<CompanionApiStatus> {
-        return await TAURI_INVOKE('app__companion_api_set_port', { port });
+    async appIntegrationApiSetPort(
+        port: number
+    ): Promise<IntegrationApiStatus> {
+        return await TAURI_INVOKE('app__integration_api_set_port', { port });
     },
-    async appCompanionApiSetAllowLanConnections(
+    async appIntegrationApiSetAllowLanConnections(
         enabled: boolean
-    ): Promise<CompanionApiStatus> {
+    ): Promise<IntegrationApiStatus> {
         return await TAURI_INVOKE(
-            'app__companion_api_set_allow_lan_connections',
+            'app__integration_api_set_allow_lan_connections',
             { enabled }
         );
     },
-    async appCompanionApiRotateToken(): Promise<CompanionApiStatus> {
-        return await TAURI_INVOKE('app__companion_api_rotate_token');
+    async appIntegrationApiRotateToken(): Promise<IntegrationApiStatus> {
+        return await TAURI_INVOKE('app__integration_api_rotate_token');
     },
     async appAssistantSendMessage(
         sessionId: string | null,
@@ -2778,8 +2780,8 @@ export type AppErrorCode =
     | 'io'
     | 'json'
     | 'vrchat_api'
-    | 'companion_api_port_in_use'
-    | 'companion_api_bind'
+    | 'integration_api_port_in_use'
+    | 'integration_api_bind'
     | 'custom';
 export type AppErrorPayload = {
     code: AppErrorCode;
@@ -3113,7 +3115,7 @@ export type BackendRuntimeEventPayloadMap = {
     realtimeInstanceQueueProjection: RealtimeInstanceQueueProjection;
     realtimeProjectionSync: RealtimeProjectionSync;
     updateIsGameRunning: HostSessionProjection;
-    companionApiStartFailed: CompanionApiStartFailedPayload;
+    integrationApiStartFailed: IntegrationApiStartFailedPayload;
 };
 export type BackendRuntimeGameLogStatus =
     | 'idle'
@@ -3359,37 +3361,6 @@ export type CommunityThemeProjection = {
     overrideCssEnabled: boolean;
 };
 export type CommunityThemeStatsEntry = { downloads: number };
-export type CompanionApiFailure = {
-    code: CompanionApiFailureCode;
-    message: string;
-    port: number | null;
-};
-export type CompanionApiFailureCode =
-    | 'invalidPort'
-    | 'portInUse'
-    | 'bind'
-    | 'config'
-    | 'io'
-    | 'tokenGeneration';
-export type CompanionApiServerState =
-    | 'disabled'
-    | 'waitingForGame'
-    | 'running'
-    | 'error';
-export type CompanionApiStartFailedPayload = {
-    port: number;
-    reason: CompanionApiStartFailureReason;
-};
-export type CompanionApiStartFailureReason = 'portInUse' | 'bind';
-export type CompanionApiStatus = {
-    enabled: boolean;
-    allowLanConnections: boolean;
-    state: CompanionApiServerState;
-    port: number;
-    token: string;
-    activeConnections: number;
-    lastError: CompanionApiFailure | null;
-};
 export type ConfigReadEntry = { key: string; value: string };
 export type ConfigWriteEntry = { key: string; value: string };
 export type CrashRelaunchDecisionPayload =
@@ -4280,6 +4251,37 @@ export type InstanceLaunchOutcome =
     | { status: 'opened' }
     | { status: 'selfInvited' }
     | { status: 'failed'; reason: string };
+export type IntegrationApiFailure = {
+    code: IntegrationApiFailureCode;
+    message: string;
+    port: number | null;
+};
+export type IntegrationApiFailureCode =
+    | 'invalidPort'
+    | 'portInUse'
+    | 'bind'
+    | 'config'
+    | 'io'
+    | 'tokenGeneration';
+export type IntegrationApiServerState =
+    | 'disabled'
+    | 'waitingForGame'
+    | 'running'
+    | 'error';
+export type IntegrationApiStartFailedPayload = {
+    port: number;
+    reason: IntegrationApiStartFailureReason;
+};
+export type IntegrationApiStartFailureReason = 'portInUse' | 'bind';
+export type IntegrationApiStatus = {
+    enabled: boolean;
+    allowLanConnections: boolean;
+    state: IntegrationApiServerState;
+    port: number;
+    token: string;
+    activeConnections: number;
+    lastError: IntegrationApiFailure | null;
+};
 export type InventoryItemsCollectInput = {
     params?: Partial<{ [key in string]: JsonValue }>;
 };

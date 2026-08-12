@@ -2203,10 +2203,10 @@
                         "stopping": "停止中"
                     }
                 },
-                "companion_api": {
-                    "header": "コンパニオン API",
+                "integration_api": {
+                    "header": "アプリ連携 API",
                     "description": "選択した VRCX-0 の情報を、信頼できる連携アプリに提供します。ポートを開くのは VRChat の実行中だけです。",
-                    "enable": "コンパニオン API を有効にする",
+                    "enable": "アプリ連携 API を有効にする",
                     "enable_description": "VRChat の実行中に、token で保護された WebSocket ストリームを起動します。",
                     "information_types": "提供する情報",
                     "information_types_description": "連携アプリに公開する情報を選びます。現在は選択内容が固定されています。",
@@ -2220,15 +2220,15 @@
                     "port_apply": "適用",
                     "port_invalid": "ポートは 1024〜65535 の範囲で指定してください",
                     "port_in_use": "ポート {port} は別のプログラムが使用中です。別のポートを指定してください。",
-                    "bind_failed": "コンパニオン API はポート {port} を開けませんでした。",
-                    "start_failed": "コンパニオン API の自動起動に失敗しました：{reason}",
+                    "bind_failed": "アプリ連携 API はポート {port} を開けませんでした。",
+                    "start_failed": "アプリ連携 API の自動起動に失敗しました：{reason}",
                     "status_label": "状態",
                     "port_active_connections": "ポート {port}、アクティブな接続 {count}",
                     "token": "アクセストークン",
                     "token_description": "この token で現在のインスタンス、プレイヤー名、言語タグ、ノートを読み取れます。信頼できるソフトウェアだけに渡してください。",
-                    "token_copied": "コンパニオン API の token をコピーしました",
+                    "token_copied": "アプリ連携 API の token をコピーしました",
                     "rotate_token": "Token を再生成",
-                    "token_rotated": "コンパニオン API の token を再生成しました",
+                    "token_rotated": "アプリ連携 API の token を再生成しました",
                     "status": {
                         "loading": "読み込み中",
                         "disabled": "停止中",

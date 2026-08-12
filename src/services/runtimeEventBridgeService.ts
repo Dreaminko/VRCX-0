@@ -25,10 +25,6 @@ import {
     applyCommunityThemeProjectionEvent,
     initializeCommunityThemes
 } from './community-theme/installedThemes';
-import {
-    handleCompanionApiStartFailed,
-    hydrateCompanionApiStatus
-} from './companionApiService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import {
     bindDesktopNotificationActivationEvents,
@@ -38,6 +34,10 @@ import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { handleGroupBanImportStatusEvent } from './groupBanImportService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
+import {
+    handleIntegrationApiStartFailed,
+    hydrateIntegrationApiStatus
+} from './integrationApiService';
 import { handleMutualGraphFetchStatusEvent } from './mutualGraphFetchService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
@@ -268,8 +268,8 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
-    if (event.name === 'companionApiStartFailed') {
-        handleCompanionApiStartFailed(event.payload);
+    if (event.name === 'integrationApiStartFailed') {
+        handleIntegrationApiStartFailed(event.payload);
         return;
     }
 
@@ -441,7 +441,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'realtimeInstanceQueueProjection',
         'realtimeProjectionSync',
         'updateIsGameRunning',
-        'companionApiStartFailed',
+        'integrationApiStartFailed',
         'browserFocus'
     ];
 
@@ -476,9 +476,11 @@ export async function bindRuntimeEvents(): Promise<() => void> {
 
     useSessionStore.getState().setTransportStatus('runtime-subscribed');
     await hydrateRuntimeState(
-        'Failed to hydrate Companion API status:',
+        'Failed to hydrate Integration API status:',
         async () => {
-            hydrateCompanionApiStatus(await commands.appCompanionApiStatus());
+            hydrateIntegrationApiStatus(
+                await commands.appIntegrationApiStatus()
+            );
         }
     );
     let combinedSnapshot: BackendRuntimeCombinedSnapshot | null = null;

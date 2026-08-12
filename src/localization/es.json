@@ -2207,13 +2207,13 @@
                         "stopping": "Deteniendo"
                     }
                 },
-                "companion_api": {
-                    "header": "API para aplicaciones complementarias",
-                    "description": "Comparte información seleccionada de VRCX-0 con aplicaciones complementarias de confianza. El puerto solo permanece abierto mientras VRChat está en ejecución.",
-                    "enable": "Activar la API para aplicaciones complementarias",
+                "integration_api": {
+                    "header": "API de integración",
+                    "description": "Comparte información seleccionada de VRCX-0 con aplicaciones de confianza. El puerto solo permanece abierto mientras VRChat está en ejecución.",
+                    "enable": "Activar la API de integración",
                     "enable_description": "Inicia un flujo WebSocket protegido por token mientras VRChat está en ejecución.",
                     "information_types": "Información compartida",
-                    "information_types_description": "Elige qué pueden leer las aplicaciones complementarias. Por ahora, la selección disponible es fija.",
+                    "information_types_description": "Elige qué pueden leer las aplicaciones conectadas. Por ahora, la selección disponible es fija.",
                     "information_type_fixed": "Fijo por ahora",
                     "room_information": "Información de la sala",
                     "room_information_description": "Sala actual, lista de jugadores, etiquetas de idioma y notas. Aún no se pueden cambiar campos individuales.",
@@ -2224,15 +2224,15 @@
                     "port_apply": "Aplicar",
                     "port_invalid": "El puerto debe estar entre 1024 y 65535",
                     "port_in_use": "Otro programa ya está usando el puerto {port}. Elige otro puerto.",
-                    "bind_failed": "La API para aplicaciones complementarias no pudo escuchar en el puerto {port}.",
-                    "start_failed": "La API para aplicaciones complementarias no pudo iniciarse automáticamente: {reason}",
+                    "bind_failed": "La API de integración no pudo escuchar en el puerto {port}.",
+                    "start_failed": "La API de integración no pudo iniciarse automáticamente: {reason}",
                     "status_label": "Estado",
                     "port_active_connections": "Puerto {port} · {count} conexiones activas",
                     "token": "Token de acceso",
                     "token_description": "El token permite leer la instancia actual, los nombres de jugadores, las etiquetas de idioma y las notas. Compártelo solo con software de confianza.",
-                    "token_copied": "Token de la API para aplicaciones complementarias copiado",
+                    "token_copied": "Token de la API de integración copiado",
                     "rotate_token": "Renovar token",
-                    "token_rotated": "Token de la API para aplicaciones complementarias renovado",
+                    "token_rotated": "Token de la API de integración renovado",
                     "status": {
                         "loading": "Cargando",
                         "disabled": "Detenida",

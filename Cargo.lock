@@ -8941,11 +8941,11 @@ dependencies = [
  "vrcx-0-application-game",
  "vrcx-0-application-realtime",
  "vrcx-0-assistant",
- "vrcx-0-companion-api",
  "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-host-desktop",
  "vrcx-0-i18n",
+ "vrcx-0-integration-api",
  "vrcx-0-integrations",
  "vrcx-0-mcp",
  "vrcx-0-media",
@@ -9095,27 +9095,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vrcx-0-companion-api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "base64 0.23.1",
- "chrono",
- "constant_time_eq",
- "getrandom 0.4.3",
- "http",
- "serde",
- "serde_json",
- "socket2",
- "specta",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "tracing",
- "vrcx-0-application-contracts",
-]
-
-[[package]]
 name = "vrcx-0-core"
 version = "0.1.0"
 dependencies = [
@@ -9199,6 +9178,27 @@ dependencies = [
  "serde",
  "serde_json",
  "specta",
+]
+
+[[package]]
+name = "vrcx-0-integration-api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "base64 0.23.1",
+ "chrono",
+ "constant_time_eq",
+ "getrandom 0.4.3",
+ "http",
+ "serde",
+ "serde_json",
+ "socket2",
+ "specta",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "vrcx-0-application-contracts",
 ]
 
 [[package]]
@@ -9364,11 +9364,11 @@ dependencies = [
  "vrcx-0-application-core",
  "vrcx-0-application-game",
  "vrcx-0-application-realtime",
- "vrcx-0-companion-api",
  "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-host-desktop",
  "vrcx-0-i18n",
+ "vrcx-0-integration-api",
  "vrcx-0-overlay-runtime",
  "vrcx-0-persistence",
  "vrcx-0-runtime-host",

@@ -7,8 +7,8 @@ enum AppErrorCode {
     Io,
     Json,
     VrchatApi,
-    CompanionApiPortInUse,
-    CompanionApiBind,
+    IntegrationApiPortInUse,
+    IntegrationApiBind,
     Custom,
 }
 
@@ -51,11 +51,11 @@ pub enum AppError {
     #[error("{message}")]
     VrchatApi { status_code: i32, message: String },
 
-    #[error("Companion API port {port} is already in use")]
-    CompanionApiPortInUse { port: u16 },
+    #[error("Integration API port {port} is already in use")]
+    IntegrationApiPortInUse { port: u16 },
 
-    #[error("Companion API failed to bind port {port}: {message}")]
-    CompanionApiBind { port: u16, message: String },
+    #[error("Integration API failed to bind port {port}: {message}")]
+    IntegrationApiBind { port: u16, message: String },
 
     #[error("{0}")]
     Custom(String),
@@ -107,8 +107,8 @@ impl AppError {
             Self::Io(_) => AppErrorCode::Io,
             Self::Json(_) => AppErrorCode::Json,
             Self::VrchatApi { .. } => AppErrorCode::VrchatApi,
-            Self::CompanionApiPortInUse { .. } => AppErrorCode::CompanionApiPortInUse,
-            Self::CompanionApiBind { .. } => AppErrorCode::CompanionApiBind,
+            Self::IntegrationApiPortInUse { .. } => AppErrorCode::IntegrationApiPortInUse,
+            Self::IntegrationApiBind { .. } => AppErrorCode::IntegrationApiBind,
             Self::Custom(_) => AppErrorCode::Custom,
         }
     }
@@ -131,7 +131,7 @@ impl AppError {
 
     fn port(&self) -> Option<u16> {
         match self {
-            Self::CompanionApiPortInUse { port } | Self::CompanionApiBind { port, .. } => {
+            Self::IntegrationApiPortInUse { port } | Self::IntegrationApiBind { port, .. } => {
                 Some(*port)
             }
             _ => None,
@@ -244,19 +244,19 @@ impl From<vrcx_0_mcp::McpError> for AppError {
     }
 }
 
-impl From<vrcx_0_companion_api::CompanionApiError> for AppError {
-    fn from(value: vrcx_0_companion_api::CompanionApiError) -> Self {
+impl From<vrcx_0_integration_api::IntegrationApiError> for AppError {
+    fn from(value: vrcx_0_integration_api::IntegrationApiError) -> Self {
         match value {
-            vrcx_0_companion_api::CompanionApiError::PortInUse { port } => {
-                Self::CompanionApiPortInUse { port }
+            vrcx_0_integration_api::IntegrationApiError::PortInUse { port } => {
+                Self::IntegrationApiPortInUse { port }
             }
-            vrcx_0_companion_api::CompanionApiError::Bind { port, source } => {
-                Self::CompanionApiBind {
+            vrcx_0_integration_api::IntegrationApiError::Bind { port, source } => {
+                Self::IntegrationApiBind {
                     port,
                     message: source.to_string(),
                 }
             }
-            vrcx_0_companion_api::CompanionApiError::Io(error) => Self::Io(error),
+            vrcx_0_integration_api::IntegrationApiError::Io(error) => Self::Io(error),
             other => Self::Custom(other.to_string()),
         }
     }

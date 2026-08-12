@@ -22,10 +22,10 @@ use vrcx_0_assistant::{
     AssistantDeltaEvent, AssistantDoneEvent, AssistantErrorEvent, AssistantToolCallEvent,
     AssistantToolResultEvent, AssistantTurnEntitiesEvent,
 };
-use vrcx_0_companion_api::{CompanionApiStartFailedPayload, CompanionApiStatus};
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 use vrcx_0_host_desktop::tts::TtsVoice;
+use vrcx_0_integration_api::{IntegrationApiStartFailedPayload, IntegrationApiStatus};
 use vrcx_0_mcp::McpServerStatus;
 use vrcx_0_runtime_host::{AuthenticatedSessionProjection, RuntimeGroupInstancesProjection};
 use vrcx_0_runtime_host_desktop::AppLauncherSnapshotEvent;
@@ -78,7 +78,7 @@ struct BackendRuntimeEventPayloadMap {
     realtime_instance_queue_projection: RealtimeInstanceQueueProjection,
     realtime_projection_sync: RealtimeProjectionSync,
     update_is_game_running: HostSessionProjection,
-    companion_api_start_failed: CompanionApiStartFailedPayload,
+    integration_api_start_failed: IntegrationApiStartFailedPayload,
 }
 
 pub fn builder() -> Builder<tauri::Wry> {
@@ -97,7 +97,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .typ::<GameLogProjection>()
         .typ::<HostSessionProjection>()
         .typ::<McpServerStatus>()
-        .typ::<CompanionApiStatus>()
+        .typ::<IntegrationApiStatus>()
         .typ::<ParsedLocation>()
         .typ::<PrintAutoCleanupEvent>()
         .typ::<ProfileRestoreProgress>()
@@ -192,11 +192,11 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::mcp_server::app__mcp_server_set_allow_lan_connections,
             commands::application::mcp_server::app__mcp_server_set_port,
             commands::application::mcp_server::app__mcp_server_rotate_token,
-            commands::application::companion_api::app__companion_api_status,
-            commands::application::companion_api::app__companion_api_set_enabled,
-            commands::application::companion_api::app__companion_api_set_port,
-            commands::application::companion_api::app__companion_api_set_allow_lan_connections,
-            commands::application::companion_api::app__companion_api_rotate_token,
+            commands::application::integration_api::app__integration_api_status,
+            commands::application::integration_api::app__integration_api_set_enabled,
+            commands::application::integration_api::app__integration_api_set_port,
+            commands::application::integration_api::app__integration_api_set_allow_lan_connections,
+            commands::application::integration_api::app__integration_api_rotate_token,
             commands::application::assistant::app__assistant_send_message,
             commands::application::assistant::app__assistant_cancel,
             commands::application::assistant::app__assistant_list_sessions,

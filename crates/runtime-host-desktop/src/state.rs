@@ -9,10 +9,11 @@ use vrcx_0_application_core::RuntimeOperationStatus;
 
 use crate::ancillary_snapshot::{ancillary_runtime_snapshot, AncillaryRuntimeSnapshot};
 use crate::app_launcher::start_app_launcher_snapshot_events;
-use crate::companion_api::{
-    start_companion_api_input_task, DesktopCompanionApiConfigStore, DesktopCompanionApiRuntime,
-};
 use crate::group_order::HostGroupOrderSource;
+use crate::integration_api::{
+    start_integration_api_input_task, DesktopIntegrationApiConfigStore,
+    DesktopIntegrationApiRuntime,
+};
 use crate::vr_overlay::{DesktopVrOverlayRuntime, VrOverlayRuntimeSnapshot};
 use crate::{
     DesktopRuntimeServices, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
@@ -36,9 +37,6 @@ use vrcx_0_application_game::{
     RegistryBackupSnapshot,
 };
 use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, FriendProjectionObserver};
-use vrcx_0_companion_api::{
-    companion_api_publisher_channel, CompanionApiConfigStore, CompanionApiController,
-};
 use vrcx_0_host::app_paths::AppDataDirResolution;
 use vrcx_0_host_desktop::auto_launch::{
     deserialize_app_launcher_entries, normalize_app_launcher_entries, AppLauncherEntry,
@@ -48,6 +46,9 @@ use vrcx_0_host_desktop::auto_launch::{
 use vrcx_0_host_desktop::discord_rpc::DiscordRpc;
 use vrcx_0_host_desktop::host_capabilities::{
     current_host_capabilities, is_host_capability_available, HostCapability,
+};
+use vrcx_0_integration_api::{
+    integration_api_publisher_channel, IntegrationApiConfigStore, IntegrationApiController,
 };
 use vrcx_0_persistence::legacy_migration::cleanup_legacy_updater_files;
 use vrcx_0_persistence::screenshot_cache::MetadataCacheDb;
@@ -102,8 +103,8 @@ pub struct DesktopRuntimeBundle {
     pub telemetry: TelemetryRuntime,
     pub background_image: BackgroundImageService,
     pub community_theme: CommunityThemeService,
-    pub companion_api: Arc<DesktopCompanionApiRuntime>,
-    pub companion_api_observer: Arc<dyn InstanceRosterObserver>,
+    pub integration_api: Arc<DesktopIntegrationApiRuntime>,
+    pub integration_api_observer: Arc<dyn InstanceRosterObserver>,
 }
 
 pub struct DesktopRuntimeHostState {
@@ -180,22 +181,23 @@ impl DesktopRuntimeHostState {
         let game_log_snapshot = desktop_services.game_log_snapshot_handle();
         let discord_rpc = Arc::new(DiscordRpc::new());
         let process_monitor = ProcessMonitor::new();
-        let companion_api_config: Arc<dyn CompanionApiConfigStore> = Arc::new(
-            DesktopCompanionApiConfigStore::new(builder.runtime_context.config.clone()),
+        let integration_api_config: Arc<dyn IntegrationApiConfigStore> = Arc::new(
+            DesktopIntegrationApiConfigStore::new(builder.runtime_context.config.clone()),
         );
-        let companion_api_controller = Arc::new(
-            CompanionApiController::new(companion_api_config, app_version.clone())
+        let integration_api_controller = Arc::new(
+            IntegrationApiController::new(integration_api_config, app_version.clone())
                 .map_err(|error| vrcx_0_runtime_host::Error::Custom(error.to_string()))?,
         );
-        let (companion_api_runtime, companion_api_enrichment_receiver) =
-            DesktopCompanionApiRuntime::new(
-                Arc::clone(&companion_api_controller),
+        let (integration_api_runtime, integration_api_enrichment_receiver) =
+            DesktopIntegrationApiRuntime::new(
+                Arc::clone(&integration_api_controller),
                 builder.runtime_context.auth_scope.clone(),
             );
-        let companion_api_runtime = Arc::new(companion_api_runtime);
-        let (companion_api_publisher, companion_api_receiver) = companion_api_publisher_channel();
+        let integration_api_runtime = Arc::new(integration_api_runtime);
+        let (integration_api_publisher, integration_api_receiver) =
+            integration_api_publisher_channel();
         let instance_roster_observer: Arc<dyn InstanceRosterObserver> =
-            Arc::new(companion_api_publisher);
+            Arc::new(integration_api_publisher);
         let telemetry = TelemetryRuntime::new(TelemetryRuntimeDeps {
             config: builder.runtime_context.config.clone(),
             tasks: builder.runtime_context.tasks.clone(),
@@ -306,8 +308,8 @@ impl DesktopRuntimeHostState {
             telemetry,
             background_image,
             community_theme,
-            companion_api: Arc::clone(&companion_api_runtime),
-            companion_api_observer: Arc::clone(&instance_roster_observer),
+            integration_api: Arc::clone(&integration_api_runtime),
+            integration_api_observer: Arc::clone(&instance_roster_observer),
         });
         let extension = Arc::new(DesktopRuntimeProfileExtension {
             game: Arc::clone(&game),
@@ -355,12 +357,12 @@ impl DesktopRuntimeHostState {
         desktop
             .services
             .set_realtime_user_image_resolver(&runtime.realtime_runtime);
-        start_companion_api_input_task(
+        start_integration_api_input_task(
             Arc::clone(&runtime.runtime_context),
             Arc::clone(&runtime.realtime_runtime),
-            companion_api_runtime,
-            companion_api_receiver,
-            companion_api_enrichment_receiver,
+            integration_api_runtime,
+            integration_api_receiver,
+            integration_api_enrichment_receiver,
         );
 
         Ok(Self {
@@ -383,8 +385,8 @@ impl DesktopRuntimeHostState {
         self.extension.start_desktop_services(&self.runtime);
     }
 
-    pub fn companion_api(&self) -> &DesktopCompanionApiRuntime {
-        &self.desktop.companion_api
+    pub fn integration_api(&self) -> &DesktopIntegrationApiRuntime {
+        &self.desktop.integration_api
     }
 
     pub fn request_discord_reconcile(&self) -> u64 {
@@ -561,7 +563,7 @@ impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
         self.game.log_watcher.stop();
         self.game.game_log_runtime.stop();
         self.game.game_client_runtime.stop();
-        self.desktop.companion_api_observer.on_game_running(false);
+        self.desktop.integration_api_observer.on_game_running(false);
     }
 
     fn start_profile_maintenance(&self, state: &RuntimeHostState) {

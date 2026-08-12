@@ -1,19 +1,19 @@
 #![allow(non_snake_case)]
 
 use tauri::State;
-use vrcx_0_companion_api::CompanionApiStatus;
+use vrcx_0_integration_api::IntegrationApiStatus;
 
 use crate::error::AppError;
 use crate::state::AppState;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__companion_api_status(
+pub async fn app__integration_api_status(
     state: State<'_, AppState>,
-) -> Result<CompanionApiStatus, AppError> {
+) -> Result<IntegrationApiStatus, AppError> {
     state
         .runtime
-        .companion_api()
+        .integration_api()
         .status()
         .await
         .map_err(AppError::from)
@@ -21,13 +21,13 @@ pub async fn app__companion_api_status(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__companion_api_set_enabled(
+pub async fn app__integration_api_set_enabled(
     state: State<'_, AppState>,
     enabled: bool,
-) -> Result<CompanionApiStatus, AppError> {
+) -> Result<IntegrationApiStatus, AppError> {
     state
         .runtime
-        .companion_api()
+        .integration_api()
         .set_enabled(enabled)
         .await
         .map_err(AppError::from)
@@ -35,13 +35,13 @@ pub async fn app__companion_api_set_enabled(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__companion_api_set_port(
+pub async fn app__integration_api_set_port(
     state: State<'_, AppState>,
     port: u16,
-) -> Result<CompanionApiStatus, AppError> {
+) -> Result<IntegrationApiStatus, AppError> {
     state
         .runtime
-        .companion_api()
+        .integration_api()
         .set_port(port)
         .await
         .map_err(AppError::from)
@@ -49,13 +49,13 @@ pub async fn app__companion_api_set_port(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__companion_api_set_allow_lan_connections(
+pub async fn app__integration_api_set_allow_lan_connections(
     state: State<'_, AppState>,
     enabled: bool,
-) -> Result<CompanionApiStatus, AppError> {
+) -> Result<IntegrationApiStatus, AppError> {
     state
         .runtime
-        .companion_api()
+        .integration_api()
         .set_allow_lan_connections(enabled)
         .await
         .map_err(AppError::from)
@@ -63,12 +63,12 @@ pub async fn app__companion_api_set_allow_lan_connections(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn app__companion_api_rotate_token(
+pub async fn app__integration_api_rotate_token(
     state: State<'_, AppState>,
-) -> Result<CompanionApiStatus, AppError> {
+) -> Result<IntegrationApiStatus, AppError> {
     state
         .runtime
-        .companion_api()
+        .integration_api()
         .rotate_token()
         .await
         .map_err(AppError::from)

@@ -7,7 +7,7 @@ use serde::Serialize;
 use tokio::sync::broadcast;
 
 use crate::state::RoomChange;
-use crate::transport::{now_iso, CompanionApiRouterState, ServerEvent};
+use crate::transport::{now_iso, IntegrationApiRouterState, ServerEvent};
 use crate::wire::{
     ClientMessage, RoomMemberRef, RoomRef, ServerMessage, ServerMessageRef, HEARTBEAT_SECONDS,
     PROTOCOL_VERSION,
@@ -15,7 +15,7 @@ use crate::wire::{
 
 const MAX_ACTIVE_CONNECTIONS: u32 = 8;
 
-pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouterState) {
+pub(crate) async fn run_session(mut socket: WebSocket, state: IntegrationApiRouterState) {
     let Some(_guard) = ActiveConnectionGuard::try_new(Arc::clone(&state.active_connections)) else {
         let _ = socket
             .send(Message::Close(Some(CloseFrame {
@@ -45,7 +45,14 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
         return;
     }
     seq = seq.saturating_add(1);
-    if !send_snapshot(&mut socket, seq, initial_snapshot.room.as_deref(), now_iso()).await {
+    if !send_snapshot(
+        &mut socket,
+        seq,
+        initial_snapshot.room.as_deref(),
+        now_iso(),
+    )
+    .await
+    {
         return;
     }
 
@@ -73,7 +80,7 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
                             Err(error) => {
                                 tracing::debug!(
                                     error = %error,
-                                    "ignored invalid Companion API client frame"
+                                    "ignored invalid Integration API client frame"
                                 );
                             }
                         }
@@ -81,7 +88,7 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Ok(_)) => {}
                     Some(Err(error)) => {
-                        tracing::debug!(error = %error, "Companion API WebSocket receive failed");
+                        tracing::debug!(error = %error, "Integration API WebSocket receive failed");
                         break;
                     }
                 }
@@ -158,12 +165,7 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
     }
 }
 
-async fn send_change(
-    socket: &mut WebSocket,
-    change: &RoomChange,
-    seq: u64,
-    at: &str,
-) -> bool {
+async fn send_change(socket: &mut WebSocket, change: &RoomChange, seq: u64, at: &str) -> bool {
     match change {
         RoomChange::Snapshot(room) => {
             send_message(
@@ -188,15 +190,7 @@ async fn send_change(
             .await
         }
         RoomChange::Left(user_ids) => {
-            send_message(
-                socket,
-                &ServerMessageRef::Left {
-                    seq,
-                    at,
-                    user_ids,
-                },
-            )
-            .await
+            send_message(socket, &ServerMessageRef::Left { seq, at, user_ids }).await
         }
     }
 }
@@ -221,7 +215,7 @@ async fn send_snapshot(
 async fn send_latest_snapshot(
     socket: &mut WebSocket,
     seq: u64,
-    state: &CompanionApiRouterState,
+    state: &IntegrationApiRouterState,
 ) -> Option<u64> {
     let snapshot = state.hub.snapshot();
     send_snapshot(socket, seq, snapshot.room.as_deref(), now_iso())

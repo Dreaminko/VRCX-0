@@ -2209,13 +2209,13 @@
                         "stopping": "Zastavuje se"
                     }
                 },
-                "companion_api": {
-                    "header": "API pro doprovodné aplikace",
-                    "description": "Sdílí vybrané informace z VRCX-0 s důvěryhodnými doprovodnými aplikacemi. Server naslouchá pouze při spuštěném VRChatu.",
-                    "enable": "Povolit API pro doprovodné aplikace",
+                "integration_api": {
+                    "header": "Integrační API",
+                    "description": "Sdílí vybrané informace z VRCX-0 s důvěryhodnými aplikacemi. Server naslouchá pouze při spuštěném VRChatu.",
+                    "enable": "Povolit integrační API",
                     "enable_description": "Při spuštěném VRChatu spustí WebSocket stream chráněný tokenem.",
                     "information_types": "Sdílené informace",
-                    "information_types_description": "Vyberte, co mohou doprovodné aplikace číst. Dostupný výběr je nyní pevně daný.",
+                    "information_types_description": "Vyberte, co mohou připojené aplikace číst. Dostupný výběr je nyní pevně daný.",
                     "information_type_fixed": "Nyní pevně dané",
                     "room_information": "Informace o místnosti",
                     "room_information_description": "Aktuální místnost, seznam hráčů, jazykové značky a poznámky. Jednotlivá pole zatím nelze měnit.",
@@ -2226,15 +2226,15 @@
                     "port_apply": "Použít",
                     "port_invalid": "Port musí být v rozsahu 1024 až 65535",
                     "port_in_use": "Port {port} již používá jiný program. Zvolte jiný port.",
-                    "bind_failed": "API pro doprovodné aplikace nemůže naslouchat na portu {port}.",
-                    "start_failed": "API pro doprovodné aplikace se nepodařilo automaticky spustit: {reason}",
+                    "bind_failed": "Integrační API nemůže naslouchat na portu {port}.",
+                    "start_failed": "Integrační API se nepodařilo automaticky spustit: {reason}",
                     "status_label": "Stav",
                     "port_active_connections": "Port {port} · aktivní připojení: {count}",
                     "token": "Přístupový token",
                     "token_description": "Token zpřístupňuje aktuální místnost, jména hráčů, jazykové značky a poznámky. Sdílejte jej pouze s důvěryhodným softwarem.",
-                    "token_copied": "Token API pro doprovodné aplikace byl zkopírován",
+                    "token_copied": "Token integračního API byl zkopírován",
                     "rotate_token": "Obnovit token",
-                    "token_rotated": "Token API pro doprovodné aplikace byl obnoven",
+                    "token_rotated": "Token integračního API byl obnoven",
                     "status": {
                         "loading": "Načítání",
                         "disabled": "Zastaveno",

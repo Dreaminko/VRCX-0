@@ -2207,13 +2207,13 @@
                         "stopping": "Wird gestoppt"
                     }
                 },
-                "companion_api": {
-                    "header": "Begleit-App-API",
-                    "description": "Gibt ausgewählte VRCX-0-Informationen für vertrauenswürdige Begleit-Apps frei. Der Port ist nur geöffnet, solange VRChat läuft.",
-                    "enable": "Begleit-App-API aktivieren",
+                "integration_api": {
+                    "header": "Integrations-API",
+                    "description": "Gibt ausgewählte VRCX-0-Informationen für vertrauenswürdige Apps frei. Der Port ist nur geöffnet, solange VRChat läuft.",
+                    "enable": "Integrations-API aktivieren",
                     "enable_description": "Startet bei laufendem VRChat einen token-geschützten WebSocket-Datenstrom.",
                     "information_types": "Freigegebene Informationen",
-                    "information_types_description": "Lege fest, was Begleit-Apps lesen dürfen. Die verfügbare Auswahl ist derzeit fest vorgegeben.",
+                    "information_types_description": "Lege fest, was verbundene Apps lesen dürfen. Die verfügbare Auswahl ist derzeit fest vorgegeben.",
                     "information_type_fixed": "Derzeit festgelegt",
                     "room_information": "Rauminformationen",
                     "room_information_description": "Aktueller Raum, Spielerliste, Sprach-Tags und Notizen. Einzelne Felder können noch nicht angepasst werden.",
@@ -2224,15 +2224,15 @@
                     "port_apply": "Übernehmen",
                     "port_invalid": "Der Port muss zwischen 1024 und 65535 liegen",
                     "port_in_use": "Port {port} wird bereits von einem anderen Programm verwendet. Wähle einen anderen Port.",
-                    "bind_failed": "Die Begleit-App-API konnte Port {port} nicht öffnen.",
-                    "start_failed": "Die Begleit-App-API konnte nicht automatisch gestartet werden: {reason}",
+                    "bind_failed": "Die Integrations-API konnte Port {port} nicht öffnen.",
+                    "start_failed": "Die Integrations-API konnte nicht automatisch gestartet werden: {reason}",
                     "status_label": "Status",
                     "port_active_connections": "Port {port} · {count} aktive Verbindungen",
                     "token": "Zugriffstoken",
                     "token_description": "Das Token erlaubt Zugriff auf die aktuelle Instanz, Spielernamen, Sprach-Tags und Notizen. Nur an vertrauenswürdige Software weitergeben.",
-                    "token_copied": "Token der Begleit-App-API kopiert",
+                    "token_copied": "Token der Integrations-API kopiert",
                     "rotate_token": "Token erneuern",
-                    "token_rotated": "Token der Begleit-App-API erneuert",
+                    "token_rotated": "Token der Integrations-API erneuert",
                     "status": {
                         "loading": "Wird geladen",
                         "disabled": "Beendet",

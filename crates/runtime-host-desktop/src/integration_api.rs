@@ -6,103 +6,103 @@ use vrcx_0_application_core::{
     InstanceRosterSnapshot, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
-use vrcx_0_companion_api::{
-    CompanionApiConfigStore, CompanionApiController, CompanionApiError, CompanionApiInput,
-    CompanionApiInputReceiver, CompanionApiStartFailedPayload, CompanionApiStatus, RoomMemberState,
-    RoomState, DEFAULT_COMPANION_API_PORT,
+use vrcx_0_integration_api::{
+    IntegrationApiConfigStore, IntegrationApiController, IntegrationApiError, IntegrationApiInput,
+    IntegrationApiInputReceiver, IntegrationApiStartFailedPayload, IntegrationApiStatus,
+    RoomMemberState, RoomState, DEFAULT_INTEGRATION_API_PORT,
 };
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_runtime_host::RuntimeHostContext;
 
-pub(crate) struct DesktopCompanionApiConfigStore {
+pub(crate) struct DesktopIntegrationApiConfigStore {
     config: ConfigRepository,
 }
 
-impl DesktopCompanionApiConfigStore {
+impl DesktopIntegrationApiConfigStore {
     pub(crate) fn new(config: ConfigRepository) -> Self {
         Self { config }
     }
 }
 
-impl CompanionApiConfigStore for DesktopCompanionApiConfigStore {
-    fn get_bool(&self, key: &str, default: bool) -> Result<bool, CompanionApiError> {
+impl IntegrationApiConfigStore for DesktopIntegrationApiConfigStore {
+    fn get_bool(&self, key: &str, default: bool) -> Result<bool, IntegrationApiError> {
         self.config
             .get_bool(key, default)
-            .map_err(|error| CompanionApiError::Config(error.to_string()))
+            .map_err(|error| IntegrationApiError::Config(error.to_string()))
     }
 
-    fn get_string(&self, key: &str, default: &str) -> Result<String, CompanionApiError> {
+    fn get_string(&self, key: &str, default: &str) -> Result<String, IntegrationApiError> {
         self.config
             .get_string(key, default)
-            .map_err(|error| CompanionApiError::Config(error.to_string()))
+            .map_err(|error| IntegrationApiError::Config(error.to_string()))
     }
 
-    fn set_bool(&self, key: &str, value: bool) -> Result<(), CompanionApiError> {
+    fn set_bool(&self, key: &str, value: bool) -> Result<(), IntegrationApiError> {
         self.config
             .set_bool(key, value)
-            .map_err(|error| CompanionApiError::Config(error.to_string()))
+            .map_err(|error| IntegrationApiError::Config(error.to_string()))
     }
 
-    fn set_string(&self, key: &str, value: &str) -> Result<(), CompanionApiError> {
+    fn set_string(&self, key: &str, value: &str) -> Result<(), IntegrationApiError> {
         self.config
             .set_string(key, value)
-            .map_err(|error| CompanionApiError::Config(error.to_string()))
+            .map_err(|error| IntegrationApiError::Config(error.to_string()))
     }
 }
 
-pub struct DesktopCompanionApiRuntime {
-    controller: Arc<CompanionApiController>,
+pub struct DesktopIntegrationApiRuntime {
+    controller: Arc<IntegrationApiController>,
     auth_scope: RuntimeAuthScope,
-    roster: Mutex<CompanionApiRosterState>,
-    enrichment_sender: broadcast::Sender<CompanionApiEnrichmentRequest>,
+    roster: Mutex<IntegrationApiRosterState>,
+    enrichment_sender: broadcast::Sender<IntegrationApiEnrichmentRequest>,
 }
 
 #[derive(Default)]
-struct CompanionApiRosterState {
+struct IntegrationApiRosterState {
     lifecycle_epoch: u64,
     game_running: bool,
     latest: Option<Arc<InstanceRosterSnapshot>>,
 }
 
 #[derive(Clone)]
-pub(crate) struct CompanionApiEnrichmentRequest {
+pub(crate) struct IntegrationApiEnrichmentRequest {
     lifecycle_epoch: u64,
     listener_generation: u64,
     auth_scope: RuntimeAuthScopeSnapshot,
     snapshot: Arc<InstanceRosterSnapshot>,
 }
 
-impl DesktopCompanionApiRuntime {
+impl DesktopIntegrationApiRuntime {
     pub(crate) fn new(
-        controller: Arc<CompanionApiController>,
+        controller: Arc<IntegrationApiController>,
         auth_scope: RuntimeAuthScope,
-    ) -> (Self, broadcast::Receiver<CompanionApiEnrichmentRequest>) {
+    ) -> (Self, broadcast::Receiver<IntegrationApiEnrichmentRequest>) {
         let (enrichment_sender, enrichment_receiver) = broadcast::channel(1);
         (
             Self {
                 controller,
                 auth_scope,
-                roster: Mutex::new(CompanionApiRosterState::default()),
+                roster: Mutex::new(IntegrationApiRosterState::default()),
                 enrichment_sender,
             },
             enrichment_receiver,
         )
     }
 
-    pub async fn status(&self) -> Result<CompanionApiStatus, CompanionApiError> {
+    pub async fn status(&self) -> Result<IntegrationApiStatus, IntegrationApiError> {
         self.controller.status().await
     }
 
     pub async fn set_enabled(
         &self,
         enabled: bool,
-    ) -> Result<CompanionApiStatus, CompanionApiError> {
+    ) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let status = self.controller.set_enabled(enabled).await?;
         self.replay_latest_if_running().await;
         Ok(status)
     }
 
-    pub async fn set_port(&self, port: u16) -> Result<CompanionApiStatus, CompanionApiError> {
+    pub async fn set_port(&self, port: u16) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let status = self.controller.set_port(port).await?;
         self.replay_latest_if_running().await;
         Ok(status)
@@ -111,21 +111,17 @@ impl DesktopCompanionApiRuntime {
     pub async fn set_allow_lan_connections(
         &self,
         enabled: bool,
-    ) -> Result<CompanionApiStatus, CompanionApiError> {
+    ) -> Result<IntegrationApiStatus, IntegrationApiError> {
         let status = self.controller.set_allow_lan_connections(enabled).await?;
         self.replay_latest_if_running().await;
         Ok(status)
     }
 
-    pub async fn rotate_token(&self) -> Result<CompanionApiStatus, CompanionApiError> {
+    pub async fn rotate_token(&self) -> Result<IntegrationApiStatus, IntegrationApiError> {
         self.controller.rotate_token().await
     }
 
-    async fn observe_roster(
-        &self,
-        lifecycle_epoch: u64,
-        snapshot: Arc<InstanceRosterSnapshot>,
-    ) {
+    async fn observe_roster(&self, lifecycle_epoch: u64, snapshot: Arc<InstanceRosterSnapshot>) {
         {
             let mut roster = self
                 .roster
@@ -175,12 +171,14 @@ impl DesktopCompanionApiRuntime {
         let Some(listener_generation) = self.controller.running_generation().await else {
             return;
         };
-        let _ = self.enrichment_sender.send(CompanionApiEnrichmentRequest {
-            lifecycle_epoch,
-            listener_generation,
-            auth_scope: self.auth_scope.snapshot(),
-            snapshot,
-        });
+        let _ = self
+            .enrichment_sender
+            .send(IntegrationApiEnrichmentRequest {
+                lifecycle_epoch,
+                listener_generation,
+                auth_scope: self.auth_scope.snapshot(),
+                snapshot,
+            });
     }
 
     fn lifecycle_matches(&self, expected_epoch: u64) -> bool {
@@ -192,17 +190,17 @@ impl DesktopCompanionApiRuntime {
     }
 }
 
-pub(crate) fn start_companion_api_input_task(
+pub(crate) fn start_integration_api_input_task(
     context: Arc<RuntimeHostContext>,
     realtime_runtime: Arc<RealtimeHostRuntime>,
-    runtime: Arc<DesktopCompanionApiRuntime>,
-    mut receiver: CompanionApiInputReceiver,
-    enrichment_receiver: broadcast::Receiver<CompanionApiEnrichmentRequest>,
+    runtime: Arc<DesktopIntegrationApiRuntime>,
+    mut receiver: IntegrationApiInputReceiver,
+    enrichment_receiver: broadcast::Receiver<IntegrationApiEnrichmentRequest>,
 ) {
     let enrichment_context = Arc::clone(&context);
     let enrichment_realtime_runtime = Arc::clone(&realtime_runtime);
     let enrichment_runtime = Arc::clone(&runtime);
-    context.tasks.spawn(run_companion_api_enrichment(
+    context.tasks.spawn(run_integration_api_enrichment(
         enrichment_context,
         enrichment_realtime_runtime,
         enrichment_runtime,
@@ -215,7 +213,7 @@ pub(crate) fn start_companion_api_input_task(
         }
         while let Some(input) = receiver.recv().await {
             match input {
-                CompanionApiInput::GameRunning {
+                IntegrationApiInput::GameRunning {
                     lifecycle_epoch,
                     running,
                 } => {
@@ -234,7 +232,7 @@ pub(crate) fn start_companion_api_input_task(
                         }
                     }
                 }
-                CompanionApiInput::Roster {
+                IntegrationApiInput::Roster {
                     lifecycle_epoch,
                     snapshot,
                 } => {
@@ -245,11 +243,11 @@ pub(crate) fn start_companion_api_input_task(
     });
 }
 
-async fn run_companion_api_enrichment(
+async fn run_integration_api_enrichment(
     context: Arc<RuntimeHostContext>,
     realtime_runtime: Arc<RealtimeHostRuntime>,
-    runtime: Arc<DesktopCompanionApiRuntime>,
-    mut receiver: broadcast::Receiver<CompanionApiEnrichmentRequest>,
+    runtime: Arc<DesktopIntegrationApiRuntime>,
+    mut receiver: broadcast::Receiver<IntegrationApiEnrichmentRequest>,
 ) {
     loop {
         let request = match receiver.recv().await {
@@ -289,7 +287,7 @@ async fn run_companion_api_enrichment(
             }
             Ok(_) => {}
             Err(error) => {
-                tracing::warn!(error = %error, "Companion API room enrichment task failed");
+                tracing::warn!(error = %error, "Integration API room enrichment task failed");
             }
         }
     }
@@ -319,7 +317,7 @@ fn enrich_room_snapshot(
     let remote_notes =
         vrcx_0_persistence::memos::memo_list_user_notes(db, owner_user_id.to_owned())
             .unwrap_or_else(|error| {
-                tracing::debug!(error = %error, "Companion API user note enrichment failed");
+                tracing::debug!(error = %error, "Integration API user note enrichment failed");
                 Vec::new()
             })
             .into_iter()
@@ -335,7 +333,7 @@ fn enrich_room_snapshot(
                     tracing::debug!(
                         user_id = %member.user_id,
                         error = %error,
-                        "Companion API local memo enrichment failed"
+                        "Integration API local memo enrichment failed"
                     );
                     None
                 })
@@ -387,15 +385,15 @@ fn auth_scope_matches(
 
 async fn emit_start_failed(
     event_bus: &RuntimeEventBus,
-    controller: &CompanionApiController,
-    error: &CompanionApiError,
+    controller: &IntegrationApiController,
+    error: &IntegrationApiError,
 ) {
     let fallback_port = controller
         .status()
         .await
         .map(|status| status.port)
-        .unwrap_or(DEFAULT_COMPANION_API_PORT);
-    event_bus.emit(CompanionApiStartFailedPayload::from_error(
+        .unwrap_or(DEFAULT_INTEGRATION_API_PORT);
+    event_bus.emit(IntegrationApiStartFailedPayload::from_error(
         error,
         fallback_port,
     ));
@@ -412,8 +410,8 @@ mod tests {
         values: Mutex<HashMap<String, String>>,
     }
 
-    impl CompanionApiConfigStore for MemoryConfig {
-        fn get_bool(&self, key: &str, default: bool) -> Result<bool, CompanionApiError> {
+    impl IntegrationApiConfigStore for MemoryConfig {
+        fn get_bool(&self, key: &str, default: bool) -> Result<bool, IntegrationApiError> {
             Ok(self
                 .values
                 .lock()
@@ -423,7 +421,7 @@ mod tests {
                 .unwrap_or(default))
         }
 
-        fn get_string(&self, key: &str, default: &str) -> Result<String, CompanionApiError> {
+        fn get_string(&self, key: &str, default: &str) -> Result<String, IntegrationApiError> {
             Ok(self
                 .values
                 .lock()
@@ -433,11 +431,11 @@ mod tests {
                 .unwrap_or_else(|| default.into()))
         }
 
-        fn set_bool(&self, key: &str, value: bool) -> Result<(), CompanionApiError> {
+        fn set_bool(&self, key: &str, value: bool) -> Result<(), IntegrationApiError> {
             self.set_string(key, if value { "true" } else { "false" })
         }
 
-        fn set_string(&self, key: &str, value: &str) -> Result<(), CompanionApiError> {
+        fn set_string(&self, key: &str, value: &str) -> Result<(), IntegrationApiError> {
             self.values
                 .lock()
                 .unwrap_or_else(|error| error.into_inner())
@@ -459,15 +457,15 @@ mod tests {
         let config = Arc::new(MemoryConfig::default());
         config
             .set_string(
-                vrcx_0_companion_api::COMPANION_API_PORT_CONFIG_KEY,
+                vrcx_0_integration_api::INTEGRATION_API_PORT_CONFIG_KEY,
                 &unused_port().to_string(),
             )
             .unwrap();
-        let controller = Arc::new(CompanionApiController::new(config, "1.2.3".into()).unwrap());
+        let controller = Arc::new(IntegrationApiController::new(config, "1.2.3".into()).unwrap());
         let auth_scope = RuntimeAuthScope::new();
         auth_scope.set("usr_self", "https://api.vrchat.cloud/api/1");
         let (runtime, mut receiver) =
-            DesktopCompanionApiRuntime::new(Arc::clone(&controller), auth_scope);
+            DesktopIntegrationApiRuntime::new(Arc::clone(&controller), auth_scope);
         runtime.observe_game_running(1, true);
         controller.set_game_running(true).await.unwrap();
         runtime
@@ -497,9 +495,9 @@ mod tests {
     #[tokio::test]
     async fn previous_lifecycle_roster_cannot_replace_the_current_cache() {
         let config = Arc::new(MemoryConfig::default());
-        let controller = Arc::new(CompanionApiController::new(config, "1.2.3".into()).unwrap());
+        let controller = Arc::new(IntegrationApiController::new(config, "1.2.3".into()).unwrap());
         let (runtime, mut receiver) =
-            DesktopCompanionApiRuntime::new(controller, RuntimeAuthScope::new());
+            DesktopIntegrationApiRuntime::new(controller, RuntimeAuthScope::new());
         runtime.observe_game_running(3, true);
 
         runtime

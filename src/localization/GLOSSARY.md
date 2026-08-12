@@ -252,6 +252,7 @@ the app and across releases.
 | Instance Creator                   | 房间建立者                 | 房間建立者            | インスタンス作成者                   |
 | Instance History                   | 房间历史                   | 房間歷史              | インスタンス履歴                     |
 | Instance Widget                    | 房间小部件                 | 房間小工具            | インスタンス                         |
+| Integration API                    | 应用集成 API               | 應用程式整合 API      | アプリ連携 API                       |
 | Interactive Friends Panel          | 交互好友面板               | 互動好友面板          | インタラクティブフレンドパネル       |
 | Join Count                         | 见面的次数                 | 加入次數              | 参加した回数                         |
 | JSON                               | 原始 JSON 信息             | 原始資料              | JSON                                 |

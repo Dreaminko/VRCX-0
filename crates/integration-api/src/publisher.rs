@@ -7,7 +7,7 @@ use vrcx_0_application_contracts::{InstanceRosterObserver, InstanceRosterSnapsho
 const PUBLISHER_CAPACITY: usize = 8;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum CompanionApiInput {
+pub enum IntegrationApiInput {
     Roster {
         lifecycle_epoch: u64,
         snapshot: Arc<InstanceRosterSnapshot>,
@@ -18,13 +18,13 @@ pub enum CompanionApiInput {
     },
 }
 
-pub struct CompanionApiPublisher {
+pub struct IntegrationApiPublisher {
     roster_sender: broadcast::Sender<RosterEnvelope>,
     lifecycle: Arc<AtomicU64>,
     game_running_sender: watch::Sender<LifecycleState>,
 }
 
-pub struct CompanionApiInputReceiver {
+pub struct IntegrationApiInputReceiver {
     roster_receiver: broadcast::Receiver<RosterEnvelope>,
     game_running_receiver: watch::Receiver<LifecycleState>,
     delivered_lifecycle: LifecycleState,
@@ -44,17 +44,18 @@ struct RosterEnvelope {
     snapshot: Arc<InstanceRosterSnapshot>,
 }
 
-pub fn companion_api_publisher_channel() -> (CompanionApiPublisher, CompanionApiInputReceiver) {
+pub fn integration_api_publisher_channel() -> (IntegrationApiPublisher, IntegrationApiInputReceiver)
+{
     let (roster_sender, roster_receiver) = broadcast::channel(PUBLISHER_CAPACITY);
     let (game_running_sender, game_running_receiver) = watch::channel(LifecycleState::default());
     let lifecycle = Arc::new(AtomicU64::new(0));
     (
-        CompanionApiPublisher {
+        IntegrationApiPublisher {
             roster_sender,
             lifecycle,
             game_running_sender,
         },
-        CompanionApiInputReceiver {
+        IntegrationApiInputReceiver {
             roster_receiver,
             game_running_receiver,
             delivered_lifecycle: LifecycleState::default(),
@@ -64,8 +65,8 @@ pub fn companion_api_publisher_channel() -> (CompanionApiPublisher, CompanionApi
     )
 }
 
-impl CompanionApiInputReceiver {
-    pub async fn recv(&mut self) -> Option<CompanionApiInput> {
+impl IntegrationApiInputReceiver {
+    pub async fn recv(&mut self) -> Option<IntegrationApiInput> {
         loop {
             let latest_lifecycle = *self.game_running_receiver.borrow_and_update();
             if latest_lifecycle.epoch > self.target_lifecycle.epoch {
@@ -76,7 +77,7 @@ impl CompanionApiInputReceiver {
                     epoch: self.delivered_lifecycle.epoch.saturating_add(1),
                     running: !self.delivered_lifecycle.running,
                 };
-                return Some(CompanionApiInput::GameRunning {
+                return Some(IntegrationApiInput::GameRunning {
                     lifecycle_epoch: self.delivered_lifecycle.epoch,
                     running: self.delivered_lifecycle.running,
                 });
@@ -94,7 +95,7 @@ impl CompanionApiInputReceiver {
                     && lifecycle_epoch == current.epoch
                     && lifecycle_epoch == self.delivered_lifecycle.epoch
                 {
-                    return Some(CompanionApiInput::Roster {
+                    return Some(IntegrationApiInput::Roster {
                         lifecycle_epoch,
                         snapshot,
                     });
@@ -124,7 +125,7 @@ impl CompanionApiInputReceiver {
     }
 }
 
-impl InstanceRosterObserver for CompanionApiPublisher {
+impl InstanceRosterObserver for IntegrationApiPublisher {
     fn on_instance_roster(&self, snapshot: InstanceRosterSnapshot) {
         let lifecycle = self.lifecycle.load(Ordering::Acquire);
         if lifecycle & 1 == 0 {
@@ -172,11 +173,11 @@ mod tests {
 
     #[tokio::test]
     async fn full_queue_discards_the_oldest_pending_input() {
-        let (publisher, mut receiver) = companion_api_publisher_channel();
+        let (publisher, mut receiver) = integration_api_publisher_channel();
         publisher.on_game_running(true);
         assert!(matches!(
             receiver.recv().await,
-            Some(CompanionApiInput::GameRunning { running: true, .. })
+            Some(IntegrationApiInput::GameRunning { running: true, .. })
         ));
         for index in 0..=PUBLISHER_CAPACITY {
             publisher.on_instance_roster(InstanceRosterSnapshot {
@@ -186,7 +187,7 @@ mod tests {
         }
 
         for expected in 1..=PUBLISHER_CAPACITY {
-            let Some(CompanionApiInput::Roster { snapshot, .. }) = receiver.recv().await else {
+            let Some(IntegrationApiInput::Roster { snapshot, .. }) = receiver.recv().await else {
                 panic!("expected a roster snapshot");
             };
             assert_eq!(snapshot.location, expected.to_string());
@@ -195,7 +196,7 @@ mod tests {
 
     #[tokio::test]
     async fn game_running_transitions_survive_a_roster_burst() {
-        let (publisher, mut receiver) = companion_api_publisher_channel();
+        let (publisher, mut receiver) = integration_api_publisher_channel();
         publisher.on_game_running(true);
         for index in 0..=PUBLISHER_CAPACITY {
             publisher.on_instance_roster(InstanceRosterSnapshot {
@@ -207,7 +208,7 @@ mod tests {
 
         let mut transitions = Vec::new();
         while transitions.len() < 2 {
-            if let Some(CompanionApiInput::GameRunning { running, .. }) = receiver.recv().await {
+            if let Some(IntegrationApiInput::GameRunning { running, .. }) = receiver.recv().await {
                 transitions.push(running);
             }
         }
@@ -216,11 +217,11 @@ mod tests {
 
     #[tokio::test]
     async fn roster_from_a_previous_lifecycle_is_not_delivered_after_restart() {
-        let (publisher, mut receiver) = companion_api_publisher_channel();
+        let (publisher, mut receiver) = integration_api_publisher_channel();
         publisher.on_game_running(true);
         assert!(matches!(
             receiver.recv().await,
-            Some(CompanionApiInput::GameRunning { running: true, .. })
+            Some(IntegrationApiInput::GameRunning { running: true, .. })
         ));
         publisher.on_instance_roster(InstanceRosterSnapshot {
             location: "wrld_old:1".into(),
@@ -231,12 +232,12 @@ mod tests {
 
         assert!(matches!(
             receiver.recv().await,
-            Some(CompanionApiInput::GameRunning {
+            Some(IntegrationApiInput::GameRunning {
                 lifecycle_epoch: 2,
                 running: false,
             })
         ));
-        let Some(CompanionApiInput::GameRunning {
+        let Some(IntegrationApiInput::GameRunning {
             lifecycle_epoch,
             running: true,
         }) = receiver.recv().await
@@ -249,7 +250,7 @@ mod tests {
             location: "wrld_new:2".into(),
             ..Default::default()
         });
-        let Some(CompanionApiInput::Roster {
+        let Some(IntegrationApiInput::Roster {
             lifecycle_epoch: roster_epoch,
             snapshot,
         }) = receiver.recv().await

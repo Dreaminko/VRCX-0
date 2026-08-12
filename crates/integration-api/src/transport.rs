@@ -18,13 +18,13 @@ use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
 use crate::auth::{
-    authorize_companion_api_request, CompanionApiAuthError, CompanionApiAuthPolicy,
+    authorize_integration_api_request, IntegrationApiAuthError, IntegrationApiAuthPolicy,
     BASE_SUBPROTOCOL,
 };
 use crate::session::run_session;
 use crate::state::{diff_room, RoomChange, RoomState};
 use crate::wire::ByeReason;
-use crate::{CompanionApiError, PROTOCOL_VERSION};
+use crate::{IntegrationApiError, PROTOCOL_VERSION};
 
 const BROADCAST_CAPACITY: usize = 32;
 
@@ -100,7 +100,7 @@ impl ServerHub {
                 },
             ),
             Err(error) => {
-                tracing::warn!(error = %error, "Companion API room state lock failed");
+                tracing::warn!(error = %error, "Integration API room state lock failed");
                 (
                     self.events.subscribe(),
                     ServerHubSnapshot {
@@ -130,9 +130,7 @@ impl ServerHub {
                         return;
                     }
                     (None, Some(next)) => vec![RoomChange::Snapshot(Arc::clone(next))],
-                    (Some(previous), Some(next)) => {
-                        diff_room(Some(previous), Arc::clone(next))
-                    }
+                    (Some(previous), Some(next)) => diff_room(Some(previous), Arc::clone(next)),
                 };
                 if changes.is_empty() {
                     return;
@@ -154,7 +152,7 @@ impl ServerHub {
                 }
             }
             Err(error) => {
-                tracing::warn!(error = %error, "Companion API room state lock failed");
+                tracing::warn!(error = %error, "Integration API room state lock failed");
             }
         }
     }
@@ -172,30 +170,30 @@ impl ServerHub {
 }
 
 #[derive(Clone)]
-pub(crate) struct CompanionApiRouterState {
-    pub(crate) policy: CompanionApiAuthPolicy,
+pub(crate) struct IntegrationApiRouterState {
+    pub(crate) policy: IntegrationApiAuthPolicy,
     pub(crate) hub: Arc<ServerHub>,
     pub(crate) active_connections: Arc<AtomicU32>,
     pub(crate) session_cancel: CancellationToken,
 }
 
-pub(crate) fn build_companion_api_router(state: CompanionApiRouterState) -> Router {
+pub(crate) fn build_integration_api_router(state: IntegrationApiRouterState) -> Router {
     Router::new()
-        .route("/v1/health", get(companion_api_health))
-        .route("/v1/stream", get(companion_api_stream))
+        .route("/v1/health", get(integration_api_health))
+        .route("/v1/stream", get(integration_api_stream))
         .layer(middleware::from_fn_with_state(
             state.clone(),
-            companion_api_auth_middleware,
+            integration_api_auth_middleware,
         ))
         .with_state(state)
 }
 
-async fn companion_api_health() -> impl IntoResponse {
+async fn integration_api_health() -> impl IntoResponse {
     axum::Json(json!({ "ok": true, "protocol": PROTOCOL_VERSION }))
 }
 
-async fn companion_api_stream(
-    State(state): State<CompanionApiRouterState>,
+async fn integration_api_stream(
+    State(state): State<IntegrationApiRouterState>,
     websocket: WebSocketUpgrade,
 ) -> Response {
     websocket
@@ -203,20 +201,20 @@ async fn companion_api_stream(
         .on_upgrade(move |socket| run_session(socket, state))
 }
 
-async fn companion_api_auth_middleware(
-    State(state): State<CompanionApiRouterState>,
+async fn integration_api_auth_middleware(
+    State(state): State<IntegrationApiRouterState>,
     request: Request<Body>,
     next: Next,
 ) -> Response {
     let authorization = header_to_str(request.headers(), AUTHORIZATION.as_str());
     let host = header_to_str(request.headers(), HOST.as_str());
     let subprotocols = header_to_str(request.headers(), SEC_WEBSOCKET_PROTOCOL.as_str());
-    match authorize_companion_api_request(&state.policy, authorization, host, subprotocols) {
+    match authorize_integration_api_request(&state.policy, authorization, host, subprotocols) {
         Ok(_) => next.run(request).await,
-        Err(CompanionApiAuthError::InvalidHost) => {
+        Err(IntegrationApiAuthError::InvalidHost) => {
             (StatusCode::FORBIDDEN, "forbidden").into_response()
         }
-        Err(CompanionApiAuthError::Unauthorized) => {
+        Err(IntegrationApiAuthError::Unauthorized) => {
             (StatusCode::UNAUTHORIZED, "unauthorized").into_response()
         }
     }
@@ -226,10 +224,10 @@ fn header_to_str<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
     headers.get(name).and_then(|value| value.to_str().ok())
 }
 
-pub(crate) fn bind_companion_api_listener(
+pub(crate) fn bind_integration_api_listener(
     port: u16,
     allow_lan_connections: bool,
-) -> Result<TcpListener, CompanionApiError> {
+) -> Result<TcpListener, IntegrationApiError> {
     let socket = Socket::new(Domain::IPV4, SocketType::STREAM, Some(Protocol::TCP))
         .map_err(|error| bind_error(port, error))?;
     #[cfg(not(windows))]
@@ -253,11 +251,11 @@ pub(crate) fn bind_companion_api_listener(
     TcpListener::from_std(socket.into()).map_err(|error| bind_error(port, error))
 }
 
-fn bind_error(port: u16, source: std::io::Error) -> CompanionApiError {
+fn bind_error(port: u16, source: std::io::Error) -> IntegrationApiError {
     if source.kind() == std::io::ErrorKind::AddrInUse {
-        CompanionApiError::PortInUse { port }
+        IntegrationApiError::PortInUse { port }
     } else {
-        CompanionApiError::Bind { port, source }
+        IntegrationApiError::Bind { port, source }
     }
 }
 
