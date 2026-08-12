@@ -424,7 +424,8 @@ fn app_launcher_disabling_entry_preserves_started_session_run_tracking() {
 
     assert_eq!(runs.len(), 1);
     assert_eq!(runs[0].status, AppLauncherRunStatus::Running);
-    assert_eq!(runs[0].tracked_pids, vec![pid]);
+    assert_eq!(runs[0].root_pid, Some(pid));
+    assert!(runs[0].tracked_pids.contains(&pid));
 }
 
 #[test]
@@ -441,7 +442,8 @@ fn app_launcher_editing_entry_preserves_old_run_tracking_while_starting_new_conf
 
     assert_eq!(runs.len(), 2);
     assert_eq!(runs[0].status, AppLauncherRunStatus::Running);
-    assert_eq!(runs[0].tracked_pids, vec![pid]);
+    assert_eq!(runs[0].root_pid, Some(pid));
+    assert!(runs[0].tracked_pids.contains(&pid));
     assert_eq!(runs[1].target, "C:\\Tools\\Edited.exe");
 }
 
