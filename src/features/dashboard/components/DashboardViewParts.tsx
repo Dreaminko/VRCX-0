@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useDefaultLayout } from 'react-resizable-panels';
 import { useShallow } from 'zustand/react/shallow';
 
-import { DashboardPanelPreview } from '@/components/dashboard/DashboardPanelPreview';
 import {
     createDashboardPanelValue,
     DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS,
@@ -14,7 +13,7 @@ import {
     getDashboardPanelDescription,
     getDashboardPanelLabel,
     resolveDashboardPanelKey
-} from '@/components/dashboard/dashboardRegistry';
+} from '../dashboardRegistry';
 import { cn } from '@/lib/utils';
 import type {
     DashboardDirection,
@@ -64,6 +63,7 @@ import {
     createDashboardPanelPreviewProps,
     type DashboardPageMetrics
 } from '../dashboardPanelPreviewModel';
+import { DashboardPanelPreview } from './DashboardPanelPreview';
 
 export function DashboardFilterConfig({
     title,

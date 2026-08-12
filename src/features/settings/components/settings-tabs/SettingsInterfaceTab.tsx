@@ -1,19 +1,49 @@
+import { useShallow } from 'zustand/react/shallow';
+
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+import { useSettingsPageSection } from '../../SettingsPageStateContext';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { SettingsInterfaceAppearanceCard } from './SettingsInterfaceAppearanceCard';
 import { SettingsInterfaceDisplayCards } from './SettingsInterfaceDisplayCards';
 import { SettingsInterfaceThemesCard } from './SettingsInterfaceThemesCard';
 import { SettingsInterfaceUserColorsCard } from './SettingsInterfaceUserColorsCard';
 
-type SettingsInterfaceTabProps = {
-    settingsInterface: SettingsPageStateSections['interface'];
-};
-
-export function SettingsInterfaceTab({
-    settingsInterface
-}: SettingsInterfaceTabProps) {
+export function SettingsInterfaceTab() {
+    const settingsInterface = useSettingsPageSection('interface');
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            appFontFamily: state.appFontFamily,
+            appCjkFontPack: state.appCjkFontPack,
+            customFontFamily: state.customFontFamily,
+            customFontPrimary: state.customFontPrimary,
+            customFontSecondary: state.customFontSecondary,
+            customFontOverride: state.customFontOverride,
+            notificationLayout: state.notificationLayout,
+            notificationIconDot: state.notificationIconDot,
+            taskbarIconDot: state.taskbarIconDot,
+            tableDensity: state.tableDensity,
+            dataTableStriped: state.dataTableStriped,
+            reducedMotionAndBlur: state.reducedMotionAndBlur,
+            accessibleStatusIndicators: state.accessibleStatusIndicators,
+            showInstanceIdInLocation: state.showInstanceIdInLocation,
+            isAgeGatedInstancesVisible: state.isAgeGatedInstancesVisible,
+            hideNicknames: state.hideNicknames,
+            displayVRCPlusIconsAsAvatar: state.displayVRCPlusIconsAsAvatar,
+            showNewDashboardButton: state.showNewDashboardButton,
+            dtHour12: state.dtHour12,
+            dtIsoFormat: state.dtIsoFormat,
+            weekStartsOn: state.weekStartsOn,
+            feedTimeDisplayMode: state.feedTimeDisplayMode,
+            showUserDialogProfileDecorations:
+                state.showUserDialogProfileDecorations,
+            hideUserNotes: state.hideUserNotes,
+            hideUserMemos: state.hideUserMemos,
+            randomUserColours: state.randomUserColours,
+            trustColor: state.trustColor
+        }))
+    );
     const isMacHost = useRuntimeStore(
         (state) => state.hostCapabilities.platform === 'macos'
     );
@@ -22,7 +52,6 @@ export function SettingsInterfaceTab({
     );
     const {
         locale,
-        prefs,
         zoomInput,
         onLanguageChange,
         onFontFamilyChange,

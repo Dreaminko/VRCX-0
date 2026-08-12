@@ -9,7 +9,6 @@ import type { BuildSettingsPageStateSectionsInput } from '../settingsPageStateSe
 import { normalizeCheckedState } from '../settingsValues';
 
 export function buildNotificationsSection({
-    prefs,
     ttsVoices,
     notificationTtsTestVisible,
     notificationTtsTest,
@@ -24,7 +23,6 @@ export function buildNotificationsSection({
     speakNotificationTts
 }: BuildSettingsPageStateSectionsInput) {
     return {
-        prefs,
         desktopToastOptions,
         notificationTtsOptions,
         notificationTtsNameModeOptions,
@@ -44,7 +42,6 @@ export function buildNotificationsSection({
 }
 
 export function buildVrSection({
-    prefs,
     setVrNotificationsDialogOpen,
     setHmdNotificationsDialogOpen,
     setWristFeedNotificationsDialogOpen,
@@ -55,7 +52,6 @@ export function buildVrSection({
     saveWristOverlayEnabled
 }: BuildSettingsPageStateSectionsInput) {
     return {
-        prefs,
         setVrNotificationsDialogOpen,
         setHmdNotificationsDialogOpen,
         setWristFeedNotificationsDialogOpen,
@@ -68,7 +64,6 @@ export function buildVrSection({
 }
 
 export function buildAdvancedSection({
-    prefs,
     sqliteTableSizes,
     onlineVisitCount,
     configTreeData,
@@ -89,7 +84,6 @@ export function buildAdvancedSection({
     migrateLegacyVrcxData
 }: BuildSettingsPageStateSectionsInput) {
     return {
-        prefs,
         avatarAutoCleanupOptions,
         sqliteTableSizes,
         sqliteTableSizeRows,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -35,12 +35,12 @@ import { MINUTES_PER_DAY } from '@/shared/constants/time';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import {
     DEFAULT_PREFERENCES,
+    normalizePreferenceSnapshot,
     usePreferencesStore,
     type PreferencesSnapshot
 } from '@/state/preferencesStore';
 import { useShellStore } from '@/state/shellStore';
 
-import { createDefaultSettingsPrefs } from './settingsDefaultPrefs';
 import { buildFavoriteFriendGroupOptions } from './settingsFavoriteGroupOptions';
 import { settingsTabs } from './settingsOptions';
 import { buildSettingsPageStateSections } from './settingsPageStateSections';
@@ -75,7 +75,6 @@ type SettingsIntegrationBoolKey = Extract<
 export function useSettingsPageState() {
     const locale = useShellStore((state) => state.locale);
     const zoomLevel = useShellStore((state) => state.zoomLevel);
-    const sidebarOpen = useShellStore((state) => state.sidebarOpen);
     const favoriteFriendGroups = useFavoriteStore(
         (state) => state.favoriteFriendGroups
     );
@@ -84,18 +83,30 @@ export function useSettingsPageState() {
     );
     const preferenceState = usePreferencesStore(
         useShallow((state) => {
-            const snapshot: Record<string, unknown> & {
-                preferencesHydrated: boolean;
-            } = {
-                preferencesHydrated: state.preferencesHydrated
-            };
+            const snapshot: Record<string, unknown> = {};
             for (const key of SETTINGS_PREFERENCE_KEYS) {
                 snapshot[key] = state[key];
             }
             return snapshot;
         })
     );
-    const [prefs, setPrefs] = useState(() => createDefaultSettingsPrefs());
+    const prefs = useMemo(
+        () => normalizePreferenceSnapshot(preferenceState),
+        [preferenceState]
+    );
+    const setPrefs = useCallback(
+        (
+            value:
+                | PreferencesSnapshot
+                | ((current: PreferencesSnapshot) => Record<string, unknown>)
+        ) => {
+            const store = usePreferencesStore.getState();
+            const current = normalizePreferenceSnapshot(store);
+            const next = typeof value === 'function' ? value(current) : value;
+            store.patchPreferences(normalizePreferenceSnapshot(next));
+        },
+        []
+    );
     const [sqliteTableSizes, setSqliteTableSizes] =
         useState<SettingsSqliteTableSizes>({});
     const [appDataDirState, setAppDataDirState] =
@@ -108,8 +119,12 @@ export function useSettingsPageState() {
     );
     const [configTreeData, setConfigTreeData] =
         useState<SettingsConfigTreeData>({});
-    const [localFavoriteFriendsGroups, setLocalFavoriteFriendsGroups] =
-        useState<string[]>([]);
+    const localFavoriteFriendsGroups = prefs.localFavoriteFriendsGroups;
+    const setLocalFavoriteFriendsGroups = useCallback((groups: string[]) => {
+        usePreferencesStore.getState().patchPreferences({
+            localFavoriteFriendsGroups: groups
+        });
+    }, []);
     const [zoomInput, setZoomInput] = useState('100');
     const [ttsVoices, setTtsVoices] = useState<TtsVoice[]>([]);
     const [notificationTtsTest, setNotificationTtsTest] = useState('');
@@ -178,8 +193,6 @@ export function useSettingsPageState() {
         saveDiscordBoolPreference,
         saveTranslationApiConfig,
         saveYoutubeApiKey,
-        setDiscordPrefs,
-        setIntegrationPrefs,
         setIntegrationValue,
         setTranslationApiDialogOpen,
         setTranslationDraftValue,
@@ -207,7 +220,6 @@ export function useSettingsPageState() {
     });
 
     const {
-        applyPreferenceSnapshotToLocalState,
         addFeedHiddenUser,
         savePreferenceValue,
         saveBoolPreference,
@@ -266,8 +278,6 @@ export function useSettingsPageState() {
         setCustomFontDraft,
         setCustomFontOptions,
         setCustomFontOptionsLoading,
-        setDiscordPrefs,
-        setIntegrationPrefs,
         setLocalFavoriteFriendsGroups,
         setOnlineVisitCount,
         setPrefs,
@@ -281,13 +291,9 @@ export function useSettingsPageState() {
     });
     useSettingsEffects({
         applyAvatarProviderConfig,
-        applyPreferenceSnapshotToLocalState,
-        preferenceState,
         setAppDataDirState,
-        setPrefs,
         setTtsVoices,
         setZoomInput,
-        sidebarOpen,
         zoomLevel
     });
     const {

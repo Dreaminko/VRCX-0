@@ -7,6 +7,7 @@ import {
 import type { ChangeEvent } from 'react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
 import { UserPickerRow } from '@/components/search/UserPickerRow';
@@ -14,6 +15,7 @@ import { normalizeEndpoint, normalizeUserId } from '@/domain/users/userFacts';
 import type { UserFact } from '@/domain/users/userFacts';
 import { userImage } from '@/services/entityMediaService';
 import { MINUTES_PER_DAY } from '@/shared/constants/time';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useUserFactsStore } from '@/state/userFactsStore';
 import { Button } from '@/ui/shadcn/button';
@@ -30,7 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import { Switch } from '@/ui/shadcn/switch';
 
-import type { FavoriteFriendGroupOption } from '../../settingsFavoriteGroupOptions';
+import { useSettingsPageSection } from '../../SettingsPageStateContext';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 
@@ -46,39 +48,20 @@ type UserOption = {
     user: KnownUserOption;
 };
 
-type SettingsSocialTabProps = {
-    social: {
-        prefs: {
-            hideUnfriends: boolean;
-            recentActionCooldownEnabled: boolean;
-            recentActionCooldownMinutes: string | number;
-        };
-        selectedFavoriteFriendGroupLabel: string;
-        favoriteFriendGroupOptions: FavoriteFriendGroupOption[];
-        remoteFavoriteFriendGroupOptions: FavoriteFriendGroupOption[];
-        localFavoriteFriendGroupOptions: FavoriteFriendGroupOption[];
-        localFavoriteFriendsGroups: string[];
-        feedHiddenUsers?: string[];
-        onAddFeedHiddenUser(userId: string): unknown;
-        onHideUnfriendsChange(checked: unknown): unknown;
-        onRemoveFeedHiddenUser(userId: string): unknown;
-        onRecentActionCooldownEnabledChange(checked: boolean): unknown;
-        onRecentActionCooldownMinutesChange(value: string): unknown;
-        onRecentActionCooldownMinutesBlur(value: string): unknown;
-        onToggleLocalFavoriteFriendsGroup(
-            groupKey: string,
-            checked: boolean
-        ): unknown;
-    };
-};
-
 function knownUserName(user: Partial<KnownUserOption> | null | undefined) {
     return user?.displayName || user?.username || user?.name || '';
 }
 
-export function SettingsSocialTab({ social }: SettingsSocialTabProps) {
+export function SettingsSocialTab() {
+    const social = useSettingsPageSection('social');
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            recentActionCooldownEnabled: state.recentActionCooldownEnabled,
+            recentActionCooldownMinutes: state.recentActionCooldownMinutes,
+            hideUnfriends: state.hideUnfriends
+        }))
+    );
     const {
-        prefs,
         selectedFavoriteFriendGroupLabel,
         favoriteFriendGroupOptions,
         remoteFavoriteFriendGroupOptions,

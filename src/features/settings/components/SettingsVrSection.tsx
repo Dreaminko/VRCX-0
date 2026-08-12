@@ -1,10 +1,10 @@
-import type { SettingsPageStateSections } from '../settingsPageStateSections';
+import { useShallow } from 'zustand/react/shallow';
+
+import { usePreferencesStore } from '@/state/preferencesStore';
+
+import { useSettingsPageSection } from '../SettingsPageStateContext';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsVrTab } from './settings-tabs/SettingsVrTab';
-
-type SettingsVrSectionProps = {
-    vr: SettingsPageStateSections['vr'];
-};
 
 function secondsInputToMilliseconds(
     value: unknown,
@@ -29,9 +29,35 @@ function roundedBoundedNumber(
         : fallback;
 }
 
-export function SettingsVrSection({ vr }: SettingsVrSectionProps) {
+export function SettingsVrSection() {
+    const vr = useSettingsPageSection('vr');
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            xsNotifications: state.xsNotifications,
+            ovrtHudNotifications: state.ovrtHudNotifications,
+            ovrtWristNotifications: state.ovrtWristNotifications,
+            imageNotifications: state.imageNotifications,
+            notificationTimeout: state.notificationTimeout,
+            notificationOpacity: state.notificationOpacity,
+            hmdNotificationsEnabled: state.hmdNotificationsEnabled,
+            hmdNotificationTimeout: state.hmdNotificationTimeout,
+            hmdNotificationOpacity: state.hmdNotificationOpacity,
+            hmdNotificationStartMode: state.hmdNotificationStartMode,
+            hmdNotificationPosition: state.hmdNotificationPosition,
+            wristOverlayEnabled: state.wristOverlayEnabled,
+            wristOverlayStartMode: state.wristOverlayStartMode,
+            wristOverlayButton: state.wristOverlayButton,
+            wristOverlayHand: state.wristOverlayHand,
+            wristOverlaySize: state.wristOverlaySize,
+            wristOverlayDarkBackground: state.wristOverlayDarkBackground,
+            wristOverlayHidePrivateWorlds:
+                state.wristOverlayHidePrivateWorlds,
+            wristOverlayShowDevices: state.wristOverlayShowDevices,
+            wristOverlayShowBatteryPercent:
+                state.wristOverlayShowBatteryPercent
+        }))
+    );
     const {
-        prefs,
         setHmdNotificationsDialogOpen,
         setVrNotificationsDialogOpen,
         setWristFeedNotificationsDialogOpen,

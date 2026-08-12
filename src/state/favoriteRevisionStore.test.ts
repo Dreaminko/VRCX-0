@@ -7,6 +7,10 @@ describe('favoriteRevisionStore', () => {
         useFavoriteRevisionStore.setState({
             revision: 0,
             localWorldRevision: 0,
+            remoteDetailsRevisionByKind: {
+                avatar: 0,
+                world: 0
+            },
             lastAttemptedRevision: 0,
             pendingRemote: false,
             pendingUnknown: false
@@ -59,6 +63,32 @@ describe('favoriteRevisionStore', () => {
         expect(useFavoriteRevisionStore.getState()).toMatchObject({
             pendingRemote: false,
             pendingUnknown: false
+        });
+    });
+
+    it('invalidates remote details only for the affected kind', () => {
+        const store = useFavoriteRevisionStore.getState();
+
+        store.bumpRevision({ kind: 'world', remote: true });
+
+        expect(
+            useFavoriteRevisionStore.getState().remoteDetailsRevisionByKind
+        ).toEqual({
+            avatar: 0,
+            world: 1
+        });
+    });
+
+    it('invalidates both remote detail kinds for an unknown remote change', () => {
+        const store = useFavoriteRevisionStore.getState();
+
+        store.bumpRevision({ kind: 'unknown', remote: true });
+
+        expect(
+            useFavoriteRevisionStore.getState().remoteDetailsRevisionByKind
+        ).toEqual({
+            avatar: 1,
+            world: 1
         });
     });
 

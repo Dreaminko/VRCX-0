@@ -13,7 +13,6 @@ export function buildShellSection({
 }
 
 export function buildSystemSection({
-    prefs,
     savePreferenceValue,
     saveBoolPreference,
     setProxyEnabledPreference,
@@ -25,7 +24,6 @@ export function buildSystemSection({
     promptBackgroundModeDelayMinutes
 }: BuildSettingsPageStateSectionsInput) {
     return {
-        prefs,
         savePreferenceValue,
         saveBoolPreference,
         setProxyEnabledPreference,

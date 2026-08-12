@@ -178,81 +178,86 @@ export function ScreenshotMetadataPage() {
         }
     }
 
-    async function loadScreenshot(path: string, withCarousel = true) {
-        if (!path) {
-            return;
-        }
-
-        const requestId = metadataRequestRef.current + 1;
-        metadataRequestRef.current = requestId;
-        setIsMetadataLoading(true);
-        setMetadataError('');
-
-        try {
-            const rawMetadata = recordFromUnknown(
-                await mediaRepository.getScreenshotMetadata(path)
-            );
-
-            if (metadataRequestRef.current !== requestId) {
+    const loadScreenshot = useCallback(
+        async (path: string, withCarousel = true) => {
+            if (!path) {
                 return;
             }
 
-            const sourceFile =
-                typeof rawMetadata.sourceFile === 'string'
-                    ? rawMetadata.sourceFile
+            const requestId = metadataRequestRef.current + 1;
+            metadataRequestRef.current = requestId;
+            setIsMetadataLoading(true);
+            setMetadataError('');
+
+            try {
+                const rawMetadata = recordFromUnknown(
+                    await mediaRepository.getScreenshotMetadata(path)
+                );
+
+                if (metadataRequestRef.current !== requestId) {
+                    return;
+                }
+
+                const sourceFile =
+                    typeof rawMetadata.sourceFile === 'string'
+                        ? rawMetadata.sourceFile
+                        : '';
+                if (!sourceFile) {
+                    const message = t(
+                        'dialog.screenshot_metadata.invalid_file'
+                    );
+                    setMetadata(null);
+                    setImageUrl('');
+                    setMetadataError(message);
+                    toast.error(message);
+                    return;
+                }
+
+                const extra = await mediaRepository.getExtraScreenshotData(
+                    sourceFile,
+                    withCarousel
+                );
+
+                if (metadataRequestRef.current !== requestId) {
+                    return;
+                }
+
+                const nextMetadata = normalizeScreenshotMetadata(
+                    rawMetadata,
+                    extra
+                );
+                const nextMetadataError = rawMetadata?.error
+                    ? String(rawMetadata.error)
                     : '';
-            if (!sourceFile) {
-                const message = t('dialog.screenshot_metadata.invalid_file');
+                imageVersionRef.current += 1;
+
+                setMetadata(nextMetadata);
+                setMetadataError(nextMetadataError);
+                setSelectedPath(nextMetadata.filePath);
+                setImageUrl(
+                    `${convertFileSrc(nextMetadata.filePath, 'vrcx-0-img')}?v=${imageVersionRef.current}`
+                );
+            } catch (error) {
+                if (metadataRequestRef.current !== requestId) {
+                    return;
+                }
+
                 setMetadata(null);
                 setImageUrl('');
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : 'Failed to load screenshot metadata.';
                 setMetadataError(message);
                 toast.error(message);
-                return;
+            } finally {
+                if (metadataRequestRef.current === requestId) {
+                    setIsMetadataLoading(false);
+                }
             }
-
-            const extra = await mediaRepository.getExtraScreenshotData(
-                sourceFile,
-                withCarousel
-            );
-
-            if (metadataRequestRef.current !== requestId) {
-                return;
-            }
-
-            const nextMetadata = normalizeScreenshotMetadata(
-                rawMetadata,
-                extra
-            );
-            const nextMetadataError = rawMetadata?.error
-                ? String(rawMetadata.error)
-                : '';
-            imageVersionRef.current += 1;
-
-            setMetadata(nextMetadata);
-            setMetadataError(nextMetadataError);
-            setSelectedPath(nextMetadata.filePath);
-            setImageUrl(
-                `${convertFileSrc(nextMetadata.filePath, 'vrcx-0-img')}?v=${imageVersionRef.current}`
-            );
-        } catch (error) {
-            if (metadataRequestRef.current !== requestId) {
-                return;
-            }
-
-            setMetadata(null);
-            setImageUrl('');
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : 'Failed to load screenshot metadata.';
-            setMetadataError(message);
-            toast.error(message);
-        } finally {
-            if (metadataRequestRef.current === requestId) {
-                setIsMetadataLoading(false);
-            }
-        }
-    }
+        },
+        [setSelectedPath, t]
+    );
 
     useEffect(() => {
         if (!routePath) {
@@ -260,7 +265,7 @@ export function ScreenshotMetadataPage() {
         }
         setSearchViewMode('detail');
         loadScreenshot(routePath, true);
-    }, [routePath]);
+    }, [loadScreenshot, routePath, setSearchViewMode]);
 
     const { navigateNext, navigatePrev } = useScreenshotMetadataNavigation({
         loadScreenshot,

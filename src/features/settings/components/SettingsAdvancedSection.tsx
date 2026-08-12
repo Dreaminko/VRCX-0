@@ -1,21 +1,32 @@
+import { useShallow } from 'zustand/react/shallow';
+
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-import type { SettingsPageStateSections } from '../settingsPageStateSections';
+import { useSettingsPageSection } from '../SettingsPageStateContext';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsAdvancedTab } from './settings-tabs/SettingsAdvancedTab';
 
-type SettingsAdvancedSectionProps = {
-    advanced: SettingsPageStateSections['advanced'];
-};
-
-export function SettingsAdvancedSection({
-    advanced
-}: SettingsAdvancedSectionProps) {
+export function SettingsAdvancedSection() {
+    const advanced = useSettingsPageSection('advanced');
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            relaunchVRChatAfterCrash: state.relaunchVRChatAfterCrash,
+            vrcQuitFix: state.vrcQuitFix,
+            focusVrchatOnJoin: state.focusVrchatOnJoin,
+            autoSweepVRChatCache: state.autoSweepVRChatCache,
+            avatarAutoCleanup: state.avatarAutoCleanup,
+            gameLogDisabled: state.gameLogDisabled,
+            feedPersistenceDisabled: state.feedPersistenceDisabled,
+            anonymousUsageTelemetry: state.anonymousUsageTelemetry,
+            udonExceptionLogging: state.udonExceptionLogging,
+            logResourceLoad: state.logResourceLoad
+        }))
+    );
     const hostPlatform = useRuntimeStore(
         (state) => state.hostCapabilities.platform
     );
     const {
-        prefs,
         avatarAutoCleanupOptions,
         sqliteTableSizes,
         sqliteTableSizeRows,

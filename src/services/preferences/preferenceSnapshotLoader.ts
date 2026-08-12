@@ -9,6 +9,7 @@ import {
     parseOverlayActivityFilterProfile
 } from '@/shared/constants/overlayActivityFilters';
 import { MINUTES_PER_DAY } from '@/shared/constants/time';
+import { DEFAULT_GENERIC_WEBHOOK_FIELDS } from '@/shared/constants/webhook';
 import { normalizeTrustColors } from '@/shared/utils/trustColors';
 import {
     normalizeAutoDeletePrintsLimit,
@@ -40,6 +41,12 @@ import {
 import { POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY } from '../changelogService';
 import { configureRecentActionCooldown } from '../recentActionService';
 import { applyTrustColorClasses } from '../trustColorService';
+import {
+    APP_CJK_FONT_PACK_DEFAULT_KEY,
+    APP_FONT_DEFAULT_KEY,
+    normalizeAppCjkFontPack,
+    normalizeAppFontFamily
+} from '../themeService';
 import {
     DEFAULT_NOTIFICATION_LAYOUT,
     DEFAULT_TABLE_LIMITS,
@@ -131,6 +138,7 @@ export async function loadPreferenceSnapshot() {
         webhookAuthEventsEnabled,
         webhookUrl,
         webhookFormat,
+        webhookFields,
         wristOverlayEnabled,
         wristOverlayStartMode,
         wristOverlayButton,
@@ -187,6 +195,9 @@ export async function loadPreferenceSnapshot() {
         translationAPIModel,
         translationAPIPrompt,
         translationAPIReasoningEffort,
+        appFontFamily,
+        appCjkFontPack,
+        customFontFamily,
         customFontPrimary,
         customFontSecondary,
         customFontOverride,
@@ -260,6 +271,10 @@ export async function loadPreferenceSnapshot() {
         configRepository.getBool('webhookAuthEventsEnabled', true),
         configRepository.getString('webhookUrl', ''),
         configRepository.getString('webhookFormat', 'generic'),
+        configRepository.getString(
+            'webhookFields',
+            DEFAULT_GENERIC_WEBHOOK_FIELDS
+        ),
         configRepository.getBool('wristOverlayEnabled', false),
         configRepository.getString('wristOverlayStartMode', 'vrchatVrMode'),
         configRepository.getString('wristOverlayButton', 'grip'),
@@ -334,6 +349,15 @@ export async function loadPreferenceSnapshot() {
         ),
         configRepository.getString('translationAPIPrompt', ''),
         configRepository.getString('translationAPIReasoningEffort', ''),
+        configRepository.getString(
+            'VRCX_fontFamily',
+            APP_FONT_DEFAULT_KEY
+        ),
+        configRepository.getString(
+            'VRCX_cjkFontPack',
+            APP_CJK_FONT_PACK_DEFAULT_KEY
+        ),
+        configRepository.getString('customFontFamily', ''),
         configRepository.getString('customFontPrimary', ''),
         configRepository.getString('customFontSecondary', ''),
         configRepository.getString('customFontOverride', ''),
@@ -468,6 +492,9 @@ export async function loadPreferenceSnapshot() {
         webhookAuthEventsEnabled: Boolean(webhookAuthEventsEnabled),
         webhookUrl: String(webhookUrl || ''),
         webhookFormat: webhookFormat === 'discord' ? 'discord' : 'generic',
+        webhookFields: String(
+            webhookFields || DEFAULT_GENERIC_WEBHOOK_FIELDS
+        ),
         vrOverlayPanelEnabled: false,
         vrOverlayPanelAllFriendsIncludesFavorites: false,
         wristOverlayEnabled: Boolean(wristOverlayEnabled),
@@ -548,6 +575,9 @@ export async function loadPreferenceSnapshot() {
         translationAPIModel: translationAPIModel || DEFAULT_TRANSLATION_MODEL,
         translationAPIPrompt: translationAPIPrompt || '',
         translationAPIReasoningEffort: translationAPIReasoningEffort || '',
+        appFontFamily: normalizeAppFontFamily(appFontFamily),
+        appCjkFontPack: normalizeAppCjkFontPack(appCjkFontPack),
+        customFontFamily: customFontFamily || '',
         customFontPrimary: customFontPrimary || '',
         customFontSecondary: customFontSecondary || '',
         customFontOverride: customFontOverride || '',

@@ -11,6 +11,7 @@ interface FavoritePendingRevision {
 interface FavoriteRevisionStoreState {
     revision: number;
     localWorldRevision: number;
+    remoteDetailsRevisionByKind: Record<'avatar' | 'world', number>;
     lastAttemptedRevision: number;
     pendingRemote: boolean;
     pendingUnknown: boolean;
@@ -24,6 +25,10 @@ interface FavoriteRevisionStoreState {
 const initialState = {
     revision: 0,
     localWorldRevision: 0,
+    remoteDetailsRevisionByKind: {
+        avatar: 0,
+        world: 0
+    },
     lastAttemptedRevision: 0,
     pendingRemote: false,
     pendingUnknown: false
@@ -39,6 +44,16 @@ export const useFavoriteRevisionStore = create<FavoriteRevisionStoreState>(
                     !remote && (kind === 'world' || kind === 'unknown')
                         ? state.localWorldRevision + 1
                         : state.localWorldRevision,
+                remoteDetailsRevisionByKind: {
+                    avatar:
+                        remote && (kind === 'avatar' || kind === 'unknown')
+                            ? state.remoteDetailsRevisionByKind.avatar + 1
+                            : state.remoteDetailsRevisionByKind.avatar,
+                    world:
+                        remote && (kind === 'world' || kind === 'unknown')
+                            ? state.remoteDetailsRevisionByKind.world + 1
+                            : state.remoteDetailsRevisionByKind.world
+                },
                 pendingRemote: state.pendingRemote || remote,
                 pendingUnknown: state.pendingUnknown || kind === 'unknown'
             }));
@@ -75,6 +90,10 @@ export const useFavoriteRevisionStore = create<FavoriteRevisionStoreState>(
                 return {
                     revision,
                     localWorldRevision: state.localWorldRevision + 1,
+                    remoteDetailsRevisionByKind: {
+                        avatar: state.remoteDetailsRevisionByKind.avatar + 1,
+                        world: state.remoteDetailsRevisionByKind.world + 1
+                    },
                     lastAttemptedRevision: revision,
                     pendingRemote: false,
                     pendingUnknown: false

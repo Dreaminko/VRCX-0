@@ -132,6 +132,10 @@ export function useFriendListRows({
                 .join('\u0001'),
         [rosterRows]
     );
+    const rosterRowsRef = useRef(rosterRows);
+    useEffect(() => {
+        rosterRowsRef.current = rosterRows;
+    }, [rosterRows]);
     const filteredRows = useMemo(() => {
         return filterFriendListRows({
             rosterRows,
@@ -186,17 +190,18 @@ export function useFriendListRows({
     }, [currentUserId]);
 
     useEffect(() => {
-        if (!rosterRows.length) {
+        if (!rosterStatsKey) {
             return undefined;
         }
         let active = true;
         const requestId = statsHydrationRequestRef.current + 1;
         statsHydrationRequestRef.current = requestId;
         const timer = setTimeout(() => {
-            const userIds = rosterRows
+            const requestedRows = rosterRowsRef.current;
+            const userIds = requestedRows
                 .map((friend) => normalizeId(friend?.id))
                 .filter(Boolean);
-            const displayNames = rosterRows
+            const displayNames = requestedRows
                 .map((friend) => String(friend?.displayName || '').trim())
                 .filter(Boolean);
             const mutualSnapshotPromise = currentUserId
@@ -225,12 +230,13 @@ export function useFriendListRows({
                         return;
                     }
                     const normalizedStatsRows = normalizeStatsRows(statsRows);
+                    const currentRosterRows = rosterRowsRef.current;
                     const statsById = buildUserStatsById(
                         normalizedStatsRows,
-                        rosterRows
+                        currentRosterRows
                     );
                     const patches: FriendListStatsPatch[] = [];
-                    for (const friend of rosterRows) {
+                    for (const friend of currentRosterRows) {
                         const friendId = normalizeId(friend?.id);
                         if (!friendId) {
                             continue;
@@ -267,10 +273,7 @@ export function useFriendListRows({
                             patches.push({
                                 userId: friendId,
                                 patch,
-                                stateBucket:
-                                    friend.stateBucket ||
-                                    friend.state ||
-                                    'offline'
+                                stateBucketAuthority: 'preserve'
                             });
                         }
                     }

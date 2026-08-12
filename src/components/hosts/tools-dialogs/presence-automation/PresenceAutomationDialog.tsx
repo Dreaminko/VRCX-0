@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useLocalWorldFavorites } from '@/features/favorites/useLocalWorldFavorites';
+import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';

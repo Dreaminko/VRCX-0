@@ -83,9 +83,9 @@ import {
 } from './inventoryHelpers';
 import {
     IMAGE_UPLOAD_ACCEPT,
-    useInventoryPageController
-} from './useInventoryPageController';
-import type { InventoryRow } from './useInventoryPageState';
+    useInventoryPageState,
+    type InventoryRow
+} from './useInventoryPageState';
 
 type PreviewHandler = (options: MediaPreviewOptions) => void;
 
@@ -432,7 +432,7 @@ function InventoryRows({
 export function InventoryPage() {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const inventory = useInventoryPageController();
+    const inventory = useInventoryPageState();
 
     return (
         <PageScaffold className="gallery-page">

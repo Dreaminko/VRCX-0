@@ -32,9 +32,9 @@ vi.mock('@/state/runtimeStore', () => ({
 }));
 
 import {
-    bumpFavoriteRemoteDetailsRefresh,
     useFavoriteRemoteDetails
 } from './useFavoriteRemoteDetails';
+import { useFavoriteRevisionStore } from '@/state/favoriteRevisionStore';
 
 describe('useFavoriteRemoteDetails', () => {
     afterEach(() => {
@@ -43,6 +43,12 @@ describe('useFavoriteRemoteDetails', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        useFavoriteRevisionStore.setState({
+            remoteDetailsRevisionByKind: {
+                avatar: 0,
+                world: 0
+            }
+        });
         mocks.appFavoriteDetailsHydrate.mockResolvedValue({
             detailsById: {},
             availabilityById: {},
@@ -301,7 +307,7 @@ describe('useFavoriteRemoteDetails', () => {
         });
     });
 
-    it('refetches when the module-level refresh signal is bumped', async () => {
+    it('refetches when the matching remote favorite revision changes', async () => {
         const { result } = renderHook(() =>
             useFavoriteRemoteDetails({
                 type: 'world',
@@ -313,11 +319,35 @@ describe('useFavoriteRemoteDetails', () => {
             expect(result.current.status).toBe('ready');
         });
         act(() => {
-            bumpFavoriteRemoteDetailsRefresh();
+            useFavoriteRevisionStore.getState().bumpRevision({
+                kind: 'world',
+                remote: true
+            });
         });
         await waitFor(() => {
             expect(mocks.appFavoriteDetailsHydrate).toHaveBeenCalledTimes(2);
         });
+    });
+
+    it('does not refetch for another favorite kind revision', async () => {
+        const { result } = renderHook(() =>
+            useFavoriteRemoteDetails({
+                type: 'world',
+                favoriteIds: ['wrld_1']
+            })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ready');
+        });
+        act(() => {
+            useFavoriteRevisionStore.getState().bumpRevision({
+                kind: 'avatar',
+                remote: true
+            });
+        });
+
+        expect(mocks.appFavoriteDetailsHydrate).toHaveBeenCalledTimes(1);
     });
 
     it('surfaces backend failures as an error state', async () => {

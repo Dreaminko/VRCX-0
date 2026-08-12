@@ -146,7 +146,11 @@ describe('preferenceSnapshotLoader', () => {
                 tableDensity: '',
                 notificationLayout: 'table',
                 hmdNotificationStartMode: 'steamvr',
-                hmdNotificationPosition: 'left'
+                hmdNotificationPosition: 'left',
+                webhookFields: 'event,displayName',
+                VRCX_fontFamily: 'invalid-font',
+                VRCX_cjkFontPack: 'invalid-cjk',
+                customFontFamily: 'Custom Font'
             };
             return Promise.resolve(values[key] ?? String(fallback ?? ''));
         });
@@ -201,6 +205,10 @@ describe('preferenceSnapshotLoader', () => {
             hmdNotificationTimeout: 30000,
             hmdNotificationOpacity: 0,
             hmdNotificationPosition: 'left',
+            webhookFields: 'event,displayName',
+            appFontFamily: 'geist',
+            appCjkFontPack: 'noto',
+            customFontFamily: 'Custom Font',
             proxyEnabled: true,
             proxyServer: '127.0.0.1:7890',
             tablePageSize: 25,

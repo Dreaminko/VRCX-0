@@ -53,7 +53,7 @@ import {
 import { Textarea } from '@/ui/shadcn/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
-import { useLocalWorldFavorites } from './useLocalWorldFavorites';
+import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 
 type ImportKind = 'world' | 'avatar' | 'friend';
 type ImportLocation = 'remote' | 'local';

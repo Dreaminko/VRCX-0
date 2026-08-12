@@ -1,5 +1,12 @@
 import { HeartIcon, SettingsIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ReactNode
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -118,7 +125,7 @@ export function DashboardFeedWidgetView({
     }, [liveFeedEntries, liveFeedPatches, liveFeedVersion]);
 
     useEffect(() => {
-        lastLiveFeedSequenceRef.current = liveFeedVersion;
+        lastLiveFeedSequenceRef.current = liveFeedSnapshotRef.current.version;
     }, [currentUserId, feedPersistenceDisabled]);
 
     useEffect(() => {
@@ -130,80 +137,90 @@ export function DashboardFeedWidgetView({
         setRows([]);
     }, [feedPersistenceDisabled]);
 
-    async function mergeWidgetRowsWithLatestLive({
-        rows,
-        minLiveSequence,
-        requestIsCurrent
-    }: {
-        rows: FeedRow[];
-        minLiveSequence: number;
-        requestIsCurrent(): boolean;
-    }): Promise<FeedReadModelResult<FeedRow> | null> {
-        let result: FeedReadModelResult<FeedRow> = {
+    const mergeWidgetRowsWithLatestLive = useCallback(
+        async ({
             rows,
-            maxSequence: minLiveSequence
-        };
-        let previousMaxSequence = minLiveSequence;
-        while (requestIsCurrent()) {
-            const liveFeedSnapshot = liveFeedSnapshotRef.current;
-            result = mergeFeedRowsWithSnapshot({
-                buildMergeOptions: ({ rows }) => ({
-                    rows,
-                    userId: currentUserId,
-                    filters: activeFilters,
-                    maxRows: FEED_WIDGET_MAX_ROWS
-                }),
-                liveEntries: liveFeedSnapshot.entries,
-                livePatches: liveFeedSnapshot.patches,
-                minLiveSequence: result.maxSequence,
-                rows: result.rows
-            });
-            if (!requestIsCurrent()) {
-                return null;
+            minLiveSequence,
+            requestIsCurrent
+        }: {
+            rows: FeedRow[];
+            minLiveSequence: number;
+            requestIsCurrent(): boolean;
+        }): Promise<FeedReadModelResult<FeedRow> | null> => {
+            let result: FeedReadModelResult<FeedRow> = {
+                rows,
+                maxSequence: minLiveSequence
+            };
+            let previousMaxSequence = minLiveSequence;
+            while (requestIsCurrent()) {
+                const liveFeedSnapshot = liveFeedSnapshotRef.current;
+                result = mergeFeedRowsWithSnapshot({
+                    buildMergeOptions: ({ rows }) => ({
+                        rows,
+                        userId: currentUserId,
+                        filters: activeFilters,
+                        maxRows: FEED_WIDGET_MAX_ROWS
+                    }),
+                    liveEntries: liveFeedSnapshot.entries,
+                    livePatches: liveFeedSnapshot.patches,
+                    minLiveSequence: result.maxSequence,
+                    rows: result.rows
+                });
+                if (!requestIsCurrent()) {
+                    return null;
+                }
+                const liveVersion = liveFeedSnapshotRef.current.version;
+                if (
+                    liveVersion <= result.maxSequence ||
+                    result.maxSequence <= previousMaxSequence
+                ) {
+                    return result;
+                }
+                previousMaxSequence = result.maxSequence;
             }
-            const liveVersion = liveFeedSnapshotRef.current.version;
-            if (
-                liveVersion <= result.maxSequence ||
-                result.maxSequence <= previousMaxSequence
-            ) {
-                return result;
-            }
-            previousMaxSequence = result.maxSequence;
-        }
-        return null;
-    }
+            return null;
+        },
+        [activeFilters, currentUserId]
+    );
 
-    async function prepareWidgetRowsForCommit({
-        result,
-        requestIsCurrent
-    }: {
-        result: FeedReadModelResult<FeedRow>;
-        requestIsCurrent(): boolean;
-    }): Promise<FeedReadModelResult<FeedRow> | null> {
-        let nextResult = result;
-        while (requestIsCurrent()) {
-            liveMergeRequestIdRef.current += 1;
-            if (liveFeedSnapshotRef.current.version <= nextResult.maxSequence) {
-                return nextResult;
+    const prepareWidgetRowsForCommit = useCallback(
+        async ({
+            result,
+            requestIsCurrent
+        }: {
+            result: FeedReadModelResult<FeedRow>;
+            requestIsCurrent(): boolean;
+        }): Promise<FeedReadModelResult<FeedRow> | null> => {
+            let nextResult = result;
+            while (requestIsCurrent()) {
+                liveMergeRequestIdRef.current += 1;
+                if (
+                    liveFeedSnapshotRef.current.version <=
+                    nextResult.maxSequence
+                ) {
+                    return nextResult;
+                }
+                const mergedResult = await mergeWidgetRowsWithLatestLive({
+                    rows: nextResult.rows,
+                    minLiveSequence: nextResult.maxSequence,
+                    requestIsCurrent
+                });
+                if (!mergedResult) {
+                    return null;
+                }
+                nextResult = mergedResult;
             }
-            const mergedResult = await mergeWidgetRowsWithLatestLive({
-                rows: nextResult.rows,
-                minLiveSequence: nextResult.maxSequence,
-                requestIsCurrent
-            });
-            if (!mergedResult) {
-                return null;
-            }
-            nextResult = mergedResult;
-        }
-        return null;
-    }
+            return null;
+        },
+        [mergeWidgetRowsWithLatestLive]
+    );
 
     useEffect(() => {
         let active = true;
 
         if (!currentUserId) {
-            lastLiveFeedSequenceRef.current = liveFeedVersion;
+            lastLiveFeedSequenceRef.current =
+                liveFeedSnapshotRef.current.version;
             setRows([]);
             setLoadStatus('idle');
             setDetail('');
@@ -273,7 +290,9 @@ export function DashboardFeedWidgetView({
         activeFilters,
         addGameLogEventCount,
         currentUserId,
-        feedPersistenceDisabled
+        feedPersistenceDisabled,
+        mergeWidgetRowsWithLatestLive,
+        prepareWidgetRowsForCommit
     ]);
 
     useEffect(() => {
@@ -319,7 +338,8 @@ export function DashboardFeedWidgetView({
         currentUserId,
         liveFeedEntries,
         liveFeedPatches,
-        liveFeedVersion
+        liveFeedVersion,
+        mergeWidgetRowsWithLatestLive
     ]);
 
     const annotatedRows = useMemo(

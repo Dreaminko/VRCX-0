@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
 
@@ -31,10 +31,13 @@ export function useAvatarProviderConfig({ commit }: AvatarProviderConfigDeps) {
     );
     const avatarProviderSaveSeqRef = useRef(0);
 
-    function applyAvatarProviderConfig(nextConfig: AvatarProviderConfig) {
-        avatarProviderConfigRef.current = nextConfig;
-        setAvatarProviderConfig(nextConfig);
-    }
+    const applyAvatarProviderConfig = useCallback(
+        (nextConfig: AvatarProviderConfig) => {
+            avatarProviderConfigRef.current = nextConfig;
+            setAvatarProviderConfig(nextConfig);
+        },
+        []
+    );
 
     async function saveAvatarProviderConfig(nextConfig: AvatarProviderConfig) {
         const saveSeq = avatarProviderSaveSeqRef.current + 1;

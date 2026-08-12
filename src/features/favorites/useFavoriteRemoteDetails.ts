@@ -1,12 +1,7 @@
-import {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    useSyncExternalStore
-} from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { commands } from '@/platform/tauri/bindings';
+import { useFavoriteRevisionStore } from '@/state/favoriteRevisionStore';
 import type { FavoriteEntityDetail } from '@/state/favoriteStoreTypes';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -26,27 +21,6 @@ interface UseFavoriteRemoteDetailsOptions {
     cacheKey?: string;
     enabled?: boolean;
     refreshToken?: number;
-}
-
-let remoteDetailsRefreshGeneration = 0;
-const remoteDetailsRefreshListeners = new Set<() => void>();
-
-export function bumpFavoriteRemoteDetailsRefresh(): void {
-    remoteDetailsRefreshGeneration += 1;
-    for (const listener of [...remoteDetailsRefreshListeners]) {
-        listener();
-    }
-}
-
-function subscribeToRemoteDetailsRefresh(listener: () => void) {
-    remoteDetailsRefreshListeners.add(listener);
-    return () => {
-        remoteDetailsRefreshListeners.delete(listener);
-    };
-}
-
-function getRemoteDetailsRefreshGeneration() {
-    return remoteDetailsRefreshGeneration;
 }
 
 function favoriteRemoteDetailsLoadingDetail(
@@ -220,9 +194,8 @@ export function useFavoriteRemoteDetails({
 }: UseFavoriteRemoteDetailsOptions) {
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
-    const refreshGeneration = useSyncExternalStore(
-        subscribeToRemoteDetailsRefresh,
-        getRemoteDetailsRefreshGeneration
+    const remoteDetailsRevision = useFavoriteRevisionStore(
+        (state) => state.remoteDetailsRevisionByKind[type]
     );
     const normalizedIds = useMemo(
         () => normalizeValues(favoriteIds),
@@ -245,14 +218,14 @@ export function useFavoriteRemoteDetails({
         normalizedTags.join('|'),
         cacheKey,
         String(refreshToken),
-        String(refreshGeneration)
+        String(remoteDetailsRevision)
     ].join('::');
     const hasIds =
         normalizedIds.length > 0 && normalizedRequestedIds.length > 0;
     const refreshKey = [
         cacheKey,
         String(refreshToken),
-        String(refreshGeneration)
+        String(remoteDetailsRevision)
     ].join('::');
     const [state, setState] = useState(() => buildInitialState());
     const requestParamsRef = useRef({

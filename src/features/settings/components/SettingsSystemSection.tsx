@@ -1,29 +1,44 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
 
 import { POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY } from '@/services/changelogService';
 import { restartApplication } from '@/services/shellIntegrationService';
 import { isUpdateCheckDisabledBuild } from '@/shared/buildLabel';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-import type { SettingsPageStateSections } from '../settingsPageStateSections';
+import { useSettingsPageSection } from '../SettingsPageStateContext';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsSystemTab } from './settings-tabs/SettingsSystemTab';
 
-type SettingsSystemSectionProps = {
-    system: SettingsPageStateSections['system'];
-};
-
-export function SettingsSystemSection({ system }: SettingsSystemSectionProps) {
+export function SettingsSystemSection() {
     const { t } = useTranslation();
+    const system = useSettingsPageSection('system');
     const hostPlatform = useRuntimeStore(
         (state) => state.hostCapabilities.platform
     );
     const setSystemHostOpen = useRuntimeStore(
         (state) => state.setSystemHostOpen
     );
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            isStartAtWindowsStartup: state.isStartAtWindowsStartup,
+            isStartAsMinimizedState: state.isStartAsMinimizedState,
+            isCloseToTray: state.isCloseToTray,
+            systemWindowFrame: state.systemWindowFrame,
+            autoLoginDelayEnabled: state.autoLoginDelayEnabled,
+            autoLoginDelaySeconds: state.autoLoginDelaySeconds,
+            autoInstallUpdatesOnStartup: state.autoInstallUpdatesOnStartup,
+            showPostUpdateChangelogToast: state.showPostUpdateChangelogToast,
+            backgroundModeEnabled: state.backgroundModeEnabled,
+            backgroundModeDelayEnabled: state.backgroundModeDelayEnabled,
+            backgroundModeDelayMinutes: state.backgroundModeDelayMinutes,
+            proxyEnabled: state.proxyEnabled,
+            proxyServer: state.proxyServer
+        }))
+    );
     const {
-        prefs,
         savePreferenceValue,
         saveBoolPreference,
         setProxyEnabledPreference,

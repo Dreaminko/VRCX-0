@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     confirm: vi.fn(),
     deleteFriend: vi.fn(),
     deleteFriends: vi.fn(),
+    getMutualSnapshot: vi.fn(),
     runtimeState: {
         auth: {
             currentUserId: 'usr_self',
@@ -78,7 +79,7 @@ vi.mock('@/services/friendRelationshipService', () => ({
 }));
 
 vi.mock('@/repositories/mutualGraphPersistenceRepository', () => ({
-    default: { getSnapshot: vi.fn() }
+    default: { getSnapshot: mocks.getMutualSnapshot }
 }));
 
 vi.mock('@/services/dialogService', () => ({ openUserDialog: vi.fn() }));
@@ -91,6 +92,19 @@ vi.mock('@/services/mutualGraphFetchService', () => ({
 }));
 
 import { useFriendListRowActions } from './useFriendListRowActions';
+
+type MutualSnapshot = {
+    snapshot: Map<string, string[]>;
+    meta: Map<string, { optedOut: boolean }>;
+};
+
+function deferred<Value>() {
+    let resolve: (value: Value) => void = () => undefined;
+    const promise = new Promise<Value>((nextResolve) => {
+        resolve = nextResolve;
+    });
+    return { promise, resolve };
+}
 
 const friend: FriendListRow = {
     id: 'usr_friend',
@@ -136,7 +150,21 @@ function renderActions() {
 describe('useFriendListRowActions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mocks.runtimeState.auth.currentUserId = 'usr_self';
+        mocks.runtimeState.auth.currentUserEndpoint =
+            'https://api.vrchat.cloud/api/1';
         mocks.friendState.friendsById = { usr_friend: friend };
+        mocks.runtimeState.mutualGraph = {
+            runId: 0,
+            status: 'idle',
+            ownerUserId: '',
+            processedFriends: 0,
+            totalFriends: 0
+        };
+        mocks.getMutualSnapshot.mockResolvedValue({
+            snapshot: new Map(),
+            meta: new Map()
+        });
     });
 
     it('does not unfriend when destructive confirmation is cancelled', async () => {
@@ -174,5 +202,102 @@ describe('useFriendListRowActions', () => {
             'dialog.user.toast.applied_on_vrchat_but_local_update_failed'
         );
         expect(mocks.toastSuccess).not.toHaveBeenCalled();
+    });
+
+    it('preserves current presence when applying completed mutual stats', async () => {
+        mocks.runtimeState.mutualGraph = {
+            runId: 1,
+            status: 'completed',
+            ownerUserId: 'usr_self',
+            processedFriends: 1,
+            totalFriends: 1
+        };
+        mocks.getMutualSnapshot.mockResolvedValue({
+            snapshot: new Map([['usr_friend', ['usr_mutual']]]),
+            meta: new Map([['usr_friend', { optedOut: false }]])
+        });
+
+        renderActions();
+
+        await act(async () => {
+            await Promise.resolve();
+        });
+
+        expect(mocks.friendState.applyFriendPatch).toHaveBeenCalledWith({
+            userId: 'usr_friend',
+            patch: {
+                $mutualCount: 1,
+                $mutualOptedOut: false
+            },
+            stateBucketAuthority: 'preserve'
+        });
+    });
+
+    it('ignores a completed snapshot after the authenticated user changes', async () => {
+        const pendingSnapshot = deferred<MutualSnapshot>();
+        mocks.runtimeState.mutualGraph = {
+            runId: 1,
+            status: 'completed',
+            ownerUserId: 'usr_self',
+            processedFriends: 1,
+            totalFriends: 1
+        };
+        mocks.getMutualSnapshot.mockReturnValue(pendingSnapshot.promise);
+
+        renderActions();
+        await act(async () => {
+            await Promise.resolve();
+        });
+        mocks.runtimeState.auth.currentUserId = 'usr_other';
+        mocks.runtimeState.auth.currentUserEndpoint =
+            'https://api.vrchat.cloud/api/1?user=other';
+        mocks.friendState.friendsById = {
+            usr_other_friend: {
+                ...friend,
+                id: 'usr_other_friend'
+            }
+        };
+        await act(async () => {
+            pendingSnapshot.resolve({
+                snapshot: new Map([['usr_friend', ['usr_mutual']]]),
+                meta: new Map()
+            });
+            await pendingSnapshot.promise;
+        });
+
+        expect(mocks.friendState.applyFriendPatch).not.toHaveBeenCalled();
+    });
+
+    it('ignores a completed snapshot after a newer run starts', async () => {
+        const pendingSnapshot = deferred<MutualSnapshot>();
+        mocks.runtimeState.mutualGraph = {
+            runId: 1,
+            status: 'completed',
+            ownerUserId: 'usr_self',
+            processedFriends: 1,
+            totalFriends: 1
+        };
+        mocks.getMutualSnapshot.mockReturnValue(pendingSnapshot.promise);
+
+        renderActions();
+        await act(async () => {
+            await Promise.resolve();
+        });
+        mocks.runtimeState.mutualGraph = {
+            runId: 2,
+            status: 'running',
+            ownerUserId: 'usr_self',
+            processedFriends: 0,
+            totalFriends: 1
+        };
+        await act(async () => {
+            pendingSnapshot.resolve({
+                snapshot: new Map([['usr_friend', ['usr_mutual']]]),
+                meta: new Map()
+            });
+            await pendingSnapshot.promise;
+        });
+
+        expect(mocks.friendState.applyFriendPatch).not.toHaveBeenCalled();
     });
 });

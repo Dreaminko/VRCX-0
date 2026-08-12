@@ -3,8 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { bumpFavoriteRemoteDetailsRefresh } from '@/features/favorites/useFavoriteRemoteDetails';
-import { useLocalWorldFavorites } from '@/features/favorites/useLocalWorldFavorites';
+import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
 import { persistAvatarDetails } from '@/services/favoriteAvatarCacheService';
@@ -255,9 +254,6 @@ export function FavoriteActionMenu({
                 persistWorldDetails(entity, normalizedEntityId);
             } else if (kind === 'avatar' && isRecord(entity)) {
                 persistAvatarDetails(entity, normalizedEntityId);
-            }
-            if (kind === 'world' || kind === 'avatar') {
-                bumpFavoriteRemoteDetailsRefresh();
             }
             toast.success(t('view.favorite.label.favorite_added'));
         } catch (error) {

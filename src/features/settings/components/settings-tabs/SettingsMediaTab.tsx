@@ -1,50 +1,34 @@
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
 import { Switch } from '@/ui/shadcn/switch';
 
+import { useSettingsPageSection } from '../../SettingsPageStateContext';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 
-type SettingsMediaPrefs = {
-    screenshotHelper: boolean;
-    screenshotHelperModifyFilename: boolean;
-    screenshotHelperCopyToClipboard: boolean;
-    saveInstancePrints: boolean;
-    cropInstancePrints: boolean;
-    autoDeleteOldPrints: boolean;
-    autoDeletePrintsLimit: unknown;
-    saveInstanceStickers: boolean;
-    saveInstanceEmoji: boolean;
-    userGeneratedContentPath?: unknown;
-};
-
-type SettingsMediaState = {
-    prefs: SettingsMediaPrefs;
-    onScreenshotHelperChange: (checked: boolean) => unknown;
-    onScreenshotHelperModifyFilenameChange: (checked: boolean) => unknown;
-    onScreenshotHelperCopyToClipboardChange: (checked: boolean) => unknown;
-    onDeleteAllScreenshotMetadata: () => unknown;
-    onOpenUgcPhotosFolder: () => unknown;
-    onOpenUgcFolderSelector: () => unknown;
-    onResetUgcFolder: () => unknown;
-    onSaveInstancePrintsChange: (checked: boolean) => unknown;
-    onCropInstancePrintsChange: (checked: boolean) => unknown;
-    onAutoDeleteOldPrintsChange: (checked: boolean) => unknown;
-    onAutoDeletePrintsLimitChange: (value: unknown) => unknown;
-    onAutoDeletePrintsLimitBlur: (value: unknown) => unknown;
-    onSaveInstanceStickersChange: (checked: boolean) => unknown;
-    onSaveInstanceEmojiChange: (checked: boolean) => unknown;
-};
-
-type SettingsMediaTabProps = {
-    media: SettingsMediaState;
-};
-
-export function SettingsMediaTab({ media }: SettingsMediaTabProps) {
+export function SettingsMediaTab() {
+    const media = useSettingsPageSection('media');
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            screenshotHelper: state.screenshotHelper,
+            screenshotHelperModifyFilename:
+                state.screenshotHelperModifyFilename,
+            screenshotHelperCopyToClipboard:
+                state.screenshotHelperCopyToClipboard,
+            userGeneratedContentPath: state.userGeneratedContentPath,
+            saveInstancePrints: state.saveInstancePrints,
+            cropInstancePrints: state.cropInstancePrints,
+            autoDeleteOldPrints: state.autoDeleteOldPrints,
+            autoDeletePrintsLimit: state.autoDeletePrintsLimit,
+            saveInstanceStickers: state.saveInstanceStickers,
+            saveInstanceEmoji: state.saveInstanceEmoji
+        }))
+    );
     const {
-        prefs,
         onScreenshotHelperChange,
         onScreenshotHelperModifyFilenameChange,
         onScreenshotHelperCopyToClipboardChange,

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Spinner } from '@/ui/shadcn/spinner';
 
-import { getDashboardPagePanelComponent } from './dashboardPagePanelRegistry';
+import { getDashboardPagePanelComponent } from '../dashboardPagePanelRegistry';
 
 function EmbeddedPageFallback() {
     const { t } = useTranslation();
@@ -26,7 +26,7 @@ export function DashboardEmbeddedPagePanel({ panelKey }: { panelKey: string }) {
     return (
         <div className="min-h-0 flex-1 overflow-auto">
             <Suspense fallback={<EmbeddedPageFallback />}>
-                <PanelComponent dashboardEmbedded embedded />
+                <PanelComponent embedded />
             </Suspense>
         </div>
     );

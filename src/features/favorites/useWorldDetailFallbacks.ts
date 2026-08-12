@@ -43,15 +43,26 @@ export function loadWorldDetailFallbacksById(
 }
 
 export function useWorldDetailFallbacks(
-    input: WorldDetailFallbackInput
+    {
+        worldIds,
+        kind,
+        remoteEntityDetailsData,
+        remoteEntityDetailsStatus
+    }: WorldDetailFallbackInput
 ): DetailMap {
     const fallbackWorldIds = useMemo(
-        () => getWorldDetailFallbackIds(input),
+        () =>
+            getWorldDetailFallbackIds({
+                worldIds,
+                kind,
+                remoteEntityDetailsData,
+                remoteEntityDetailsStatus
+            }),
         [
-            input.worldIds,
-            input.kind,
-            input.remoteEntityDetailsData,
-            input.remoteEntityDetailsStatus
+            worldIds,
+            kind,
+            remoteEntityDetailsData,
+            remoteEntityDetailsStatus
         ]
     );
 

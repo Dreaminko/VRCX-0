@@ -41,7 +41,7 @@ import {
     DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS,
     DASHBOARD_INSTANCE_WIDGET_DEFAULT_COLUMNS,
     getDashboardInstanceWidgetColumnLabel
-} from '../dashboardRegistry';
+} from '../../dashboardRegistry';
 import { DashboardWidgetEmptyState } from './DashboardWidgetEmptyState';
 import { DashboardWidgetHeader } from './DashboardWidgetHeader';
 import { buildFavoriteIdSet, joinCompactParts } from './dashboardWidgetUtils';

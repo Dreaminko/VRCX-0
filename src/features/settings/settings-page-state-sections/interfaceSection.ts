@@ -35,7 +35,6 @@ export function buildInterfaceSection({
 }: BuildSettingsPageStateSectionsInput) {
     return {
         locale,
-        prefs,
         zoomInput,
         zoomLevel,
         notificationLayoutOptions,

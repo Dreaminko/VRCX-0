@@ -37,8 +37,8 @@ vi.mock('./components/mutual-friends/MutualFriendsStageOverlay', () => ({
     MutualFriendsStageOverlay: () => null
 }));
 
-vi.mock('./useMutualFriendsPageController', () => ({
-    useMutualFriendsPageController: mocks.controller
+vi.mock('./mutual-friends/useMutualFriendsPageState', () => ({
+    useMutualFriendsPageState: mocks.controller
 }));
 
 import { MutualFriendsPage } from './MutualFriendsPageImpl';

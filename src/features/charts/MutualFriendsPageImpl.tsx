@@ -8,11 +8,11 @@ import {
     MutualFriendsLayoutBadge,
     MutualFriendsStageOverlay
 } from './components/mutual-friends/MutualFriendsStageOverlay';
-import { useMutualFriendsPageController } from './useMutualFriendsPageController';
+import { useMutualFriendsPageState } from './mutual-friends/useMutualFriendsPageState';
 
 export function MutualFriendsPage() {
     const { actions, exclusions, fetch, graph, layout, selection, view } =
-        useMutualFriendsPageController();
+        useMutualFriendsPageState();
 
     const hasActiveFilters = Boolean(
         view.filters.searchQuery ||

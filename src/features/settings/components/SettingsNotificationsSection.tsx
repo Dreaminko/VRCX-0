@@ -1,19 +1,26 @@
 import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/react/shallow';
 
-import type { SettingsPageStateSections } from '../settingsPageStateSections';
+import { usePreferencesStore } from '@/state/preferencesStore';
+import { useSettingsPageSection } from '../SettingsPageStateContext';
 import { normalizeCheckedState } from '../settingsValues';
 import { SettingsNotificationsTab } from './settings-tabs/SettingsNotificationsTab';
 
-type SettingsNotificationsSectionProps = {
-    notifications: SettingsPageStateSections['notifications'];
-};
-
-export function SettingsNotificationsSection({
-    notifications
-}: SettingsNotificationsSectionProps) {
+export function SettingsNotificationsSection() {
     const { t } = useTranslation();
+    const notifications = useSettingsPageSection('notifications');
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            desktopToast: state.desktopToast,
+            afkDesktopToast: state.afkDesktopToast,
+            desktopNotificationSound: state.desktopNotificationSound,
+            notificationTTS: state.notificationTTS,
+            notificationTTSVoiceNative: state.notificationTTSVoiceNative,
+            notificationTTSNameMode: state.notificationTTSNameMode,
+            notificationTTSNickName: state.notificationTTSNickName
+        }))
+    );
     const {
-        prefs,
         desktopToastOptions,
         notificationTtsOptions,
         notificationTtsNameModeOptions,

@@ -2,7 +2,6 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 const expectedDiagnosticsByFile = new Map<string, number>([
-    ['src/components/dashboard/widgets/DashboardFeedWidget.tsx', 3],
     ['src/components/data-table/DataTableView.tsx', 1],
     ['src/components/dialogs/avatar-dialog/useAvatarDialogState.ts', 1],
     ['src/components/dialogs/AvatarDialogTabbedView.tsx', 1],
@@ -62,30 +61,18 @@ const expectedDiagnosticsByFile = new Map<string, number>([
     ['src/components/user-hover-card/useUserHoverCardData.ts', 2],
     ['src/features/auth/useLoginAutoLogin.ts', 1],
     ['src/features/auth/useLoginPageState.ts', 1],
-    ['src/features/dashboard/useDashboardEditorState.ts', 1],
-    ['src/features/favorites/remoteEntityCacheFallbacks.ts', 3],
-    ['src/features/favorites/useAvatarDetailFallbacks.ts', 5],
-    ['src/features/favorites/useWorldDetailFallbacks.ts', 5],
     ['src/features/feed/columns/useFeedColumnRows.ts', 1],
     ['src/features/feed/FeedPage.tsx', 6],
     ['src/features/feed/useFeedFriendActions.ts', 2],
     ['src/features/feed/useFeedPageController.ts', 1],
     ['src/features/feed/useFeedRows.ts', 2],
-    ['src/features/friends/useFriendListRowActions.ts', 1],
-    ['src/features/friends/useFriendListRows.ts', 1],
     ['src/features/game-log/useGameLogPageController.ts', 1],
     ['src/features/game-log/useGameLogRows.ts', 1],
     ['src/features/moderation/components/ModerationColumns.tsx', 1],
     ['src/features/my-avatars/AvatarStylesDialog.tsx', 1],
     ['src/features/my-avatars/useMyAvatarsRows.ts', 1],
     ['src/features/notifications/useNotificationActions.ts', 5],
-    ['src/features/notifications/useNotificationRuntime.ts', 1],
-    ['src/features/settings/useSettingsEffects.ts', 7],
-    ['src/features/tools/components/ScreenshotThumbnailGrid.tsx', 2],
-    ['src/features/tools/ScreenshotMetadataPage.tsx', 1],
-    ['src/features/tools/useGalleryPageController.ts', 1],
-    ['src/features/tools/useInventoryPageState.ts', 1],
-    ['src/features/tools/useToolsPageState.ts', 2]
+    ['src/features/notifications/useNotificationRuntime.ts', 1]
 ]);
 
 type Diagnostic = {

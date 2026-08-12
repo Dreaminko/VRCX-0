@@ -94,13 +94,19 @@ export function useRemoteEntityCacheFallbackLoader(
     fallbackIds: string[],
     fetchById: FetchEntityById
 ): DetailMap {
-    const fallbackKey = fallbackIds.join('|');
+    const fallbackKey = JSON.stringify(fallbackIds);
+    const stableFallbackIds = useMemo(() => {
+        const parsed: unknown = JSON.parse(fallbackKey);
+        return Array.isArray(parsed)
+            ? parsed.filter((value): value is string => typeof value === 'string')
+            : [];
+    }, [fallbackKey]);
     const [fallbacksById, setFallbacksById] =
         useState<DetailMap>(EMPTY_FALLBACKS);
 
     useEffect(() => {
         let active = true;
-        if (!fallbackKey) {
+        if (stableFallbackIds.length === 0) {
             setFallbacksById(EMPTY_FALLBACKS);
             return () => {
                 active = false;
@@ -108,7 +114,7 @@ export function useRemoteEntityCacheFallbackLoader(
         }
 
         setFallbacksById(EMPTY_FALLBACKS);
-        loadRemoteEntityCacheFallbacksById(fallbackIds, fetchById)
+        loadRemoteEntityCacheFallbacksById(stableFallbackIds, fetchById)
             .then((nextFallbacksById) => {
                 if (active) {
                     setFallbacksById(nextFallbacksById);
@@ -123,10 +129,14 @@ export function useRemoteEntityCacheFallbackLoader(
         return () => {
             active = false;
         };
-    }, [fallbackKey]);
+    }, [fetchById, stableFallbackIds]);
 
     return useMemo(
-        () => filterRemoteEntityCacheFallbacksById(fallbacksById, fallbackIds),
-        [fallbackKey, fallbacksById]
+        () =>
+            filterRemoteEntityCacheFallbacksById(
+                fallbacksById,
+                stableFallbackIds
+            ),
+        [fallbacksById, stableFallbackIds]
     );
 }

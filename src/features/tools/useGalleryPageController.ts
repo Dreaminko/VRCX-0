@@ -94,21 +94,6 @@ export function useGalleryPageController() {
         }),
         [assets.gallery.length, assets.icons.length, assets.prints.length]
     );
-    useEffect(() => {
-        if (!currentUserId) {
-            setAssets(EMPTY_ASSETS);
-            setLoadingByTab({});
-            return;
-        }
-        refreshAll();
-    }, [currentEndpoint, currentUserId]);
-
-    useEffect(() => {
-        const nextTab = sanitizeGalleryTab(searchParams.get('tab'));
-        setActiveTabState((current) =>
-            current === nextTab ? current : nextTab
-        );
-    }, [searchParams]);
     const {
         refreshTab,
         refreshAll,
@@ -146,6 +131,27 @@ export function useGalleryPageController() {
         uploadInputRef,
         uploadTargetRef
     } satisfies GalleryControllerDeps);
+    const refreshAllRef = useRef(refreshAll);
+    useEffect(() => {
+        refreshAllRef.current = refreshAll;
+    }, [refreshAll]);
+
+    useEffect(() => {
+        if (!currentUserId) {
+            setAssets(EMPTY_ASSETS);
+            setLoadingByTab({});
+            return;
+        }
+        refreshAllRef.current();
+    }, [currentEndpoint, currentUserId]);
+
+    useEffect(() => {
+        const nextTab = sanitizeGalleryTab(searchParams.get('tab'));
+        setActiveTabState((current) =>
+            current === nextTab ? current : nextTab
+        );
+    }, [searchParams]);
+
     function changeGridDensity(nextValue: unknown) {
         const nextDensity = sanitizeGalleryGridDensity(nextValue);
         setGridDensity(nextDensity);

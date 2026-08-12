@@ -2,7 +2,6 @@ import type { BuildSettingsPageStateSectionsInput } from '../settingsPageStateSe
 import { normalizeCheckedState } from '../settingsValues';
 
 export function buildIntegrationsSection({
-    prefs,
     discordPrefs,
     integrationPrefs,
     avatarProviderConfig,
@@ -25,7 +24,6 @@ export function buildIntegrationsSection({
     saveAvatarProviderEnabled
 }: BuildSettingsPageStateSectionsInput) {
     return {
-        prefs,
         discordPrefs,
         integrationPrefs,
         avatarProviderConfig,

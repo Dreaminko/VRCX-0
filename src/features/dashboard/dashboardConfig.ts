@@ -5,7 +5,7 @@ import {
     DASHBOARD_WIDGET_DEFINITIONS,
     getDashboardPanelDefinition,
     getDashboardPanelLabel
-} from '@/components/dashboard/dashboardRegistry';
+} from './dashboardRegistry';
 import {
     cloneRows as cloneRepositoryDashboardRows,
     type DashboardPanel,

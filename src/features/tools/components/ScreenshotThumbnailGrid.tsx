@@ -98,9 +98,13 @@ export function useScreenshotThumbnailTitleMap(
     items: unknown,
     { worldNameHint = '' }: { worldNameHint?: unknown } = {}
 ) {
-    const safeItems = Array.isArray(items)
-        ? items.filter(isScreenshotThumbnailItem)
-        : [];
+    const safeItems = useMemo(
+        () =>
+            Array.isArray(items)
+                ? items.filter(isScreenshotThumbnailItem)
+                : [],
+        [items]
+    );
     const entries = useMemo(
         () =>
             safeItems
@@ -266,9 +270,13 @@ export function ScreenshotThumbnailGrid({
     worldNameHint?: unknown;
 }) {
     const { t } = useTranslation();
-    const safeItems = Array.isArray(items)
-        ? items.filter(isScreenshotThumbnailItem)
-        : [];
+    const safeItems = useMemo(
+        () =>
+            Array.isArray(items)
+                ? items.filter(isScreenshotThumbnailItem)
+                : [],
+        [items]
+    );
     const titleMap = useScreenshotThumbnailTitleMap(safeItems, {
         worldNameHint
     });

@@ -43,15 +43,26 @@ export function loadAvatarDetailFallbacksById(
 }
 
 export function useAvatarDetailFallbacks(
-    input: AvatarDetailFallbackInput
+    {
+        avatarIds,
+        kind,
+        remoteEntityDetailsData,
+        remoteEntityDetailsStatus
+    }: AvatarDetailFallbackInput
 ): DetailMap {
     const fallbackAvatarIds = useMemo(
-        () => getAvatarDetailFallbackIds(input),
+        () =>
+            getAvatarDetailFallbackIds({
+                avatarIds,
+                kind,
+                remoteEntityDetailsData,
+                remoteEntityDetailsStatus
+            }),
         [
-            input.avatarIds,
-            input.kind,
-            input.remoteEntityDetailsData,
-            input.remoteEntityDetailsStatus
+            avatarIds,
+            kind,
+            remoteEntityDetailsData,
+            remoteEntityDetailsStatus
         ]
     );
 

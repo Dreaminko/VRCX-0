@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -37,10 +37,10 @@ export function useDashboardEditorState({
     const [isSaving, setIsSaving] = useState(false);
     const previousDashboardIdRef = useRef<string | null>(null);
 
-    function resetEditDraft() {
+    const resetEditDraft = useCallback(() => {
         setEditName(dashboard?.name || '');
         setEditRows(cloneDashboardRows(dashboard?.rows));
-    }
+    }, [dashboard]);
 
     useEffect(() => {
         if (!dashboard) {
@@ -51,7 +51,7 @@ export function useDashboardEditorState({
         }
 
         resetEditDraft();
-    }, [dashboard]);
+    }, [dashboard, resetEditDraft]);
 
     useEffect(() => {
         if (!loaded || !dashboard?.id) {

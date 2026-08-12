@@ -28,11 +28,14 @@ import { SettingsInterfaceTab } from './components/settings-tabs/SettingsInterfa
 import { SettingsMediaTab } from './components/settings-tabs/SettingsMediaTab';
 import { SettingsSocialTab } from './components/settings-tabs/SettingsSocialTab';
 import { SettingsAdvancedSection } from './components/SettingsAdvancedSection';
-import { SettingsDialogsSection } from './components/SettingsDialogsSection';
+import { SettingsDialogs } from './components/SettingsDialogs';
 import { SettingsNotificationsSection } from './components/SettingsNotificationsSection';
 import { SettingsSystemSection } from './components/SettingsSystemSection';
 import { SettingsVrSection } from './components/SettingsVrSection';
-import { useSettingsPageController } from './useSettingsPageController';
+import {
+    SettingsPageStateProvider,
+    useSettingsPageSection
+} from './SettingsPageStateContext';
 
 const SETTINGS_TAB_ICONS: Record<string, LucideIcon> = {
     system: MonitorIcon,
@@ -48,20 +51,16 @@ const SETTINGS_TAB_ICONS: Record<string, LucideIcon> = {
 };
 
 export function SettingsPage() {
-    const pageState = useSettingsPageController();
+    return (
+        <SettingsPageStateProvider>
+            <SettingsPageContent />
+        </SettingsPageStateProvider>
+    );
+}
+
+function SettingsPageContent() {
     const { t } = useTranslation();
-    const {
-        shell,
-        system,
-        interface: settingsInterface,
-        media,
-        integrations,
-        social,
-        notifications,
-        vr,
-        advanced,
-        dialogs
-    } = pageState;
+    const shell = useSettingsPageSection('shell');
 
     return (
         <PageScaffold className="flex-1">
@@ -91,23 +90,19 @@ export function SettingsPage() {
                     })}
                 </TabsList>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <SettingsSystemSection system={system} />
-                    <SettingsInterfaceTab
-                        settingsInterface={settingsInterface}
-                    />
-                    <SettingsSocialTab social={social} />
-                    <SettingsNotificationsSection
-                        notifications={notifications}
-                    />
-                    <SettingsVrSection vr={vr} />
-                    <SettingsMediaTab media={media} />
+                    <SettingsSystemSection />
+                    <SettingsInterfaceTab />
+                    <SettingsSocialTab />
+                    <SettingsNotificationsSection />
+                    <SettingsVrSection />
+                    <SettingsMediaTab />
                     <SettingsAiTab active={shell.activeSettingsTab === 'ai'} />
-                    <SettingsIntegrationsTab integrations={integrations} />
-                    <SettingsAdvancedSection advanced={advanced} />
+                    <SettingsIntegrationsTab />
+                    <SettingsAdvancedSection />
                     <SettingsFeedbackTab />
                 </div>
             </Tabs>
-            <SettingsDialogsSection dialogs={dialogs} />
+            <SettingsDialogs />
         </PageScaffold>
     );
 }

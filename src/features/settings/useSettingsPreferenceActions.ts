@@ -20,10 +20,6 @@ import {
     createCustomFontDraftFromPrefs,
     type CustomFontDraft
 } from './settingsValues';
-import type {
-    SettingsDiscordPrefs,
-    SettingsIntegrationPrefs
-} from './useSettingsIntegrations';
 
 type PreferenceKey = Extract<keyof PreferencesSnapshot, string>;
 type NormalizedConfigKey<Key extends string> = Key extends `VRCX_${infer Name}`
@@ -91,7 +87,6 @@ type SettingsPreferenceActionsDeps = {
     localFavoriteFriendsGroups: string[];
     normalizeAppCjkFontPack: (value: unknown) => string;
     normalizeAppFontFamily: (value: unknown) => string;
-    normalizePreferenceSnapshot: (snapshot?: unknown) => PreferencesSnapshot;
     parseIntegerInput: (value: unknown, fallback: number) => number;
     prefs: SettingsPrefs;
     resetTrustColorsPreference: () => Promise<
@@ -106,8 +101,6 @@ type SettingsPreferenceActionsDeps = {
     setCustomFontDraft: (value: CustomFontDraft) => void;
     setCustomFontOptions: (value: string[]) => void;
     setCustomFontOptionsLoading: (value: boolean) => void;
-    setDiscordPrefs: StateSetter<SettingsDiscordPrefs>;
-    setIntegrationPrefs: StateSetter<SettingsIntegrationPrefs>;
     setLocalFavoriteFriendsGroups: (value: string[]) => void;
     setLocalFavoriteFriendsGroupsPreference: (
         value: unknown
@@ -213,7 +206,6 @@ export function useSettingsPreferenceActions({
     localFavoriteFriendsGroups,
     normalizeAppCjkFontPack,
     normalizeAppFontFamily,
-    normalizePreferenceSnapshot,
     parseIntegerInput,
     prefs,
     resetTrustColorsPreference,
@@ -223,8 +215,6 @@ export function useSettingsPreferenceActions({
     setCustomFontDraft,
     setCustomFontOptions,
     setCustomFontOptionsLoading,
-    setDiscordPrefs,
-    setIntegrationPrefs,
     setLocalFavoriteFriendsGroups,
     setLocalFavoriteFriendsGroupsPreference,
     setOnlineVisitCount,
@@ -251,42 +241,6 @@ export function useSettingsPreferenceActions({
     usePreferencesStore,
     vrchatAuthRepository
 }: SettingsPreferenceActionsDeps) {
-    function applyPreferenceSnapshotToLocalState(snapshot: unknown) {
-        const normalizedSnapshot = normalizePreferenceSnapshot(snapshot);
-        setPrefs((current) => ({
-            ...current,
-            ...normalizedSnapshot
-        }));
-        setIntegrationPrefs((current) => ({
-            ...current,
-            youtubeAPI: normalizedSnapshot.youtubeAPI,
-            translationAPI: normalizedSnapshot.translationAPI,
-            bioLanguage:
-                normalizedSnapshot.bioLanguage as SettingsIntegrationPrefs['bioLanguage'],
-            translationAPIType: normalizedSnapshot.translationAPIType,
-            translationEndpointId:
-                normalizedSnapshot.translationEndpointId as SettingsIntegrationPrefs['translationEndpointId'],
-            translationAPIEndpoint:
-                normalizedSnapshot.translationAPIEndpoint as SettingsIntegrationPrefs['translationAPIEndpoint'],
-            translationAPIModel:
-                normalizedSnapshot.translationAPIModel as SettingsIntegrationPrefs['translationAPIModel'],
-            translationAPIPrompt: normalizedSnapshot.translationAPIPrompt
-        }));
-        setDiscordPrefs({
-            discordActive: normalizedSnapshot.discordActive,
-            discordInstance: normalizedSnapshot.discordInstance,
-            discordHideInvite: normalizedSnapshot.discordHideInvite,
-            discordJoinButton: normalizedSnapshot.discordJoinButton,
-            discordHideImage: normalizedSnapshot.discordHideImage,
-            discordShowPlatform: normalizedSnapshot.discordShowPlatform,
-            discordWorldIntegration: normalizedSnapshot.discordWorldIntegration,
-            discordWorldNameAsDiscordStatus:
-                normalizedSnapshot.discordWorldNameAsDiscordStatus
-        });
-        setLocalFavoriteFriendsGroups(
-            normalizedSnapshot.localFavoriteFriendsGroups
-        );
-    }
     async function savePreferenceValue<K extends PreferenceKey>(
         key: K,
         value: PreferencesSnapshot[K],
@@ -719,7 +673,6 @@ export function useSettingsPreferenceActions({
             });
     }
     return {
-        applyPreferenceSnapshotToLocalState,
         commit,
         savePreferenceValue,
         saveBoolPreference,

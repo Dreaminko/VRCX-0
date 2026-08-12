@@ -1,29 +1,34 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
 
 import { commands } from '@/platform/tauri/bindings';
 import type { WebhookDeliverySnapshot } from '@/platform/tauri/bindings';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import { Switch } from '@/ui/shadcn/switch';
 
-import type { SettingsPageStateSections } from '../../settingsPageStateSections';
+import { useSettingsPageSection } from '../../SettingsPageStateContext';
 import { normalizeCheckedState } from '../../settingsValues';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
 import { McpServerSettingsGroup } from './McpServerSettingsGroup';
 import { WebhookSettingsGroup } from './WebhookSettingsGroup';
 
-type SettingsIntegrationsTabProps = {
-    integrations: SettingsPageStateSections['integrations'];
-};
-
-export function SettingsIntegrationsTab({
-    integrations
-}: SettingsIntegrationsTabProps) {
+export function SettingsIntegrationsTab() {
+    const integrations = useSettingsPageSection('integrations');
+    const prefs = usePreferencesStore(
+        useShallow((state) => ({
+            webhookEnabled: state.webhookEnabled,
+            webhookAuthEventsEnabled: state.webhookAuthEventsEnabled,
+            webhookUrl: state.webhookUrl,
+            webhookFormat: state.webhookFormat,
+            webhookFields: state.webhookFields
+        }))
+    );
     const {
-        prefs,
         discordPrefs,
         integrationPrefs,
         avatarProviderConfig,

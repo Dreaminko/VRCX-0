@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
+import type { PreferencesSnapshot } from '@/state/preferencesStore';
 import {
     isValidTrustColor,
     TRUST_COLOR_DEFAULTS,
@@ -21,15 +22,19 @@ import type { SettingsPageStateSections } from '../../settingsPageStateSections'
 import { Field, SettingsGroup } from '../SettingsField';
 
 type InterfaceState = SettingsPageStateSections['interface'];
-type SettingsInterfaceUserColorsCardProps = Pick<
+type SettingsPrefs = Pick<
+    PreferencesSnapshot,
+    'randomUserColours' | 'trustColor'
+>;
+type SettingsInterfaceUserColorsCardProps = {
+    prefs: SettingsPrefs;
+} & Pick<
     InterfaceState,
-    | 'prefs'
     | 'onRandomUserColoursChange'
     | 'onResetTrustColors'
     | 'onSaveTrustColor'
     | 'onTrustColorDraftChange'
 >;
-type SettingsPrefs = InterfaceState['prefs'];
 
 function getTrustColorInputValue(
     prefs: SettingsPrefs,

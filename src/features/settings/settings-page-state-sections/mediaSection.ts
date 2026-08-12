@@ -23,7 +23,6 @@ export function buildMediaSection({
     setIntConfigPreference
 }: BuildSettingsPageStateSectionsInput) {
     return {
-        prefs,
         commit,
         setScreenshotHelperPreference,
         setScreenshotHelperModifyFilenamePreference,

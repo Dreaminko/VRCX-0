@@ -11,11 +11,11 @@ import {
 } from './components/SearchTabPanels';
 import { useSearchPageController } from './useSearchPageController';
 
-export function SearchPage() {
+export function SearchPage({ embedded = false }: { embedded?: boolean } = {}) {
     const { config, filters, results } = useSearchPageController();
 
     return (
-        <PageScaffold className="flex-1">
+        <PageScaffold embedded={embedded} className="flex-1">
             <Tabs
                 value={filters.activeTab}
                 onValueChange={filters.setActiveTab}

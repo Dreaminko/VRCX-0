@@ -1,8 +1,8 @@
-import type { DashboardPanelDefinition } from '@/components/dashboard/dashboardRegistry';
+import type { DashboardPanelDefinition } from './dashboardRegistry';
 import {
     getDashboardPanelDefinition,
     resolveDashboardPanelKey
-} from '@/components/dashboard/dashboardRegistry';
+} from './dashboardRegistry';
 import type { DashboardPanel } from '@/repositories/dashboardRepository';
 
 import {

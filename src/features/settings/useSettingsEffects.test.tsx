@@ -6,8 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     appHostTtsVoices: vi.fn(),
     getAppDataDirState: vi.fn(),
-    getAvatarConfig: vi.fn(),
-    getString: vi.fn()
+    getAvatarConfig: vi.fn()
 }));
 
 vi.mock('react-i18next', () => ({
@@ -20,18 +19,10 @@ vi.mock('@/platform/tauri/bindings', () => ({
 vi.mock('@/repositories/avatarSearchProviderRepository', () => ({
     default: { getConfig: mocks.getAvatarConfig }
 }));
-vi.mock('@/repositories/configRepository', () => ({
-    default: { getString: mocks.getString }
-}));
 vi.mock('@/services/shellIntegrationService', () => ({
     getAppDataDirState: mocks.getAppDataDirState
 }));
 vi.mock('@/services/themeService', () => ({
-    APP_CJK_FONT_PACK_DEFAULT_KEY: 'none',
-    APP_FONT_DEFAULT_KEY: 'inter',
-    applyAppFontPreferences: vi.fn(),
-    normalizeAppCjkFontPack: (value: string) => value,
-    normalizeAppFontFamily: (value: string) => value,
     normalizeZoomLevel: (value: unknown) => Number(value) || 100
 }));
 
@@ -42,10 +33,42 @@ describe('useSettingsEffects', () => {
         vi.resetAllMocks();
         mocks.appHostTtsVoices.mockResolvedValue([]);
         mocks.getAppDataDirState.mockResolvedValue(null);
-        mocks.getString.mockResolvedValue('');
+        mocks.getAvatarConfig.mockResolvedValue({
+            enabled: false,
+            providerList: [],
+            selectedProvider: ''
+        });
     });
 
-    it('uses the hydrated store as the only preference snapshot owner', async () => {
+    it('loads only auxiliary settings data outside the preference store', async () => {
+        const applyAvatarProviderConfig = vi.fn();
+        const setAppDataDirState = vi.fn();
+        const setTtsVoices = vi.fn();
+        const setZoomInput = vi.fn();
+
+        renderHook(() =>
+            useSettingsEffects({
+                applyAvatarProviderConfig,
+                setAppDataDirState,
+                setTtsVoices,
+                setZoomInput,
+                zoomLevel: 125
+            })
+        );
+
+        await waitFor(() => {
+            expect(applyAvatarProviderConfig).toHaveBeenCalledWith({
+                enabled: false,
+                providerList: [],
+                selectedProvider: ''
+            });
+            expect(setAppDataDirState).toHaveBeenCalledWith(null);
+            expect(setTtsVoices).toHaveBeenCalledWith([]);
+        });
+        expect(setZoomInput).toHaveBeenCalledWith('125');
+    });
+
+    it('ignores an auxiliary response after unmount', async () => {
         let resolveAvatarConfig: (value: {
             enabled: boolean;
             providerList: never[];
@@ -57,36 +80,17 @@ describe('useSettingsEffects', () => {
             })
         );
         const applyAvatarProviderConfig = vi.fn();
-        const applyPreferenceSnapshotToLocalState = vi.fn();
-        const stableDeps = {
-            applyAvatarProviderConfig,
-            applyPreferenceSnapshotToLocalState,
-            setAppDataDirState: vi.fn(),
-            setPrefs: vi.fn(),
-            setTtsVoices: vi.fn(),
-            setZoomInput: vi.fn(),
-            sidebarOpen: true,
-            zoomLevel: 100
-        };
-        const firstState = { preferencesHydrated: true, marker: 'first' };
-        const secondState = { preferencesHydrated: true, marker: 'second' };
-        const { rerender } = renderHook(
-            ({ preferenceState }) =>
-                useSettingsEffects({ ...stableDeps, preferenceState }),
-            { initialProps: { preferenceState: firstState } }
+        const { unmount } = renderHook(() =>
+            useSettingsEffects({
+                applyAvatarProviderConfig,
+                setAppDataDirState: vi.fn(),
+                setTtsVoices: vi.fn(),
+                setZoomInput: vi.fn(),
+                zoomLevel: 100
+            })
         );
 
-        expect(applyPreferenceSnapshotToLocalState).toHaveBeenCalledTimes(1);
-        expect(applyPreferenceSnapshotToLocalState).toHaveBeenLastCalledWith(
-            firstState
-        );
-
-        rerender({ preferenceState: secondState });
-        expect(applyPreferenceSnapshotToLocalState).toHaveBeenCalledTimes(2);
-        expect(applyPreferenceSnapshotToLocalState).toHaveBeenLastCalledWith(
-            secondState
-        );
-
+        unmount();
         await act(async () => {
             resolveAvatarConfig({
                 enabled: false,
@@ -94,10 +98,7 @@ describe('useSettingsEffects', () => {
                 selectedProvider: ''
             });
         });
-        await waitFor(() =>
-            expect(applyAvatarProviderConfig).toHaveBeenCalled()
-        );
-        expect(applyPreferenceSnapshotToLocalState).toHaveBeenCalledTimes(2);
-        expect(mocks.getAvatarConfig).toHaveBeenCalledTimes(1);
+
+        expect(applyAvatarProviderConfig).not.toHaveBeenCalled();
     });
 });

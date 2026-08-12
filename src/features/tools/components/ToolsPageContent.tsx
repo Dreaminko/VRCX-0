@@ -51,9 +51,8 @@ import {
     quickAccessDropId,
     toolCatalogDropId
 } from '../toolsPageHelpers';
-import type { useToolsPageState } from '../useToolsPageState';
+import { useToolsPageState } from '../useToolsPageState';
 
-type ToolsPageContentProps = ReturnType<typeof useToolsPageState>;
 type EditQuickAccessAction = 'add' | 'remove';
 type DragRenderProps = {
     itemRef: Ref<HTMLDivElement>;
@@ -420,24 +419,25 @@ function ToolCatalogDropZone({
     );
 }
 
-export function ToolsPageContent({
-    addQuickAccessToolByKeyWithFeedback,
-    categories,
-    collapsed,
-    handleQuickAccessDragEnd,
-    isQuickAccessEditing,
-    pinToolToNav,
-    pinnedToolKeys,
-    quickAccessKeySet,
-    quickAccessTools,
-    removeQuickAccessToolByKey,
-    sensors,
-    setIsQuickAccessEditing,
-    shouldShowQuickAccess,
-    toggleCategoryCollapsed,
-    triggerTool,
-    unpinToolFromNav
-}: ToolsPageContentProps) {
+export function ToolsPageContent({ embedded = false }: { embedded?: boolean }) {
+    const {
+        addQuickAccessToolByKeyWithFeedback,
+        categories,
+        collapsed,
+        handleQuickAccessDragEnd,
+        isQuickAccessEditing,
+        pinToolToNav,
+        pinnedToolKeys,
+        quickAccessKeySet,
+        quickAccessTools,
+        removeQuickAccessToolByKey,
+        sensors,
+        setIsQuickAccessEditing,
+        shouldShowQuickAccess,
+        toggleCategoryCollapsed,
+        triggerTool,
+        unpinToolFromNav
+    } = useToolsPageState();
     const label = useToolsLabel();
 
     function renderToolItem(
@@ -482,6 +482,7 @@ export function ToolsPageContent({
     return (
         <PageScaffold
             id="chart"
+            embedded={embedded}
             className="flex-1"
             style={{ overflowY: 'auto' }}
         >

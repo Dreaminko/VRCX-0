@@ -16,7 +16,7 @@ import {
 import type { FavoriteKind, FavoriteSource } from './favoritesTypes';
 import { useAvatarDetailFallbacks } from './useAvatarDetailFallbacks';
 import { useFavoriteRemoteDetails } from './useFavoriteRemoteDetails';
-import { useLocalWorldFavorites } from './useLocalWorldFavorites';
+import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import { useWorldDetailFallbacks } from './useWorldDetailFallbacks';
 
 function selectRequestedRemoteEntityIds({

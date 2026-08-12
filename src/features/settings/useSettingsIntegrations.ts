@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
 
 import { languageCodes } from '@/localization/index';
 import { commands, type LlmEndpointDto } from '@/platform/tauri/bindings';
@@ -14,7 +15,8 @@ import {
 import { useLlmEndpointsStore } from '@/state/llmEndpointsStore';
 import {
     normalizeTranslationApiType,
-    type DiscordPreferenceKey
+    type DiscordPreferenceKey,
+    usePreferencesStore
 } from '@/state/preferencesStore';
 
 import {
@@ -42,6 +44,19 @@ export type SettingsIntegrationPrefs = {
     translationAPIReasoningEffort: string;
     [key: string]: unknown;
 };
+
+type SettingsIntegrationValueKey =
+    | 'youtubeAPI'
+    | 'youtubeAPIKey'
+    | 'translationAPI'
+    | 'translationAPIKey'
+    | 'bioLanguage'
+    | 'translationAPIType'
+    | 'translationEndpointId'
+    | 'translationAPIEndpoint'
+    | 'translationAPIModel'
+    | 'translationAPIPrompt'
+    | 'translationAPIReasoningEffort';
 
 export type SettingsDiscordPrefs = {
     discordActive: boolean;
@@ -90,30 +105,44 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
     const { t } = useTranslation();
     const llmEndpoints = useLlmEndpointsStore((state) => state.endpoints);
-    const [integrationPrefs, setIntegrationPrefs] =
-        useState<SettingsIntegrationPrefs>({
-            youtubeAPI: false,
-            youtubeAPIKey: '',
-            translationAPI: false,
-            bioLanguage: 'en',
-            translationAPIType: 'google',
-            translationAPIKey: '',
-            translationEndpointId: '',
-            translationAPIEndpoint: DEFAULT_TRANSLATION_ENDPOINT,
-            translationAPIModel: DEFAULT_TRANSLATION_MODEL,
-            translationAPIPrompt: '',
-            translationAPIReasoningEffort: ''
-        });
-    const [discordPrefs, setDiscordPrefs] = useState<SettingsDiscordPrefs>({
-        discordActive: false,
-        discordInstance: true,
-        discordHideInvite: true,
-        discordJoinButton: false,
-        discordHideImage: false,
-        discordShowPlatform: true,
-        discordWorldIntegration: true,
-        discordWorldNameAsDiscordStatus: false
+    const integrationPreferenceValues = usePreferencesStore(
+        useShallow((state) => ({
+            youtubeAPI: state.youtubeAPI,
+            translationAPI: state.translationAPI,
+            bioLanguage: state.bioLanguage,
+            translationAPIType: state.translationAPIType,
+            translationEndpointId: state.translationEndpointId,
+            translationAPIEndpoint: state.translationAPIEndpoint,
+            translationAPIModel: state.translationAPIModel,
+            translationAPIPrompt: state.translationAPIPrompt,
+            translationAPIReasoningEffort:
+                state.translationAPIReasoningEffort
+        }))
+    );
+    const discordPrefs = usePreferencesStore(
+        useShallow((state) => ({
+            discordActive: state.discordActive,
+            discordInstance: state.discordInstance,
+            discordHideInvite: state.discordHideInvite,
+            discordJoinButton: state.discordJoinButton,
+            discordHideImage: state.discordHideImage,
+            discordShowPlatform: state.discordShowPlatform,
+            discordWorldIntegration: state.discordWorldIntegration,
+            discordWorldNameAsDiscordStatus:
+                state.discordWorldNameAsDiscordStatus
+        }))
+    );
+    const [integrationApiKeys, setIntegrationApiKeys] = useState({
+        youtubeAPIKey: '',
+        translationAPIKey: ''
     });
+    const integrationPrefs = useMemo<SettingsIntegrationPrefs>(
+        () => ({
+            ...integrationPreferenceValues,
+            ...integrationApiKeys
+        }),
+        [integrationApiKeys, integrationPreferenceValues]
+    );
     const fetchingModelsRef = useRef(new Set<string>());
     const [integrationStatus, setIntegrationStatus] =
         useState<SettingsIntegrationStatus>({
@@ -148,7 +177,7 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
                 if (!active) {
                     return;
                 }
-                setIntegrationPrefs((current) => ({
+                setIntegrationApiKeys((current) => ({
                     ...current,
                     youtubeAPIKey: youtubeAPIKey || '',
                     translationAPIKey: translationAPIKey || ''
@@ -161,10 +190,25 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
     }, []);
 
     function setIntegrationValue(
-        key: keyof SettingsIntegrationPrefs,
+        key: SettingsIntegrationValueKey,
         value: unknown
     ) {
-        setIntegrationPrefs((current) => ({ ...current, [key]: value }));
+        if (key === 'youtubeAPIKey' || key === 'translationAPIKey') {
+            setIntegrationApiKeys((current) => ({
+                ...current,
+                [key]: String(value ?? '')
+            }));
+            return;
+        }
+        if (key === 'youtubeAPI' || key === 'translationAPI') {
+            usePreferencesStore
+                .getState()
+                .setPreferenceValue(key, value === true);
+            return;
+        }
+        usePreferencesStore
+            .getState()
+            .setPreferenceValue(key, String(value ?? ''));
     }
 
     function setTranslationDraftValue(
@@ -227,7 +271,7 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
     }
 
     function setDiscordValue(key: DiscordPreferenceKey, value: boolean) {
-        setDiscordPrefs((current) => ({ ...current, [key]: value }));
+        usePreferencesStore.getState().patchPreferences({ [key]: value });
     }
 
     async function saveDiscordBoolPreference(
@@ -272,7 +316,7 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
         try {
             await validateYoutubeApiKey(apiKey);
             await setYoutubeApiKeyPreference(apiKey);
-            setIntegrationPrefs((current) => ({
+            setIntegrationApiKeys((current) => ({
                 ...current,
                 youtubeAPIKey: apiKey
             }));
@@ -341,9 +385,9 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
                 translationAPIPrompt: translationDraft.translationAPIPrompt,
                 translationAPIReasoningEffort: nextReasoningEffort
             });
-            setIntegrationPrefs((current) => ({
+            setIntegrationApiKeys((current) => ({
                 ...current,
-                ...savedConfig
+                translationAPIKey: savedConfig.translationAPIKey
             }));
             toast.success(t('dialog.translation_api.msg_settings_saved'));
             setTranslationApiDialogOpen(false);
@@ -511,8 +555,6 @@ export function useSettingsIntegrations({ commit }: SettingsIntegrationsDeps) {
         saveDiscordBoolPreference,
         saveTranslationApiConfig,
         saveYoutubeApiKey,
-        setDiscordPrefs,
-        setIntegrationPrefs,
         setIntegrationValue,
         setTranslationApiDialogOpen,
         setTranslationDraftValue,

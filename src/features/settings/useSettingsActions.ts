@@ -79,8 +79,6 @@ type SettingsActionsDeps = Pick<
     | 'setCustomFontDraft'
     | 'setCustomFontOptions'
     | 'setCustomFontOptionsLoading'
-    | 'setDiscordPrefs'
-    | 'setIntegrationPrefs'
     | 'setLocalFavoriteFriendsGroups'
     | 'setOnlineVisitCount'
     | 'setSqliteTableSizes'

@@ -20,7 +20,6 @@ export function buildSocialSection({
     normalizeRecentActionCooldownMinutes
 }: BuildSettingsPageStateSectionsInput) {
     return {
-        prefs,
         selectedFavoriteFriendGroupLabel,
         favoriteFriendGroupOptions,
         remoteFavoriteFriendGroupOptions,

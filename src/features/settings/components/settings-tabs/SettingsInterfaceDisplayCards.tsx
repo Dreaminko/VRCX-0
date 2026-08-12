@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import type { PreferencesSnapshot } from '@/state/preferencesStore';
 import { Button } from '@/ui/shadcn/button';
 import {
     Select,
@@ -15,9 +16,25 @@ import type { SettingsPageStateSections } from '../../settingsPageStateSections'
 import { Field, SegmentedPreference, SettingsGroup } from '../SettingsField';
 
 type InterfaceState = SettingsPageStateSections['interface'];
-type SettingsInterfaceDisplayCardsProps = Pick<
+type SettingsInterfaceDisplayPrefs = Pick<
+    PreferencesSnapshot,
+    | 'showInstanceIdInLocation'
+    | 'isAgeGatedInstancesVisible'
+    | 'hideNicknames'
+    | 'displayVRCPlusIconsAsAvatar'
+    | 'showNewDashboardButton'
+    | 'dtHour12'
+    | 'dtIsoFormat'
+    | 'weekStartsOn'
+    | 'feedTimeDisplayMode'
+    | 'showUserDialogProfileDecorations'
+    | 'hideUserNotes'
+    | 'hideUserMemos'
+>;
+type SettingsInterfaceDisplayCardsProps = {
+    prefs: SettingsInterfaceDisplayPrefs;
+} & Pick<
     InterfaceState,
-    | 'prefs'
     | 'onShowInstanceIdInLocationChange'
     | 'onAgeGatedInstancesVisibleChange'
     | 'onHideNicknamesChange'

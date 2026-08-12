@@ -2,17 +2,17 @@ import { ArrowRightIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
-import type {
-    DashboardPageMetrics,
-    DashboardPanelPreviewProps
-} from '@/features/dashboard/dashboardPanelPreviewModel';
 import { Button } from '@/ui/shadcn/button';
 
 import { DashboardEmbeddedPagePanel } from './DashboardEmbeddedPagePanel';
-import { canEmbedDashboardPagePanel } from './dashboardPagePanelRegistry';
 import { DashboardFeedWidget } from './widgets/DashboardFeedWidget';
 import { DashboardGameLogWidget } from './widgets/DashboardGameLogWidget';
 import { DashboardInstanceWidget } from './widgets/DashboardInstanceWidget';
+import { canEmbedDashboardPagePanel } from '../dashboardPagePanelRegistry';
+import type {
+    DashboardPageMetrics,
+    DashboardPanelPreviewProps
+} from '../dashboardPanelPreviewModel';
 
 type PreviewMetricProps = {
     label: string;

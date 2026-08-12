@@ -1,14 +1,18 @@
 // @vitest-environment jsdom
 
 import { render } from '@testing-library/react';
-import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createDefaultSettingsPrefs } from '../settingsDefaultPrefs';
+import type { SettingsPageStateSections } from '../settingsPageStateSections';
 import { SettingsVrSection } from './SettingsVrSection';
 
 const captured = vi.hoisted(() => ({
-    props: undefined as Record<string, unknown> | undefined
+    props: undefined as Record<string, unknown> | undefined,
+    vr: undefined as unknown
+}));
+
+vi.mock('../SettingsPageStateContext', () => ({
+    useSettingsPageSection: () => captured.vr
 }));
 
 vi.mock('./settings-tabs/SettingsVrTab', () => ({
@@ -18,7 +22,7 @@ vi.mock('./settings-tabs/SettingsVrTab', () => ({
     }
 }));
 
-type VrSectionProps = ComponentProps<typeof SettingsVrSection>['vr'];
+type VrSectionState = SettingsPageStateSections['vr'];
 
 function callback(name: string): (...args: unknown[]) => unknown {
     const value = captured.props?.[name];
@@ -26,12 +30,8 @@ function callback(name: string): (...args: unknown[]) => unknown {
     return value as (...args: unknown[]) => unknown;
 }
 
-function createVrSectionProps(): VrSectionProps {
+function createVrSectionState(): VrSectionState {
     return {
-        prefs: {
-            ...createDefaultSettingsPrefs(),
-            notificationTimeout: 3000
-        },
         setHmdNotificationsDialogOpen: vi.fn(),
         setVrNotificationsDialogOpen: vi.fn(),
         setWristFeedNotificationsDialogOpen: vi.fn(),
@@ -46,11 +46,13 @@ function createVrSectionProps(): VrSectionProps {
 describe('SettingsVrSection', () => {
     beforeEach(() => {
         captured.props = undefined;
+        captured.vr = undefined;
     });
 
     it('persists notification number inputs with their config bounds', () => {
-        const vr = createVrSectionProps();
-        render(<SettingsVrSection vr={vr} />);
+        const vr = createVrSectionState();
+        captured.vr = vr;
+        render(<SettingsVrSection />);
 
         callback('onNotificationTimeoutSecondsChange')('900');
         expect(vr.savePreferenceValue).toHaveBeenLastCalledWith(
@@ -122,8 +124,9 @@ describe('SettingsVrSection', () => {
             'wristOverlayShowBatteryPercent'
         ]
     ])('maps %s to the %s boolean preference', (propName, key) => {
-        const vr = createVrSectionProps();
-        render(<SettingsVrSection vr={vr} />);
+        const vr = createVrSectionState();
+        captured.vr = vr;
+        render(<SettingsVrSection />);
 
         callback(propName)(true);
 
@@ -138,8 +141,9 @@ describe('SettingsVrSection', () => {
         ['onWristOverlayHandChange', 'wristOverlayHand'],
         ['onWristOverlaySizeChange', 'wristOverlaySize']
     ])('maps %s to the %s string preference', (propName, key) => {
-        const vr = createVrSectionProps();
-        render(<SettingsVrSection vr={vr} />);
+        const vr = createVrSectionState();
+        captured.vr = vr;
+        render(<SettingsVrSection />);
 
         callback(propName)('selected-value');
 
@@ -151,8 +155,9 @@ describe('SettingsVrSection', () => {
     });
 
     it('routes wrist enablement and filter-dialog actions to their owners', () => {
-        const vr = createVrSectionProps();
-        render(<SettingsVrSection vr={vr} />);
+        const vr = createVrSectionState();
+        captured.vr = vr;
+        render(<SettingsVrSection />);
 
         callback('onWristOverlayEnabledChange')(true);
         callback('onOpenVrNotificationFiltersDialog')();
