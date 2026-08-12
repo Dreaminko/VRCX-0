@@ -102,6 +102,32 @@ impl UserCacheRuntime {
         touch_lru(&mut state, &key, pinned);
         Some(object)
     }
+
+    pub(crate) fn get_users(
+        &self,
+        endpoint: &str,
+        user_ids: &[String],
+    ) -> Vec<(String, Map<String, Value>)> {
+        let mut state = self.lock();
+        let mut users = Vec::new();
+        for user_id in user_ids {
+            let key = user_fact_key(
+                &Value::String(endpoint.to_string()),
+                &Value::String(user_id.to_string()),
+            );
+            if key.is_empty() {
+                continue;
+            }
+            let Some(fact) = state.users.get(&key).cloned() else {
+                continue;
+            };
+            let pinned = is_pinned(&fact);
+            let object = fact.to_object();
+            touch_lru(&mut state, &key, pinned);
+            users.push((user_id.clone(), object));
+        }
+        users
+    }
 }
 
 fn is_pinned(fact: &UserFact) -> bool {

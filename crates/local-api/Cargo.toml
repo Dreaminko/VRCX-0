@@ -1,0 +1,23 @@
+[package]
+name = "vrcx-0-local-api"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+description = "Local instance roster integration API"
+
+[dependencies]
+axum = { version = "0.8", features = ["ws"] }
+base64 = { workspace = true }
+chrono = { workspace = true }
+constant_time_eq = "0.5"
+getrandom = "0.4"
+http = "1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+socket2 = "0.6"
+specta = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+vrcx-0-application-core = { path = "../application-core" }

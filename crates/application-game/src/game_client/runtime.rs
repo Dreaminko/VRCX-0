@@ -8,6 +8,7 @@ use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};
 use crate::Result;
 use crate::{HostSessionRuntime, RuntimeAuthScope, RuntimeEventBus, TaskSupervisor};
 use vrcx_0_application_core::GameProcessEvent;
+use vrcx_0_application_core::InstanceRosterObserver;
 
 use super::actions::{GameClientActions, GameClientDebugLoggingActions};
 use super::processor::{
@@ -28,15 +29,18 @@ pub struct GameClientRuntimeDeps {
     pub location_source: Arc<dyn GameClientLocationSource>,
     pub window_actions: Arc<dyn GameClientWindowActions>,
     pub debug_logging_actions: Arc<dyn GameClientDebugLoggingActions>,
+    pub instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
 }
 
 pub struct GameClientRuntime {
     state: Arc<Mutex<GameClientState>>,
     worker: RuntimeWorker<GameClientJob>,
+    instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
 }
 
 impl GameClientRuntime {
     pub fn new(deps: GameClientRuntimeDeps) -> Self {
+        let instance_roster_observer = deps.instance_roster_observer;
         let state = Arc::new(Mutex::new(GameClientState::default()));
         let processor = GameClientProcessor::new(
             GameClientProcessorDeps {
@@ -69,7 +73,11 @@ impl GameClientRuntime {
             tracing::warn!("failed to schedule startup debug logging check: {error}");
         }
 
-        Self { state, worker }
+        Self {
+            state,
+            worker,
+            instance_roster_observer,
+        }
     }
 
     pub fn set_runtime_state(&self, current_location: &str) {
@@ -81,6 +89,9 @@ impl GameClientRuntime {
     }
 
     pub fn on_game_process_event(&self, event: GameProcessEvent) -> Result<()> {
+        if let Some(observer) = &self.instance_roster_observer {
+            observer.on_game_running(event.is_game_running);
+        }
         if event.game_changed {
             let game_generation = self.advance_debug_logging_generation()?;
             if event.is_game_running {

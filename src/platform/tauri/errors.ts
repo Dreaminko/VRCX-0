@@ -17,6 +17,7 @@ export class PlatformCommandError extends Error {
     readonly code: AppErrorCode;
     readonly sqliteCategory?: SqliteErrorCategory;
     readonly statusCode?: number;
+    readonly port?: number;
 
     constructor(payload: AppErrorPayload, cause?: unknown) {
         super(payload.message);
@@ -24,6 +25,7 @@ export class PlatformCommandError extends Error {
         this.code = payload.code;
         this.sqliteCategory = payload.sqliteCategory ?? undefined;
         this.statusCode = payload.statusCode ?? undefined;
+        this.port = payload.port ?? undefined;
         this.cause = cause;
     }
 }
@@ -38,6 +40,8 @@ function appErrorCode(value: unknown): AppErrorCode | null {
         case 'io':
         case 'json':
         case 'vrchat_api':
+        case 'local_api_port_in_use':
+        case 'local_api_bind':
         case 'custom':
             return value;
         default:
@@ -82,7 +86,8 @@ function structuredPlatformError(error: unknown): AppErrorPayload | null {
         code,
         message: error.message,
         sqliteCategory: sqliteErrorCategory(error.sqliteCategory),
-        statusCode
+        statusCode,
+        port: typeof error.port === 'number' ? error.port : undefined
     };
 }
 

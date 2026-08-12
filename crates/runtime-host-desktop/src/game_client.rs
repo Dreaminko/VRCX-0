@@ -4,7 +4,7 @@ use crate::log_watcher::LogWatcher;
 use crate::{ensure_vrchat_launch_path_allowed, HostFileAccess, RuntimeHost};
 use vrcx_0_application_core::Error as RuntimeError;
 use vrcx_0_application_core::Result as RuntimeResult;
-use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
+use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, InstanceRosterObserver};
 use vrcx_0_application_game::{
     GameClientActions, GameClientCacheActions, GameClientDebugLoggingActions,
     GameClientLocationSource, GameClientRuntime, GameClientRuntimeDeps, GameClientWindowActions,
@@ -117,6 +117,7 @@ impl GameClientHostRuntime {
         file_access: HostFileAccess,
         app_paths: AppPaths,
         host: RuntimeHost,
+        instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
     ) -> Self {
         Self::new_with_actions(
             context,
@@ -126,6 +127,7 @@ impl GameClientHostRuntime {
                 app_paths,
             }),
             host,
+            instance_roster_observer,
         )
     }
 
@@ -134,6 +136,7 @@ impl GameClientHostRuntime {
         log_watcher: LogWatcher,
         actions: Arc<dyn GameClientActions>,
         host: RuntimeHost,
+        instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
     ) -> Self {
         let inner = GameClientRuntime::new(GameClientRuntimeDeps {
             db: Arc::clone(&context.db),
@@ -147,6 +150,7 @@ impl GameClientHostRuntime {
             location_source: Arc::new(LogWatcherLocationSource { log_watcher }),
             window_actions: Arc::new(RuntimeGameClientWindowActions { host }),
             debug_logging_actions: Arc::new(SystemGameClientDebugLoggingActions),
+            instance_roster_observer,
         });
 
         Self { inner }
@@ -183,6 +187,6 @@ impl GameClientHostRuntime {
         log_watcher: LogWatcher,
         actions: Arc<dyn GameClientActions>,
     ) -> Self {
-        Self::new_with_actions(context, log_watcher, actions, RuntimeHost::new())
+        Self::new_with_actions(context, log_watcher, actions, RuntimeHost::new(), None)
     }
 }

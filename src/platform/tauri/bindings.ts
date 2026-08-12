@@ -361,6 +361,25 @@ export const commands = {
     async appMcpServerRotateToken(): Promise<McpServerStatus> {
         return await TAURI_INVOKE('app__mcp_server_rotate_token');
     },
+    async appLocalApiStatus(): Promise<LocalApiStatus> {
+        return await TAURI_INVOKE('app__local_api_status');
+    },
+    async appLocalApiSetEnabled(enabled: boolean): Promise<LocalApiStatus> {
+        return await TAURI_INVOKE('app__local_api_set_enabled', { enabled });
+    },
+    async appLocalApiSetPort(port: number): Promise<LocalApiStatus> {
+        return await TAURI_INVOKE('app__local_api_set_port', { port });
+    },
+    async appLocalApiSetAllowLanConnections(
+        enabled: boolean
+    ): Promise<LocalApiStatus> {
+        return await TAURI_INVOKE('app__local_api_set_allow_lan_connections', {
+            enabled
+        });
+    },
+    async appLocalApiRotateToken(): Promise<LocalApiStatus> {
+        return await TAURI_INVOKE('app__local_api_rotate_token');
+    },
     async appAssistantSendMessage(
         sessionId: string | null,
         text: string,
@@ -2742,12 +2761,20 @@ export type AppDataDirState = {
     cleanupPending: DataDirCleanupPending | null;
     migrationStatus: DataDirMigrationStatus;
 };
-export type AppErrorCode = 'database' | 'io' | 'json' | 'vrchat_api' | 'custom';
+export type AppErrorCode =
+    | 'database'
+    | 'io'
+    | 'json'
+    | 'vrchat_api'
+    | 'local_api_port_in_use'
+    | 'local_api_bind'
+    | 'custom';
 export type AppErrorPayload = {
     code: AppErrorCode;
     message: string;
     sqliteCategory?: SqliteErrorCategory | null;
     statusCode?: number | null;
+    port?: number | null;
 };
 export type AppLauncherEntry = {
     id: string;
@@ -3074,6 +3101,7 @@ export type BackendRuntimeEventPayloadMap = {
     realtimeInstanceQueueProjection: RealtimeInstanceQueueProjection;
     realtimeProjectionSync: RealtimeProjectionSync;
     updateIsGameRunning: HostSessionProjection;
+    localApiStartFailed: LocalApiStartFailedPayload;
 };
 export type BackendRuntimeGameLogStatus =
     | 'idle'
@@ -4255,6 +4283,37 @@ export type LlmModelReasoning = {
     modelId: string;
     supportedEfforts: string[];
     mandatory: boolean;
+};
+export type LocalApiFailure = {
+    code: LocalApiFailureCode;
+    message: string;
+    port: number | null;
+};
+export type LocalApiFailureCode =
+    | 'invalidPort'
+    | 'portInUse'
+    | 'bind'
+    | 'config'
+    | 'io'
+    | 'tokenGeneration';
+export type LocalApiServerState =
+    | 'disabled'
+    | 'waitingForGame'
+    | 'running'
+    | 'error';
+export type LocalApiStartFailedPayload = {
+    port: number;
+    reason: LocalApiStartFailureReason;
+};
+export type LocalApiStartFailureReason = 'portInUse' | 'bind';
+export type LocalApiStatus = {
+    enabled: boolean;
+    allowLanConnections: boolean;
+    state: LocalApiServerState;
+    port: number;
+    token: string;
+    activeConnections: number;
+    lastError: LocalApiFailure | null;
 };
 export type LocalFavoriteGroupInput = {
     kind: FavoriteEntityKind;

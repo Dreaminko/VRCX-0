@@ -25,6 +25,7 @@ use vrcx_0_assistant::{
 use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 use vrcx_0_host_desktop::tts::TtsVoice;
+use vrcx_0_local_api::{LocalApiStartFailedPayload, LocalApiStatus};
 use vrcx_0_mcp::McpServerStatus;
 use vrcx_0_runtime_host::{AuthenticatedSessionProjection, RuntimeGroupInstancesProjection};
 use vrcx_0_runtime_host_desktop::AppLauncherSnapshotEvent;
@@ -77,6 +78,7 @@ struct BackendRuntimeEventPayloadMap {
     realtime_instance_queue_projection: RealtimeInstanceQueueProjection,
     realtime_projection_sync: RealtimeProjectionSync,
     update_is_game_running: HostSessionProjection,
+    local_api_start_failed: LocalApiStartFailedPayload,
 }
 
 pub fn builder() -> Builder<tauri::Wry> {
@@ -95,6 +97,7 @@ pub fn builder() -> Builder<tauri::Wry> {
         .typ::<GameLogProjection>()
         .typ::<HostSessionProjection>()
         .typ::<McpServerStatus>()
+        .typ::<LocalApiStatus>()
         .typ::<ParsedLocation>()
         .typ::<PrintAutoCleanupEvent>()
         .typ::<ProfileRestoreProgress>()
@@ -189,6 +192,11 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::mcp_server::app__mcp_server_set_allow_lan_connections,
             commands::application::mcp_server::app__mcp_server_set_port,
             commands::application::mcp_server::app__mcp_server_rotate_token,
+            commands::application::local_api::app__local_api_status,
+            commands::application::local_api::app__local_api_set_enabled,
+            commands::application::local_api::app__local_api_set_port,
+            commands::application::local_api::app__local_api_set_allow_lan_connections,
+            commands::application::local_api::app__local_api_rotate_token,
             commands::application::assistant::app__assistant_send_message,
             commands::application::assistant::app__assistant_cancel,
             commands::application::assistant::app__assistant_list_sessions,

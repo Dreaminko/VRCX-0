@@ -2140,6 +2140,35 @@
                         "running": "運行中",
                         "stopping": "正在停止"
                     }
+                },
+                "local_api": {
+                    "header": "本機房間 API",
+                    "description": "將目前的 VRChat 房間與玩家名單提供給可信任的本機軟體。僅在 VRChat 執行時監聽連接埠。",
+                    "enable": "啟用本機房間 API",
+                    "enable_description": "VRChat 執行時啟動受 token 保護的 WebSocket 資料流。",
+                    "allow_lan_connections": "允許區域網路連線",
+                    "allow_lan_connections_description": "允許區域網路內的其他裝置讀取此資料流。在不受信任的網路上請保持關閉。",
+                    "port_label": "伺服器連接埠",
+                    "port_description": "預設為 8799。變更後請同步更新所有客戶端。",
+                    "port_apply": "套用",
+                    "port_invalid": "連接埠必須介於 1024 到 65535 之間",
+                    "port_in_use": "連接埠 {port} 已被其他程式使用，請改用其他連接埠。",
+                    "bind_failed": "本機房間 API 無法監聽連接埠 {port}。",
+                    "start_failed": "本機房間 API 自動啟動失敗：{reason}",
+                    "status_label": "狀態",
+                    "port_active_connections": "連接埠 {port}；使用中的連線 {count}",
+                    "token": "存取 Token",
+                    "token_description": "此 token 可讀取目前房間、玩家名稱、語言標籤與備註。請只提供給你信任的軟體。",
+                    "token_copied": "已複製本機房間 API token",
+                    "rotate_token": "重新產生 Token",
+                    "token_rotated": "本機房間 API token 已重新產生",
+                    "status": {
+                        "loading": "載入中",
+                        "disabled": "已停止",
+                        "waitingForGame": "正在等待 VRChat",
+                        "running": "執行中",
+                        "error": "錯誤"
+                    }
                 }
             },
             "advanced_groups": {

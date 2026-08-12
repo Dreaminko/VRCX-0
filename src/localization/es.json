@@ -2140,6 +2140,35 @@
                         "running": "En ejecución",
                         "stopping": "Deteniendo"
                     }
+                },
+                "local_api": {
+                    "header": "API de instancia local",
+                    "description": "Comparte la instancia actual de VRChat y la lista de jugadores con software local de confianza. El puerto solo permanece abierto mientras VRChat está en ejecución.",
+                    "enable": "Activar la API de instancia local",
+                    "enable_description": "Inicia un flujo WebSocket protegido por token mientras VRChat está en ejecución.",
+                    "allow_lan_connections": "Permitir conexiones LAN",
+                    "allow_lan_connections_description": "Permite que otros dispositivos de la red local lean este flujo. Déjalo desactivado en redes que no sean de confianza.",
+                    "port_label": "Puerto del servidor",
+                    "port_description": "Predeterminado: 8799. Después de cambiarlo, actualiza todos los clientes.",
+                    "port_apply": "Aplicar",
+                    "port_invalid": "El puerto debe estar entre 1024 y 65535",
+                    "port_in_use": "Otro programa ya está usando el puerto {port}. Elige otro puerto.",
+                    "bind_failed": "La API de instancia local no pudo escuchar en el puerto {port}.",
+                    "start_failed": "La API de instancia local no pudo iniciarse automáticamente: {reason}",
+                    "status_label": "Estado",
+                    "port_active_connections": "Puerto {port} · {count} conexiones activas",
+                    "token": "Token de acceso",
+                    "token_description": "El token permite leer la instancia actual, los nombres de jugadores, las etiquetas de idioma y las notas. Compártelo solo con software de confianza.",
+                    "token_copied": "Token de la API de instancia local copiado",
+                    "rotate_token": "Renovar token",
+                    "token_rotated": "Token de la API de instancia local renovado",
+                    "status": {
+                        "loading": "Cargando",
+                        "disabled": "Detenida",
+                        "waitingForGame": "Esperando a VRChat",
+                        "running": "En ejecución",
+                        "error": "Error"
+                    }
                 }
             },
             "advanced_groups": {

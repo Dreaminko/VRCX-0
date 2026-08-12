@@ -21,6 +21,7 @@ members = [
     "crates/overlay-devtool",
     "crates/headless",
     "crates/mcp",
+    "crates/local-api",
     "crates/assistant"
 ]
 default-members = [
@@ -44,6 +45,7 @@ default-members = [
     "crates/overlay-runtime",
     "crates/headless",
     "crates/mcp",
+    "crates/local-api",
     "crates/assistant"
 ]
 resolver = "2"

@@ -11,6 +11,7 @@ pub mod group_calendar;
 pub mod group_quick_moderation;
 pub mod lifecycle;
 pub mod llm_endpoint;
+pub mod local_api;
 pub mod mcp_server;
 pub mod moderation_sync;
 pub mod my_avatars;

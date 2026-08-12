@@ -122,6 +122,7 @@ fn build_test_processor(dir: &TestDir, db: Arc<DatabaseService>) -> Result<GameL
             }),
         )),
         world_cache,
+        instance_roster_observer: None,
     });
     Ok(processor)
 }

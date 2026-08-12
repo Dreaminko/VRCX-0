@@ -2140,6 +2140,35 @@
                         "running": "Em execução",
                         "stopping": "Parando"
                     }
+                },
+                "local_api": {
+                    "header": "API da instância local",
+                    "description": "Compartilha a instância atual do VRChat e a lista de jogadores com programas locais confiáveis. A porta só fica aberta enquanto o VRChat estiver em execução.",
+                    "enable": "Ativar API da instância local",
+                    "enable_description": "Inicia um fluxo WebSocket protegido por token enquanto o VRChat estiver em execução.",
+                    "allow_lan_connections": "Permitir conexões pela LAN",
+                    "allow_lan_connections_description": "Permite que outros dispositivos da rede local leiam este fluxo. Mantenha desativado em redes não confiáveis.",
+                    "port_label": "Porta do servidor",
+                    "port_description": "Padrão: 8799. Após alterar, atualize todos os clientes conectados.",
+                    "port_apply": "Aplicar",
+                    "port_invalid": "A porta deve estar entre 1024 e 65535",
+                    "port_in_use": "A porta {port} já está sendo usada por outro programa. Escolha outra porta.",
+                    "bind_failed": "A API da instância local não conseguiu escutar na porta {port}.",
+                    "start_failed": "Falha ao iniciar automaticamente a API da instância local: {reason}",
+                    "status_label": "Status",
+                    "port_active_connections": "Porta {port} · {count} conexões ativas",
+                    "token": "Token de acesso",
+                    "token_description": "O token permite ler a instância atual, nomes de jogadores, idiomas e notas. Compartilhe apenas com programas confiáveis.",
+                    "token_copied": "Token da API da instância local copiado",
+                    "rotate_token": "Gerar novo token",
+                    "token_rotated": "Token da API da instância local renovado",
+                    "status": {
+                        "loading": "Carregando",
+                        "disabled": "Parada",
+                        "waitingForGame": "Aguardando o VRChat",
+                        "running": "Em execução",
+                        "error": "Erro"
+                    }
                 }
             },
             "advanced_groups": {

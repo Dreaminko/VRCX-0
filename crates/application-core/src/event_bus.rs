@@ -154,9 +154,10 @@ pub(crate) struct BackendRuntimeGameLogPersisted {
     pub(crate) count: u64,
 }
 
+#[macro_export]
 macro_rules! runtime_event_payload {
     ($payload:ty, $event:literal) => {
-        impl RuntimeEventPayload for $payload {
+        impl $crate::RuntimeEventPayload for $payload {
             const EVENT_NAME: &'static str = $event;
         }
     };

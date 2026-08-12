@@ -5,7 +5,7 @@ use crate::{HostFileAccess, Result};
 use vrcx_0_application_activity::OverlayActivityRuntime;
 use vrcx_0_application_core::Error as RuntimeError;
 use vrcx_0_application_core::Result as RuntimeResult;
-use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink};
+use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, InstanceRosterObserver};
 use vrcx_0_application_game::{
     GameLogHostActions, GameLogRuntime, GameLogRuntimeDeps, RuntimeSnapshot,
 };
@@ -68,6 +68,7 @@ impl GameLogHostRuntime {
         app_paths: AppPaths,
         snapshot: Arc<std::sync::Mutex<RuntimeSnapshot>>,
         overlay_activity: OverlayActivityRuntime,
+        instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
     ) -> Self {
         let inner = GameLogRuntime::new(GameLogRuntimeDeps {
             db: Arc::clone(&context.db),
@@ -85,6 +86,7 @@ impl GameLogHostRuntime {
                 file_access,
                 app_paths,
             }),
+            instance_roster_observer,
         });
 
         Self { context, inner }

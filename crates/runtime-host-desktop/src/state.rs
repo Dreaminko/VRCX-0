@@ -7,6 +7,18 @@ use std::sync::{
 use std::time::{Duration, Instant};
 use vrcx_0_application_core::RuntimeOperationStatus;
 
+use crate::ancillary_snapshot::{ancillary_runtime_snapshot, AncillaryRuntimeSnapshot};
+use crate::app_launcher::start_app_launcher_snapshot_events;
+use crate::group_order::HostGroupOrderSource;
+use crate::local_api::{
+    start_local_api_input_task, DesktopLocalApiConfigStore, DesktopLocalApiRuntime,
+};
+use crate::vr_overlay::{DesktopVrOverlayRuntime, VrOverlayRuntimeSnapshot};
+use crate::{
+    DesktopRuntimeServices, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
+    HostFileAccess, HostGameLogEventFanout, HostGameProcessMonitorActions,
+    HostLogLocationSnapshotScanner, HostRegistryBackupActions, LogWatcher,
+};
 use serde_json::json;
 use vrcx_0_application::{
     AppUpdateBuildInfo, AppUpdateRuntime, AppUpdateRuntimeDeps, BackgroundImageService,
@@ -15,7 +27,7 @@ use vrcx_0_application::{
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
     BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetryKind, GameProcessEvent,
-    GameProcessEventSink, SessionHostRuntime, TaskStopToken,
+    GameProcessEventSink, InstanceRosterObserver, SessionHostRuntime, TaskStopToken,
 };
 use vrcx_0_application_game::{
     GameLogLocalGameContextSource, ProcessMonitor, RegistryBackupMaintenanceMode,
@@ -32,6 +44,7 @@ use vrcx_0_host_desktop::discord_rpc::DiscordRpc;
 use vrcx_0_host_desktop::host_capabilities::{
     current_host_capabilities, is_host_capability_available, HostCapability,
 };
+use vrcx_0_local_api::{local_api_publisher_channel, LocalApiConfigStore, LocalApiController};
 use vrcx_0_persistence::legacy_migration::cleanup_legacy_updater_files;
 use vrcx_0_persistence::screenshot_cache::MetadataCacheDb;
 use vrcx_0_runtime_host::telemetry::{TelemetryRuntime, TelemetryRuntimeDeps};
@@ -39,16 +52,6 @@ use vrcx_0_runtime_host::{
     Result, RuntimeHostCallback, RuntimeHostComposition, RuntimeHostFavoritesCallback,
     RuntimeHostOptions, RuntimeHostProfile, RuntimeHostProfileExtension, RuntimeHostState,
     RuntimeHostStateBuilder,
-};
-
-use crate::ancillary_snapshot::{ancillary_runtime_snapshot, AncillaryRuntimeSnapshot};
-use crate::app_launcher::start_app_launcher_snapshot_events;
-use crate::group_order::HostGroupOrderSource;
-use crate::vr_overlay::{DesktopVrOverlayRuntime, VrOverlayRuntimeSnapshot};
-use crate::{
-    DesktopRuntimeServices, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
-    HostFileAccess, HostGameLogEventFanout, HostGameProcessMonitorActions,
-    HostLogLocationSnapshotScanner, HostRegistryBackupActions, LogWatcher,
 };
 
 mod background_ticks;
@@ -95,6 +98,8 @@ pub struct DesktopRuntimeBundle {
     pub telemetry: TelemetryRuntime,
     pub background_image: BackgroundImageService,
     pub community_theme: CommunityThemeService,
+    pub local_api: Arc<DesktopLocalApiRuntime>,
+    pub local_api_observer: Arc<dyn InstanceRosterObserver>,
 }
 
 pub struct DesktopRuntimeHostState {
@@ -162,6 +167,21 @@ impl DesktopRuntimeHostState {
         let game_log_snapshot = desktop_services.game_log_snapshot_handle();
         let discord_rpc = Arc::new(DiscordRpc::new());
         let process_monitor = ProcessMonitor::new();
+        let local_api_config: Arc<dyn LocalApiConfigStore> = Arc::new(
+            DesktopLocalApiConfigStore::new(builder.runtime_context.config.clone()),
+        );
+        let local_api_controller = Arc::new(
+            LocalApiController::new(local_api_config, app_version.clone())
+                .map_err(|error| vrcx_0_runtime_host::Error::Custom(error.to_string()))?,
+        );
+        let (local_api_runtime, local_api_enrichment_receiver) = DesktopLocalApiRuntime::new(
+            Arc::clone(&local_api_controller),
+            builder.runtime_context.auth_scope.clone(),
+        );
+        let local_api_runtime = Arc::new(local_api_runtime);
+        let (local_api_publisher, local_api_receiver) = local_api_publisher_channel();
+        let instance_roster_observer: Arc<dyn InstanceRosterObserver> =
+            Arc::new(local_api_publisher);
         let telemetry = TelemetryRuntime::new(TelemetryRuntimeDeps {
             config: builder.runtime_context.config.clone(),
             tasks: builder.runtime_context.tasks.clone(),
@@ -198,6 +218,7 @@ impl DesktopRuntimeHostState {
             builder.paths.clone(),
             Arc::clone(&game_log_snapshot),
             overlay_activity.clone(),
+            Some(Arc::clone(&instance_roster_observer)),
         ));
         let vr_overlay_runtime =
             Arc::new(DesktopVrOverlayRuntime::new(Arc::clone(&desktop_services))?);
@@ -215,6 +236,7 @@ impl DesktopRuntimeHostState {
             host_file_access.clone(),
             builder.paths.clone(),
             desktop_services.host.clone(),
+            Some(Arc::clone(&instance_roster_observer)),
         ));
         let session_runtime = Arc::new(SessionHostRuntime::new(
             builder.runtime_context.session.clone(),
@@ -267,6 +289,8 @@ impl DesktopRuntimeHostState {
             telemetry,
             background_image,
             community_theme,
+            local_api: Arc::clone(&local_api_runtime),
+            local_api_observer: Arc::clone(&instance_roster_observer),
         });
         let extension = Arc::new(DesktopRuntimeProfileExtension {
             game: Arc::clone(&game),
@@ -311,6 +335,13 @@ impl DesktopRuntimeHostState {
         desktop
             .services
             .set_realtime_user_image_resolver(&runtime.realtime_runtime);
+        start_local_api_input_task(
+            Arc::clone(&runtime.runtime_context),
+            Arc::clone(&runtime.realtime_runtime),
+            local_api_runtime,
+            local_api_receiver,
+            local_api_enrichment_receiver,
+        );
 
         Ok(Self {
             runtime,
@@ -330,6 +361,10 @@ impl DesktopRuntimeHostState {
 
     pub fn start_desktop_services(&self) {
         self.extension.start_desktop_services(&self.runtime);
+    }
+
+    pub fn local_api(&self) -> &DesktopLocalApiRuntime {
+        &self.desktop.local_api
     }
 
     pub fn request_discord_reconcile(&self) -> u64 {
@@ -510,6 +545,7 @@ impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
         self.game.log_watcher.stop();
         self.game.game_log_runtime.stop();
         self.game.game_client_runtime.stop();
+        self.desktop.local_api_observer.on_game_running(false);
     }
 
     fn start_profile_maintenance(&self, state: &RuntimeHostState) {

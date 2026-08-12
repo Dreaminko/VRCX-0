@@ -8,6 +8,7 @@ mod game_log;
 mod group_order;
 mod host_actions;
 mod host_file_access;
+mod local_api;
 mod log_watcher;
 pub mod notification;
 mod process_monitor;
@@ -26,6 +27,7 @@ pub use game_client::GameClientHostRuntime;
 pub use game_log::GameLogHostRuntime;
 pub use host_actions::{RuntimeHost, RuntimeHostActions};
 pub use host_file_access::{ensure_vrchat_launch_path_allowed, is_known_root_path, HostFileAccess};
+pub use local_api::DesktopLocalApiRuntime;
 pub use log_watcher::{
     GameLogEvent, GameLogEventOrigin, GameLogEventSink, HostGameLogEventFanout,
     HostLogLocationSnapshotScanner, LogLocationSnapshot, LogWatcher,

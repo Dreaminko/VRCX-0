@@ -2142,6 +2142,35 @@
                         "running": "Běží",
                         "stopping": "Zastavuje se"
                     }
+                },
+                "local_api": {
+                    "header": "Místní API instance",
+                    "description": "Sdílí aktuální instanci VRChat a seznam hráčů s důvěryhodným místním softwarem. Server naslouchá pouze při spuštěném VRChatu.",
+                    "enable": "Povolit místní API instance",
+                    "enable_description": "Při spuštěném VRChatu spustí WebSocket stream chráněný tokenem.",
+                    "allow_lan_connections": "Povolit připojení z LAN",
+                    "allow_lan_connections_description": "Umožní zařízením v místní síti číst tento stream. V nedůvěryhodných sítích ponechte vypnuto.",
+                    "port_label": "Port serveru",
+                    "port_description": "Výchozí: 8799. Po změně portu aktualizujte nastavení všech připojených klientů.",
+                    "port_apply": "Použít",
+                    "port_invalid": "Port musí být v rozsahu 1024 až 65535",
+                    "port_in_use": "Port {port} již používá jiný program. Zvolte jiný port.",
+                    "bind_failed": "Místní API instance nemůže naslouchat na portu {port}.",
+                    "start_failed": "Místní API instance se nepodařilo automaticky spustit: {reason}",
+                    "status_label": "Stav",
+                    "port_active_connections": "Port {port} · aktivní připojení: {count}",
+                    "token": "Přístupový token",
+                    "token_description": "Token zpřístupňuje aktuální místnost, jména hráčů, jazykové značky a poznámky. Sdílejte jej pouze s důvěryhodným softwarem.",
+                    "token_copied": "Token místního API instance byl zkopírován",
+                    "rotate_token": "Obnovit token",
+                    "token_rotated": "Token místního API instance byl obnoven",
+                    "status": {
+                        "loading": "Načítání",
+                        "disabled": "Zastaveno",
+                        "waitingForGame": "Čeká se na VRChat",
+                        "running": "Běží",
+                        "error": "Chyba"
+                    }
                 }
             },
             "advanced_groups": {

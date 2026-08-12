@@ -2136,6 +2136,35 @@
                         "running": "実行中",
                         "stopping": "停止中"
                     }
+                },
+                "local_api": {
+                    "header": "ローカルインスタンス API",
+                    "description": "現在の VRChat インスタンスとプレイヤー一覧を、信頼できるローカルソフトウェアに提供します。VRChat の実行中のみポートを開きます。",
+                    "enable": "ローカルインスタンス API を有効にする",
+                    "enable_description": "VRChat の実行中に、token で保護された WebSocket ストリームを起動します。",
+                    "allow_lan_connections": "LAN 接続を許可",
+                    "allow_lan_connections_description": "ローカルネットワーク上の他のデバイスから読み取れるようにします。信頼できないネットワークではオフにしてください。",
+                    "port_label": "サーバーポート",
+                    "port_description": "既定値は 8799 です。変更後は、接続するすべてのクライアント側も更新してください。",
+                    "port_apply": "適用",
+                    "port_invalid": "ポートは 1024〜65535 の範囲で指定してください",
+                    "port_in_use": "ポート {port} は別のプログラムが使用中です。別のポートを指定してください。",
+                    "bind_failed": "ローカルインスタンス API はポート {port} を開けませんでした。",
+                    "start_failed": "ローカルインスタンス API の自動起動に失敗しました：{reason}",
+                    "status_label": "状態",
+                    "port_active_connections": "ポート {port}、アクティブな接続 {count}",
+                    "token": "アクセストークン",
+                    "token_description": "この token で現在のインスタンス、プレイヤー名、言語タグ、ノートを読み取れます。信頼できるソフトウェアだけに渡してください。",
+                    "token_copied": "ローカルインスタンス API の token をコピーしました",
+                    "rotate_token": "Token を再生成",
+                    "token_rotated": "ローカルインスタンス API の token を再生成しました",
+                    "status": {
+                        "loading": "読み込み中",
+                        "disabled": "停止中",
+                        "waitingForGame": "VRChat の起動待ち",
+                        "running": "実行中",
+                        "error": "エラー"
+                    }
                 }
             },
             "advanced_groups": {

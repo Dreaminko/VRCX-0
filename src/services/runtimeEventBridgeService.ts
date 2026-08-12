@@ -34,6 +34,10 @@ import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { handleGroupBanImportStatusEvent } from './groupBanImportService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
+import {
+    handleLocalApiStartFailed,
+    hydrateLocalApiStatus
+} from './localApiService';
 import { handleMutualGraphFetchStatusEvent } from './mutualGraphFetchService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
@@ -69,7 +73,6 @@ import type {
     RuntimeEventName,
     RuntimeEventPayloadMap
 } from './runtime-event-bridge/types';
-
 import { handleScreenshotLibraryScanStatusEvent } from './screenshotLibraryScanService';
 import {
     handleAppUpdateDownloadProgressEvent,
@@ -265,6 +268,11 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
+    if (event.name === 'localApiStartFailed') {
+        handleLocalApiStartFailed(event.payload);
+        return;
+    }
+
     if (event.name === 'browserFocus') {
         handleBrowserFocusEvent();
     }
@@ -433,6 +441,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'realtimeInstanceQueueProjection',
         'realtimeProjectionSync',
         'updateIsGameRunning',
+        'localApiStartFailed',
         'browserFocus'
     ];
 
@@ -466,6 +475,12 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     }
 
     useSessionStore.getState().setTransportStatus('runtime-subscribed');
+    await hydrateRuntimeState(
+        'Failed to hydrate Local API status:',
+        async () => {
+            hydrateLocalApiStatus(await commands.appLocalApiStatus());
+        }
+    );
     let combinedSnapshot: BackendRuntimeCombinedSnapshot | null = null;
     try {
         combinedSnapshot =

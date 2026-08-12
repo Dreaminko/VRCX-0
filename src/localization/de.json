@@ -2140,6 +2140,35 @@
                         "running": "Läuft",
                         "stopping": "Wird gestoppt"
                     }
+                },
+                "local_api": {
+                    "header": "Lokale Instanz-API",
+                    "description": "Gibt die aktuelle VRChat-Instanz und Spielerliste für vertrauenswürdige lokale Software frei. Der Port ist nur geöffnet, solange VRChat läuft.",
+                    "enable": "Lokale Instanz-API aktivieren",
+                    "enable_description": "Startet bei laufendem VRChat einen token-geschützten WebSocket-Datenstrom.",
+                    "allow_lan_connections": "LAN-Verbindungen zulassen",
+                    "allow_lan_connections_description": "Erlaubt anderen Geräten im lokalen Netzwerk, den Datenstrom zu lesen. In nicht vertrauenswürdigen Netzwerken deaktiviert lassen.",
+                    "port_label": "Serverport",
+                    "port_description": "Standard: 8799. Nach einer Änderung müssen alle Clients aktualisiert werden.",
+                    "port_apply": "Übernehmen",
+                    "port_invalid": "Der Port muss zwischen 1024 und 65535 liegen",
+                    "port_in_use": "Port {port} wird bereits von einem anderen Programm verwendet. Wähle einen anderen Port.",
+                    "bind_failed": "Die lokale Instanz-API konnte Port {port} nicht öffnen.",
+                    "start_failed": "Die lokale Instanz-API konnte nicht automatisch gestartet werden: {reason}",
+                    "status_label": "Status",
+                    "port_active_connections": "Port {port} · {count} aktive Verbindungen",
+                    "token": "Zugriffstoken",
+                    "token_description": "Das Token erlaubt Zugriff auf die aktuelle Instanz, Spielernamen, Sprach-Tags und Notizen. Nur an vertrauenswürdige Software weitergeben.",
+                    "token_copied": "Token der lokalen Instanz-API kopiert",
+                    "rotate_token": "Token erneuern",
+                    "token_rotated": "Token der lokalen Instanz-API erneuert",
+                    "status": {
+                        "loading": "Wird geladen",
+                        "disabled": "Beendet",
+                        "waitingForGame": "Wartet auf VRChat",
+                        "running": "Aktiv",
+                        "error": "Fehler"
+                    }
                 }
             },
             "advanced_groups": {

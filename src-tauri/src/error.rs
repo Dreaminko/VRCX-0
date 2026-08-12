@@ -7,6 +7,8 @@ enum AppErrorCode {
     Io,
     Json,
     VrchatApi,
+    LocalApiPortInUse,
+    LocalApiBind,
     Custom,
 }
 
@@ -28,6 +30,8 @@ struct AppErrorPayload {
     sqlite_category: Option<SqliteErrorCategory>,
     #[serde(skip_serializing_if = "Option::is_none")]
     status_code: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    port: Option<u16>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -47,6 +51,12 @@ pub enum AppError {
     #[error("{message}")]
     VrchatApi { status_code: i32, message: String },
 
+    #[error("Local API port {port} is already in use")]
+    LocalApiPortInUse { port: u16 },
+
+    #[error("Local API failed to bind port {port}: {message}")]
+    LocalApiBind { port: u16, message: String },
+
     #[error("{0}")]
     Custom(String),
 }
@@ -58,6 +68,7 @@ impl Serialize for AppError {
             message: self.to_string(),
             sqlite_category: self.sqlite_category(),
             status_code: self.status_code(),
+            port: self.port(),
         }
         .serialize(serializer)
     }
@@ -96,6 +107,8 @@ impl AppError {
             Self::Io(_) => AppErrorCode::Io,
             Self::Json(_) => AppErrorCode::Json,
             Self::VrchatApi { .. } => AppErrorCode::VrchatApi,
+            Self::LocalApiPortInUse { .. } => AppErrorCode::LocalApiPortInUse,
+            Self::LocalApiBind { .. } => AppErrorCode::LocalApiBind,
             Self::Custom(_) => AppErrorCode::Custom,
         }
     }
@@ -112,6 +125,13 @@ impl AppError {
     fn status_code(&self) -> Option<i32> {
         match self {
             Self::VrchatApi { status_code, .. } => Some(*status_code),
+            _ => None,
+        }
+    }
+
+    fn port(&self) -> Option<u16> {
+        match self {
+            Self::LocalApiPortInUse { port } | Self::LocalApiBind { port, .. } => Some(*port),
             _ => None,
         }
     }
@@ -222,6 +242,20 @@ impl From<vrcx_0_mcp::McpError> for AppError {
     }
 }
 
+impl From<vrcx_0_local_api::LocalApiError> for AppError {
+    fn from(value: vrcx_0_local_api::LocalApiError) -> Self {
+        match value {
+            vrcx_0_local_api::LocalApiError::PortInUse { port } => Self::LocalApiPortInUse { port },
+            vrcx_0_local_api::LocalApiError::Bind { port, source } => Self::LocalApiBind {
+                port,
+                message: source.to_string(),
+            },
+            vrcx_0_local_api::LocalApiError::Io(error) => Self::Io(error),
+            other => Self::Custom(other.to_string()),
+        }
+    }
+}
+
 impl From<vrcx_0_assistant::AssistantError> for AppError {
     fn from(value: vrcx_0_assistant::AssistantError) -> Self {
         match value {
@@ -303,13 +337,12 @@ mod tests {
 
     #[test]
     fn preserves_vrchat_api_status_in_ipc_payload() {
-        let payload = serde_json::to_value(AppError::from(
-            vrcx_0_application_core::Error::VrchatApi {
+        let payload =
+            serde_json::to_value(AppError::from(vrcx_0_application_core::Error::VrchatApi {
                 status_code: 404,
                 message: "Not found".into(),
-            },
-        ))
-        .unwrap();
+            }))
+            .unwrap();
 
         assert_eq!(
             payload,

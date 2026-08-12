@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use vrcx_0_application_core::RuntimeOperationStatus;
+use vrcx_0_application_core::{
+    InstanceRosterMember, InstanceRosterObserver, InstanceRosterSnapshot, RuntimeOperationStatus,
+};
 
 use vrcx_0_core::game_log_parser::GameLogEvent;
 use vrcx_0_core::location::{
@@ -64,6 +66,7 @@ pub struct GameLogProcessorDeps {
     pub host_actions: Arc<dyn GameLogHostActions>,
     pub overlay_activity: OverlayActivityRuntime,
     pub world_cache: Arc<WorldCache>,
+    pub instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
 }
 
 impl GameLogProcessorDeps {
@@ -74,6 +77,24 @@ impl GameLogProcessorDeps {
             .iter()
             .map(|player| player.user_id.clone())
             .collect::<Vec<_>>();
+        let instance_roster_snapshot =
+            self.instance_roster_observer
+                .as_ref()
+                .map(|_| InstanceRosterSnapshot {
+                    location: snapshot.location.clone(),
+                    world_name: snapshot.world_name.clone(),
+                    destination: snapshot.destination.clone(),
+                    entered_at: snapshot.started_at.clone(),
+                    members: snapshot
+                        .players
+                        .iter()
+                        .map(|player| InstanceRosterMember {
+                            user_id: player.user_id.clone(),
+                            display_name: player.display_name.clone(),
+                            joined_at_ms: player.join_time_ms,
+                        })
+                        .collect(),
+                });
         match self.snapshot.lock() {
             Ok(mut current) => {
                 *current = snapshot;
@@ -84,6 +105,11 @@ impl GameLogProcessorDeps {
         }
         self.overlay_activity
             .set_current_instance_presence(&current_location, current_player_user_ids);
+        if let (Some(observer), Some(snapshot)) =
+            (&self.instance_roster_observer, instance_roster_snapshot)
+        {
+            observer.on_instance_roster(snapshot);
+        }
     }
 }
 

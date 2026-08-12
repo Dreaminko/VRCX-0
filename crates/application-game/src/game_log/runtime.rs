@@ -11,6 +11,7 @@ use crate::{GameLogEventOrigin, HostSessionRuntime, RuntimeSyncEngine, TaskSuper
 use crate::{ImageCache, RuntimeEventBus};
 use vrcx_0_application_activity::OverlayActivityRuntime;
 use vrcx_0_application_core::GameProcessEvent;
+use vrcx_0_application_core::InstanceRosterObserver;
 
 use super::host::GameLogHostActions;
 use super::ingest::GameLogProcessEvent;
@@ -31,6 +32,7 @@ pub struct GameLogRuntimeDeps {
     pub host_actions: Arc<dyn GameLogHostActions>,
     pub overlay_activity: OverlayActivityRuntime,
     pub world_cache: Arc<WorldCache>,
+    pub instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
 }
 
 pub struct GameLogRuntime {
@@ -54,6 +56,7 @@ impl GameLogRuntime {
             host_actions: deps.host_actions,
             overlay_activity: deps.overlay_activity,
             world_cache: deps.world_cache,
+            instance_roster_observer: deps.instance_roster_observer,
         });
         let worker_processor = processor.clone();
         let worker = RuntimeWorker::start(

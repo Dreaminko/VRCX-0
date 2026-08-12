@@ -2140,6 +2140,35 @@
                         "running": "Running",
                         "stopping": "Stopping"
                     }
+                },
+                "local_api": {
+                    "header": "Local Instance API",
+                    "description": "Share the current VRChat instance and player roster with trusted local software. The server only listens while VRChat is running.",
+                    "enable": "Enable Local Instance API",
+                    "enable_description": "Start a token-protected WebSocket stream when VRChat is running.",
+                    "allow_lan_connections": "Allow LAN connections",
+                    "allow_lan_connections_description": "Allow other devices on your local network to read this stream. Keep this off on untrusted networks.",
+                    "port_label": "Server port",
+                    "port_description": "Default: 8799. After changing the port, update every connected client.",
+                    "port_apply": "Apply",
+                    "port_invalid": "Port must be between 1024 and 65535",
+                    "port_in_use": "Port {port} is already used by another program. Choose another port.",
+                    "bind_failed": "Local Instance API could not listen on port {port}.",
+                    "start_failed": "Local Instance API failed to start automatically: {reason}",
+                    "status_label": "Status",
+                    "port_active_connections": "Port {port} · {count} active connections",
+                    "token": "Access token",
+                    "token_description": "The token grants access to your current room, player names, language tags, and notes. Share it only with software you trust.",
+                    "token_copied": "Local Instance API token copied",
+                    "rotate_token": "Rotate Token",
+                    "token_rotated": "Local Instance API token rotated",
+                    "status": {
+                        "loading": "Loading",
+                        "disabled": "Stopped",
+                        "waitingForGame": "Waiting for VRChat",
+                        "running": "Running",
+                        "error": "Error"
+                    }
                 }
             },
             "advanced_groups": {

@@ -2140,6 +2140,35 @@
                         "running": "运行中",
                         "stopping": "停止中"
                     }
+                },
+                "local_api": {
+                    "header": "本地房间 API",
+                    "description": "向可信的本机软件提供当前 VRChat 房间与玩家列表。仅在 VRChat 运行时监听端口。",
+                    "enable": "启用本地房间 API",
+                    "enable_description": "VRChat 运行时启动由 token 保护的 WebSocket 数据流。",
+                    "allow_lan_connections": "允许局域网连接",
+                    "allow_lan_connections_description": "允许局域网内其他设备读取此数据流。处于非可信网络时请保持关闭。",
+                    "port_label": "服务器端口",
+                    "port_description": "默认端口为 8799。修改后需要同步更新所有客户端。",
+                    "port_apply": "应用",
+                    "port_invalid": "端口需在 1024–65535 之间",
+                    "port_in_use": "端口 {port} 已被其他程序占用，请换一个端口。",
+                    "bind_failed": "本地房间 API 无法监听端口 {port}。",
+                    "start_failed": "本地房间 API 自动启动失败：{reason}",
+                    "status_label": "状态",
+                    "port_active_connections": "端口 {port}；活动连接 {count}",
+                    "token": "访问 Token",
+                    "token_description": "该 token 可读取当前房间、玩家昵称、语言标签和备注。请只提供给你信任的软件。",
+                    "token_copied": "已复制本地房间 API token",
+                    "rotate_token": "重新生成 Token",
+                    "token_rotated": "本地房间 API token 已重新生成",
+                    "status": {
+                        "loading": "正在加载",
+                        "disabled": "已停止",
+                        "waitingForGame": "正在等待 VRChat",
+                        "running": "运行中",
+                        "error": "错误"
+                    }
                 }
             },
             "advanced_groups": {
