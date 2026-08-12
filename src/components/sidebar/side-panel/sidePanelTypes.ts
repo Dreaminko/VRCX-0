@@ -48,6 +48,7 @@ export type SidePanelArrayPreferenceKey =
 export type SidePanelTabItem = {
     value: string;
     label: string;
+    countLabel: string;
     title: string;
     icon: string;
     layoutItem: SidebarTabLayoutItem;

@@ -206,7 +206,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
         const { showTabText, tabListRef, tabViewportRef } =
             useResponsiveSidePanelTabText(
                 tabDisplayMode,
-                tabItems.map((item) => item.label)
+                tabItems.map((item) => item.title)
             );
 
         const {
@@ -380,7 +380,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                                             'min-w-0 flex-none',
                                                             showTabText
                                                                 ? 'max-w-40'
-                                                                : 'w-8 px-1'
+                                                                : 'px-1'
                                                         )}
                                                     >
                                                         <Icon data-icon="inline-start" />
@@ -392,6 +392,9 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
                                                             )}
                                                         >
                                                             {item.label}
+                                                        </span>
+                                                        <span className="shrink-0 tabular-nums">
+                                                            {item.countLabel}
                                                         </span>
                                                     </TabsTrigger>
                                                 }
