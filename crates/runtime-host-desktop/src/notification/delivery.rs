@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use vrcx_0_application_activity::OverlayActivityDelivery;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -31,23 +30,6 @@ impl NotificationDeliveryCondition {
             "Game Running" => Self::GameRunning,
             "Desktop Mode" => Self::DesktopMode,
             _ => Self::Never,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub enum NotificationWebhookFormat {
-    #[default]
-    Generic,
-    Discord,
-}
-
-impl NotificationWebhookFormat {
-    pub(super) fn from_config(value: &str) -> Self {
-        match value {
-            "discord" => Self::Discord,
-            _ => Self::Generic,
         }
     }
 }

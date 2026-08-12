@@ -29,25 +29,25 @@ pub use async_runtime_policy::{
     recommended_tokio_max_blocking_threads, recommended_tokio_max_blocking_threads_for,
     recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
 };
-pub use auth_scope::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
+pub use auth_scope::{RuntimeAuthIdentity, RuntimeAuthScope, RuntimeAuthScopeSnapshot};
 pub use avatar_cache::AvatarCache;
 pub use backend_runtime::{
     BackendRuntime, BackendRuntimeAuthStatus, BackendRuntimeGameLogStatus, BackendRuntimeMode,
     BackendRuntimePhase, BackendRuntimeProcessStatus, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetry, BackendRuntimeTelemetryKind, RealtimeProjectionSync,
+    BackendRuntimeStatusPublisher, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind,
+    GuiRuntimeMode, RealtimeProjectionSync, RuntimeHostProfile,
 };
 pub use background::{
     sleep_until_due_or_stopped, RuntimeBackgroundJobSnapshot, RuntimeBackgroundJobs,
 };
-pub use config::{read_config_string_array, validate_config_writes, write_config_string_array};
+pub use config::{read_config_string_array, write_config_string_array};
 pub use diagnostics::RuntimeDiagnostics;
 pub use error::Error;
 #[cfg(any(test, feature = "test-utils"))]
 pub use event_bus::RuntimeEventForTest;
 pub use event_bus::{
-    FavoriteChange, FavoritesChangedPayload, RuntimeEventBus, RuntimeEventPayload,
-    RuntimeEventSink, RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload,
-    VrcStatusSnapshot,
+    FavoriteChange, FavoritesChangedPayload, RuntimeEventBus, RuntimeEventSink,
+    RuntimeRealtimeTransportEpoch, RuntimeVrchatAuthFailurePayload, VrcStatusSnapshot,
 };
 pub use events::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload, FriendProjection,
@@ -83,6 +83,7 @@ pub use sync::{RuntimeSyncEngine, RuntimeSyncSnapshot};
 pub use task_supervisor::{
     RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle, TaskStopToken, TaskSupervisor,
 };
+pub use vrcx_0_application_contracts::{runtime_event_payload, RuntimeEventPayload};
 pub use web_client::{RealtimeAuthTokenFetch, WebClient};
 pub use world_cache::WorldCache;
 

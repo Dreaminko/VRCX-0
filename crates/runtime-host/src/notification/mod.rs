@@ -1,6 +1,5 @@
 mod activity_filters;
 mod auth_webhook;
-mod delivery;
 mod discord;
 mod enrichment;
 mod generic_webhook;
@@ -29,11 +28,6 @@ pub use auth_webhook::{
     AuthWebhookEvent, AuthWebhookEventKind,
 };
 pub(crate) use auth_webhook::{AuthWebhookQueue, AuthWebhookQueueDeps};
-pub use delivery::{
-    decide_notification_plan, NotificationDeliveryCondition, NotificationDeliveryGameState,
-    NotificationDeliveryPlan, NotificationDeliveryPreferences, NotificationTtsNameMode,
-    NotificationWebhookFormat,
-};
 pub use enrichment::{
     delivery_actor_image_user_id, resolve_delivery_actor_image, resolve_delivery_world_name,
     RealtimeUserImageResolverSlot,
@@ -43,10 +37,7 @@ pub use image_file::{extract_file_id, extract_file_version, fallback_file_versio
 pub use localization::{
     discord_embed_kind, discord_title_key, DiscordEmbedKind, OverlayLocale, OverlayLocalizer,
 };
-pub use preferences::{
-    config_bool, config_tts_name_mode, load_preferences, notification_tts_name_mode,
-    parse_webhook_fields, seed_hmd_notifications_default,
-};
+pub use preferences::{config_bool, parse_webhook_fields, NotificationWebhookFormat};
 pub use rendered::RenderedNotification;
 pub use rendering::{load_notification_locale, render_delivery};
 pub use user_image::{

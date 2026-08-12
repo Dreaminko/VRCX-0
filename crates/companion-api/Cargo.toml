@@ -20,4 +20,4 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "sync", "time"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
-vrcx-0-application-core = { path = "../application-core" }
+vrcx-0-application-contracts = { path = "../application-contracts" }

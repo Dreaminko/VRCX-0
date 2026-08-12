@@ -7,15 +7,14 @@ use super::{
     run_background_current_user_refresh, run_background_group_instance_refresh,
     run_background_moderation_refresh, run_background_print_cleanup,
     run_background_social_baseline_refresh, run_social_baseline_refresh_core, session_slot_matches,
-    AuthenticatedSessionProjection, BackendRuntime, BackendRuntimeMode, BackendRuntimePhase,
-    BackendRuntimeSnapshot, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind,
-    BackgroundCapabilitySession, BackgroundTickContext, RuntimeHostContext, RuntimeHostState,
-    SocialBaselineRefreshOutput, BACKGROUND_CURRENT_USER_CADENCE_SECONDS,
-    BACKGROUND_CURRENT_USER_REFRESH_JOB, BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
-    BACKGROUND_GROUP_INSTANCE_REFRESH_JOB, BACKGROUND_MODERATION_CADENCE_SECONDS,
-    BACKGROUND_MODERATION_REFRESH_JOB, BACKGROUND_PRINT_CLEANUP_CADENCE_SECONDS,
-    BACKGROUND_PRINT_CLEANUP_JOB, BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS,
-    BACKGROUND_SOCIAL_BASELINE_REFRESH_JOB,
+    AuthenticatedSessionProjection, BackendRuntime, BackendRuntimePhase, BackendRuntimeSnapshot,
+    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, BackgroundTickContext,
+    RuntimeHostContext, RuntimeHostState, SocialBaselineRefreshOutput,
+    BACKGROUND_CURRENT_USER_CADENCE_SECONDS, BACKGROUND_CURRENT_USER_REFRESH_JOB,
+    BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS, BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
+    BACKGROUND_MODERATION_CADENCE_SECONDS, BACKGROUND_MODERATION_REFRESH_JOB,
+    BACKGROUND_PRINT_CLEANUP_CADENCE_SECONDS, BACKGROUND_PRINT_CLEANUP_JOB,
+    BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS, BACKGROUND_SOCIAL_BASELINE_REFRESH_JOB,
 };
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
@@ -246,7 +245,6 @@ impl RuntimeHostState {
         let core = run_social_baseline_refresh_core(
             deps,
             &self.realtime_runtime,
-            &self.runtime_context.event_bus,
             &self.authenticated_runtime,
             &session,
         )
@@ -280,13 +278,11 @@ impl RuntimeHostState {
         detail: impl Into<String>,
         snapshot: BackendRuntimeSnapshot,
     ) {
-        self.runtime_context
-            .event_bus
-            .emit(BackendRuntimeTelemetry {
-                kind,
-                detail: detail.into(),
-                snapshot,
-            });
+        vrcx_0_application_core::BackendRuntimeStatusPublisher::new(
+            self.backend_runtime.clone(),
+            self.runtime_context.event_bus.clone(),
+        )
+        .publish_telemetry(kind, detail, snapshot);
     }
 }
 
@@ -331,10 +327,13 @@ pub(super) fn background_session_matches_auth(
 }
 
 pub(super) fn gui_maintenance_runtime_mode(backend_runtime: &BackendRuntime) -> &'static str {
-    match backend_runtime.snapshot().mode {
-        BackendRuntimeMode::Foreground => "normal GUI mode",
-        BackendRuntimeMode::Background => "background GUI mode",
-        BackendRuntimeMode::Headless => "headless mode",
+    match backend_runtime.profile() {
+        crate::RuntimeHostProfile::HeadlessData => "headless mode",
+        crate::RuntimeHostProfile::Desktop => match backend_runtime.gui_mode() {
+            Some(vrcx_0_application_core::GuiRuntimeMode::Foreground) => "normal GUI mode",
+            Some(vrcx_0_application_core::GuiRuntimeMode::Background) => "background GUI mode",
+            None => "normal GUI mode",
+        },
     }
 }
 
@@ -371,16 +370,16 @@ fn emit_background_output(
     detail: impl Into<String>,
 ) {
     let snapshot = backend_runtime.snapshot();
-    if snapshot.mode == BackendRuntimeMode::Headless
+    if backend_runtime.profile() == crate::RuntimeHostProfile::HeadlessData
         || !matches!(snapshot.phase, BackendRuntimePhase::Running)
     {
         return;
     }
-    runtime_context.event_bus.emit(BackendRuntimeTelemetry {
-        kind,
-        detail: detail.into(),
-        snapshot,
-    });
+    vrcx_0_application_core::BackendRuntimeStatusPublisher::new(
+        backend_runtime.clone(),
+        runtime_context.event_bus.clone(),
+    )
+    .publish_telemetry(kind, detail, snapshot);
 }
 
 pub(super) fn background_capability_session(

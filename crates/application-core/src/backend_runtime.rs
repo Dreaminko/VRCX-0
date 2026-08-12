@@ -1,13 +1,12 @@
-use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use vrcx_0_core::realtime::{RealtimeWsStatus, RealtimeWsStatusPayload};
 use vrcx_0_core::time::now_iso;
 
-use crate::event_bus::BackendRuntimeGameLogPersisted;
 use crate::events::FriendProfileLoadStatusPayload;
 use crate::ports::HostSessionProjection;
+use crate::RuntimeEventBus;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -16,6 +15,27 @@ pub enum BackendRuntimeMode {
     Foreground,
     Background,
     Headless,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GuiRuntimeMode {
+    Foreground,
+    Background,
+}
+
+impl GuiRuntimeMode {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Foreground => "foreground",
+            Self::Background => "background",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RuntimeHostProfile {
+    Desktop,
+    HeadlessData,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
@@ -134,7 +154,7 @@ pub struct RealtimeProjectionSync {
 
 #[derive(Clone, Debug)]
 struct BackendRuntimeState {
-    mode: BackendRuntimeMode,
+    gui_mode: GuiRuntimeMode,
     phase: BackendRuntimePhase,
     auth_status: BackendRuntimeAuthStatus,
     auth_user_id: String,
@@ -151,7 +171,7 @@ struct BackendRuntimeState {
 impl Default for BackendRuntimeState {
     fn default() -> Self {
         Self {
-            mode: BackendRuntimeMode::Foreground,
+            gui_mode: GuiRuntimeMode::Foreground,
             phase: BackendRuntimePhase::Idle,
             auth_status: BackendRuntimeAuthStatus::Unknown,
             auth_user_id: String::new(),
@@ -167,19 +187,34 @@ impl Default for BackendRuntimeState {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct BackendRuntime {
+    profile: RuntimeHostProfile,
     state: Arc<Mutex<BackendRuntimeState>>,
 }
 
 impl BackendRuntime {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(profile: RuntimeHostProfile) -> Self {
+        Self {
+            profile,
+            state: Arc::new(Mutex::new(BackendRuntimeState::default())),
+        }
     }
 
-    pub fn set_mode(&self, mode: BackendRuntimeMode) -> BackendRuntimeSnapshot {
+    pub fn profile(&self) -> RuntimeHostProfile {
+        self.profile
+    }
+
+    pub fn gui_mode(&self) -> Option<GuiRuntimeMode> {
+        (self.profile == RuntimeHostProfile::Desktop).then(|| self.lock_state().gui_mode)
+    }
+
+    pub fn set_gui_mode(&self, mode: GuiRuntimeMode) -> BackendRuntimeSnapshot {
+        if self.profile != RuntimeHostProfile::Desktop {
+            return self.snapshot();
+        }
         self.update(|state| {
-            state.mode = mode;
+            state.gui_mode = mode;
         })
     }
 
@@ -293,43 +328,6 @@ impl BackendRuntime {
         })
     }
 
-    pub fn observe_runtime_event(&self, payload: &dyn Any) -> Option<BackendRuntimeTelemetry> {
-        if let Some(status) = payload.downcast_ref::<RealtimeWsStatusPayload>() {
-            let snapshot = self.set_ws_status(status.status);
-            return Some(BackendRuntimeTelemetry {
-                kind: BackendRuntimeTelemetryKind::WsStatus,
-                detail: status.status.as_str().into(),
-                snapshot,
-            });
-        }
-        if let Some(status) = payload.downcast_ref::<FriendProfileLoadStatusPayload>() {
-            self.set_friend_profile_load_state(status.clone());
-            return None;
-        }
-        if let Some(projection) = payload.downcast_ref::<HostSessionProjection>() {
-            let status = if projection.is_game_running {
-                BackendRuntimeProcessStatus::VrchatRunning
-            } else {
-                BackendRuntimeProcessStatus::VrchatStopped
-            };
-            let snapshot = self.set_process_status(status);
-            return Some(BackendRuntimeTelemetry {
-                kind: BackendRuntimeTelemetryKind::ProcessStatus,
-                detail: status.as_str().into(),
-                snapshot,
-            });
-        }
-        if let Some(telemetry) = payload.downcast_ref::<BackendRuntimeGameLogPersisted>() {
-            let snapshot = self.add_game_log_persisted(telemetry.count);
-            return Some(BackendRuntimeTelemetry {
-                kind: BackendRuntimeTelemetryKind::GameLogPersisted,
-                detail: telemetry.count.to_string(),
-                snapshot,
-            });
-        }
-        None
-    }
-
     pub fn snapshot(&self) -> BackendRuntimeSnapshot {
         self.state_to_snapshot(&self.lock_state())
     }
@@ -343,7 +341,13 @@ impl BackendRuntime {
 
     fn state_to_snapshot(&self, state: &BackendRuntimeState) -> BackendRuntimeSnapshot {
         BackendRuntimeSnapshot {
-            mode: state.mode,
+            mode: match self.profile {
+                RuntimeHostProfile::Desktop => match state.gui_mode {
+                    GuiRuntimeMode::Foreground => BackendRuntimeMode::Foreground,
+                    GuiRuntimeMode::Background => BackendRuntimeMode::Background,
+                },
+                RuntimeHostProfile::HeadlessData => BackendRuntimeMode::Headless,
+            },
             phase: state.phase,
             auth_status: state.auth_status,
             auth_user_id: state.auth_user_id.clone(),
@@ -360,5 +364,132 @@ impl BackendRuntime {
 
     fn lock_state(&self) -> std::sync::MutexGuard<'_, BackendRuntimeState> {
         self.state.lock().unwrap_or_else(|error| error.into_inner())
+    }
+}
+
+#[derive(Clone)]
+pub struct BackendRuntimeStatusPublisher {
+    runtime: BackendRuntime,
+    event_bus: RuntimeEventBus,
+}
+
+impl BackendRuntimeStatusPublisher {
+    pub fn new(runtime: BackendRuntime, event_bus: RuntimeEventBus) -> Self {
+        Self { runtime, event_bus }
+    }
+
+    pub fn publish_realtime_ws_status(&self, payload: RealtimeWsStatusPayload) {
+        let snapshot = self.runtime.set_ws_status(payload.status);
+        let detail = payload.status.as_str();
+        self.event_bus.emit(payload);
+        self.publish_telemetry(BackendRuntimeTelemetryKind::WsStatus, detail, snapshot);
+    }
+
+    pub fn publish_friend_profile_load_status(&self, payload: FriendProfileLoadStatusPayload) {
+        self.runtime.set_friend_profile_load_state(payload.clone());
+        self.event_bus.emit(payload);
+    }
+
+    pub fn publish_game_process_status(&self, projection: HostSessionProjection) {
+        let status = if projection.is_game_running {
+            BackendRuntimeProcessStatus::VrchatRunning
+        } else {
+            BackendRuntimeProcessStatus::VrchatStopped
+        };
+        let snapshot = self.runtime.set_process_status(status);
+        self.event_bus.emit(projection);
+        self.publish_telemetry(
+            BackendRuntimeTelemetryKind::ProcessStatus,
+            status.as_str(),
+            snapshot,
+        );
+    }
+
+    pub fn publish_game_log_persisted(&self, count: u64) {
+        let snapshot = self.runtime.add_game_log_persisted(count);
+        self.publish_telemetry(
+            BackendRuntimeTelemetryKind::GameLogPersisted,
+            count.to_string(),
+            snapshot,
+        );
+    }
+
+    pub fn publish_telemetry(
+        &self,
+        kind: BackendRuntimeTelemetryKind,
+        detail: impl Into<String>,
+        snapshot: BackendRuntimeSnapshot,
+    ) {
+        if kind != BackendRuntimeTelemetryKind::GameLogPersisted {
+            self.event_bus.emit(RealtimeProjectionSync {
+                snapshot: snapshot.clone(),
+            });
+        }
+        self.event_bus.emit(BackendRuntimeTelemetry {
+            kind,
+            detail: detail.into(),
+            snapshot,
+        });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_profile_projects_only_valid_wire_modes() {
+        let desktop = BackendRuntime::new(RuntimeHostProfile::Desktop);
+        assert_eq!(desktop.snapshot().mode, BackendRuntimeMode::Foreground);
+        assert_eq!(desktop.gui_mode(), Some(GuiRuntimeMode::Foreground));
+        assert_eq!(
+            desktop.set_gui_mode(GuiRuntimeMode::Background).mode,
+            BackendRuntimeMode::Background
+        );
+
+        let headless = BackendRuntime::new(RuntimeHostProfile::HeadlessData);
+        assert_eq!(headless.snapshot().mode, BackendRuntimeMode::Headless);
+        assert_eq!(headless.gui_mode(), None);
+        assert_eq!(
+            headless.set_gui_mode(GuiRuntimeMode::Background).mode,
+            BackendRuntimeMode::Headless
+        );
+    }
+
+    #[test]
+    fn game_log_publisher_updates_state_before_transport_payload() {
+        let runtime = BackendRuntime::new(RuntimeHostProfile::Desktop);
+        let event_bus = RuntimeEventBus::new();
+        let publisher = BackendRuntimeStatusPublisher::new(runtime.clone(), event_bus.clone());
+
+        publisher.publish_game_log_persisted(3);
+
+        let events = event_bus.take_events_for_test();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].name, "backendRuntimeTelemetry");
+        assert_eq!(events[0].payload["kind"], "gameLogPersisted");
+        assert_eq!(events[0].payload["detail"], "3");
+        assert_eq!(events[0].payload["snapshot"]["gameLogPersistedCount"], 3);
+        assert_eq!(runtime.snapshot().game_log_persisted_count, 3);
+    }
+
+    #[test]
+    fn telemetry_publisher_emits_projection_before_non_game_log_telemetry() {
+        let runtime = BackendRuntime::new(RuntimeHostProfile::Desktop);
+        let event_bus = RuntimeEventBus::new();
+        let publisher = BackendRuntimeStatusPublisher::new(runtime.clone(), event_bus.clone());
+        let snapshot = runtime.set_phase(BackendRuntimePhase::Running);
+
+        publisher.publish_telemetry(
+            BackendRuntimeTelemetryKind::RuntimeStarted,
+            "ready",
+            snapshot,
+        );
+
+        let events = event_bus.take_events_for_test();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].name, "realtimeProjectionSync");
+        assert_eq!(events[1].name, "backendRuntimeTelemetry");
+        assert_eq!(events[1].payload["kind"], "runtimeStarted");
     }
 }

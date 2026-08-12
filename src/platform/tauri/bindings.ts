@@ -4302,6 +4302,7 @@ export type LlmEndpointDto = {
     id: string;
     name: string;
     baseUrl: string;
+    apiKey: string;
     hasKey: boolean;
     models: string[];
     modelReasoning: LlmModelReasoning[];
@@ -4428,6 +4429,7 @@ export type McpServerStatus = {
     allowVrchatWrites: boolean;
     state: McpServerState;
     port: number | null;
+    token: string;
     activeConnections: number;
     lastError: string | null;
     clientConfig: ClientConfigSnippets | null;

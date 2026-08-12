@@ -4,6 +4,7 @@ use crate::common::ParamsBuilder;
 use crate::database::DatabaseService;
 use crate::Error;
 
+use super::obfuscation::{decode_config_value, encode_config_value};
 use super::schema::{
     create_configs_sql, delete_value_sql, select_value_sql, upsert_value_sql, COL_KEY, COL_VALUE,
 };
@@ -81,16 +82,16 @@ pub fn ensure_config_table(db: &DatabaseService) -> Result<(), Error> {
 
 pub fn get_raw(db: &DatabaseService, key: &str) -> Result<Option<String>, Error> {
     ensure_config_table(db)?;
-    let args = ParamsBuilder::new()
-        .set(COL_KEY, resolve_config_key(key))
-        .build();
+    let key = resolve_config_key(key);
+    let args = ParamsBuilder::new().set(COL_KEY, key.clone()).build();
 
     Ok(db
         .execute(&select_value_sql(), &args)?
         .first()
         .and_then(|row| row.first())
         .and_then(|value| value.as_str())
-        .map(ToOwned::to_owned))
+        .map(ToOwned::to_owned)
+        .map(|value| decode_config_value(&key, value)))
 }
 
 pub fn get_bool(db: &DatabaseService, key: &str, default_value: bool) -> Result<bool, Error> {
@@ -116,9 +117,10 @@ pub fn get_json(
 
 pub fn set_raw(db: &DatabaseService, key: &str, value: &str) -> Result<(), Error> {
     ensure_config_table(db)?;
+    let key = resolve_config_key(key);
     let args = ParamsBuilder::new()
-        .set(COL_KEY, resolve_config_key(key))
-        .set(COL_VALUE, value)
+        .set(COL_KEY, key.clone())
+        .set(COL_VALUE, encode_config_value(&key, value))
         .build();
     db.execute_non_query(&upsert_value_sql(), &args)?;
     Ok(())

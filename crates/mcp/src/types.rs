@@ -24,6 +24,7 @@ pub struct McpServerStatus {
     pub allow_vrchat_writes: bool,
     pub state: McpServerState,
     pub port: Option<u16>,
+    pub token: String,
     pub active_connections: u32,
     pub last_error: Option<String>,
     pub client_config: Option<ClientConfigSnippets>,

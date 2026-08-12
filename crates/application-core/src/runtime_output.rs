@@ -1,8 +1,10 @@
-use std::any::Any;
-
+use serde_json::Value;
 use vrcx_0_core::realtime::{RealtimeWsStatus, RealtimeWsStatusPayload};
 
-use crate::{BackendRuntimeProcessStatus, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind};
+use crate::{
+    BackendRuntimeProcessStatus, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind,
+    RuntimeEventPayload,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeOutputMode {
@@ -26,14 +28,20 @@ pub struct RuntimeOutputLine {
 
 pub fn format_runtime_output_event(
     mode: RuntimeOutputMode,
-    payload: &dyn Any,
+    event: &str,
+    payload: &Value,
 ) -> Option<RuntimeOutputLine> {
-    if let Some(status) = payload.downcast_ref::<RealtimeWsStatusPayload>() {
-        return format_realtime_ws_status(mode, status);
+    if event == RealtimeWsStatusPayload::EVENT_NAME {
+        return serde_json::from_value::<RealtimeWsStatusPayload>(payload.clone())
+            .ok()
+            .and_then(|status| format_realtime_ws_status(mode, &status));
     }
-    payload
-        .downcast_ref::<BackendRuntimeTelemetry>()
-        .and_then(|telemetry| format_backend_runtime_telemetry(mode, telemetry))
+    if event == BackendRuntimeTelemetry::EVENT_NAME {
+        return serde_json::from_value::<BackendRuntimeTelemetry>(payload.clone())
+            .ok()
+            .and_then(|telemetry| format_backend_runtime_telemetry(mode, &telemetry));
+    }
+    None
 }
 
 fn format_realtime_ws_status(
@@ -164,8 +172,16 @@ mod tests {
         BackendRuntimeTelemetry {
             kind,
             detail: detail.into(),
-            snapshot: crate::BackendRuntime::new().snapshot(),
+            snapshot: crate::BackendRuntime::new(crate::RuntimeHostProfile::Desktop).snapshot(),
         }
+    }
+
+    fn formatted<T: RuntimeEventPayload>(
+        mode: RuntimeOutputMode,
+        payload: &T,
+    ) -> RuntimeOutputLine {
+        format_runtime_output_event(mode, T::EVENT_NAME, &serde_json::to_value(payload).unwrap())
+            .unwrap()
     }
 
     #[test]
@@ -174,15 +190,14 @@ mod tests {
         payload.snapshot.auth_display_name = "Example".into();
         payload.snapshot.auth_user_id = "usr_test".into();
 
-        let background =
-            format_runtime_output_event(RuntimeOutputMode::Background, &payload).unwrap();
+        let background = formatted(RuntimeOutputMode::Background, &payload);
         assert_eq!(background.level, RuntimeOutputLevel::Info);
         assert_eq!(
             background.message,
             "background mode login success: Example (usr_test)"
         );
 
-        let headless = format_runtime_output_event(RuntimeOutputMode::Headless, &payload).unwrap();
+        let headless = formatted(RuntimeOutputMode::Headless, &payload);
         assert_eq!(headless.message, "login success: Example (usr_test)");
     }
 
@@ -193,7 +208,7 @@ mod tests {
             "Discord SetAssets failed: pipe closed.",
         );
 
-        let output = format_runtime_output_event(RuntimeOutputMode::Background, &payload).unwrap();
+        let output = formatted(RuntimeOutputMode::Background, &payload);
         assert_eq!(output.level, RuntimeOutputLevel::Error);
         assert_eq!(
             output.message,
@@ -209,7 +224,7 @@ mod tests {
             "Discord SetAssets failed: pipe closed.",
         );
 
-        let output = format_runtime_output_event(RuntimeOutputMode::Background, &payload).unwrap();
+        let output = formatted(RuntimeOutputMode::Background, &payload);
         assert_eq!(output.level, RuntimeOutputLevel::Warn);
         assert_eq!(
             output.message,
@@ -231,7 +246,7 @@ mod tests {
             status_code: None,
         };
 
-        let output = format_runtime_output_event(RuntimeOutputMode::Headless, &payload).unwrap();
+        let output = formatted(RuntimeOutputMode::Headless, &payload);
         assert_eq!(output.level, RuntimeOutputLevel::Error);
         assert_eq!(output.message, "ws status: authFailure (token expired)");
         assert_eq!(output.fatal_reason.as_deref(), Some("token expired"));

@@ -299,6 +299,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
         })
         .unwrap();
     assert!(saved.has_key);
+    assert_eq!(saved.api_key, "sk-old");
     assert_eq!(saved.base_url, "https://api.openai.com/v1");
 
     let preserved = store
@@ -312,6 +313,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
         })
         .unwrap();
     assert!(preserved.has_key);
+    assert_eq!(preserved.api_key, "sk-old");
 
     let dropped = store
         .upsert(LlmEndpointUpsertInput {
@@ -324,6 +326,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
         })
         .unwrap();
     assert!(!dropped.has_key);
+    assert!(dropped.api_key.is_empty());
 
     let cleared = store
         .upsert(LlmEndpointUpsertInput {
@@ -336,6 +339,7 @@ fn upsert_preserves_clears_and_drops_keys_on_provider_change() {
         })
         .unwrap();
     assert!(!cleared.has_key);
+    assert!(cleared.api_key.is_empty());
 }
 
 #[test]

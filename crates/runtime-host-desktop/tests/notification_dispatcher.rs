@@ -14,11 +14,11 @@ use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_runtime_host::notification::{
     auth_webhook_generic_payload, auth_webhook_is_enabled, auth_webhook_should_recover,
-    decide_notification_plan, AuthWebhookEvent, AuthWebhookEventKind,
-    NotificationDeliveryCondition, NotificationDeliveryGameState, NotificationDeliveryPreferences,
+    AuthWebhookEvent, AuthWebhookEventKind,
 };
 use vrcx_0_runtime_host_desktop::notification::{
-    DesktopNotificationAction, DesktopNotifier, DesktopNotifierSlot,
+    decide_notification_plan, DesktopNotificationAction, DesktopNotifier, DesktopNotifierSlot,
+    NotificationDeliveryCondition, NotificationDeliveryGameState, NotificationDeliveryPreferences,
 };
 
 #[test]

@@ -1,5 +1,7 @@
 use vrcx_0_host_desktop::overlay_notifications::send_xs_notification;
-use vrcx_0_runtime_host::notification::{NotificationDeliveryPreferences, RenderedNotification};
+use vrcx_0_runtime_host::notification::RenderedNotification;
+
+use super::NotificationDeliveryPreferences;
 
 const NOTIFICATION_APP_TITLE: &str = "VRCX-0";
 

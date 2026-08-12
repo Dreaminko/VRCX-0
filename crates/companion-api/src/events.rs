@@ -36,7 +36,31 @@ impl CompanionApiStartFailedPayload {
     }
 }
 
-vrcx_0_application_core::runtime_event_payload!(
+vrcx_0_application_contracts::runtime_event_payload!(
     CompanionApiStartFailedPayload,
     "companionApiStartFailed"
 );
+
+#[cfg(test)]
+mod tests {
+    use vrcx_0_application_contracts::RuntimeEventPayload;
+
+    use super::{CompanionApiStartFailedPayload, CompanionApiStartFailureReason};
+
+    #[test]
+    fn start_failure_keeps_the_event_name_and_camel_case_wire_shape() {
+        let payload = CompanionApiStartFailedPayload {
+            port: 27272,
+            reason: CompanionApiStartFailureReason::PortInUse,
+        };
+
+        assert_eq!(
+            CompanionApiStartFailedPayload::EVENT_NAME,
+            "companionApiStartFailed"
+        );
+        assert_eq!(
+            serde_json::to_value(payload).unwrap(),
+            serde_json::json!({ "port": 27272, "reason": "portInUse" })
+        );
+    }
+}

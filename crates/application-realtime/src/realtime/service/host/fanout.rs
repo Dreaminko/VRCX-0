@@ -23,6 +23,10 @@ pub(super) enum FriendOutputApplyOutcome {
 }
 
 impl RealtimeHostRuntime {
+    pub fn emit_friend_projection(&self, projection: FriendProjection) {
+        self.deps.friend_projection_sink.emit(projection);
+    }
+
     pub fn set_feed_persistence_disabled(&self, disabled: bool) -> Result<()> {
         let _owner = self.lock_friend_owner();
         config_store::set_bool(self.deps.db.as_ref(), "feedPersistenceDisabled", disabled)?;
@@ -151,9 +155,7 @@ impl RealtimeHostRuntime {
             );
             self.emit_user_cache_changes(changed);
         }
-        self.deps
-            .event_bus
-            .emit_realtime_friend_projection(projection);
+        self.emit_friend_projection(projection);
         self.emit_feed_entries(projection_generation, &output.owner_user_id, feed_entries);
 
         if let PendingOfflineTimerAction::Schedule {

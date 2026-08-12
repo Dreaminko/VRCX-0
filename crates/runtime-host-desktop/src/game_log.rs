@@ -5,9 +5,11 @@ use crate::{HostFileAccess, Result};
 use vrcx_0_application_activity::OverlayActivityRuntime;
 use vrcx_0_application_core::Error as RuntimeError;
 use vrcx_0_application_core::Result as RuntimeResult;
-use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, InstanceRosterObserver};
+use vrcx_0_application_core::{
+    BackendRuntimeStatusPublisher, GameProcessEvent, GameProcessEventSink, InstanceRosterObserver,
+};
 use vrcx_0_application_game::{
-    GameLogHostActions, GameLogRuntime, GameLogRuntimeDeps, RuntimeSnapshot,
+    GameLogHostActions, GameLogRuntime, GameLogRuntimeDeps, GameLogSideEffectSink, RuntimeSnapshot,
 };
 use vrcx_0_host::app_paths::AppPaths;
 use vrcx_0_host_desktop::{clipboard, game_launch, vrchat_paths};
@@ -61,35 +63,44 @@ pub struct GameLogHostRuntime {
     inner: GameLogRuntime,
 }
 
+pub struct GameLogHostRuntimeDeps {
+    pub context: Arc<RuntimeHostContext>,
+    pub file_access: HostFileAccess,
+    pub app_paths: AppPaths,
+    pub snapshot: Arc<std::sync::Mutex<RuntimeSnapshot>>,
+    pub overlay_activity: OverlayActivityRuntime,
+    pub instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
+    pub backend_status: BackendRuntimeStatusPublisher,
+    pub side_effect_sink: GameLogSideEffectSink,
+}
+
 impl GameLogHostRuntime {
-    pub fn new(
-        context: Arc<RuntimeHostContext>,
-        file_access: HostFileAccess,
-        app_paths: AppPaths,
-        snapshot: Arc<std::sync::Mutex<RuntimeSnapshot>>,
-        overlay_activity: OverlayActivityRuntime,
-        instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
-    ) -> Self {
+    pub fn new(deps: GameLogHostRuntimeDeps) -> Self {
         let inner = GameLogRuntime::new(GameLogRuntimeDeps {
-            db: Arc::clone(&context.db),
-            web: Arc::clone(&context.web),
-            image_cache: Arc::clone(&context.image_cache),
-            event_bus: context.event_bus.clone(),
-            tasks: context.tasks.clone(),
-            sync: context.sync.clone(),
-            auth_scope: context.auth_scope.clone(),
-            snapshot,
-            session: context.session.clone(),
-            overlay_activity,
-            world_cache: Arc::clone(&context.world_cache),
+            db: Arc::clone(&deps.context.db),
+            web: Arc::clone(&deps.context.web),
+            image_cache: Arc::clone(&deps.context.image_cache),
+            event_bus: deps.context.event_bus.clone(),
+            backend_status: deps.backend_status,
+            side_effect_sink: deps.side_effect_sink,
+            tasks: deps.context.tasks.clone(),
+            sync: deps.context.sync.clone(),
+            auth_scope: deps.context.auth_scope.clone(),
+            snapshot: deps.snapshot,
+            session: deps.context.session.clone(),
+            overlay_activity: deps.overlay_activity,
+            world_cache: Arc::clone(&deps.context.world_cache),
             host_actions: Arc::new(HostGameLogActions {
-                file_access,
-                app_paths,
+                file_access: deps.file_access,
+                app_paths: deps.app_paths,
             }),
-            instance_roster_observer,
+            instance_roster_observer: deps.instance_roster_observer,
         });
 
-        Self { context, inner }
+        Self {
+            context: deps.context,
+            inner,
+        }
     }
 
     pub fn prime_log_watcher(&self, log_watcher: &LogWatcher) -> Result<()> {

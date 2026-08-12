@@ -1,6 +1,6 @@
-use vrcx_0_runtime_host::notification::{
-    NotificationDeliveryPlan, NotificationDeliveryPreferences, RenderedNotification,
-};
+use vrcx_0_runtime_host::notification::RenderedNotification;
+
+use super::{NotificationDeliveryPlan, NotificationDeliveryPreferences};
 
 #[cfg(any(windows, target_os = "linux"))]
 use vrcx_0_host_desktop::overlay_notifications::OvrToolkit;

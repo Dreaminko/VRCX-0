@@ -25,6 +25,7 @@ function endpoint(models: string[]): LlmEndpointDto {
         id: 'ep_1',
         name: 'Provider',
         baseUrl: 'https://example.com/v1',
+        apiKey: '',
         hasKey: false,
         models,
         modelReasoning: [],

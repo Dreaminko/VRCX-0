@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use vrcx_0_application_core::{
-    BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetry,
+    BackendRuntime, BackendRuntimePhase, BackendRuntimeStatusPublisher,
     BackendRuntimeTelemetryKind, BackgroundCapabilitySession, RuntimeBackgroundJobs,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
@@ -135,14 +135,9 @@ fn emit_background_output(
     detail: impl Into<String>,
 ) {
     let snapshot = backend_runtime.snapshot();
-    if snapshot.mode == BackendRuntimeMode::Headless
-        || snapshot.phase != BackendRuntimePhase::Running
-    {
+    if snapshot.phase != BackendRuntimePhase::Running {
         return;
     }
-    runtime_context.event_bus.emit(BackendRuntimeTelemetry {
-        kind,
-        detail: detail.into(),
-        snapshot,
-    });
+    BackendRuntimeStatusPublisher::new(backend_runtime.clone(), runtime_context.event_bus.clone())
+        .publish_telemetry(kind, detail, snapshot);
 }

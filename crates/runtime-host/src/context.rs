@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use vrcx_0_application::{
-    LoginSessionRuntime, MutualGraphFetchRuntime, PrintCleanupQueue, RemoteMutationGate,
-    VrcStatusService,
+    FavoriteMutationCoordinator, LoginSessionRuntime, MutualGraphFetchRuntime, PrintCleanupQueue,
+    RemoteMutationGate, VrcStatusService,
 };
 use vrcx_0_application_activity::{
     OverlayActivityDelivery, OverlayActivityRuntime, OverlayActivitySink, OverlayActivitySnapshot,
@@ -18,10 +18,10 @@ use vrcx_0_persistence::DatabaseService;
 
 use crate::notification::{
     load_overlay_activity_filters, save_notification_activity_filters,
-    save_overlay_activity_preference_filters, seed_hmd_notifications_default, AuthWebhookEvent,
-    AuthWebhookQueue, AuthWebhookQueueDeps, NotificationActivityFiltersSetInput,
-    NotificationWebhookSink, NotificationWebhookSinkDeps, OverlayActivityPreferenceFilters,
-    UserImageCache, WebhookDeliveryMonitor, WebhookDeliverySnapshot,
+    save_overlay_activity_preference_filters, AuthWebhookEvent, AuthWebhookQueue,
+    AuthWebhookQueueDeps, NotificationActivityFiltersSetInput, NotificationWebhookSink,
+    NotificationWebhookSinkDeps, OverlayActivityPreferenceFilters, UserImageCache,
+    WebhookDeliveryMonitor, WebhookDeliverySnapshot,
 };
 
 const AVATAR_CACHE_WORKING_CAPACITY: u64 = 256;
@@ -83,6 +83,7 @@ pub struct RuntimeHostContext {
     pub print_cleanup: PrintCleanupQueue,
     pub mutual_graph_fetch: MutualGraphFetchRuntime,
     pub remote_mutations: Arc<RemoteMutationGate>,
+    pub favorite_mutations: FavoriteMutationCoordinator,
     pub vrc_status: VrcStatusService,
     pub login_session: LoginSessionRuntime,
     pub avatar_cache: Arc<AvatarCache>,
@@ -102,11 +103,10 @@ impl RuntimeHostContext {
         image_cache: Arc<ImageCache>,
     ) -> Self {
         let config = ConfigRepository::new(Arc::clone(&db));
-        if let Err(error) = seed_hmd_notifications_default(&config) {
-            tracing::warn!(error = %error, "failed to seed HMD notification preference");
-        }
         let event_bus = RuntimeEventBus::new();
         let diagnostics = RuntimeDiagnostics::new();
+        let sync = RuntimeSyncEngine::new();
+        let auth_scope = RuntimeAuthScope::new();
         let tasks = TaskSupervisor::new();
         let session = HostSessionRuntime::new();
         let avatar_cache = Arc::new(AvatarCache::new(
@@ -148,6 +148,15 @@ impl RuntimeHostContext {
         overlay_activity.set_sink(overlay_activity_sinks.clone());
         let mutual_graph_fetch = MutualGraphFetchRuntime::with_event_bus(event_bus.clone());
         let remote_mutations = Arc::new(RemoteMutationGate::default());
+        let favorite_mutations = FavoriteMutationCoordinator::new(
+            Arc::clone(&db),
+            Arc::clone(&web),
+            diagnostics.clone(),
+            sync.clone(),
+            event_bus.clone(),
+            auth_scope.clone(),
+            Arc::clone(&remote_mutations),
+        );
         Self {
             db,
             web,
@@ -155,14 +164,15 @@ impl RuntimeHostContext {
             event_bus,
             runtime: RuntimeLifecycle::new(),
             background_jobs: RuntimeBackgroundJobs::new(),
-            sync: RuntimeSyncEngine::new(),
+            sync,
             diagnostics,
             tasks,
             session,
-            auth_scope: RuntimeAuthScope::new(),
+            auth_scope,
             print_cleanup: PrintCleanupQueue::new(),
             mutual_graph_fetch,
             remote_mutations,
+            favorite_mutations,
             vrc_status,
             login_session: LoginSessionRuntime::new(),
             avatar_cache,

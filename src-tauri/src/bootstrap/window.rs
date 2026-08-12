@@ -5,7 +5,9 @@ use tauri::{Manager, WebviewWindowBuilder};
 
 use crate::error::AppError;
 use crate::state::{AppState, BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY};
-use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
+use vrcx_0_application_core::{
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot, GuiRuntimeMode,
+};
 
 use super::adapters::start_host_services;
 use super::notification::{is_background_mode_active, is_community_theme_enabled, tray_labels};
@@ -130,7 +132,7 @@ pub async fn start_background_mode_for_current_session(
     cancel_background_delay(state);
     super::capture_background_resume_route(app, state);
     let snapshot = match state
-        .start_backend_runtime(BackendRuntimeMode::Background, None)
+        .start_backend_runtime(GuiRuntimeMode::Background, None)
         .await
     {
         Ok(snapshot) => snapshot,
@@ -162,7 +164,7 @@ pub fn restore_foreground_window_from_background_mode(
         let _ = refresh_tray_menu(app, state);
         return Ok(current);
     }
-    let snapshot = state.set_gui_backend_runtime_mode(BackendRuntimeMode::Foreground);
+    let snapshot = state.set_gui_backend_runtime_mode(GuiRuntimeMode::Foreground);
     ensure_main_window(app)?;
     let _ = refresh_tray_menu(app, state);
     Ok(snapshot)

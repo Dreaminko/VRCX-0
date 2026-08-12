@@ -5,22 +5,8 @@ use tauri::State;
 use crate::error::AppError;
 use crate::state::AppState;
 
-use vrcx_0_application::{FavoriteRow, LocalFavoriteMutationDeps, LocalFavoriteSnapshot};
+use vrcx_0_application::{FavoriteRow, LocalFavoriteSnapshot};
 use vrcx_0_application_core::FavoriteEntityKind;
-
-pub(crate) fn favorite_mutation_deps<'a>(
-    state: &'a State<'_, AppState>,
-) -> Result<LocalFavoriteMutationDeps<'a>, AppError> {
-    Ok(LocalFavoriteMutationDeps {
-        db: &state.db,
-        realtime: &state.realtime_runtime,
-        mutation: vrcx_0_application::AuthenticatedMutationContext::capture(
-            &state.runtime_context.auth_scope,
-            &state.runtime_context.remote_mutations,
-            "Local favorite mutation",
-        )?,
-    })
-}
 
 #[tauri::command]
 #[specta::specta]
@@ -50,8 +36,10 @@ pub fn favorite_add(
     entity_id: String,
     group_name: String,
 ) -> Result<i64, AppError> {
-    let deps = favorite_mutation_deps(&state)?;
-    vrcx_0_application::add_local_favorite_scoped(&deps, kind, entity_id, group_name)
+    state
+        .runtime_context
+        .favorite_mutations
+        .add_local(kind, entity_id, group_name)
         .map_err(AppError::from)
 }
 
@@ -61,7 +49,9 @@ pub fn favorite_remove(
     entity_id: String,
     group_name: String,
 ) -> Result<i64, AppError> {
-    let deps = favorite_mutation_deps(&state)?;
-    vrcx_0_application::remove_local_favorite_scoped(&deps, kind, entity_id, group_name)
+    state
+        .runtime_context
+        .favorite_mutations
+        .remove_local(kind, entity_id, group_name)
         .map_err(AppError::from)
 }

@@ -79,6 +79,25 @@ fn test_processor(name: &str) -> Result<(TestDir, Arc<DatabaseService>, GameLogP
     Ok((dir, db, processor))
 }
 
+#[test]
+fn side_effect_dependencies_capture_the_authenticated_identity() -> Result<()> {
+    let (_dir, _db, processor) = test_processor("runtime-gamelog-captured-identity")?;
+    processor
+        .deps
+        .auth_scope
+        .set_identity("usr_first", "First User", "");
+
+    let captured = processor.side_effect_deps();
+    processor
+        .deps
+        .auth_scope
+        .set_identity("usr_second", "Second User", "");
+
+    assert_eq!(captured.auth_identity.user_id, "usr_first");
+    assert_eq!(captured.auth_identity.display_name, "First User");
+    Ok(())
+}
+
 fn build_test_processor(dir: &TestDir, db: Arc<DatabaseService>) -> Result<GameLogProcessor> {
     let storage = StorageService::new(&dir.path.join("VRCX-0.json"))?;
     let web = Arc::new(WebClient::new(
@@ -94,11 +113,19 @@ fn build_test_processor(dir: &TestDir, db: Arc<DatabaseService>) -> Result<GameL
         512,
         std::time::Duration::from_secs(30 * 60),
     ));
+    let event_bus = RuntimeEventBus::new();
     let processor = GameLogProcessor::new(GameLogProcessorDeps {
         db: Arc::clone(&db),
         web,
         image_cache,
-        event_bus: RuntimeEventBus::new(),
+        event_bus: event_bus.clone(),
+        backend_status: vrcx_0_application_core::BackendRuntimeStatusPublisher::new(
+            vrcx_0_application_core::BackendRuntime::new(
+                vrcx_0_application_core::RuntimeHostProfile::Desktop,
+            ),
+            event_bus.clone(),
+        ),
+        side_effect_sink: crate::GameLogSideEffectSink::new(event_bus, None),
         tasks: TaskSupervisor::new(),
         sync: RuntimeSyncEngine::new(),
         auth_scope: RuntimeAuthScope::new(),

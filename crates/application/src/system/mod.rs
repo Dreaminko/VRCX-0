@@ -3,6 +3,7 @@ mod avatar_feed_cleanup;
 mod background_image;
 mod batch_mutation;
 mod community_theme;
+mod config_mutation;
 mod data_dir_migration;
 mod database_upgrade;
 mod database_upgrade_runtime;
@@ -40,6 +41,7 @@ pub use community_theme::{
     CommunityThemeInstallMetadata, CommunityThemeManifest, CommunityThemeProjection,
     CommunityThemeService, CommunityThemeStatsById, CommunityThemeStatsEntry,
 };
+pub use config_mutation::{list_config_values, remove_config_value, set_config_values};
 pub use data_dir_migration::{
     build_data_dir_migration_plan, DataDirMigrationActionOutcome, DataDirMigrationError,
     DataDirMigrationErrorCode, DataDirMigrationMode, DataDirMigrationPhase, DataDirMigrationPlan,

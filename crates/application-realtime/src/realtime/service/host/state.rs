@@ -207,6 +207,8 @@ pub struct RealtimeHostRuntimeDeps {
     pub db: Arc<DatabaseService>,
     pub web: Arc<WebClient>,
     pub event_bus: RuntimeEventBus,
+    pub backend_status: vrcx_0_application_core::BackendRuntimeStatusPublisher,
+    pub friend_projection_sink: crate::FriendProjectionSink,
     pub sync: RuntimeSyncEngine,
     pub tasks: TaskSupervisor,
     pub session: HostSessionRuntime,

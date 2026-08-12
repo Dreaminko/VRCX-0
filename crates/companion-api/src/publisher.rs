@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use tokio::sync::{broadcast, watch};
-use vrcx_0_application_core::{InstanceRosterObserver, InstanceRosterSnapshot};
+use vrcx_0_application_contracts::{InstanceRosterObserver, InstanceRosterSnapshot};
 
 const PUBLISHER_CAPACITY: usize = 8;
 

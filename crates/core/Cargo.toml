@@ -11,7 +11,6 @@ quick-xml = "0.41"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 specta.workspace = true
-tracing = { workspace = true }
 
 [dev-dependencies]
 proptest.workspace = true

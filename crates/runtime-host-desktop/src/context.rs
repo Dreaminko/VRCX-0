@@ -1,11 +1,10 @@
-use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Map, Value};
 use vrcx_0_application_activity::{OverlayActivityRuntime, OverlayActivitySink};
 use vrcx_0_application_core::FriendProjection;
-use vrcx_0_application_game::{GameLogSideEffectEvent, RuntimeSnapshot};
-use vrcx_0_application_realtime::RealtimeHostRuntime;
+use vrcx_0_application_game::{GameLogSideEffectEvent, GameLogSideEffectObserver, RuntimeSnapshot};
+use vrcx_0_application_realtime::{FriendProjectionObserver, RealtimeHostRuntime};
 use vrcx_0_core::friends::StateBucket;
 use vrcx_0_host_desktop::tts::{SystemTtsEngine, TtsEngine};
 #[cfg(any(windows, target_os = "linux"))]
@@ -18,7 +17,8 @@ use vrcx_0_runtime_host::RuntimeHostContext;
 
 use crate::host_actions::RuntimeHost;
 use crate::notification::{
-    DesktopNotifier, DesktopNotifierSlot, NotificationDispatcher, NotificationDispatcherDeps,
+    seed_hmd_notifications_default, DesktopNotifier, DesktopNotifierSlot, NotificationDispatcher,
+    NotificationDispatcherDeps,
 };
 
 const AVATAR_PREFETCH_MAX_PATCHES: usize = 8;
@@ -35,6 +35,9 @@ pub struct DesktopRuntimeServices {
 
 impl DesktopRuntimeServices {
     pub fn new(data: Arc<RuntimeHostContext>) -> Self {
+        if let Err(error) = seed_hmd_notifications_default(&data.config) {
+            tracing::warn!(error = %error, "failed to seed HMD notification preference");
+        }
         let tts: Arc<dyn TtsEngine> = Arc::new(SystemTtsEngine::new());
         let notification_desktop_notifier = DesktopNotifierSlot::default();
         let realtime_user_image_resolver = RealtimeUserImageResolverSlot::default();
@@ -109,15 +112,6 @@ impl DesktopRuntimeServices {
 
     pub fn tts(&self) -> Arc<dyn TtsEngine> {
         Arc::clone(&self.tts)
-    }
-
-    pub fn observe_runtime_event(&self, payload: &dyn Any) {
-        if let Some(event) = payload.downcast_ref::<GameLogSideEffectEvent>() {
-            self.observe_game_log_side_effect(event);
-        }
-        if let Some(projection) = payload.downcast_ref::<FriendProjection>() {
-            self.prefetch_online_friend_avatars(projection);
-        }
     }
 
     fn observe_game_log_side_effect(&self, event: &GameLogSideEffectEvent) {
@@ -203,6 +197,18 @@ impl DesktopRuntimeServices {
                 let _ = image_cache.get_image(&normalized, &file_id, &version).await;
             });
         }
+    }
+}
+
+impl GameLogSideEffectObserver for DesktopRuntimeServices {
+    fn on_game_log_side_effect(&self, event: &GameLogSideEffectEvent) {
+        self.observe_game_log_side_effect(event);
+    }
+}
+
+impl FriendProjectionObserver for DesktopRuntimeServices {
+    fn on_friend_projection(&self, projection: &FriendProjection) {
+        self.prefetch_online_friend_avatars(projection);
     }
 }
 

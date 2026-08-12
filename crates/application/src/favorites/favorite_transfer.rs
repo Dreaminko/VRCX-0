@@ -147,7 +147,7 @@ pub struct FavoriteTransferSelectionResult {
     pub last_error: Option<String>,
 }
 
-pub struct FavoriteTransferDeps<'a> {
+pub(super) struct FavoriteTransferDeps<'a> {
     pub db: &'a DatabaseService,
     pub web: &'a WebClient,
     pub diagnostics: &'a RuntimeDiagnostics,
@@ -221,7 +221,7 @@ pub fn favorite_transfer_plan_for_item(
     }
 }
 
-pub async fn transfer_favorites(
+pub(super) async fn transfer_favorites(
     deps: &FavoriteTransferDeps<'_>,
     input: FavoriteTransferInput,
 ) -> Result<FavoriteTransferResult> {
@@ -256,7 +256,7 @@ pub async fn transfer_favorites(
     })
 }
 
-pub async fn transfer_favorite_selection(
+pub(super) async fn transfer_favorite_selection(
     deps: &FavoriteTransferDeps<'_>,
     input: FavoriteTransferSelectionInput,
 ) -> Result<FavoriteTransferSelectionResult> {

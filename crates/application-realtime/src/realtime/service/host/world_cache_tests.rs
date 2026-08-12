@@ -231,30 +231,3 @@ fn resolved_feed_world_name_patches_the_rust_cache_and_emits_feed_projection() -
         .all(|event| event.name != "realtimeEntryCorrection"));
     Ok(())
 }
-
-#[test]
-fn notify_favorites_changed_emits_event_and_normalizes_vrc_plus_world() -> Result<()> {
-    let (_dir, runtime, _active_session) = runtime_with_active_session("favorites-changed-notify")?;
-
-    runtime.runtime().notify_favorites_changed(
-        vrcx_0_application_core::FavoritesChangedPayload::invalidated(
-            &vrcx_0_application_core::RuntimeAuthScopeSnapshot {
-                current_user_id: "usr_self".into(),
-                endpoint: "https://api.vrchat.cloud/api/1".into(),
-                generation: 1,
-                active: true,
-            },
-            vrcx_0_application_core::FavoriteChangeScope::World,
-            true,
-            false,
-        ),
-    );
-
-    let events = runtime.runtime().deps.event_bus.take_events_for_test();
-    assert_eq!(events.len(), 1);
-    assert_eq!(events[0].name, "favoritesChanged");
-    assert_eq!(events[0].payload["kind"], "world");
-    assert_eq!(events[0].payload["local"], true);
-    assert_eq!(events[0].payload["remote"], false);
-    Ok(())
-}

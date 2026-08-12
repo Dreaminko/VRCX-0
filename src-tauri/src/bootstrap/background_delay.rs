@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 
 use tauri::Manager;
-use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase};
+use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase, GuiRuntimeMode};
 
 use crate::error::AppError;
 use crate::state::AppState;
@@ -80,7 +80,7 @@ async fn start_background_mode_after_delay(
 ) -> Result<(), AppError> {
     super::capture_background_resume_route(app, state);
     let snapshot = match state
-        .start_backend_runtime(BackendRuntimeMode::Background, None)
+        .start_backend_runtime(GuiRuntimeMode::Background, None)
         .await
     {
         Ok(snapshot) => snapshot,

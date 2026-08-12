@@ -2,6 +2,7 @@ use crate::common::{row_string, ParamsBuilder};
 use crate::database::DatabaseService;
 use crate::Error;
 
+use super::obfuscation::{decode_config_value, encode_config_value};
 use super::repository::ensure_config_table;
 use super::types::{resolve_config_key, ConfigMutation, ConfigReadEntry, ConfigWriteEntry};
 
@@ -15,6 +16,7 @@ pub fn config_apply_mutations(
             let key = resolve_config_key(&mutation.key);
             match mutation.value.as_deref() {
                 Some(value) => {
+                    let value = encode_config_value(&key, value);
                     tx.execute_non_query(
                         "INSERT OR REPLACE INTO configs (key, value) VALUES (@key, @value)",
                         &ParamsBuilder::new()
@@ -42,11 +44,12 @@ pub fn config_set_values(
     ensure_config_table(db)?;
     db.write_transaction(|tx| {
         for entry in &entries {
+            let key = resolve_config_key(&entry.key);
             tx.execute_non_query(
                 "INSERT OR REPLACE INTO configs (key, value) VALUES (@key, @value)",
                 &ParamsBuilder::new()
-                    .set("key", resolve_config_key(&entry.key))
-                    .set("value", entry.value.clone())
+                    .set("key", key.clone())
+                    .set("value", encode_config_value(&key, &entry.value))
                     .build(),
             )?;
         }
@@ -109,9 +112,10 @@ pub fn config_list_values(db: &DatabaseService) -> Result<Vec<ConfigReadEntry>, 
     Ok(db
         .execute("SELECT key, value FROM configs", &Default::default())?
         .into_iter()
-        .map(|row| ConfigReadEntry {
-            key: row_string(&row, 0),
-            value: row_string(&row, 1),
+        .map(|row| {
+            let key = row_string(&row, 0);
+            let value = decode_config_value(&key, row_string(&row, 1));
+            ConfigReadEntry { key, value }
         })
         .collect())
 }

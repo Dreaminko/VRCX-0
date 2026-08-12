@@ -32,10 +32,12 @@ async fn starting_resets_vrchat_writes_and_stopping_is_idempotent() {
     assert_eq!(running.state, McpServerState::Running);
     assert!(running.enabled);
     assert!(!running.allow_vrchat_writes);
+    assert!(!running.token.is_empty());
 
     let stopped = controller.set_enabled(false).await.unwrap();
     assert_eq!(stopped.state, McpServerState::Disabled);
     assert!(!stopped.enabled);
+    assert_eq!(stopped.token, running.token);
     let stopped_again = controller.set_enabled(false).await.unwrap();
     assert_eq!(stopped_again.state, McpServerState::Disabled);
 }
@@ -100,5 +102,6 @@ async fn token_rotation_restarts_the_server_with_a_new_persisted_token() {
     assert_eq!(rotated.port, port);
     assert!(!previous_token.is_empty());
     assert_ne!(current_token, previous_token);
+    assert_eq!(rotated.token, current_token);
     controller.set_enabled(false).await.unwrap();
 }

@@ -4,7 +4,9 @@ use crate::log_watcher::LogWatcher;
 use crate::{ensure_vrchat_launch_path_allowed, HostFileAccess, RuntimeHost};
 use vrcx_0_application_core::Error as RuntimeError;
 use vrcx_0_application_core::Result as RuntimeResult;
-use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, InstanceRosterObserver};
+use vrcx_0_application_core::{
+    BackendRuntimeStatusPublisher, GameProcessEvent, GameProcessEventSink, InstanceRosterObserver,
+};
 use vrcx_0_application_game::{
     GameClientActions, GameClientCacheActions, GameClientDebugLoggingActions,
     GameClientLocationSource, GameClientRuntime, GameClientRuntimeDeps, GameClientWindowActions,
@@ -118,6 +120,7 @@ impl GameClientHostRuntime {
         app_paths: AppPaths,
         host: RuntimeHost,
         instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
+        backend_status: BackendRuntimeStatusPublisher,
     ) -> Self {
         Self::new_with_actions(
             context,
@@ -128,6 +131,7 @@ impl GameClientHostRuntime {
             }),
             host,
             instance_roster_observer,
+            backend_status,
         )
     }
 
@@ -137,11 +141,13 @@ impl GameClientHostRuntime {
         actions: Arc<dyn GameClientActions>,
         host: RuntimeHost,
         instance_roster_observer: Option<Arc<dyn InstanceRosterObserver>>,
+        backend_status: BackendRuntimeStatusPublisher,
     ) -> Self {
         let inner = GameClientRuntime::new(GameClientRuntimeDeps {
             db: Arc::clone(&context.db),
             config: context.config.clone(),
             event_bus: context.event_bus.clone(),
+            backend_status,
             tasks: context.tasks.clone(),
             session: context.session.clone(),
             auth_scope: context.auth_scope.clone(),
@@ -187,6 +193,19 @@ impl GameClientHostRuntime {
         log_watcher: LogWatcher,
         actions: Arc<dyn GameClientActions>,
     ) -> Self {
-        Self::new_with_actions(context, log_watcher, actions, RuntimeHost::new(), None)
+        let backend_status = BackendRuntimeStatusPublisher::new(
+            vrcx_0_application_core::BackendRuntime::new(
+                vrcx_0_application_core::RuntimeHostProfile::Desktop,
+            ),
+            context.event_bus.clone(),
+        );
+        Self::new_with_actions(
+            context,
+            log_watcher,
+            actions,
+            RuntimeHost::new(),
+            None,
+            backend_status,
+        )
     }
 }

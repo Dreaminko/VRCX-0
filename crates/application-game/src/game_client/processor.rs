@@ -16,6 +16,7 @@ use crate::{
 };
 use crate::{Error, Result};
 use crate::{HostSessionRuntime, RuntimeAuthScope, TaskSupervisor};
+use vrcx_0_application_core::BackendRuntimeStatusPublisher;
 use vrcx_0_core::time::now_iso;
 
 const CRASH_RELAUNCH_MESSAGE: &str = "VRChat crashed, attempting to rejoin last instance.";
@@ -71,6 +72,7 @@ pub struct GameClientProcessorDeps {
     pub db: Arc<DatabaseService>,
     pub config: ConfigRepository,
     pub event_bus: RuntimeEventBus,
+    pub backend_status: BackendRuntimeStatusPublisher,
     pub tasks: TaskSupervisor,
     pub session: HostSessionRuntime,
     pub auth_scope: RuntimeAuthScope,
@@ -350,7 +352,9 @@ impl GameClientProcessor {
                 ..Default::default()
             },
         )?;
-        self.deps.event_bus.emit_game_log_persisted(affected_count);
+        self.deps
+            .backend_status
+            .publish_game_log_persisted(affected_count);
         self.deps
             .event_bus
             .emit_runtime_game_log_event(RuntimeGameLogEventPayload {

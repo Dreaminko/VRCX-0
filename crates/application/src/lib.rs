@@ -62,28 +62,20 @@ pub use collections::{
 pub use collections::{preview_shared_collection, ImportPreview};
 pub(crate) use favorites::create_local_favorite_group;
 pub use favorites::{
-    add_local_favorite_scoped, create_local_favorite_group_scoped,
-    delete_local_favorite_group_scoped, get_local_favorite_snapshot, list_local_favorites,
-    remove_local_favorite_scoped, rename_local_favorite_group_scoped, FavoriteRow,
-    LocalFavoriteGroupWrite, LocalFavoriteMutationDeps, LocalFavoriteSnapshot,
+    favorite_transfer_plan_for_item, FavoriteTransferInput, FavoriteTransferItem,
+    FavoriteTransferItemResult, FavoriteTransferItemStatus, FavoriteTransferLocation,
+    FavoriteTransferMode, FavoriteTransferResult, FavoriteTransferSelectionInput,
+    FavoriteTransferSelectionResult, FavoriteTransferSource, FavoriteTransferStage,
+    FavoriteTransferTarget,
 };
 pub use favorites::{
-    add_remote_favorite, clear_remote_favorite_group, delete_remote_favorite,
-    save_remote_favorite_group, FavoriteRemoteAddInput, FavoriteRemoteDeleteInput,
-    FavoriteRemoteGroupClearInput, FavoriteRemoteGroupSaveInput, FavoriteRemoteMutationDeps,
-};
-pub use favorites::{
-    favorite_transfer_plan_for_item, transfer_favorite_selection, transfer_favorites,
-    FavoriteTransferDeps, FavoriteTransferInput, FavoriteTransferItem, FavoriteTransferItemResult,
-    FavoriteTransferItemStatus, FavoriteTransferLocation, FavoriteTransferMode,
-    FavoriteTransferResult, FavoriteTransferSelectionInput, FavoriteTransferSelectionResult,
-    FavoriteTransferSource, FavoriteTransferStage, FavoriteTransferTarget,
+    get_local_favorite_snapshot, list_local_favorites, FavoriteRow, LocalFavoriteGroupWrite,
+    LocalFavoriteSnapshot,
 };
 pub use favorites::{
     persist_favorite_cache_snapshot, FavoriteCacheKind, FavoriteCacheSnapshotInput,
 };
 pub use favorites::{
-    remove_favorites_bulk, remove_favorites_selection, FavoriteBulkRemoveDeps,
     FavoriteBulkRemoveInput, FavoriteBulkRemoveItem, FavoriteBulkRemoveItemResult,
     FavoriteBulkRemoveItemState, FavoriteBulkRemoveResult, FavoriteBulkRemoveSource,
     FAVORITE_BULK_REMOVE_MAX_ITEMS,
@@ -94,8 +86,14 @@ pub use favorites::{
 };
 pub use favorites::{
     FavoriteImportItemResult, FavoriteImportItemState, FavoriteImportKind, FavoriteImportLocation,
-    FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportStartInput, FavoriteImportState,
-    FavoriteImportStatus, FavoriteImportTarget, FAVORITE_IMPORT_MAX_ITEMS,
+    FavoriteImportOperation, FavoriteImportRuntime, FavoriteImportRuntimeDeps,
+    FavoriteImportStartInput, FavoriteImportState, FavoriteImportStatus, FavoriteImportTarget,
+    FAVORITE_IMPORT_MAX_ITEMS,
+};
+pub use favorites::{FavoriteLocalMutationError, FavoriteMutationCoordinator};
+pub use favorites::{
+    FavoriteRemoteAddInput, FavoriteRemoteDeleteInput, FavoriteRemoteGroupClearInput,
+    FavoriteRemoteGroupSaveInput,
 };
 pub use media::{
     collect_inventory_items, prepare_media_upload_request, require_prepared_image_data,
@@ -213,6 +211,7 @@ pub use system::{
     InstanceLaunchApiFuture, InstanceLaunchDeps, InstanceLaunchHttpClient, InstanceLaunchInput,
     InstanceLaunchMode, InstanceLaunchOutcome, InstanceLaunchPipe,
 };
+pub use system::{list_config_values, remove_config_value, set_config_values};
 pub use system::{
     mark_notifications_seen_batch, NotificationMarkSeenActions, NotificationMarkSeenBatchInput,
     NotificationMarkSeenBatchItem, NotificationMarkSeenBatchResult, NotificationMarkSeenEffect,
@@ -260,7 +259,6 @@ pub use system::{
     ProfileRestoreResultStatus, ProfileRestoreRollbackCleanupOutcome, ProfileRestoreRollbackState,
     ProfileRestoreValidation, ProfileRestoreValidationOutcome,
 };
-pub use vrcx_0_application_core::validate_config_writes;
 pub use vrcx_0_application_core::OverlayActivityInputSink;
 pub use vrcx_0_application_core::{
     format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputLine, RuntimeOutputMode,

@@ -10,9 +10,7 @@ use std::{
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use vrcx_0_application_core::{
-    read_config_string_array, FavoriteEntityKind, FavoritesChangedPayload, TaskStopToken,
-};
+use vrcx_0_application_core::{read_config_string_array, FavoriteEntityKind, TaskStopToken};
 use vrcx_0_core::json::RawJson;
 use vrcx_0_core::vrchat_ids::{is_avatar_id, is_user_id, is_world_id};
 use vrcx_0_persistence::{
@@ -33,6 +31,7 @@ use crate::{
 };
 
 use super::local_favorites::local_group_config_key;
+use super::FavoriteMutationCoordinator;
 
 pub const FAVORITE_IMPORT_MAX_ITEMS: usize = 1_000;
 const FAVORITE_IMPORT_INTERVAL: Duration = Duration::from_millis(500);
@@ -154,6 +153,18 @@ pub struct FavoriteImportRuntime {
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
     remote_mutations: Arc<RemoteMutationGate>,
+    favorite_mutations: FavoriteMutationCoordinator,
+}
+
+pub struct FavoriteImportRuntimeDeps {
+    pub db: Arc<DatabaseService>,
+    pub web: Arc<WebClient>,
+    pub world_cache: Arc<WorldCache>,
+    pub event_bus: RuntimeEventBus,
+    pub tasks: TaskSupervisor,
+    pub auth_scope: RuntimeAuthScope,
+    pub remote_mutations: Arc<RemoteMutationGate>,
+    pub favorite_mutations: FavoriteMutationCoordinator,
 }
 
 struct FavoriteImportRuntimeShared {
@@ -176,27 +187,20 @@ struct PreparedFavoriteImport {
 }
 
 impl FavoriteImportRuntime {
-    pub fn new(
-        db: Arc<DatabaseService>,
-        web: Arc<WebClient>,
-        world_cache: Arc<WorldCache>,
-        event_bus: RuntimeEventBus,
-        tasks: TaskSupervisor,
-        auth_scope: RuntimeAuthScope,
-        remote_mutations: Arc<RemoteMutationGate>,
-    ) -> Self {
+    pub fn new(deps: FavoriteImportRuntimeDeps) -> Self {
         Self {
             shared: Arc::new(FavoriteImportRuntimeShared {
                 state: Mutex::new(FavoriteImportRuntimeInner::default()),
                 generation: AtomicU64::new(0),
             }),
-            db,
-            web,
-            world_cache,
-            event_bus,
-            tasks,
-            auth_scope,
-            remote_mutations,
+            db: deps.db,
+            web: deps.web,
+            world_cache: deps.world_cache,
+            event_bus: deps.event_bus,
+            tasks: deps.tasks,
+            auth_scope: deps.auth_scope,
+            remote_mutations: deps.remote_mutations,
+            favorite_mutations: deps.favorite_mutations,
         }
     }
 
@@ -628,16 +632,9 @@ impl FavoriteImportRuntime {
             let scope = inner.scope.take();
             (inner.status.clone(), scope)
         };
-        if status.operation == FavoriteImportOperation::Import && status.succeeded > 0 {
-            if let Some(scope) = scope {
-                self.event_bus
-                    .emit_favorites_changed(FavoritesChangedPayload::invalidated(
-                        &scope,
-                        status.kind.into(),
-                        location == Some(FavoriteImportLocation::Local),
-                        location == Some(FavoriteImportLocation::Remote),
-                    ));
-            }
+        if let Some(scope) = scope {
+            self.favorite_mutations
+                .complete_import(&scope, &status, location);
         }
         self.emit_status(status);
     }

@@ -10,6 +10,7 @@ use crate::WorldCache;
 use crate::{GameLogEventOrigin, HostSessionRuntime, RuntimeSyncEngine, TaskSupervisor, WebClient};
 use crate::{ImageCache, RuntimeEventBus};
 use vrcx_0_application_activity::OverlayActivityRuntime;
+use vrcx_0_application_core::BackendRuntimeStatusPublisher;
 use vrcx_0_application_core::GameProcessEvent;
 use vrcx_0_application_core::InstanceRosterObserver;
 
@@ -24,6 +25,8 @@ pub struct GameLogRuntimeDeps {
     pub web: Arc<WebClient>,
     pub image_cache: Arc<ImageCache>,
     pub event_bus: RuntimeEventBus,
+    pub backend_status: BackendRuntimeStatusPublisher,
+    pub side_effect_sink: crate::GameLogSideEffectSink,
     pub tasks: TaskSupervisor,
     pub sync: RuntimeSyncEngine,
     pub auth_scope: RuntimeAuthScope,
@@ -49,6 +52,8 @@ impl GameLogRuntime {
             web: deps.web,
             image_cache: deps.image_cache,
             event_bus: deps.event_bus.clone(),
+            backend_status: deps.backend_status,
+            side_effect_sink: deps.side_effect_sink,
             tasks: deps.tasks,
             sync: deps.sync,
             auth_scope: deps.auth_scope,

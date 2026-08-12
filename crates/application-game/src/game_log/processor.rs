@@ -3,7 +3,8 @@ use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use vrcx_0_application_core::{
-    InstanceRosterMember, InstanceRosterObserver, InstanceRosterSnapshot, RuntimeOperationStatus,
+    BackendRuntimeStatusPublisher, InstanceRosterMember, InstanceRosterObserver,
+    InstanceRosterSnapshot, RuntimeOperationStatus,
 };
 
 use vrcx_0_core::game_log_parser::GameLogEvent;
@@ -59,6 +60,8 @@ pub struct GameLogProcessorDeps {
     pub web: Arc<WebClient>,
     pub image_cache: Arc<ImageCache>,
     pub event_bus: RuntimeEventBus,
+    pub backend_status: BackendRuntimeStatusPublisher,
+    pub side_effect_sink: crate::GameLogSideEffectSink,
     pub tasks: TaskSupervisor,
     pub sync: RuntimeSyncEngine,
     pub auth_scope: RuntimeAuthScope,
@@ -301,7 +304,7 @@ impl GameLogProcessor {
     ) -> Result<()> {
         self.enrich_ingest_output_world_names(&mut output);
         let write_outcome = self.write_batch_or_emit_failure_telemetry(
-            &deps.owner_user_id,
+            &deps.auth_identity.user_id,
             &output.batch,
             output.raw_rows.len(),
         )?;
@@ -310,7 +313,9 @@ impl GameLogProcessor {
             self.deps
                 .overlay_activity
                 .ingest_game_log_output(&overlay_output);
-            self.deps.event_bus.emit_game_log_persisted(affected_count);
+            self.deps
+                .backend_status
+                .publish_game_log_persisted(affected_count);
             if let Some(projection) = output.projection {
                 self.deps.event_bus.emit_game_log_projection(projection);
             }

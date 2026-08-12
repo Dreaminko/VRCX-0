@@ -13,15 +13,15 @@ use vrcx_0_vrchat_client::realtime::{
     normalize_websocket_domain, Error as RealtimeTransportError, RealtimeFrame,
 };
 
-use vrcx_0_core::realtime::RealtimeMessageParser;
+use vrcx_0_core::realtime::{RealtimeMessageParseOutcome, RealtimeMessageParser};
 use vrcx_0_persistence::DatabaseService;
 
 use crate::realtime::{
     RealtimeSessionContext, RealtimeTransportTermination, RealtimeWsMessagePayload,
     RealtimeWsStatus, RealtimeWsStatusPayload,
 };
+use vrcx_0_application_core::BackendRuntimeStatusPublisher;
 use vrcx_0_application_core::Error;
-use vrcx_0_application_core::RuntimeEventBus;
 use vrcx_0_application_core::WebClient;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
@@ -33,7 +33,7 @@ const ALIVE_TRAIL_INTERVAL: Duration = Duration::from_secs(300);
 pub struct RealtimeTransportDeps {
     pub db: Arc<DatabaseService>,
     pub web: Arc<WebClient>,
-    pub event_bus: RuntimeEventBus,
+    pub backend_status: BackendRuntimeStatusPublisher,
 }
 
 enum ConnectionEnd {
@@ -51,7 +51,7 @@ struct ConnectionAttempt<'a> {
     generation: u64,
     session_generation: u64,
     cancel_rx: &'a mut watch::Receiver<u64>,
-    event_bus: &'a RuntimeEventBus,
+    backend_status: &'a BackendRuntimeStatusPublisher,
 }
 
 struct RealtimeStatusEvent<'a> {
@@ -185,11 +185,11 @@ async fn run_realtime_transport_inner(
     session: RealtimeSessionContext,
     cancel_rx: &mut watch::Receiver<u64>,
 ) -> RealtimeTransportTermination {
-    let event_bus = deps.event_bus.clone();
+    let backend_status = deps.backend_status.clone();
     let websocket_domain = normalize_websocket_domain(&session.websocket);
     if is_cancelled(cancel_rx, generation) {
         return stopped_transport(
-            &event_bus,
+            &backend_status,
             client_run_id,
             generation,
             session_generation,
@@ -204,7 +204,7 @@ async fn run_realtime_transport_inner(
         RealtimeWsStatus::Connecting,
     );
     emit_status(
-        &event_bus,
+        &backend_status,
         RealtimeStatusEvent {
             client_run_id,
             generation,
@@ -220,7 +220,7 @@ async fn run_realtime_transport_inner(
         generation,
         session_generation,
         cancel_rx,
-        event_bus: &event_bus,
+        backend_status: &backend_status,
     };
     let trail_db_path = deps.db.db_path().to_path_buf();
     let diagnostics_web = Arc::clone(&deps.web);
@@ -237,7 +237,7 @@ async fn run_realtime_transport_inner(
     );
     match connect_once(deps, message_sink, attempt).await {
         Ok(ConnectionEnd::Stopped) => stopped_transport(
-            &event_bus,
+            &backend_status,
             client_run_id,
             generation,
             session_generation,
@@ -321,14 +321,14 @@ async fn run_realtime_transport_inner(
 }
 
 fn stopped_transport(
-    event_bus: &RuntimeEventBus,
+    backend_status: &BackendRuntimeStatusPublisher,
     client_run_id: u64,
     generation: u64,
     session_generation: u64,
     websocket_domain: &str,
 ) -> RealtimeTransportTermination {
     emit_status(
-        event_bus,
+        backend_status,
         RealtimeStatusEvent {
             client_run_id,
             generation,
@@ -402,7 +402,7 @@ async fn connect_once(
         RealtimeWsStatus::Connected,
     );
     emit_status(
-        attempt.event_bus,
+        attempt.backend_status,
         RealtimeStatusEvent {
             client_run_id: attempt.client_run_id,
             generation: attempt.generation,
@@ -483,21 +483,31 @@ async fn connect_once(
                         if let Some(path) = &ws_event_log_path {
                             crate::realtime::ws_event_log::append(path, &received_at, &text);
                         }
-                        if let Some(payload) = parser.parse_text(&text, received_at) {
-                            let message_type = payload
-                                .json
-                                .get("type")
-                                .and_then(|value| value.as_str())
-                                .unwrap_or("<missing>");
-                            if message_type == "<missing>" {
-                                log_untyped_message_summary(attempt.generation, &payload.json);
+                        match parser.parse_text(&text, received_at) {
+                            RealtimeMessageParseOutcome::Duplicate => {}
+                            RealtimeMessageParseOutcome::Invalid { error } => {
+                                tracing::warn!(
+                                    raw_len = text.len(),
+                                    error = %error,
+                                    "[Realtime] websocket message json parse failed"
+                                );
                             }
-                            message_sink.handle_realtime_ws_message(
-                                attempt.generation,
-                                attempt.session_generation,
-                                attempt.session,
-                                &payload,
-                            );
+                            RealtimeMessageParseOutcome::Valid(payload) => {
+                                let message_type = payload
+                                    .json
+                                    .get("type")
+                                    .and_then(|value| value.as_str())
+                                    .unwrap_or("<missing>");
+                                if message_type == "<missing>" {
+                                    log_untyped_message_summary(attempt.generation, &payload.json);
+                                }
+                                message_sink.handle_realtime_ws_message(
+                                    attempt.generation,
+                                    attempt.session_generation,
+                                    attempt.session,
+                                    &payload,
+                                );
+                            }
                         }
                     }
                     RealtimeFrame::Close(close) => break format!("websocket closed: {close}"),
@@ -561,8 +571,8 @@ fn is_cancelled(cancel_rx: &watch::Receiver<u64>, generation: u64) -> bool {
     *cancel_rx.borrow() != generation
 }
 
-fn emit_status(event_bus: &RuntimeEventBus, event: RealtimeStatusEvent<'_>) {
-    event_bus.emit_realtime_ws_status(RealtimeWsStatusPayload {
+fn emit_status(backend_status: &BackendRuntimeStatusPublisher, event: RealtimeStatusEvent<'_>) {
+    backend_status.publish_realtime_ws_status(RealtimeWsStatusPayload {
         status: event.status,
         websocket_domain: event.websocket_domain.to_string(),
         at: Utc::now().to_rfc3339(),

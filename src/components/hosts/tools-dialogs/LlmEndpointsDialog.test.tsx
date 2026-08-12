@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
         id: string;
         name: string;
         baseUrl: string;
+        apiKey: string;
         hasKey: boolean;
         models: string[];
         modelReasoning: {
@@ -148,6 +149,12 @@ vi.mock('@/ui/shadcn/tooltip', () => ({
 
 import { LlmEndpointsDialog } from './LlmEndpointsDialog';
 
+function inputByLabel(label: string): HTMLInputElement {
+    const element = screen.getByLabelText(label);
+    expect(element).toBeInstanceOf(HTMLInputElement);
+    return element as HTMLInputElement;
+}
+
 describe('LlmEndpointsDialog', () => {
     beforeEach(() => {
         mocks.endpoints = [];
@@ -252,6 +259,7 @@ describe('LlmEndpointsDialog', () => {
                 id: 'endpoint-1',
                 name: 'OpenAI',
                 baseUrl: 'https://api.openai.com/v1',
+                apiKey: 'sk-existing',
                 hasKey: true,
                 models: ['openai/o3'],
                 modelReasoning: [
@@ -273,6 +281,9 @@ describe('LlmEndpointsDialog', () => {
                 name: 'view.tools.llm_endpoints.edit'
             })
         );
+        const apiKeyInput = inputByLabel('view.tools.llm_endpoints.api_key');
+        expect(apiKeyInput.type).toBe('text');
+        expect(apiKeyInput.value).toBe('sk-existing');
         fireEvent.click(
             await screen.findByRole('button', {
                 name: 'common.actions.save'
@@ -283,10 +294,53 @@ describe('LlmEndpointsDialog', () => {
             expect(mocks.upsert).toHaveBeenCalledWith(
                 expect.objectContaining({
                     id: 'endpoint-1',
+                    apiKey: 'sk-existing',
                     modelReasoning: null
                 })
             )
         );
         expect(mocks.detectModels).not.toHaveBeenCalled();
+    });
+
+    it('does not carry a stored key to a different base URL', async () => {
+        mocks.endpoints = [
+            {
+                id: 'endpoint-1',
+                name: 'OpenAI',
+                baseUrl: 'https://api.openai.com/v1',
+                apiKey: 'sk-existing',
+                hasKey: true,
+                models: [],
+                modelReasoning: [],
+                lastDetectedAt: null
+            }
+        ];
+
+        render(<LlmEndpointsDialog open onOpenChange={vi.fn()} />);
+
+        await waitFor(() => expect(mocks.load).toHaveBeenCalledOnce());
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'view.tools.llm_endpoints.edit'
+            })
+        );
+        fireEvent.change(
+            screen.getByLabelText('view.tools.llm_endpoints.base_url'),
+            { target: { value: 'https://other.example/v1' } }
+        );
+
+        const apiKeyInput = inputByLabel('view.tools.llm_endpoints.api_key');
+        expect(apiKeyInput.value).toBe('');
+        fireEvent.click(
+            screen.getByRole('button', { name: 'common.actions.save' })
+        );
+
+        await waitFor(() => expect(mocks.detectModels).toHaveBeenCalled());
+        expect(mocks.detectModels).toHaveBeenCalledWith(
+            expect.objectContaining({
+                baseUrl: 'https://other.example/v1',
+                apiKey: null
+            })
+        );
     });
 });

@@ -3,9 +3,10 @@ use std::time::{Duration, Instant};
 
 use super::{
     current_user_from_cookie, run_background_group_instance_refresh, AtomicFlagGuard,
-    AuthenticatedRuntimeSession, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetryKind, BackgroundTickContext, CliLoginPrompt, NonInteractiveAuthError,
-    PrintCleanupDeps, PrintCleanupTrigger, Result, RuntimeHostProfile, RuntimeHostState,
+    AuthenticatedRuntimeSession, BackendRuntimePhase, BackendRuntimeSnapshot,
+    BackendRuntimeTelemetryKind, BackgroundTickContext, CliLoginPrompt, GuiRuntimeMode,
+    NonInteractiveAuthError, PrintCleanupDeps, PrintCleanupTrigger, Result, RuntimeHostProfile,
+    RuntimeHostState,
 };
 
 impl RuntimeHostState {
@@ -39,25 +40,18 @@ impl RuntimeHostState {
         self.backend_runtime.snapshot()
     }
 
-    pub fn set_gui_backend_runtime_mode(&self, mode: BackendRuntimeMode) -> BackendRuntimeSnapshot {
+    pub fn set_gui_backend_runtime_mode(&self, mode: GuiRuntimeMode) -> BackendRuntimeSnapshot {
         let current = self.backend_runtime.snapshot();
         match self.profile {
             RuntimeHostProfile::Desktop => {}
             RuntimeHostProfile::HeadlessData => return current,
         }
-        if current.mode == BackendRuntimeMode::Headless || mode == BackendRuntimeMode::Headless {
-            return current;
-        }
-        let snapshot = self.backend_runtime.set_mode(mode);
+        let snapshot = self.backend_runtime.set_gui_mode(mode);
         if snapshot.phase == BackendRuntimePhase::Running {
             self.start_social_maintenance_loops();
             self.start_profile_maintenance_loops();
         }
-        let detail = match mode {
-            BackendRuntimeMode::Foreground => "foreground",
-            BackendRuntimeMode::Background => "background",
-            BackendRuntimeMode::Headless => "headless",
-        };
+        let detail = mode.as_str();
         self.emit_backend_runtime_telemetry_snapshot(
             BackendRuntimeTelemetryKind::ModeChanged,
             detail,
@@ -85,7 +79,7 @@ impl RuntimeHostState {
         &self,
         reason: impl Into<String>,
     ) -> BackendRuntimeSnapshot {
-        self.runtime_context.auth_scope.set("", "");
+        self.runtime_context.auth_scope.set_identity("", "", "");
         self.favorite_import.cancel();
         self.group_ban_import.cancel();
         self.shared_collection_import.cancel();
@@ -127,21 +121,36 @@ impl RuntimeHostState {
 
     pub async fn start_backend_runtime(
         &self,
-        mode: BackendRuntimeMode,
+        mode: GuiRuntimeMode,
         cli_login_prompt: Option<Arc<dyn CliLoginPrompt>>,
     ) -> Result<BackendRuntimeSnapshot> {
-        match (self.profile, mode) {
-            (RuntimeHostProfile::Desktop, BackendRuntimeMode::Foreground)
-            | (RuntimeHostProfile::Desktop, BackendRuntimeMode::Background)
-            | (RuntimeHostProfile::HeadlessData, BackendRuntimeMode::Headless) => {}
-            (RuntimeHostProfile::Desktop, BackendRuntimeMode::Headless)
-            | (RuntimeHostProfile::HeadlessData, BackendRuntimeMode::Foreground)
-            | (RuntimeHostProfile::HeadlessData, BackendRuntimeMode::Background) => {
-                return Err(crate::Error::Custom(
-                    "Backend runtime mode does not match the configured host profile.".into(),
-                ));
-            }
+        if self.profile != RuntimeHostProfile::Desktop {
+            return Err(crate::Error::Custom(
+                "GUI backend runtime requires the Desktop host profile.".into(),
+            ));
         }
+        self.start_backend_runtime_inner(Some(mode), cli_login_prompt)
+            .await
+    }
+
+    pub async fn start_headless_backend_runtime(
+        &self,
+        cli_login_prompt: Option<Arc<dyn CliLoginPrompt>>,
+    ) -> Result<BackendRuntimeSnapshot> {
+        if self.profile != RuntimeHostProfile::HeadlessData {
+            return Err(crate::Error::Custom(
+                "Headless backend runtime requires the HeadlessData host profile.".into(),
+            ));
+        }
+        self.start_backend_runtime_inner(None, cli_login_prompt)
+            .await
+    }
+
+    async fn start_backend_runtime_inner(
+        &self,
+        gui_mode: Option<GuiRuntimeMode>,
+        cli_login_prompt: Option<Arc<dyn CliLoginPrompt>>,
+    ) -> Result<BackendRuntimeSnapshot> {
         let Some(_start_guard) = AtomicFlagGuard::try_acquire(&self.backend_starting) else {
             return Ok(self.backend_runtime.snapshot());
         };
@@ -152,7 +161,9 @@ impl RuntimeHostState {
                 | BackendRuntimePhase::Authenticating
                 | BackendRuntimePhase::Running
         ) {
-            self.backend_runtime.set_mode(mode);
+            if let Some(mode) = gui_mode {
+                self.backend_runtime.set_gui_mode(mode);
+            }
             if current.phase == BackendRuntimePhase::Running {
                 self.start_social_maintenance_loops();
                 self.start_profile_maintenance_loops();
@@ -160,7 +171,9 @@ impl RuntimeHostState {
             return Ok(self.backend_runtime.snapshot());
         }
 
-        self.backend_runtime.set_mode(mode);
+        if let Some(mode) = gui_mode {
+            self.backend_runtime.set_gui_mode(mode);
+        }
         self.backend_runtime
             .set_phase(BackendRuntimePhase::Starting);
         self.start_data_services();
@@ -236,10 +249,11 @@ impl RuntimeHostState {
                 "Authenticated runtime requires an authenticated user id.".into(),
             ));
         }
-        let auth_scope = self
-            .runtime_context
-            .auth_scope
-            .set(&session.user_id, &session.endpoint);
+        let auth_scope = self.runtime_context.auth_scope.set_identity(
+            &session.user_id,
+            &session.display_name,
+            &session.endpoint,
+        );
         let activity_warmup_user_id = session.user_id.clone();
         vrcx_0_persistence::maintenance::user_tables_ensure(
             self.db.as_ref(),

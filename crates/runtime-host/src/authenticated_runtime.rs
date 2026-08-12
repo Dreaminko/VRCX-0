@@ -204,7 +204,11 @@ impl AuthenticatedRuntimeOrchestrator {
             ));
         }
 
-        let scope = self.auth_scope.set(&session.user_id, &session.endpoint);
+        let scope = self.auth_scope.set_identity(
+            &session.user_id,
+            &session.display_name,
+            &session.endpoint,
+        );
         let current = self.phase_snapshot();
         let same_session = snapshot_matches_session(&current, &session, scope.generation);
         let already_active = match current.phase {

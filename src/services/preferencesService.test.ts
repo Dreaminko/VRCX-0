@@ -95,30 +95,26 @@ vi.mock('./recentActionService', () => ({
     readRecentActionCooldown: mocks.readRecentActionCooldown
 }));
 
-vi.mock('./themeService', () => ({
-    APP_CJK_FONT_PACK_DEFAULT_KEY: 'system',
-    APP_FONT_DEFAULT_KEY: 'default',
-    applyAppFontPreferences: mocks.applyAppFontPreferences,
-    applyThemeColor: mocks.applyThemeColor,
-    applyThemeMode: mocks.applyThemeMode,
-    applyZoomLevel: mocks.applyZoomLevel,
-    getCommunityThemeAppearanceThemeMode:
-        mocks.getCommunityThemeAppearanceThemeMode,
-    isCommunityThemeAppearanceControlled:
-        mocks.isCommunityThemeAppearanceControlled,
-    normalizeZoomLevel: (value: unknown) => {
-        const parsed = Number(value);
-        return Number.isFinite(parsed)
-            ? Math.min(500, Math.max(25, Math.trunc(parsed)))
-            : 100;
-    },
-    resolveThemeColor: (value: unknown) =>
-        String(value || '').trim() || 'default',
-    resolveThemeMode: (value: unknown) =>
-        ['system', 'light', 'dark'].includes(String(value))
-            ? String(value)
-            : 'system'
-}));
+vi.mock('./themeService', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./themeService')>();
+    return {
+        APP_CJK_FONT_PACK_DEFAULT_KEY: actual.APP_CJK_FONT_PACK_DEFAULT_KEY,
+        APP_FONT_DEFAULT_KEY: actual.APP_FONT_DEFAULT_KEY,
+        applyAppFontPreferences: mocks.applyAppFontPreferences,
+        applyThemeColor: mocks.applyThemeColor,
+        applyThemeMode: mocks.applyThemeMode,
+        applyZoomLevel: mocks.applyZoomLevel,
+        getCommunityThemeAppearanceThemeMode:
+            mocks.getCommunityThemeAppearanceThemeMode,
+        isCommunityThemeAppearanceControlled:
+            mocks.isCommunityThemeAppearanceControlled,
+        normalizeAppCjkFontPack: actual.normalizeAppCjkFontPack,
+        normalizeAppFontFamily: actual.normalizeAppFontFamily,
+        normalizeZoomLevel: actual.normalizeZoomLevel,
+        resolveThemeColor: actual.resolveThemeColor,
+        resolveThemeMode: actual.resolveThemeMode
+    };
+});
 
 vi.mock('./trustColorService', () => ({
     applyTrustColorClasses: mocks.applyTrustColorClasses

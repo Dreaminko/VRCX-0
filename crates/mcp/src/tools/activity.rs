@@ -843,7 +843,7 @@ mod activity_output_tests {
     use std::time::Duration;
 
     use rmcp::handler::server::wrapper::Parameters;
-    use vrcx_0_application::MutualGraphFetchRuntime;
+    use vrcx_0_application::{FavoriteMutationCoordinator, MutualGraphFetchRuntime};
     use vrcx_0_application_core::{
         HostSessionRuntime, NoopPrintCleanupInputSink, RuntimeAuthScope, RuntimeDiagnostics,
         RuntimeEventBus, RuntimeSyncEngine, TaskSupervisor, UnavailableLocalGameContextSource,
@@ -926,6 +926,7 @@ mod activity_output_tests {
         }
         let event_bus = RuntimeEventBus::new();
         let sync = RuntimeSyncEngine::new();
+        let diagnostics = RuntimeDiagnostics::new();
         let tasks = TaskSupervisor::new();
         let session = HostSessionRuntime::new();
         let world_cache = Arc::new(WorldCache::new(
@@ -934,15 +935,34 @@ mod activity_output_tests {
             Duration::from_secs(30 * 60),
         ));
         let remote_mutations = Arc::new(vrcx_0_application::RemoteMutationGate::default());
+        let favorite_mutations = FavoriteMutationCoordinator::new(
+            Arc::clone(&db),
+            Arc::clone(&web),
+            diagnostics,
+            sync.clone(),
+            event_bus.clone(),
+            auth_scope.clone(),
+            Arc::clone(&remote_mutations),
+        );
         let realtime_runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
             db: Arc::clone(&db),
             web: Arc::clone(&web),
-            event_bus,
-            sync: sync.clone(),
+            event_bus: event_bus.clone(),
+            backend_status: vrcx_0_application_core::BackendRuntimeStatusPublisher::new(
+                vrcx_0_application_core::BackendRuntime::new(
+                    vrcx_0_application_core::RuntimeHostProfile::Desktop,
+                ),
+                event_bus.clone(),
+            ),
+            friend_projection_sink: vrcx_0_application_realtime::FriendProjectionSink::new(
+                event_bus.clone(),
+                None,
+            ),
+            sync,
             tasks: tasks.clone(),
             session,
             auth_scope: auth_scope.clone(),
-            remote_mutations: Arc::clone(&remote_mutations),
+            remote_mutations,
             local_game_context: Arc::new(UnavailableLocalGameContextSource),
             activity_sink: None,
             world_cache,
@@ -953,13 +973,11 @@ mod activity_output_tests {
         let runtime = crate::runtime::McpRuntime {
             db: Arc::clone(&db),
             web,
-            diagnostics: RuntimeDiagnostics::new(),
-            sync,
             realtime_runtime,
             auth_scope,
             config: ConfigRepository::new(db),
             mutual_graph_fetch: MutualGraphFetchRuntime::new(),
-            remote_mutations,
+            favorite_mutations,
             tasks,
             caller: crate::runtime::McpCaller::ExternalServer,
         };

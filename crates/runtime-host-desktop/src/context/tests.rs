@@ -4,6 +4,7 @@ use std::sync::Arc;
 use vrcx_0_application_core::{
     FriendProjection, FriendProjectionPatch, FriendStateBucketAuthority, ImageCache, WebClient,
 };
+use vrcx_0_application_game::{EmptyEventPayload, NowPlayingPayload};
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_persistence::{storage::StorageService, DatabaseService};
 
@@ -72,18 +73,42 @@ fn friend_projection(state_bucket: &str, count: usize) -> FriendProjection {
 fn prefetch_online_friend_avatars_is_a_no_op_without_active_session() {
     let (_dir, services) = test_services("prefetch-no-active-session");
 
-    services.observe_runtime_event(&friend_projection("online", 1));
+    services.prefetch_online_friend_avatars(&friend_projection("online", 1));
 }
 
 #[test]
 fn prefetch_online_friend_avatars_ignores_non_online_buckets() {
     let (_dir, services) = test_services("prefetch-non-online-bucket");
 
-    services.observe_runtime_event(&friend_projection("active", 1));
+    services.prefetch_online_friend_avatars(&friend_projection("active", 1));
 }
 
 #[test]
 fn prefetch_online_friend_avatars_skips_bulk_baseline_projections() {
     let (_dir, services) = test_services("prefetch-bulk-baseline");
-    services.observe_runtime_event(&friend_projection("online", 64));
+    services.prefetch_online_friend_avatars(&friend_projection("online", 64));
+}
+
+#[test]
+fn game_log_side_effect_observer_merges_and_resets_now_playing() {
+    let (_dir, services) = test_services("now-playing-observer");
+    let event = GameLogSideEffectEvent::NowPlaying(Box::new(NowPlayingPayload {
+        name: Some("Test Track".into()),
+        position: 42,
+        started_at: "start".into(),
+        updated_at: "update".into(),
+        ..Default::default()
+    }));
+
+    services.on_game_log_side_effect(&event);
+
+    assert_eq!(services.now_playing()["name"], "Test Track");
+    assert_eq!(services.now_playing()["position"], 42);
+    assert_eq!(services.now_playing()["url"], "");
+
+    services.on_game_log_side_effect(&GameLogSideEffectEvent::NowPlayingReset(
+        EmptyEventPayload::default(),
+    ));
+
+    assert_eq!(services.now_playing(), default_now_playing_value());
 }

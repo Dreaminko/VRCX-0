@@ -5,12 +5,12 @@ use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
     OverlayActivityDelivery, OverlayActivityEntry,
 };
-use vrcx_0_persistence::{config::ConfigRepository, DatabaseService};
+use vrcx_0_persistence::DatabaseService;
 
 use super::{
-    config_tts_name_mode, delivery_actor_image_user_id, generic_webhook_payload,
-    parse_webhook_fields, resolve_delivery_actor_image, NotificationTtsNameMode,
-    RealtimeUserImageResolverSlot, RenderedNotification, UserImageCache,
+    delivery_actor_image_user_id, generic_webhook_payload, parse_webhook_fields,
+    resolve_delivery_actor_image, RealtimeUserImageResolverSlot, RenderedNotification,
+    UserImageCache,
 };
 
 #[test]
@@ -50,23 +50,6 @@ fn generic_webhook_fields_ignore_localized_names() {
     );
     assert!(payload.get("位置").is_none());
     assert!(payload.get("タイトル").is_none());
-}
-
-#[test]
-fn notification_tts_name_mode_preserves_legacy_nickname_setting() {
-    let (_dir, db) = test_db("tts-name-mode-legacy");
-    let config = ConfigRepository::new(Arc::new(db));
-
-    config.set_bool("notificationTTSNickName", true).unwrap();
-    assert_eq!(config_tts_name_mode(&config), NotificationTtsNameMode::Note);
-
-    config
-        .set_string("notificationTTSNameMode", "usernameAndNote")
-        .unwrap();
-    assert_eq!(
-        config_tts_name_mode(&config),
-        NotificationTtsNameMode::UsernameAndNote
-    );
 }
 
 #[test]
@@ -149,12 +132,6 @@ impl Drop for TestDir {
     }
 }
 
-fn test_db(name: &str) -> (TestDir, DatabaseService) {
-    let dir = TestDir::new(name);
-    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3")).unwrap();
-    (dir, db)
-}
-
 fn test_realtime_runtime(
     name: &str,
 ) -> (
@@ -181,11 +158,22 @@ fn test_realtime_runtime(
         512,
         std::time::Duration::from_secs(30 * 60),
     ));
+    let event_bus = vrcx_0_application_core::RuntimeEventBus::new();
     let runtime = Arc::new(vrcx_0_application_realtime::RealtimeHostRuntime::new(
         vrcx_0_application_realtime::RealtimeHostRuntimeDeps {
             db: Arc::clone(&db),
             web: Arc::clone(&web),
-            event_bus: vrcx_0_application_core::RuntimeEventBus::new(),
+            event_bus: event_bus.clone(),
+            backend_status: vrcx_0_application_core::BackendRuntimeStatusPublisher::new(
+                vrcx_0_application_core::BackendRuntime::new(
+                    vrcx_0_application_core::RuntimeHostProfile::Desktop,
+                ),
+                event_bus.clone(),
+            ),
+            friend_projection_sink: vrcx_0_application_realtime::FriendProjectionSink::new(
+                event_bus.clone(),
+                None,
+            ),
             sync: vrcx_0_application_core::RuntimeSyncEngine::new(),
             tasks: vrcx_0_application_core::TaskSupervisor::new(),
             session: vrcx_0_application_core::HostSessionRuntime::new(),

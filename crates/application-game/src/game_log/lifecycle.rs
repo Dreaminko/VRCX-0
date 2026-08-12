@@ -5,20 +5,18 @@ use vrcx_0_persistence::DatabaseService;
 use crate::game_log::host::GameLogHostActions;
 use crate::game_log::runtime_state::parse_event_time_ms;
 use crate::Result;
-use crate::RuntimeEventBus;
-use crate::RuntimeGameEventBusExt;
 use crate::{
-    GameLogSideEffectEvent, GameNoVrPayload, NowPlayingPayload, RuntimeNotificationLevel,
-    RuntimeNotificationPayload,
+    GameLogSideEffectEvent, GameLogSideEffectSink, GameNoVrPayload, NowPlayingPayload,
+    RuntimeNotificationLevel, RuntimeNotificationPayload,
 };
 
 pub fn set_game_no_vr(
     db: &DatabaseService,
-    event_bus: &RuntimeEventBus,
+    side_effect_sink: &GameLogSideEffectSink,
     no_vr: bool,
 ) -> Result<()> {
     config_store::set_bool(db, "isGameNoVR", no_vr)?;
-    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::GameNoVr(GameNoVrPayload {
+    side_effect_sink.emit(GameLogSideEffectEvent::GameNoVr(GameNoVrPayload {
         is_game_no_vr: no_vr,
     }));
     Ok(())
@@ -27,7 +25,7 @@ pub fn set_game_no_vr(
 pub fn handle_vrc_quit(
     db: &DatabaseService,
     host_actions: &dyn GameLogHostActions,
-    event_bus: &RuntimeEventBus,
+    side_effect_sink: &GameLogSideEffectSink,
     created_at: &str,
     is_game_running: bool,
 ) {
@@ -47,7 +45,7 @@ pub fn handle_vrc_quit(
 
     let killed = host_actions.quit_game();
     if killed > 0 {
-        event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::Notification(
+        side_effect_sink.emit(GameLogSideEffectEvent::Notification(
             RuntimeNotificationPayload {
                 level: RuntimeNotificationLevel::Info,
                 title: "VRChat quit cleanup".into(),
@@ -57,7 +55,11 @@ pub fn handle_vrc_quit(
     }
 }
 
-pub fn emit_video_sync(event_bus: &RuntimeEventBus, timestamp: &str, created_at: &str) {
+pub fn emit_video_sync(
+    side_effect_sink: &GameLogSideEffectSink,
+    timestamp: &str,
+    created_at: &str,
+) {
     let position = timestamp
         .replace(',', "")
         .parse::<i64>()
@@ -65,7 +67,7 @@ pub fn emit_video_sync(event_bus: &RuntimeEventBus, timestamp: &str, created_at:
         .filter(|value| *value >= 0)
         .unwrap_or(0);
 
-    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(Box::new(
+    side_effect_sink.emit(GameLogSideEffectEvent::NowPlaying(Box::new(
         NowPlayingPayload {
             position,
             started_at: created_at.into(),

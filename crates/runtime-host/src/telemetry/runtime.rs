@@ -959,7 +959,9 @@ mod tests {
             TelemetryRuntimeDeps {
                 config: config.clone(),
                 tasks: TaskSupervisor::new(),
-                backend_runtime: BackendRuntime::new(),
+                backend_runtime: BackendRuntime::new(
+                    vrcx_0_application_core::RuntimeHostProfile::Desktop,
+                ),
                 app_version: "2.2.0".into(),
                 app_data: dir.0.clone(),
                 system_theme_category: Arc::new(|| "dark".into()),
@@ -1038,7 +1040,9 @@ mod tests {
             TelemetryRuntimeDeps {
                 config: config.clone(),
                 tasks: TaskSupervisor::new(),
-                backend_runtime: BackendRuntime::new(),
+                backend_runtime: BackendRuntime::new(
+                    vrcx_0_application_core::RuntimeHostProfile::Desktop,
+                ),
                 app_version: "2.2.0".into(),
                 app_data: dir.0.clone(),
                 system_theme_category: Arc::new(|| "dark".into()),
@@ -1087,7 +1091,9 @@ mod tests {
             TelemetryRuntimeDeps {
                 config,
                 tasks: TaskSupervisor::new(),
-                backend_runtime: BackendRuntime::new(),
+                backend_runtime: BackendRuntime::new(
+                    vrcx_0_application_core::RuntimeHostProfile::Desktop,
+                ),
                 app_version: "2.2.0".into(),
                 app_data: dir.0.clone(),
                 system_theme_category: Arc::new(|| "dark".into()),

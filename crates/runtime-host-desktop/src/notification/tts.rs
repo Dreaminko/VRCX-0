@@ -3,10 +3,9 @@ use std::borrow::Cow;
 use vrcx_0_application_activity::OverlayActivityDelivery;
 use vrcx_0_host_desktop::tts::TtsEngine;
 use vrcx_0_persistence::DatabaseService;
-use vrcx_0_runtime_host::notification::{
-    render_delivery, NotificationDeliveryPreferences, NotificationTtsNameMode, OverlayLocale,
-    RenderedNotification,
-};
+use vrcx_0_runtime_host::notification::{render_delivery, OverlayLocale, RenderedNotification};
+
+use super::{NotificationDeliveryPreferences, NotificationTtsNameMode};
 
 pub(super) fn send_tts_notification(
     tts: &dyn TtsEngine,

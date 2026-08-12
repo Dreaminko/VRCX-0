@@ -5,7 +5,6 @@ use vrcx_0_application_activity::OverlayActivityDelivery;
 use vrcx_0_application_core::{WebClient, WorldCache};
 use vrcx_0_core::avatar::avatar_name_from_file_name;
 use vrcx_0_core::location::parse_location;
-use vrcx_0_persistence::worlds::world_cache_get;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::avatars::avatar_file_get_input;
 use vrcx_0_vrchat_client::http_api::ApiScope;
@@ -95,25 +94,14 @@ pub(super) async fn resolve_world_thumbnail_url(
     if world_id.is_empty() {
         return String::new();
     }
-    let _ = tokio::time::timeout(
+    match tokio::time::timeout(
         DISCORD_RESOLVE_TIMEOUT,
         deps.world_cache
-            .resolve_name(deps.web, deps.endpoint, &world_id),
+            .resolve_image_url(deps.web, deps.endpoint, &world_id),
     )
-    .await;
-    match world_cache_get(deps.db, world_id.clone()) {
-        Ok(Some(world)) => {
-            let thumbnail = world.thumbnail_image_url.trim();
-            if thumbnail.is_empty() {
-                world.image_url.trim().to_string()
-            } else {
-                thumbnail.to_string()
-            }
-        }
-        Ok(None) => String::new(),
-        Err(error) => {
-            tracing::warn!(world_id = %world_id, "world thumbnail lookup failed: {error}");
-            String::new()
-        }
+    .await
+    {
+        Ok(Some(image_url)) => image_url,
+        _ => String::new(),
     }
 }

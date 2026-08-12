@@ -74,7 +74,7 @@ pub struct FavoriteBulkRemoveResult {
     pub last_error: Option<String>,
 }
 
-pub struct FavoriteBulkRemoveDeps<'a> {
+pub(super) struct FavoriteBulkRemoveDeps<'a> {
     pub db: &'a DatabaseService,
     pub web: &'a WebClient,
     pub auth_scope: &'a RuntimeAuthScope,
@@ -201,7 +201,7 @@ impl FavoriteBulkRemoveActions for VrchatFavoriteBulkRemoveActions<'_> {
     }
 }
 
-pub async fn remove_favorites_bulk(
+pub(super) async fn remove_favorites_bulk(
     deps: &FavoriteBulkRemoveDeps<'_>,
     input: FavoriteBulkRemoveInput,
 ) -> Result<FavoriteBulkRemoveResult> {
@@ -222,7 +222,7 @@ pub async fn remove_favorites_bulk(
     Ok(run_favorite_bulk_remove(&actions, owner_user_id, kind, items).await)
 }
 
-pub async fn remove_favorites_selection(
+pub(super) async fn remove_favorites_selection(
     deps: &FavoriteBulkRemoveDeps<'_>,
     input: FavoriteBulkRemoveInput,
 ) -> Result<FavoriteBulkRemoveResult> {

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::future::Future;
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 
@@ -181,6 +182,75 @@ impl WorldCache {
         }
     }
 
+    pub async fn resolve_image_url(
+        &self,
+        web: &WebClient,
+        endpoint: &str,
+        world_id: &str,
+    ) -> Option<String> {
+        self.resolve_image_url_with(endpoint, world_id, |endpoint, world_id| async move {
+            let (_, request) = world_get_input(endpoint, world_id)?;
+            web.execute_api(request, ApiScope::Vrchat, self.db.as_ref())
+                .await
+        })
+        .await
+    }
+
+    async fn resolve_image_url_with<F, Fut>(
+        &self,
+        endpoint: &str,
+        world_id: &str,
+        fetch: F,
+    ) -> Option<String>
+    where
+        F: FnOnce(String, String) -> Fut,
+        Fut: Future<Output = crate::Result<HttpApiExecuteResponse>>,
+    {
+        let world_id = normalize_id(world_id);
+        if world_id.is_empty() {
+            return None;
+        }
+        if let Some(image_url) = self.cached_image_url(&world_id) {
+            return Some(image_url);
+        }
+        let endpoint = endpoint.trim();
+        if endpoint.is_empty() {
+            return None;
+        }
+        let key = resolve_key(endpoint, &world_id);
+        if self.recently_failed(&key) {
+            return None;
+        }
+        let inflight = self.inflight_lock(&key);
+        let _guard = inflight.lock().await;
+        if let Some(image_url) = self.cached_image_url(&world_id) {
+            return Some(image_url);
+        }
+        if self.recently_failed(&key) {
+            return None;
+        }
+
+        let response = match tokio::time::timeout(
+            Duration::from_millis(WORLD_RESOLVE_FETCH_TIMEOUT_MS),
+            fetch(key.endpoint.clone(), key.world_id.clone()),
+        )
+        .await
+        {
+            Ok(Ok(response)) => response,
+            Ok(Err(_)) | Err(_) => {
+                self.record_failure(&key);
+                return None;
+            }
+        };
+        if !(200..=299).contains(&response.status) {
+            self.record_failure(&key);
+            return None;
+        }
+        self.hydrate_response(&response);
+        self.clear_failure(&key);
+        self.cached_image_url(&world_id)
+    }
+
     pub async fn get(
         &self,
         web: &WebClient,
@@ -256,6 +326,30 @@ impl WorldCache {
             .is_some_and(|at| at.elapsed() < Duration::from_millis(WORLD_RESOLVE_FAILURE_TTL_MS))
     }
 
+    fn cached_image_url(&self, world_id: &str) -> Option<String> {
+        if let Some(image_url) = self
+            .working
+            .get(world_id)
+            .and_then(|summary| summary_image_url(summary.as_ref()))
+        {
+            return Some(image_url);
+        }
+        match world_cache_get(self.db.as_ref(), world_id.to_string()) {
+            Ok(Some(summary)) => {
+                let image_url = summary_image_url(&summary);
+                if is_meaningful_world_name(&summary.name) {
+                    self.working.insert(world_id.to_string(), Arc::new(summary));
+                }
+                image_url
+            }
+            Ok(None) => None,
+            Err(error) => {
+                tracing::warn!(world_id, "world image cache lookup failed: {error}");
+                None
+            }
+        }
+    }
+
     fn record_failure(&self, key: &WorldResolveKey) {
         let mut map = self
             .failures
@@ -304,6 +398,15 @@ fn world_summary(value: &Value, id: String, name: String) -> WorldSummaryOutput 
             .and_then(Value::as_i64)
             .unwrap_or_default(),
     }
+}
+
+fn summary_image_url(summary: &WorldSummaryOutput) -> Option<String> {
+    let thumbnail = summary.thumbnail_image_url.trim();
+    if !thumbnail.is_empty() {
+        return Some(thumbnail.to_string());
+    }
+    let image = summary.image_url.trim();
+    (!image.is_empty()).then(|| image.to_string())
 }
 
 fn text_field(value: &Value, key: &str) -> String {
@@ -396,6 +499,7 @@ fn is_persistable_world(value: &Value, name: &str) -> bool {
 mod tests {
     use super::*;
     use std::path::PathBuf;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     use serde_json::json;
     use vrcx_0_persistence::cache_entities::CacheEntityInput;
@@ -615,6 +719,136 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn image_resolution_prefers_memory_thumbnail() {
+        let (dir, db) = test_db("image-memory");
+        let web = test_web(&dir, db.as_ref());
+        let cache = WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60));
+        cache.hydrate_from_payload(&json!({
+            "id": "wrld_memory_image",
+            "name": "Memory World",
+            "releaseStatus": "public",
+            "imageUrl": "image.png",
+            "thumbnailImageUrl": "thumb.png"
+        }));
+
+        assert_eq!(
+            cache
+                .resolve_image_url(&web, "http://127.0.0.1:9/api/1", "wrld_memory_image")
+                .await
+                .as_deref(),
+            Some("thumb.png")
+        );
+    }
+
+    #[tokio::test]
+    async fn image_resolution_accepts_partial_db_row_without_world_name() {
+        let (dir, db) = test_db("image-partial-db");
+        world_cache_upsert(
+            db.as_ref(),
+            world_entry("wrld_partial_image", "", "2026-01-02T00:00:00.000Z"),
+        )
+        .unwrap();
+        let web = test_web(&dir, db.as_ref());
+        let cache = WorldCache::new(Arc::clone(&db), 8, Duration::from_secs(60));
+
+        assert_eq!(
+            cache
+                .resolve_image_url(&web, "http://127.0.0.1:9/api/1", "wrld_partial_image")
+                .await
+                .as_deref(),
+            Some("thumb.png")
+        );
+        assert_eq!(cache.get_name("wrld_partial_image"), None);
+    }
+
+    #[tokio::test]
+    async fn concurrent_image_resolution_fetches_world_once() {
+        let (_dir, db) = test_db("image-single-flight");
+        let cache = WorldCache::new(db, 8, Duration::from_secs(60));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let body = json!({
+            "id": "wrld_single_flight",
+            "name": "Single Flight World",
+            "releaseStatus": "public",
+            "imageUrl": "image.png",
+            "thumbnailImageUrl": "thumb.png"
+        })
+        .to_string();
+
+        let first_calls = Arc::clone(&calls);
+        let first_body = body.clone();
+        let first = cache.resolve_image_url_with(
+            "https://api.vrchat.cloud/api/1",
+            "wrld_single_flight",
+            move |endpoint, world_id| async move {
+                assert_eq!(endpoint, "https://api.vrchat.cloud/api/1");
+                assert_eq!(world_id, "wrld_single_flight");
+                first_calls.fetch_add(1, Ordering::SeqCst);
+                tokio::time::sleep(Duration::from_millis(25)).await;
+                Ok(execute_response(200, first_body))
+            },
+        );
+        let second_calls = Arc::clone(&calls);
+        let second = cache.resolve_image_url_with(
+            "https://api.vrchat.cloud/api/1/",
+            "wrld_single_flight",
+            move |_, _| async move {
+                second_calls.fetch_add(1, Ordering::SeqCst);
+                Ok(execute_response(200, body))
+            },
+        );
+
+        let (first_image, second_image) = tokio::join!(first, second);
+
+        assert_eq!(first_image.as_deref(), Some("thumb.png"));
+        assert_eq!(second_image.as_deref(), Some("thumb.png"));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn image_resolution_respects_failure_cooldown() {
+        let (_dir, db) = test_db("image-failure-cooldown");
+        let cache = WorldCache::new(db, 8, Duration::from_secs(60));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let first_calls = Arc::clone(&calls);
+
+        let first = cache
+            .resolve_image_url_with(
+                "https://api.vrchat.cloud/api/1",
+                "wrld_failure_cooldown",
+                move |_, _| async move {
+                    first_calls.fetch_add(1, Ordering::SeqCst);
+                    Err(crate::Error::Custom("remote world lookup failed".into()))
+                },
+            )
+            .await;
+        let second_calls = Arc::clone(&calls);
+        let second = cache
+            .resolve_image_url_with(
+                "https://api.vrchat.cloud/api/1",
+                "wrld_failure_cooldown",
+                move |_, _| async move {
+                    second_calls.fetch_add(1, Ordering::SeqCst);
+                    Ok(execute_response(
+                        200,
+                        json!({
+                            "id": "wrld_failure_cooldown",
+                            "name": "Unexpected Retry",
+                            "releaseStatus": "public",
+                            "imageUrl": "unexpected.png"
+                        })
+                        .to_string(),
+                    ))
+                },
+            )
+            .await;
+
+        assert!(first.is_none());
+        assert!(second.is_none());
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
     async fn force_get_bypasses_cached_summary_and_preserves_it_on_failure() {
         let (dir, db) = test_db("force-bypasses-cache");
         world_cache_upsert(
@@ -659,6 +893,14 @@ mod tests {
         assert_eq!(
             cache.get_name("wrld_refresh").as_deref(),
             Some("Fresh World")
+        );
+        assert_eq!(
+            cache
+                .working
+                .get("wrld_refresh")
+                .and_then(|summary| summary_image_url(summary.as_ref()))
+                .as_deref(),
+            Some("fresh.png")
         );
         assert_eq!(
             world_cache_get(db.as_ref(), "wrld_refresh".into())

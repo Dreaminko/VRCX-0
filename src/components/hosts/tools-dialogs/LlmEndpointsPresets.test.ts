@@ -4,6 +4,7 @@ import {
     CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
     DEFAULT_LLM_ENDPOINT_PROVIDER_ID,
     LLM_ENDPOINT_PROVIDER_PRESETS,
+    applyLlmEndpointBaseUrl,
     applyLlmEndpointProviderPreset,
     createEmptyLlmEndpointDraft,
     findLlmEndpointProviderId,
@@ -78,15 +79,15 @@ describe('LLM endpoint presets', () => {
         ).toBe(CUSTOM_LLM_ENDPOINT_PROVIDER_ID);
     });
 
-    it('applies a preset while preserving endpoint identity and key state', () => {
+    it('applies a preset while dropping credentials from the previous target', () => {
         expect(applyLlmEndpointProviderPreset(draft(), 'xai')).toEqual({
             id: 'ep_1',
             savedBaseUrl: 'https://example.test/v1',
             providerId: 'xai',
             name: 'xAI',
             baseUrl: 'https://api.x.ai/v1',
-            apiKey: 'sk-existing',
-            clearKey: true,
+            apiKey: '',
+            clearKey: false,
             models: [],
             detectedModelReasoning: null
         });
@@ -99,8 +100,8 @@ describe('LLM endpoint presets', () => {
             providerId: 'openrouter',
             name: 'OpenRouter',
             baseUrl: 'https://openrouter.ai/api/v1',
-            apiKey: 'sk-existing',
-            clearKey: true,
+            apiKey: '',
+            clearKey: false,
             models: [],
             detectedModelReasoning: null
         });
@@ -110,10 +111,26 @@ describe('LLM endpoint presets', () => {
             providerId: 'siliconflow',
             name: 'SiliconFlow',
             baseUrl: 'https://api.siliconflow.cn/v1',
-            apiKey: 'sk-existing',
-            clearKey: true,
+            apiKey: '',
+            clearKey: false,
             models: [],
             detectedModelReasoning: null
+        });
+    });
+
+    it('drops credentials when a custom base URL changes targets', () => {
+        expect(
+            applyLlmEndpointBaseUrl(draft(), 'https://other.example/v1')
+        ).toMatchObject({
+            baseUrl: 'https://other.example/v1',
+            apiKey: '',
+            clearKey: false
+        });
+        expect(
+            applyLlmEndpointBaseUrl(draft(), 'https://example.test/v1/')
+        ).toMatchObject({
+            apiKey: 'sk-existing',
+            clearKey: true
         });
     });
 

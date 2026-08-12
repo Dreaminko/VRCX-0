@@ -103,10 +103,18 @@ fn start_requires_active_realtime_session() -> Result<()> {
         512,
         Duration::from_secs(30 * 60),
     ));
+    let event_bus = RuntimeEventBus::new();
     let runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
         db,
         web,
-        event_bus: RuntimeEventBus::new(),
+        event_bus: event_bus.clone(),
+        backend_status: vrcx_0_application_core::BackendRuntimeStatusPublisher::new(
+            vrcx_0_application_core::BackendRuntime::new(
+                vrcx_0_application_core::RuntimeHostProfile::Desktop,
+            ),
+            event_bus.clone(),
+        ),
+        friend_projection_sink: crate::FriendProjectionSink::new(event_bus.clone(), None),
         sync: RuntimeSyncEngine::new(),
         tasks: TaskSupervisor::new(),
         session: HostSessionRuntime::new(),

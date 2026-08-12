@@ -19,6 +19,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing = { workspace = true }
 url = { workspace = true }
+vrcx-0-application-contracts = { path = "../application-contracts" }
 vrcx-0-core = { path = "../core" }
 vrcx-0-integrations = { path = "../integrations" }
 vrcx-0-media = { path = "../media" }

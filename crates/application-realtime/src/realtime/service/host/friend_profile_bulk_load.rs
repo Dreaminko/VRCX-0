@@ -300,8 +300,8 @@ impl RealtimeHostRuntime {
             bulk.payload()
         };
         self.deps
-            .event_bus
-            .emit_friend_profile_load_status(payload.clone());
+            .backend_status
+            .publish_friend_profile_load_status(payload.clone());
         payload
     }
 

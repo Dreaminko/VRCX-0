@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use vrcx_0_application_core::RuntimeEventPayload;
 
 use crate::{DebugLoggingOutcome, GameLogProjection, RuntimeEventBus};
@@ -83,6 +85,35 @@ pub enum GameLogSideEffectEvent {
     Notification(RuntimeNotificationPayload),
 }
 
+pub trait GameLogSideEffectObserver: Send + Sync {
+    fn on_game_log_side_effect(&self, event: &GameLogSideEffectEvent);
+}
+
+#[derive(Clone)]
+pub struct GameLogSideEffectSink {
+    event_bus: RuntimeEventBus,
+    observer: Option<Arc<dyn GameLogSideEffectObserver>>,
+}
+
+impl GameLogSideEffectSink {
+    pub fn new(
+        event_bus: RuntimeEventBus,
+        observer: Option<Arc<dyn GameLogSideEffectObserver>>,
+    ) -> Self {
+        Self {
+            event_bus,
+            observer,
+        }
+    }
+
+    pub fn emit(&self, event: GameLogSideEffectEvent) {
+        if let Some(observer) = &self.observer {
+            observer.on_game_log_side_effect(&event);
+        }
+        self.event_bus.emit(event);
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase", untagged)]
 pub enum CrashRelaunchDecisionPayload {
@@ -156,7 +187,6 @@ runtime_event_payload!(
 runtime_event_payload!(RuntimeWorkerErrorPayload, "runtimeWorkerError");
 
 pub trait RuntimeGameEventBusExt {
-    fn emit_game_log_side_effect(&self, event: GameLogSideEffectEvent);
     fn emit_game_client_event(&self, event: GameClientEvent);
     fn emit_runtime_game_log_event(&self, payload: RuntimeGameLogEventPayload);
     fn emit_game_log_projection(&self, projection: GameLogProjection);
@@ -165,10 +195,6 @@ pub trait RuntimeGameEventBusExt {
 }
 
 impl RuntimeGameEventBusExt for RuntimeEventBus {
-    fn emit_game_log_side_effect(&self, event: GameLogSideEffectEvent) {
-        self.emit(event);
-    }
-
     fn emit_game_client_event(&self, event: GameClientEvent) {
         self.emit(event);
     }
@@ -194,11 +220,15 @@ impl RuntimeGameEventBusExt for RuntimeEventBus {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use serde_json::json;
+    use vrcx_0_application_core::{RuntimeEventBus, RuntimeEventPayload, RuntimeEventSink};
 
     use super::{
         CrashRelaunchDecisionPayload, EmptyEventPayload, GameClientEvent,
-        GameLogPersistenceFallbackPayload, GameLogSideEffectEvent, NowPlayingPayload,
+        GameLogPersistenceFallbackPayload, GameLogSideEffectEvent, GameLogSideEffectObserver,
+        GameLogSideEffectSink, NowPlayingPayload,
     };
 
     #[test]
@@ -331,5 +361,38 @@ mod tests {
                 "payload": { "handled": false, "error": "boom" },
             })
         );
+    }
+
+    struct OrderingObserver(Arc<Mutex<Vec<&'static str>>>);
+
+    impl GameLogSideEffectObserver for OrderingObserver {
+        fn on_game_log_side_effect(&self, _event: &GameLogSideEffectEvent) {
+            self.0.lock().unwrap().push("observer");
+        }
+    }
+
+    struct OrderingTransport(Arc<Mutex<Vec<&'static str>>>);
+
+    impl RuntimeEventSink for OrderingTransport {
+        fn emit(&self, event: &str, payload: serde_json::Value) {
+            assert_eq!(event, GameLogSideEffectEvent::EVENT_NAME);
+            assert_eq!(payload, json!({ "kind": "nowPlayingReset", "payload": {} }));
+            self.0.lock().unwrap().push("transport");
+        }
+    }
+
+    #[test]
+    fn side_effect_observer_runs_before_outbound_transport() {
+        let order = Arc::new(Mutex::new(Vec::new()));
+        let bus = RuntimeEventBus::new();
+        bus.set_sink(OrderingTransport(Arc::clone(&order)));
+        let sink =
+            GameLogSideEffectSink::new(bus, Some(Arc::new(OrderingObserver(Arc::clone(&order)))));
+
+        sink.emit(GameLogSideEffectEvent::NowPlayingReset(
+            EmptyEventPayload::default(),
+        ));
+
+        assert_eq!(*order.lock().unwrap(), ["observer", "transport"]);
     }
 }

@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use vrcx_0_application_core::{RuntimeAuthScopeSnapshot, RuntimeOperationStatus};
 
 use tokio::sync::{broadcast, watch};
-use vrcx_0_application_core::{Error, FavoritesChangedPayload, Result};
+use vrcx_0_application_core::{Error, Result};
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline};
 use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::realtime::{
@@ -282,7 +282,7 @@ impl RealtimeHostRuntime {
         let transport_deps = RealtimeTransportDeps {
             db: Arc::clone(&self.deps.db),
             web: Arc::clone(&self.deps.web),
-            event_bus: self.deps.event_bus.clone(),
+            backend_status: self.deps.backend_status.clone(),
         };
         let message_sink: Arc<dyn RealtimeMessageSink> = Arc::new(RealtimeHostRuntimeMessageSink {
             runtime: Arc::clone(self),
@@ -394,8 +394,8 @@ impl RealtimeHostRuntime {
             if let Some((status, reason, status_code)) = terminal_status {
                 self.deps.sync.record_failure("realtime", reason.clone());
                 self.deps
-                    .event_bus
-                    .emit_realtime_ws_status(RealtimeWsStatusPayload {
+                    .backend_status
+                    .publish_realtime_ws_status(RealtimeWsStatusPayload {
                         status,
                         websocket_domain: normalize_websocket_domain(&active.session.websocket),
                         at: chrono::Utc::now().to_rfc3339(),
@@ -479,10 +479,6 @@ impl RealtimeHostRuntime {
                     .collect(),
             })
             .collect()
-    }
-
-    pub fn notify_favorites_changed(&self, payload: FavoritesChangedPayload) {
-        self.deps.event_bus.emit_favorites_changed(payload);
     }
 
     pub fn expire_notification(&self, user_id: String, notification_id: String) -> Result<()> {
@@ -615,8 +611,8 @@ impl RealtimeHostRuntime {
         }
 
         self.deps
-            .event_bus
-            .emit_realtime_ws_status(RealtimeWsStatusPayload {
+            .backend_status
+            .publish_realtime_ws_status(RealtimeWsStatusPayload {
                 status: RealtimeWsStatus::Disconnected,
                 websocket_domain,
                 at: chrono::Utc::now().to_rfc3339(),

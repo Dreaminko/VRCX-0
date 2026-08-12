@@ -53,6 +53,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 import {
     CUSTOM_LLM_ENDPOINT_PROVIDER_ID,
     LLM_ENDPOINT_PROVIDER_PRESETS,
+    applyLlmEndpointBaseUrl,
     applyLlmEndpointProviderPreset,
     createEmptyLlmEndpointDraft,
     findLlmEndpointProviderId,
@@ -74,7 +75,7 @@ function draftFromEndpoint(endpoint: LlmEndpointDto): EndpointDraft {
         providerId: findLlmEndpointProviderId(endpoint.baseUrl, endpoint.name),
         name: endpoint.name,
         baseUrl: endpoint.baseUrl,
-        apiKey: '',
+        apiKey: endpoint.apiKey,
         clearKey: false,
         models: endpoint.models,
         detectedModelReasoning: null
@@ -483,15 +484,12 @@ export function LlmEndpointsDialog({
                                 }
                                 placeholder="https://api.openai.com/v1"
                                 onChange={(event) =>
-                                    setDraft((current) => ({
-                                        ...current,
-                                        baseUrl: event.target.value,
-                                        providerId: findLlmEndpointProviderId(
-                                            event.target.value,
-                                            current.name
-                                        ),
-                                        detectedModelReasoning: null
-                                    }))
+                                    setDraft((current) =>
+                                        applyLlmEndpointBaseUrl(
+                                            current,
+                                            event.target.value
+                                        )
+                                    )
                                 }
                             />
                             {draft.baseUrl && !baseUrlValid ? (
@@ -531,7 +529,7 @@ export function LlmEndpointsDialog({
                             </div>
                             <Input
                                 id="llm-endpoint-dialog-api-key"
-                                type="password"
+                                type="text"
                                 value={draft.apiKey}
                                 disabled={draft.clearKey}
                                 placeholder={

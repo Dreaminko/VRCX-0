@@ -470,7 +470,7 @@ export function TranslationApiDialog({
                         >
                             <Input
                                 id="settings-translation-api-key"
-                                type="password"
+                                type="text"
                                 name="translationApiKey"
                                 value={translationDraft.translationAPIKey}
                                 placeholder={apiKeyPlaceholder}

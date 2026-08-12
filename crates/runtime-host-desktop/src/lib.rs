@@ -25,7 +25,7 @@ pub use background_image::{
 pub use companion_api::DesktopCompanionApiRuntime;
 pub use context::DesktopRuntimeServices;
 pub use game_client::GameClientHostRuntime;
-pub use game_log::GameLogHostRuntime;
+pub use game_log::{GameLogHostRuntime, GameLogHostRuntimeDeps};
 pub use host_actions::{RuntimeHost, RuntimeHostActions};
 pub use host_file_access::{ensure_vrchat_launch_path_allowed, is_known_root_path, HostFileAccess};
 pub use log_watcher::{

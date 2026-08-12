@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
+use vrcx_0_application_core::RuntimeAuthIdentity;
 use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::game_log;
 use vrcx_0_persistence::DatabaseService;
@@ -7,10 +8,8 @@ use crate::game_log::host::GameLogHostActions;
 use crate::game_log::ingest::ScreenshotInput;
 use crate::game_log::runtime_state::world_id_from_location;
 use crate::screenshots as screenshot_domain;
-use crate::RuntimeEventBus;
-use crate::RuntimeGameEventBusExt;
 use crate::{Error, Result};
-use crate::{GameLogSideEffectEvent, ScreenshotProcessedPayload};
+use crate::{GameLogSideEffectEvent, GameLogSideEffectSink, ScreenshotProcessedPayload};
 
 const FALLBACK_LOCATION_MAX_AGE_MS: i64 = 15 * 60 * 1000;
 
@@ -30,8 +29,8 @@ struct ScreenshotPlayer {
 pub async fn handle_screenshot(
     db: &DatabaseService,
     host_actions: &dyn GameLogHostActions,
-    event_bus: &RuntimeEventBus,
-    owner_user_id: &str,
+    side_effect_sink: &GameLogSideEffectSink,
+    author: &RuntimeAuthIdentity,
     input: ScreenshotInput,
 ) -> Result<()> {
     let screenshot_path = input.path.trim().to_string();
@@ -45,9 +44,9 @@ pub async fn handle_screenshot(
 
     let mut next_path = screenshot_path.clone();
     if screenshot_helper {
-        if let Some(context) = screenshot_context(db, owner_user_id, &input)? {
+        if let Some(context) = screenshot_context(db, &author.user_id, &input)? {
             let world_id = world_id_from_location(&context.location);
-            let metadata = build_metadata(db, &context, &world_id);
+            let metadata = build_metadata(author, &context, &world_id);
             let metadata_json = serde_json::to_string(&metadata)?;
             let path_for_task = screenshot_path.clone();
             let world_id_for_task = world_id.clone();
@@ -73,7 +72,7 @@ pub async fn handle_screenshot(
         }
     }
 
-    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::ScreenshotProcessed(
+    side_effect_sink.emit(GameLogSideEffectEvent::ScreenshotProcessed(
         ScreenshotProcessedPayload { path: next_path },
     ));
     Ok(())
@@ -167,17 +166,16 @@ fn screenshot_context(
 }
 
 fn build_metadata(
-    db: &DatabaseService,
+    author: &RuntimeAuthIdentity,
     context: &ScreenshotContext,
     world_id: &str,
 ) -> serde_json::Value {
-    let author = current_author(db);
     serde_json::json!({
         "application": "VRCX-0",
         "version": 1,
         "author": {
-            "id": author.user_id,
-            "displayName": author.display_name,
+            "id": &author.user_id,
+            "displayName": &author.display_name,
         },
         "world": {
             "name": &context.world_name,
@@ -189,38 +187,6 @@ fn build_metadata(
             "displayName": &player.display_name,
         })).collect::<Vec<_>>(),
     })
-}
-
-#[derive(Default)]
-struct ScreenshotAuthor {
-    user_id: String,
-    display_name: String,
-}
-
-fn current_author(db: &DatabaseService) -> ScreenshotAuthor {
-    let author_id = config_store::get_string(db, "lastUserLoggedIn", "").unwrap_or_default();
-    if author_id.is_empty() {
-        return ScreenshotAuthor::default();
-    }
-
-    let saved_credentials = config_store::get_json(db, "savedCredentials", serde_json::json!({}))
-        .unwrap_or_else(|_| serde_json::json!({}));
-    let user = saved_credentials
-        .get(&author_id)
-        .and_then(|entry| entry.get("user"));
-    let author_name = user
-        .and_then(|user| user.get("displayName"))
-        .or_else(|| user.and_then(|user| user.get("username")))
-        .or_else(|| user.and_then(|user| user.get("id")))
-        .and_then(|value| value.as_str())
-        .unwrap_or_default()
-        .trim()
-        .to_string();
-
-    ScreenshotAuthor {
-        user_id: author_id,
-        display_name: author_name,
-    }
 }
 
 #[cfg(test)]
@@ -470,86 +436,15 @@ mod tests {
     }
 
     #[test]
-    fn current_author_is_default_when_no_user_is_logged_in() {
-        let (_dir, db) = test_db("screenshot-author-no-login");
-        let author = current_author(&db);
-        assert!(author.user_id.is_empty());
-        assert!(author.display_name.is_empty());
-    }
+    fn captured_author_does_not_follow_a_later_account_switch() {
+        let scope = crate::RuntimeAuthScope::new();
+        scope.set_identity("usr_first", "First User", "");
+        let author = scope.identity();
+        scope.set_identity("usr_second", "Second User", "");
 
-    #[test]
-    fn current_author_is_empty_display_name_when_saved_credentials_are_missing() {
-        let (_dir, db) = test_db("screenshot-author-no-credentials");
-        config_store::set_string(&db, "lastUserLoggedIn", "usr_current").unwrap();
+        let metadata = build_metadata(&author, &ScreenshotContext::default(), "wrld_example");
 
-        let author = current_author(&db);
-        assert_eq!(author.user_id, "usr_current");
-        assert!(author.display_name.is_empty());
-    }
-
-    #[test]
-    fn current_author_prefers_display_name_over_username_and_id() {
-        let (_dir, db) = test_db("screenshot-author-display-name");
-        config_store::set_string(&db, "lastUserLoggedIn", "usr_current").unwrap();
-        config_store::set_json(
-            &db,
-            "savedCredentials",
-            &serde_json::json!({
-                "usr_current": {
-                    "user": {
-                        "displayName": "Display Name",
-                        "username": "username",
-                        "id": "usr_current",
-                    }
-                }
-            }),
-        )
-        .unwrap();
-
-        let author = current_author(&db);
-        assert_eq!(author.display_name, "Display Name");
-    }
-
-    #[test]
-    fn current_author_falls_back_to_username_when_display_name_is_missing() {
-        let (_dir, db) = test_db("screenshot-author-username");
-        config_store::set_string(&db, "lastUserLoggedIn", "usr_current").unwrap();
-        config_store::set_json(
-            &db,
-            "savedCredentials",
-            &serde_json::json!({
-                "usr_current": {
-                    "user": {
-                        "username": "username",
-                        "id": "usr_current",
-                    }
-                }
-            }),
-        )
-        .unwrap();
-
-        let author = current_author(&db);
-        assert_eq!(author.display_name, "username");
-    }
-
-    #[test]
-    fn current_author_falls_back_to_id_when_display_name_and_username_are_missing() {
-        let (_dir, db) = test_db("screenshot-author-id");
-        config_store::set_string(&db, "lastUserLoggedIn", "usr_current").unwrap();
-        config_store::set_json(
-            &db,
-            "savedCredentials",
-            &serde_json::json!({
-                "usr_current": {
-                    "user": {
-                        "id": "usr_current",
-                    }
-                }
-            }),
-        )
-        .unwrap();
-
-        let author = current_author(&db);
-        assert_eq!(author.display_name, "usr_current");
+        assert_eq!(metadata["author"]["id"], "usr_first");
+        assert_eq!(metadata["author"]["displayName"], "First User");
     }
 }

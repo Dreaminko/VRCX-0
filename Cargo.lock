@@ -9000,6 +9000,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "vrcx-0-application-contracts"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "specta",
+ "vrcx-0-core",
+]
+
+[[package]]
 name = "vrcx-0-application-core"
 version = "0.1.0"
 dependencies = [
@@ -9013,6 +9022,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "vrcx-0-application-contracts",
  "vrcx-0-core",
  "vrcx-0-integrations",
  "vrcx-0-media",
@@ -9102,7 +9112,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
- "vrcx-0-application-core",
+ "vrcx-0-application-contracts",
 ]
 
 [[package]]
@@ -9115,7 +9125,6 @@ dependencies = [
  "serde",
  "serde_json",
  "specta",
- "tracing",
 ]
 
 [[package]]
@@ -9128,7 +9137,6 @@ dependencies = [
  "tokio",
  "tracing-subscriber",
  "vrcx-0-application-core",
- "vrcx-0-core",
  "vrcx-0-host",
  "vrcx-0-runtime-host",
 ]

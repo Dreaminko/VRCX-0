@@ -15,16 +15,17 @@ use crate::{
 };
 use vrcx_0_application::{
     AuthenticatedSessionMaintenanceOutcome, DataDirMigrationRuntime, FavoriteImportRuntime,
-    GroupApiDeps, GroupBanImportRuntime, PrintCleanupDeps, PrintCleanupQueueSink,
-    ProfileBackupRuntime, ProfileBackupRuntimeDeps, VrchatGroupBanImportActions,
+    FavoriteImportRuntimeDeps, GroupApiDeps, GroupBanImportRuntime, PrintCleanupDeps,
+    PrintCleanupQueueSink, ProfileBackupRuntime, ProfileBackupRuntimeDeps,
+    VrchatGroupBanImportActions,
 };
 use vrcx_0_application_core::{
-    BackendRuntime, BackgroundCapabilitySession, ImageCache, UnavailableLocalGameContextSource,
-    WebClient,
+    BackendRuntime, BackendRuntimeStatusPublisher, BackgroundCapabilitySession, ImageCache,
+    UnavailableLocalGameContextSource, WebClient,
 };
 use vrcx_0_application_realtime::{
-    RealtimeCurrentUserSnapshotSink, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
-    RealtimeSessionContext,
+    FriendProjectionSink, RealtimeCurrentUserSnapshotSink, RealtimeHostRuntime,
+    RealtimeHostRuntimeDeps, RealtimeSessionContext,
 };
 use vrcx_0_host::app_paths::{
     app_data_paths_match, commit_app_data_dir_pointer, AppDataDirResolution, AppDataDirSource,
@@ -49,7 +50,7 @@ use vrcx_0_persistence::DatabaseService;
 #[cfg(test)]
 use std::sync::atomic::Ordering;
 #[cfg(test)]
-use vrcx_0_application_core::{BackendRuntimeMode, BackendRuntimePhase};
+use vrcx_0_application_core::BackendRuntimePhase;
 
 pub struct RuntimeHostOptions {
     pub realtime_origin: String,
@@ -144,6 +145,7 @@ trait SecretStartupActions {
     fn is_encrypting_writes(&mut self) -> bool;
     fn migrate_cookies(&mut self) -> Result<()>;
     fn migrate_saved_credentials(&mut self) -> Result<()>;
+    fn migrate_sensitive_config_values(&mut self) -> Result<()>;
     fn read_cleanup_completed(&mut self) -> Result<bool>;
     fn cleanup(&mut self) -> Result<()>;
     fn record_cleanup_completed(&mut self) -> Result<()>;
@@ -159,6 +161,10 @@ fn run_secret_startup(actions: &mut dyn SecretStartupActions) {
     if let Err(error) = actions.migrate_saved_credentials() {
         migrations_succeeded = false;
         tracing::warn!(error = %error, "failed to migrate saved credentials to encrypted form");
+    }
+    if let Err(error) = actions.migrate_sensitive_config_values() {
+        migrations_succeeded = false;
+        tracing::warn!(error = %error, "failed to migrate sensitive config values to obfuscated form");
     }
     let cleanup_completed = match actions.read_cleanup_completed() {
         Ok(completed) => completed,
@@ -204,6 +210,11 @@ impl SecretStartupActions for SecretStartup<'_> {
 
     fn migrate_saved_credentials(&mut self) -> Result<()> {
         vrcx_0_application::migrate_saved_credential_secrets(&self.config)?;
+        Ok(())
+    }
+
+    fn migrate_sensitive_config_values(&mut self) -> Result<()> {
+        vrcx_0_persistence::config::migrate_sensitive_config_obfuscation(self.db)?;
         Ok(())
     }
 
@@ -447,7 +458,7 @@ impl RuntimeHostStateBuilder {
             profile_backup,
             data_dir_migration,
             runtime_context,
-            backend_runtime: BackendRuntime::new(),
+            backend_runtime: BackendRuntime::new(profile),
             web,
             image_cache,
             legacy_vrcx_available,
@@ -480,6 +491,7 @@ impl RuntimeHostStateBuilder {
             group_order_source,
             friend_note_change_sink,
             favorites_sink,
+            friend_projection_observer,
             profile_extension,
         } = composition;
         let authenticated_session_projection =
@@ -509,6 +521,14 @@ impl RuntimeHostStateBuilder {
             db: Arc::clone(&self.runtime_context.db),
             web: Arc::clone(&self.runtime_context.web),
             event_bus: self.runtime_context.event_bus.clone(),
+            backend_status: BackendRuntimeStatusPublisher::new(
+                self.backend_runtime.clone(),
+                self.runtime_context.event_bus.clone(),
+            ),
+            friend_projection_sink: FriendProjectionSink::new(
+                self.runtime_context.event_bus.clone(),
+                friend_projection_observer,
+            ),
             sync: self.runtime_context.sync.clone(),
             tasks: self.runtime_context.tasks.clone(),
             session: self.runtime_context.session.clone(),
@@ -557,15 +577,16 @@ impl RuntimeHostStateBuilder {
                 realtime_runtime: Arc::clone(&realtime_runtime),
                 favorites_sink,
             });
-        let favorite_import = FavoriteImportRuntime::new(
-            Arc::clone(&self.db),
-            Arc::clone(&self.web),
-            Arc::clone(&self.runtime_context.world_cache),
-            self.runtime_context.event_bus.clone(),
-            self.runtime_context.tasks.clone(),
-            self.runtime_context.auth_scope.clone(),
-            Arc::clone(&self.runtime_context.remote_mutations),
-        );
+        let favorite_import = FavoriteImportRuntime::new(FavoriteImportRuntimeDeps {
+            db: Arc::clone(&self.db),
+            web: Arc::clone(&self.web),
+            world_cache: Arc::clone(&self.runtime_context.world_cache),
+            event_bus: self.runtime_context.event_bus.clone(),
+            tasks: self.runtime_context.tasks.clone(),
+            auth_scope: self.runtime_context.auth_scope.clone(),
+            remote_mutations: Arc::clone(&self.runtime_context.remote_mutations),
+            favorite_mutations: self.runtime_context.favorite_mutations.clone(),
+        });
         let group_ban_import = GroupBanImportRuntime::new(
             Arc::new(VrchatGroupBanImportActions {
                 deps: GroupApiDeps {
@@ -588,6 +609,7 @@ impl RuntimeHostStateBuilder {
             self.runtime_context.event_bus.clone(),
             self.runtime_context.tasks.clone(),
             self.runtime_context.auth_scope.clone(),
+            self.runtime_context.favorite_mutations.clone(),
         );
         let note_export = NoteExportRuntime::new(
             Arc::clone(&self.db),
@@ -647,6 +669,7 @@ impl RuntimeHostState {
             group_order_source: Arc::new(UnavailableGroupOrderSource),
             friend_note_change_sink: None,
             favorites_sink: None,
+            friend_projection_observer: None,
             profile_extension: None,
         })
     }
@@ -668,6 +691,7 @@ mod secret_startup_tests {
         Initialize,
         MigrateCookies,
         MigrateSavedCredentials,
+        MigrateSensitiveConfigValues,
         ReadCleanupCompleted,
         IsEncryptingWrites,
         Cleanup,
@@ -708,6 +732,10 @@ mod secret_startup_tests {
 
         fn migrate_saved_credentials(&mut self) -> Result<()> {
             self.step(Step::MigrateSavedCredentials)
+        }
+
+        fn migrate_sensitive_config_values(&mut self) -> Result<()> {
+            self.step(Step::MigrateSensitiveConfigValues)
         }
 
         fn read_cleanup_completed(&mut self) -> Result<bool> {
@@ -751,6 +779,7 @@ mod secret_startup_tests {
                 Step::Initialize,
                 Step::MigrateCookies,
                 Step::MigrateSavedCredentials,
+                Step::MigrateSensitiveConfigValues,
                 Step::ReadCleanupCompleted,
                 Step::IsEncryptingWrites,
                 Step::Cleanup,
@@ -761,8 +790,12 @@ mod secret_startup_tests {
     }
 
     #[test]
-    fn secret_startup_requires_both_migrations_before_cleanup() {
-        for failed_step in [Step::MigrateCookies, Step::MigrateSavedCredentials] {
+    fn secret_startup_requires_all_migrations_before_cleanup() {
+        for failed_step in [
+            Step::MigrateCookies,
+            Step::MigrateSavedCredentials,
+            Step::MigrateSensitiveConfigValues,
+        ] {
             let (events, cleanup_recorded) = run(Some(failed_step), true, false);
             assert_eq!(
                 events,
@@ -770,6 +803,7 @@ mod secret_startup_tests {
                     Step::Initialize,
                     Step::MigrateCookies,
                     Step::MigrateSavedCredentials,
+                    Step::MigrateSensitiveConfigValues,
                     Step::ReadCleanupCompleted,
                     Step::IsEncryptingWrites,
                 ]
@@ -1023,7 +1057,6 @@ mod profile_bundle_tests {
         })?;
         assert!(state.profile_extension.is_none());
         assert!(!state.paths.app_data.join("metadataCache.db").exists());
-        state.backend_runtime.set_mode(BackendRuntimeMode::Headless);
         state
             .backend_runtime
             .set_phase(BackendRuntimePhase::Running);
@@ -1059,6 +1092,7 @@ mod profile_bundle_tests {
             group_order_source: Arc::new(UnavailableGroupOrderSource),
             friend_note_change_sink: None,
             favorites_sink: None,
+            friend_projection_observer: None,
             profile_extension: Some(extension.clone()),
         })?;
 

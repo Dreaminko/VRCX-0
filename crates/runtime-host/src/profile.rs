@@ -1,5 +1,1 @@
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RuntimeHostProfile {
-    Desktop,
-    HeadlessData,
-}
+pub use vrcx_0_application_core::RuntimeHostProfile;

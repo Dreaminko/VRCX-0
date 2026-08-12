@@ -3,13 +3,10 @@ use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use vrcx_0_application::{
-    add_remote_favorite, AuthenticatedMutationContext, FavoriteRemoteAddInput,
-    FavoriteRemoteMutationDeps,
-};
+use vrcx_0_application::{FavoriteLocalMutationError, FavoriteRemoteAddInput};
 use vrcx_0_application_core::{
     vrchat_api::{self},
-    FavoriteEntityKind, FavoritesChangedPayload,
+    FavoriteEntityKind,
 };
 use vrcx_0_persistence::{
     favorites::{self as persistence_favorites, FavoriteRow as PersistenceFavoriteRow},
@@ -18,9 +15,7 @@ use vrcx_0_persistence::{
 
 use crate::server::VrcxMcpServer;
 
-use super::common::{
-    map_persistence_error, require_current_user_id, social_aggregates_result, structured_result,
-};
+use super::common::{map_persistence_error, require_current_user_id, structured_result};
 
 #[tool_router(router = favorites_tool_router, vis = "pub(crate)")]
 impl VrcxMcpServer {
@@ -31,40 +26,7 @@ impl VrcxMcpServer {
         &self,
         Parameters(input): Parameters<FavoriteLocalParams>,
     ) -> Result<CallToolResult, String> {
-        let dry_run = input.dry_run.unwrap_or(true);
-        let mutation = AuthenticatedMutationContext::capture(
-            &self.runtime.auth_scope,
-            &self.runtime.remote_mutations,
-            "MCP local favorite mutation",
-        )
-        .map_err(|error| error.to_string())?;
-        let result = social_aggregates::favorite_local(
-            self.runtime.db.as_ref(),
-            &mutation.scope().current_user_id,
-            social_aggregates::FavoriteLocalInput {
-                kind: normalize_favorite_kind(&input.kind)?,
-                entity_id: input.entity_id,
-                group: input.group,
-                action: parse_favorite_action(input.action.as_deref())?,
-                dry_run,
-            },
-        );
-        if !dry_run {
-            if let Ok(output) = &result {
-                mutation
-                    .ensure_current()
-                    .map_err(|error| error.to_string())?;
-                self.runtime.realtime_runtime.notify_favorites_changed(
-                    FavoritesChangedPayload::invalidated(
-                        mutation.scope(),
-                        output.kind.into(),
-                        true,
-                        false,
-                    ),
-                );
-            }
-        }
-        social_aggregates_result(result)
+        structured_result(self.favorite_local_output(input)?)
     }
 
     #[tool(
@@ -89,6 +51,25 @@ impl VrcxMcpServer {
 }
 
 impl VrcxMcpServer {
+    fn favorite_local_output(
+        &self,
+        input: FavoriteLocalParams,
+    ) -> Result<social_aggregates::FavoriteOutput, String> {
+        self.runtime
+            .favorite_mutations
+            .mutate_local(
+                "MCP local favorite mutation",
+                social_aggregates::FavoriteLocalInput {
+                    kind: normalize_favorite_kind(&input.kind)?,
+                    entity_id: input.entity_id,
+                    group: input.group,
+                    action: parse_favorite_action(input.action.as_deref())?,
+                    dry_run: input.dry_run.unwrap_or(true),
+                },
+            )
+            .map_err(map_favorite_local_error)
+    }
+
     fn get_favorites_output(&self, input: GetFavoritesParams) -> Result<FavoritesOutput, String> {
         let requested_kind = parse_favorite_list_kind(input.kind.as_deref())?;
         let owner_user_id = require_current_user_id(&self.runtime)?;
@@ -146,31 +127,35 @@ impl VrcxMcpServer {
             });
         }
 
-        let response = add_remote_favorite(
-            &FavoriteRemoteMutationDeps {
-                db: self.runtime.db.as_ref(),
-                web: self.runtime.web.as_ref(),
-                diagnostics: &self.runtime.diagnostics,
-                sync: &self.runtime.sync,
-                realtime: &self.runtime.realtime_runtime,
-                mutation: AuthenticatedMutationContext::capture(
-                    &self.runtime.auth_scope,
-                    &self.runtime.remote_mutations,
-                    "MCP remote favorite mutation",
-                )
-                .map_err(|error| error.to_string())?,
-            },
-            FavoriteRemoteAddInput {
-                kind: kind.into(),
-                entity_id: entity_id.clone(),
-                tags: tags.clone(),
-            },
-        )
-        .await
-        .map_err(|error| error.to_string())?;
+        let response = self
+            .runtime
+            .favorite_mutations
+            .add_remote(
+                "MCP remote favorite mutation",
+                FavoriteRemoteAddInput {
+                    kind: kind.into(),
+                    entity_id: entity_id.clone(),
+                    tags: tags.clone(),
+                },
+            )
+            .await
+            .map_err(|error| error.to_string())?;
         Ok(finish_remote_favorite_write(
             kind, entity_id, tags, response,
         ))
+    }
+}
+
+fn map_favorite_local_error(error: FavoriteLocalMutationError) -> String {
+    match error {
+        FavoriteLocalMutationError::Persistence(vrcx_0_persistence::Error::InvalidData(
+            message,
+        )) => message,
+        FavoriteLocalMutationError::Persistence(error) => {
+            tracing::warn!("MCP social query failed: {error}");
+            "internal data error while reading local VRCX-0 data".into()
+        }
+        FavoriteLocalMutationError::Application(error) => error.to_string(),
     }
 }
 
@@ -375,6 +360,63 @@ fn vrchat_favorite_caveats(blocked_by_setting: bool) -> Vec<String> {
 #[cfg(test)]
 mod favorite_kind_tests {
     use super::*;
+
+    #[test]
+    fn local_tool_adapter_preserves_dry_run_and_real_write_semantics() {
+        let (_dir, runtime, event_bus) =
+            crate::test_support::test_runtime_with_event_bus("favorites-local", "usr_self")
+                .expect("test runtime");
+        let db = std::sync::Arc::clone(&runtime.db);
+        let server = VrcxMcpServer::new(runtime);
+
+        let dry_run = server
+            .favorite_local_output(FavoriteLocalParams {
+                kind: "friend".into(),
+                entity_id: "usr_friend".into(),
+                group: "Close".into(),
+                action: Some("add".into()),
+                dry_run: None,
+            })
+            .unwrap();
+        assert!(dry_run.dry_run);
+        assert_eq!(dry_run.affected_rows, 0);
+        assert!(persistence_favorites::favorite_list(
+            db.as_ref(),
+            Some("usr_self"),
+            FavoriteEntityKind::Friend,
+        )
+        .unwrap()
+        .is_empty());
+        assert!(event_bus.take_events_for_test().is_empty());
+
+        let written = server
+            .favorite_local_output(FavoriteLocalParams {
+                kind: "friend".into(),
+                entity_id: "usr_friend".into(),
+                group: "Close".into(),
+                action: Some("add".into()),
+                dry_run: Some(false),
+            })
+            .unwrap();
+        assert!(!written.dry_run);
+        assert_eq!(written.affected_rows, 1);
+        assert_eq!(
+            persistence_favorites::favorite_list(
+                db.as_ref(),
+                Some("usr_self"),
+                FavoriteEntityKind::Friend,
+            )
+            .unwrap()
+            .len(),
+            1
+        );
+        let events = event_bus.take_events_for_test();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].name, "favoritesChanged");
+        assert_eq!(events[0].payload["local"], true);
+        assert_eq!(events[0].payload["remote"], false);
+        assert_eq!(events[0].payload["requiresRefresh"], true);
+    }
 
     #[test]
     fn accepts_singular_plural_and_user_synonym() {

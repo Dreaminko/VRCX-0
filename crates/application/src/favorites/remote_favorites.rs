@@ -1,11 +1,10 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use vrcx_0_application_core::{
     vrchat_api::{self, VrchatApiRequest, VrchatApiResponse, VrchatScope},
     FavoriteChange, FavoriteChangeScope, FavoritesChangedPayload, RuntimeDiagnostics,
-    RuntimeSyncEngine, VrchatFavoriteType, WebClient,
+    RuntimeEventBus, RuntimeSyncEngine, VrchatFavoriteType, WebClient,
 };
-use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::parse_api_json;
@@ -14,12 +13,12 @@ use crate::{AuthenticatedMutationContext, Result};
 
 const FAVORITE_REMOTE_MUTATION_INTERVAL: Duration = Duration::from_millis(250);
 
-pub struct FavoriteRemoteMutationDeps<'a> {
+pub(super) struct FavoriteRemoteMutationDeps<'a> {
     pub db: &'a DatabaseService,
     pub web: &'a WebClient,
     pub diagnostics: &'a RuntimeDiagnostics,
     pub sync: &'a RuntimeSyncEngine,
-    pub realtime: &'a Arc<RealtimeHostRuntime>,
+    pub event_bus: &'a RuntimeEventBus,
     pub mutation: AuthenticatedMutationContext<'a>,
 }
 
@@ -100,8 +99,8 @@ fn notify_favorite_change(
     kind: FavoriteChangeScope,
     changes: Vec<FavoriteChange>,
 ) {
-    deps.realtime
-        .notify_favorites_changed(FavoritesChangedPayload::from_changes(
+    deps.event_bus
+        .emit_favorites_changed(FavoritesChangedPayload::from_changes(
             deps.mutation.scope(),
             kind,
             false,
@@ -110,7 +109,7 @@ fn notify_favorite_change(
         ));
 }
 
-pub async fn add_remote_favorite(
+pub(super) async fn add_remote_favorite(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteAddInput,
 ) -> Result<VrchatApiResponse> {
@@ -137,7 +136,7 @@ pub async fn add_remote_favorite(
     Ok(response)
 }
 
-pub async fn delete_remote_favorite(
+pub(super) async fn delete_remote_favorite(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteDeleteInput,
 ) -> Result<VrchatApiResponse> {
@@ -162,7 +161,7 @@ pub async fn delete_remote_favorite(
     Ok(response)
 }
 
-pub async fn save_remote_favorite_group(
+pub(super) async fn save_remote_favorite_group(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteGroupSaveInput,
 ) -> Result<VrchatApiResponse> {
@@ -188,7 +187,7 @@ pub async fn save_remote_favorite_group(
     Ok(response)
 }
 
-pub async fn clear_remote_favorite_group(
+pub(super) async fn clear_remote_favorite_group(
     deps: &FavoriteRemoteMutationDeps<'_>,
     input: FavoriteRemoteGroupClearInput,
 ) -> Result<VrchatApiResponse> {

@@ -3,14 +3,11 @@ use vrcx_0_persistence::favorites;
 use vrcx_0_persistence::favorites::FavoriteRow;
 use vrcx_0_persistence::DatabaseService;
 
-use std::sync::Arc;
-
 use crate::{AuthenticatedMutationContext, Error, Result};
 use vrcx_0_application_core::{
     read_config_string_array, write_config_string_array, FavoriteChange, FavoriteChangeScope,
-    FavoriteEntityKind, FavoritesChangedPayload,
+    FavoriteEntityKind, FavoritesChangedPayload, RuntimeEventBus,
 };
-use vrcx_0_application_realtime::RealtimeHostRuntime;
 
 #[derive(Clone, Debug, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -27,9 +24,9 @@ pub struct LocalFavoriteSnapshot {
     pub group_names: Vec<String>,
 }
 
-pub struct LocalFavoriteMutationDeps<'a> {
+pub(super) struct LocalFavoriteMutationDeps<'a> {
     pub db: &'a DatabaseService,
-    pub realtime: &'a Arc<RealtimeHostRuntime>,
+    pub event_bus: &'a RuntimeEventBus,
     pub mutation: AuthenticatedMutationContext<'a>,
 }
 
@@ -54,10 +51,10 @@ fn notify_local_favorite_change(
             vec![change],
         )
     };
-    deps.realtime.notify_favorites_changed(payload);
+    deps.event_bus.emit_favorites_changed(payload);
 }
 
-pub fn add_local_favorite_scoped(
+pub(super) fn add_local_favorite_scoped(
     deps: &LocalFavoriteMutationDeps<'_>,
     kind: FavoriteEntityKind,
     entity_id: String,
@@ -84,7 +81,7 @@ pub fn add_local_favorite_scoped(
     Ok(affected)
 }
 
-pub fn remove_local_favorite_scoped(
+pub(super) fn remove_local_favorite_scoped(
     deps: &LocalFavoriteMutationDeps<'_>,
     kind: FavoriteEntityKind,
     entity_id: String,
@@ -196,7 +193,7 @@ pub(crate) fn create_local_favorite_group(
     })
 }
 
-pub fn create_local_favorite_group_scoped(
+pub(super) fn create_local_favorite_group_scoped(
     deps: &LocalFavoriteMutationDeps<'_>,
     kind: FavoriteEntityKind,
     group_name: String,
@@ -247,7 +244,7 @@ pub(crate) fn rename_local_favorite_group(
     })
 }
 
-pub fn rename_local_favorite_group_scoped(
+pub(super) fn rename_local_favorite_group_scoped(
     deps: &LocalFavoriteMutationDeps<'_>,
     kind: FavoriteEntityKind,
     group_name: String,
@@ -301,7 +298,7 @@ pub(crate) fn delete_local_favorite_group(
     })
 }
 
-pub fn delete_local_favorite_group_scoped(
+pub(super) fn delete_local_favorite_group_scoped(
     deps: &LocalFavoriteMutationDeps<'_>,
     kind: FavoriteEntityKind,
     group_name: String,

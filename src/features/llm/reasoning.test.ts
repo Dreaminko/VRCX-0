@@ -30,6 +30,7 @@ function endpoint(
         id: 'ep_1',
         name: 'Test',
         baseUrl,
+        apiKey: 'sk-test',
         hasKey: true,
         models,
         modelReasoning,

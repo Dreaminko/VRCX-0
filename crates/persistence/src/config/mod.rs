@@ -1,4 +1,5 @@
 mod local;
+mod obfuscation;
 mod repository;
 mod schema;
 mod types;
@@ -6,6 +7,7 @@ mod types;
 pub use local::{
     config_apply_mutations, config_list_values, config_remove_value, config_set_values,
 };
+pub use obfuscation::migrate_sensitive_config_obfuscation;
 pub use repository::{
     ensure_config_table, get_bool, get_json, get_raw, get_string, remove, set_bool, set_json,
     set_string, ConfigRepository,

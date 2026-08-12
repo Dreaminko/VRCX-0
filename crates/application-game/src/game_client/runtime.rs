@@ -7,6 +7,7 @@ use vrcx_0_persistence::DatabaseService;
 use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};
 use crate::Result;
 use crate::{HostSessionRuntime, RuntimeAuthScope, RuntimeEventBus, TaskSupervisor};
+use vrcx_0_application_core::BackendRuntimeStatusPublisher;
 use vrcx_0_application_core::GameProcessEvent;
 use vrcx_0_application_core::InstanceRosterObserver;
 
@@ -21,6 +22,7 @@ pub struct GameClientRuntimeDeps {
     pub db: Arc<DatabaseService>,
     pub config: ConfigRepository,
     pub event_bus: RuntimeEventBus,
+    pub backend_status: BackendRuntimeStatusPublisher,
     pub tasks: TaskSupervisor,
     pub session: HostSessionRuntime,
     pub auth_scope: RuntimeAuthScope,
@@ -47,6 +49,7 @@ impl GameClientRuntime {
                 db: deps.db,
                 config: deps.config,
                 event_bus: deps.event_bus.clone(),
+                backend_status: deps.backend_status,
                 tasks: deps.tasks,
                 session: deps.session,
                 auth_scope: deps.auth_scope,

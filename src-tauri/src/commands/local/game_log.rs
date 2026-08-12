@@ -45,10 +45,7 @@ pub fn app__game_log_entries_add(
         entries,
     )
     .map_err(AppError::from)?;
-    state
-        .runtime_context
-        .event_bus
-        .emit_game_log_persisted(affected_count);
+    state.publish_game_log_persisted(affected_count);
     Ok(())
 }
 

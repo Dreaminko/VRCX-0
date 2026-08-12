@@ -14,8 +14,8 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 use vrcx_0_application_core::{
     format_runtime_output_event, recommended_tokio_max_blocking_threads,
-    recommended_tokio_worker_threads, BackendRuntimeMode, BackendRuntimeTelemetry,
-    BackendRuntimeTelemetryKind, RuntimeEventSink, RuntimeOutputLevel, RuntimeOutputLine,
+    recommended_tokio_worker_threads, BackendRuntimeTelemetry, BackendRuntimeTelemetryKind,
+    RuntimeEventPayload, RuntimeEventSink, RuntimeOutputLevel, RuntimeOutputLine,
     RuntimeOutputMode, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle,
 };
 use vrcx_0_host::app_paths::resolve_app_data_dir;
@@ -93,10 +93,7 @@ async fn async_main() -> ExitCode {
         .tasks
         .set_executor(TokioRuntimeTaskExecutor);
 
-    match state
-        .start_backend_runtime(BackendRuntimeMode::Headless, cli_login_prompt)
-        .await
-    {
+    match state.start_headless_backend_runtime(cli_login_prompt).await {
         Ok(_) => {}
         Err(error) => {
             report_headless_error(
@@ -272,8 +269,8 @@ impl ConsoleRuntimeEventSink {
 }
 
 impl RuntimeEventSink for ConsoleRuntimeEventSink {
-    fn emit(&self, _event: &str, _payload: Value, typed_payload: &dyn std::any::Any) {
-        let allow_during_shutdown = is_runtime_stopped_event(typed_payload);
+    fn emit(&self, event: &str, payload: Value) {
+        let allow_during_shutdown = is_runtime_stopped_event(event, &payload);
         let _guard = self
             .output_lock
             .lock()
@@ -282,7 +279,8 @@ impl RuntimeEventSink for ConsoleRuntimeEventSink {
             return;
         }
 
-        let Some(output) = format_runtime_output_event(RuntimeOutputMode::Headless, typed_payload)
+        let Some(output) =
+            format_runtime_output_event(RuntimeOutputMode::Headless, event, &payload)
         else {
             return;
         };
@@ -370,8 +368,11 @@ where
     }
 }
 
-fn is_runtime_stopped_event(payload: &dyn std::any::Any) -> bool {
-    payload
-        .downcast_ref::<BackendRuntimeTelemetry>()
+fn is_runtime_stopped_event(event: &str, payload: &Value) -> bool {
+    if event != BackendRuntimeTelemetry::EVENT_NAME {
+        return false;
+    }
+    serde_json::from_value::<BackendRuntimeTelemetry>(payload.clone())
+        .ok()
         .is_some_and(|telemetry| telemetry.kind == BackendRuntimeTelemetryKind::RuntimeStopped)
 }

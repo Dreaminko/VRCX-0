@@ -1,7 +1,7 @@
 use vrcx_0_host_desktop::overlay_notifications::OvrToolkit;
-use vrcx_0_runtime_host::notification::{
-    NotificationDeliveryPlan, NotificationDeliveryPreferences, RenderedNotification,
-};
+use vrcx_0_runtime_host::notification::RenderedNotification;
+
+use super::{NotificationDeliveryPlan, NotificationDeliveryPreferences};
 
 const NOTIFICATION_APP_TITLE: &str = "VRCX-0";
 

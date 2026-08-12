@@ -89,6 +89,16 @@ fn fixture(name: &str) -> Fixture {
         db: Arc::clone(&db),
         web: Arc::clone(&web),
         event_bus: event_bus.clone(),
+        backend_status: vrcx_0_application_core::BackendRuntimeStatusPublisher::new(
+            vrcx_0_application_core::BackendRuntime::new(
+                vrcx_0_application_core::RuntimeHostProfile::Desktop,
+            ),
+            event_bus.clone(),
+        ),
+        friend_projection_sink: vrcx_0_application_realtime::FriendProjectionSink::new(
+            event_bus.clone(),
+            None,
+        ),
         sync: RuntimeSyncEngine::new(),
         tasks: TaskSupervisor::new(),
         session: HostSessionRuntime::new(),

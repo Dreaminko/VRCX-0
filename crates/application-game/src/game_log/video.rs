@@ -9,9 +9,10 @@ use vrcx_0_persistence::DatabaseService;
 use crate::Result;
 use crate::RuntimeGameEventBusExt;
 use crate::{
-    GameLogPersistenceFallbackPayload, GameLogSideEffectEvent, NowPlayingPayload, RuntimeEventBus,
-    RuntimeGameLogEventPayload, WebClient,
+    GameLogPersistenceFallbackPayload, GameLogSideEffectEvent, GameLogSideEffectSink,
+    NowPlayingPayload, RuntimeEventBus, RuntimeGameLogEventPayload, WebClient,
 };
+use vrcx_0_application_core::BackendRuntimeStatusPublisher;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct VideoInput {
@@ -47,6 +48,8 @@ pub async fn handle_video_play(
     db: &DatabaseService,
     web: &WebClient,
     event_bus: &RuntimeEventBus,
+    backend_status: &BackendRuntimeStatusPublisher,
+    side_effect_sink: &GameLogSideEffectSink,
     owner_user_id: &str,
     mut input: VideoInput,
 ) -> Result<()> {
@@ -122,13 +125,13 @@ pub async fn handle_video_play(
         }
     };
 
-    event_bus.emit_game_log_persisted(affected_count);
+    backend_status.publish_game_log_persisted(affected_count);
     event_bus.emit_runtime_game_log_event(RuntimeGameLogEventPayload {
         runtime_persisted: true,
         raw: raw_row,
     });
 
-    event_bus.emit_game_log_side_effect(GameLogSideEffectEvent::NowPlaying(Box::new(
+    side_effect_sink.emit(GameLogSideEffectEvent::NowPlaying(Box::new(
         NowPlayingPayload {
             url: Some(input.video_url.clone()),
             name: Some(input.video_name.clone()),

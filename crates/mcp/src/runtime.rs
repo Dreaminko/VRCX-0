@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use vrcx_0_application::{MutualGraphFetchRuntime, RemoteMutationGate};
-use vrcx_0_application_core::{
-    RuntimeAuthScope, RuntimeDiagnostics, RuntimeSyncEngine, TaskSupervisor, WebClient,
-};
+use vrcx_0_application::{FavoriteMutationCoordinator, MutualGraphFetchRuntime};
+use vrcx_0_application_core::{RuntimeAuthScope, TaskSupervisor, WebClient};
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
@@ -19,13 +17,11 @@ pub enum McpCaller {
 pub struct McpRuntime {
     pub(crate) db: Arc<DatabaseService>,
     pub(crate) web: Arc<WebClient>,
-    pub(crate) diagnostics: RuntimeDiagnostics,
-    pub(crate) sync: RuntimeSyncEngine,
     pub(crate) realtime_runtime: Arc<RealtimeHostRuntime>,
     pub(crate) auth_scope: RuntimeAuthScope,
     pub(crate) config: ConfigRepository,
     pub(crate) mutual_graph_fetch: MutualGraphFetchRuntime,
-    pub(crate) remote_mutations: Arc<RemoteMutationGate>,
+    pub(crate) favorite_mutations: FavoriteMutationCoordinator,
     pub(crate) tasks: TaskSupervisor,
     pub(crate) caller: McpCaller,
 }
@@ -35,13 +31,11 @@ impl McpRuntime {
         Self {
             db: Arc::clone(&state.db),
             web: Arc::clone(&state.web),
-            diagnostics: state.runtime_context.diagnostics.clone(),
-            sync: state.runtime_context.sync.clone(),
             realtime_runtime: Arc::clone(&state.realtime_runtime),
             auth_scope: state.runtime_context.auth_scope.clone(),
             config: state.runtime_context.config.clone(),
             mutual_graph_fetch: state.runtime_context.mutual_graph_fetch.clone(),
-            remote_mutations: Arc::clone(&state.runtime_context.remote_mutations),
+            favorite_mutations: state.runtime_context.favorite_mutations.clone(),
             tasks: state.runtime_context.tasks.clone(),
             caller,
         }

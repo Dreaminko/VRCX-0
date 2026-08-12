@@ -837,11 +837,18 @@ describe('runtimeEventBridgeService', () => {
     });
 
     it('unsubscribes every successful runtime event when one subscription fails', async () => {
-        const unsubscribe = vi.fn();
+        const failedSubscriptionName = 'gameLogProjection';
+        const attemptedSubscriptionNames: string[] = [];
+        const successfulSubscriptionNames: string[] = [];
+        const successfulUnsubscribes: ReturnType<typeof vi.fn>[] = [];
         mocks.subscribe.mockImplementation(async (name) => {
-            if (name === 'gameLogProjection') {
+            attemptedSubscriptionNames.push(name);
+            if (name === failedSubscriptionName) {
                 throw new Error('subscription failed');
             }
+            const unsubscribe = vi.fn();
+            successfulSubscriptionNames.push(name);
+            successfulUnsubscribes.push(unsubscribe);
             return unsubscribe;
         });
 
@@ -849,7 +856,17 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(40);
+        expect(new Set(attemptedSubscriptionNames).size).toBe(
+            attemptedSubscriptionNames.length
+        );
+        expect(successfulSubscriptionNames).toEqual(
+            attemptedSubscriptionNames.filter(
+                (name) => name !== failedSubscriptionName
+            )
+        );
+        successfulUnsubscribes.forEach((unsubscribe) => {
+            expect(unsubscribe).toHaveBeenCalledOnce();
+        });
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
@@ -857,10 +874,14 @@ describe('runtimeEventBridgeService', () => {
     it('cleans subscriptions when deep-link startup fails', async () => {
         vi.useFakeTimers();
         const handlers = new Map<string, (payload: unknown) => void>();
-        const runtimeUnsubscribe = vi.fn();
+        const successfulRuntimeSubscriptionNames: string[] = [];
+        const runtimeUnsubscribes: ReturnType<typeof vi.fn>[] = [];
         mocks.subscribe.mockImplementation((name, handler) => {
             handlers.set(name, handler);
-            return Promise.resolve(runtimeUnsubscribe);
+            const unsubscribe = vi.fn();
+            successfulRuntimeSubscriptionNames.push(name);
+            runtimeUnsubscribes.push(unsubscribe);
+            return Promise.resolve(unsubscribe);
         });
         mocks.bindDeepLinkEvents.mockImplementation(async () => {
             setBackendRealtimeOwner();
@@ -875,7 +896,12 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(41);
+        expect(new Set(successfulRuntimeSubscriptionNames).size).toBe(
+            successfulRuntimeSubscriptionNames.length
+        );
+        runtimeUnsubscribes.forEach((unsubscribe) => {
+            expect(unsubscribe).toHaveBeenCalledOnce();
+        });
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(
             mocks.desktopNotificationActivationUnsubscribe

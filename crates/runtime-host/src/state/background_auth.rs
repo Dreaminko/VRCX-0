@@ -126,7 +126,7 @@ impl RuntimeHostState {
 }
 
 fn invalidate_background_auth_scope(auth_scope: &RuntimeAuthScope) {
-    auth_scope.set("", "");
+    auth_scope.set_identity("", "", "");
 }
 
 impl BackgroundAuthRecoveryContext {

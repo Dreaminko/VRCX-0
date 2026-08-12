@@ -4,10 +4,12 @@ use std::sync::Arc;
 use crate::database::DatabaseService;
 use crate::Error;
 
-use crate::config::ConfigKey;
+use crate::common::ParamsBuilder;
+use crate::config::{config_list_values, migrate_sensitive_config_obfuscation, ConfigKey};
 
 use super::{
-    get_bool, get_json, get_raw, remove, set_bool, set_json, set_raw, set_string, ConfigRepository,
+    ensure_config_table, get_bool, get_json, get_raw, get_string, remove, set_bool, set_json,
+    set_raw, set_string, ConfigRepository,
 };
 
 struct TestDir {
@@ -119,5 +121,116 @@ fn remove_deletes_existing_values() -> Result<(), Error> {
         get_json(&test_db.db, "payload", serde_json::json!({}))?,
         serde_json::json!({ "ok": true })
     );
+    Ok(())
+}
+
+fn stored_value(db: &DatabaseService, key: &str) -> String {
+    db.execute(
+        "SELECT value FROM configs WHERE key = @key",
+        &ParamsBuilder::new()
+            .set("key", ConfigKey::new(key).as_str())
+            .build(),
+    )
+    .unwrap()[0][0]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn sensitive_config_is_obfuscated_at_rest_and_plaintext_to_callers() -> Result<(), Error> {
+    let test_db = test_db("store-sensitive-config")?;
+    let repo = ConfigRepository::new(Arc::clone(&test_db.db));
+    let webhook_url = "https://example.test/hooks/private-token";
+
+    repo.set_string("webhookUrl", webhook_url)?;
+
+    let stored = stored_value(&test_db.db, "webhookUrl");
+    assert!(stored.starts_with("cfgobf1:"));
+    assert!(!stored.contains(webhook_url));
+    assert_eq!(repo.get_string("webhookUrl", "")?, webhook_url);
+    let listed = config_list_values(&test_db.db)?;
+    assert_eq!(
+        listed
+            .iter()
+            .find(|entry| entry.key == "config:vrcx_webhookurl")
+            .map(|entry| entry.value.as_str()),
+        Some(webhook_url)
+    );
+    Ok(())
+}
+
+#[test]
+fn existing_sensitive_plaintext_is_migrated_once() -> Result<(), Error> {
+    let test_db = test_db("migrate-sensitive-config")?;
+    ensure_config_table(&test_db.db)?;
+    test_db.db.execute_non_query(
+        "INSERT INTO configs (key, value) VALUES (@key, @value)",
+        &ParamsBuilder::new()
+            .set("key", ConfigKey::new("mcpServerToken").as_str())
+            .set("value", "legacy-visible-token")
+            .build(),
+    )?;
+    set_bool(
+        &test_db.db,
+        crate::secrets::CLEANUP_COMPLETED_CONFIG_KEY,
+        true,
+    )?;
+
+    assert!(migrate_sensitive_config_obfuscation(&test_db.db)?);
+    assert!(!migrate_sensitive_config_obfuscation(&test_db.db)?);
+
+    let stored = stored_value(&test_db.db, "mcpServerToken");
+    assert!(stored.starts_with("cfgobf1:"));
+    assert!(!stored.contains("legacy-visible-token"));
+    assert_eq!(
+        get_string(&test_db.db, "mcpServerToken", "")?,
+        "legacy-visible-token"
+    );
+    assert_eq!(
+        get_raw(&test_db.db, crate::secrets::CLEANUP_COMPLETED_CONFIG_KEY)?,
+        None
+    );
+    Ok(())
+}
+
+#[test]
+fn existing_assistant_obfuscation_is_wrapped_without_changing_read_value() -> Result<(), Error> {
+    let test_db = test_db("migrate-assistant-sensitive-config")?;
+    ensure_config_table(&test_db.db)?;
+    test_db.db.execute_non_query(
+        "INSERT INTO configs (key, value) VALUES (@key, @value)",
+        &ParamsBuilder::new()
+            .set("key", ConfigKey::new("assistant.apiKey").as_str())
+            .set("value", "obf1:012345")
+            .build(),
+    )?;
+
+    assert!(migrate_sensitive_config_obfuscation(&test_db.db)?);
+
+    assert!(stored_value(&test_db.db, "assistant.apiKey").starts_with("cfgobf1:"));
+    assert_eq!(
+        get_string(&test_db.db, "assistant.apiKey", "")?,
+        "obf1:012345"
+    );
+    Ok(())
+}
+
+#[test]
+fn migration_wraps_legacy_plaintext_that_uses_the_reserved_prefix() -> Result<(), Error> {
+    let test_db = test_db("migrate-sensitive-config-prefix-collision")?;
+    ensure_config_table(&test_db.db)?;
+    let plaintext = "cfgobf1:not-an-obfuscated-frame";
+    test_db.db.execute_non_query(
+        "INSERT INTO configs (key, value) VALUES (@key, @value)",
+        &ParamsBuilder::new()
+            .set("key", ConfigKey::new("mcpServerToken").as_str())
+            .set("value", plaintext)
+            .build(),
+    )?;
+
+    assert!(migrate_sensitive_config_obfuscation(&test_db.db)?);
+    assert_ne!(stored_value(&test_db.db, "mcpServerToken"), plaintext);
+    assert_eq!(get_string(&test_db.db, "mcpServerToken", "")?, plaintext);
     Ok(())
 }

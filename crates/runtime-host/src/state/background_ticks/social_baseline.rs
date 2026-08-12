@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use serde_json::Value;
-use vrcx_0_application_core::{BackgroundCapabilitySession, FriendProjection, RuntimeEventBus};
+use vrcx_0_application_core::{BackgroundCapabilitySession, FriendProjection};
 use vrcx_0_application_realtime::{
     build_favorites_baseline_from_friend_ids, build_synced_friend_roster_baseline,
     RealtimeHostRuntime, SocialBaselineDeps, SocialFavoritesBaselineRequest,
@@ -46,7 +46,6 @@ pub(in crate::state) struct SocialBaselineRefreshCore {
 pub(in crate::state) async fn run_social_baseline_refresh_core(
     deps: SocialBaselineDeps,
     realtime_runtime: &Arc<RealtimeHostRuntime>,
-    event_bus: &RuntimeEventBus,
     authenticated_runtime: &AuthenticatedRuntimeOrchestrator,
     session: &BackgroundCapabilitySession,
 ) -> vrcx_0_application_core::Result<SocialBaselineRefreshCore> {
@@ -73,7 +72,7 @@ pub(in crate::state) async fn run_social_baseline_refresh_core(
     };
     let friend_ids_by_roster_id = friend_ids_by_roster_id_from_records(friends_by_id);
     if output.friend_log_changed {
-        event_bus.emit_realtime_friend_projection(FriendProjection {
+        realtime_runtime.emit_friend_projection(FriendProjection {
             friend_log_changed: true,
             ..FriendProjection::new(0, 0)
         });
@@ -135,7 +134,6 @@ pub(in crate::state) async fn run_background_social_baseline_refresh(
     let core = match run_social_baseline_refresh_core(
         deps,
         context.realtime_runtime,
-        &context.runtime_context.event_bus,
         context.authenticated_runtime,
         &session,
     )

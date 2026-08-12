@@ -1,9 +1,8 @@
-use std::any::Any;
 use std::sync::Arc;
 use std::time::Duration;
 
 use vrcx_0_application_core::LocalGameContextSource;
-use vrcx_0_application_realtime::FavoriteBaselineSnapshot;
+use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, FriendProjectionObserver};
 
 use crate::{GroupOrderSource, RuntimeHostState};
 
@@ -11,8 +10,6 @@ pub type RuntimeHostCallback = Arc<dyn Fn() + Send + Sync>;
 pub type RuntimeHostFavoritesCallback = Arc<dyn Fn(&FavoriteBaselineSnapshot) + Send + Sync>;
 
 pub trait RuntimeHostProfileExtension: Send + Sync {
-    fn observe_runtime_event(&self, _payload: &dyn Any) {}
-
     fn start_profile_services(&self, _state: &RuntimeHostState) {}
 
     fn stop_profile_services(&self) {}
@@ -35,5 +32,6 @@ pub struct RuntimeHostComposition {
     pub group_order_source: Arc<dyn GroupOrderSource>,
     pub friend_note_change_sink: Option<RuntimeHostCallback>,
     pub favorites_sink: Option<RuntimeHostFavoritesCallback>,
+    pub friend_projection_observer: Option<Arc<dyn FriendProjectionObserver>>,
     pub profile_extension: Option<Arc<dyn RuntimeHostProfileExtension>>,
 }

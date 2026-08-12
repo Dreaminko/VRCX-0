@@ -133,12 +133,35 @@ export function applyLlmEndpointProviderPreset(
         };
     }
 
+    const targetChanged =
+        normalizeLlmEndpointPresetBaseUrl(draft.baseUrl) !==
+        normalizeLlmEndpointPresetBaseUrl(preset.baseUrl);
+
     return {
         ...draft,
         providerId: preset.id,
         name: preset.name,
         baseUrl: preset.baseUrl,
+        apiKey: targetChanged ? '' : draft.apiKey,
+        clearKey: targetChanged ? false : draft.clearKey,
         models: [],
+        detectedModelReasoning: null
+    };
+}
+
+export function applyLlmEndpointBaseUrl(
+    draft: LlmEndpointProviderDraft,
+    baseUrl: string
+): LlmEndpointProviderDraft {
+    const targetChanged =
+        normalizeLlmEndpointPresetBaseUrl(draft.baseUrl) !==
+        normalizeLlmEndpointPresetBaseUrl(baseUrl);
+    return {
+        ...draft,
+        baseUrl,
+        providerId: findLlmEndpointProviderId(baseUrl, draft.name),
+        apiKey: targetChanged ? '' : draft.apiKey,
+        clearKey: targetChanged ? false : draft.clearKey,
         detectedModelReasoning: null
     };
 }

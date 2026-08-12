@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::process_monitor::{GameProcessEvent, GameProcessEventSink};
-use crate::event_bus::RuntimeEventBus;
+use crate::BackendRuntimeStatusPublisher;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct GameProcessStatus {
@@ -177,12 +177,15 @@ impl HostSessionRuntime {
 #[derive(Clone)]
 pub struct SessionHostRuntime {
     session: HostSessionRuntime,
-    event_bus: RuntimeEventBus,
+    backend_status: BackendRuntimeStatusPublisher,
 }
 
 impl SessionHostRuntime {
-    pub fn new(session: HostSessionRuntime, event_bus: RuntimeEventBus) -> Self {
-        Self { session, event_bus }
+    pub fn new(session: HostSessionRuntime, backend_status: BackendRuntimeStatusPublisher) -> Self {
+        Self {
+            session,
+            backend_status,
+        }
     }
 }
 
@@ -197,7 +200,7 @@ impl GameProcessEventSink for SessionHostRuntime {
         });
 
         if projection.game_changed || projection.steamvr_changed {
-            self.event_bus.emit_game_process_status(projection);
+            self.backend_status.publish_game_process_status(projection);
         }
 
         Ok(())

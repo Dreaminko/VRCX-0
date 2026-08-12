@@ -16,7 +16,7 @@ use crate::group_order::HostGroupOrderSource;
 use crate::vr_overlay::{DesktopVrOverlayRuntime, VrOverlayRuntimeSnapshot};
 use crate::{
     DesktopRuntimeServices, GameClientHostRuntime, GameLogEventSink, GameLogHostRuntime,
-    HostFileAccess, HostGameLogEventFanout, HostGameProcessMonitorActions,
+    GameLogHostRuntimeDeps, HostFileAccess, HostGameLogEventFanout, HostGameProcessMonitorActions,
     HostLogLocationSnapshotScanner, HostRegistryBackupActions, LogWatcher,
 };
 use serde_json::json;
@@ -26,14 +26,16 @@ use vrcx_0_application::{
 };
 use vrcx_0_application_activity::OverlayActivitySnapshot;
 use vrcx_0_application_core::{
-    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeTelemetryKind, GameProcessEvent,
-    GameProcessEventSink, InstanceRosterObserver, SessionHostRuntime, TaskStopToken,
+    BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeStatusPublisher,
+    BackendRuntimeTelemetryKind, GameProcessEvent, GameProcessEventSink, InstanceRosterObserver,
+    SessionHostRuntime, TaskStopToken,
 };
 use vrcx_0_application_game::{
-    GameLogLocalGameContextSource, ProcessMonitor, RegistryBackupMaintenanceMode,
-    RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
+    GameLogLocalGameContextSource, GameLogSideEffectObserver, GameLogSideEffectSink,
+    ProcessMonitor, RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult,
+    RegistryBackupSnapshot,
 };
-use vrcx_0_application_realtime::FavoriteBaselineSnapshot;
+use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, FriendProjectionObserver};
 use vrcx_0_companion_api::{
     companion_api_publisher_channel, CompanionApiConfigStore, CompanionApiController,
 };
@@ -165,6 +167,15 @@ impl DesktopRuntimeHostState {
         let desktop_services = Arc::new(DesktopRuntimeServices::new(Arc::clone(
             &builder.runtime_context,
         )));
+        let backend_status = BackendRuntimeStatusPublisher::new(
+            builder.backend_runtime.clone(),
+            builder.runtime_context.event_bus.clone(),
+        );
+        let game_log_observer: Arc<dyn GameLogSideEffectObserver> = desktop_services.clone();
+        let game_log_side_effect_sink = GameLogSideEffectSink::new(
+            builder.runtime_context.event_bus.clone(),
+            Some(game_log_observer),
+        );
         let overlay_activity = desktop_services.overlay_activity();
         let game_log_snapshot = desktop_services.game_log_snapshot_handle();
         let discord_rpc = Arc::new(DiscordRpc::new());
@@ -215,14 +226,16 @@ impl DesktopRuntimeHostState {
             port: updater_port,
             tasks: builder.runtime_context.tasks.clone(),
         });
-        let game_log_runtime = Arc::new(GameLogHostRuntime::new(
-            Arc::clone(&builder.runtime_context),
-            host_file_access.clone(),
-            builder.paths.clone(),
-            Arc::clone(&game_log_snapshot),
-            overlay_activity.clone(),
-            Some(Arc::clone(&instance_roster_observer)),
-        ));
+        let game_log_runtime = Arc::new(GameLogHostRuntime::new(GameLogHostRuntimeDeps {
+            context: Arc::clone(&builder.runtime_context),
+            file_access: host_file_access.clone(),
+            app_paths: builder.paths.clone(),
+            snapshot: Arc::clone(&game_log_snapshot),
+            overlay_activity: overlay_activity.clone(),
+            instance_roster_observer: Some(Arc::clone(&instance_roster_observer)),
+            backend_status: backend_status.clone(),
+            side_effect_sink: game_log_side_effect_sink,
+        }));
         let vr_overlay_runtime =
             Arc::new(DesktopVrOverlayRuntime::new(Arc::clone(&desktop_services))?);
         let game_log_sink: Arc<dyn GameLogEventSink> = Arc::new(HostGameLogEventFanout::new(vec![
@@ -240,10 +253,11 @@ impl DesktopRuntimeHostState {
             builder.paths.clone(),
             desktop_services.host.clone(),
             Some(Arc::clone(&instance_roster_observer)),
+            backend_status.clone(),
         ));
         let session_runtime = Arc::new(SessionHostRuntime::new(
             builder.runtime_context.session.clone(),
-            builder.runtime_context.event_bus.clone(),
+            backend_status,
         ));
         let screenshot_cache =
             MetadataCacheDb::new(&builder.paths.app_data.join("metadataCache.db"))?;
@@ -322,11 +336,14 @@ impl DesktopRuntimeHostState {
                 vr_overlay_runtime.update_friends_panel_favorite_groups_from_baseline(snapshot);
             })
         };
+        let friend_projection_observer: Arc<dyn FriendProjectionObserver> =
+            desktop_services.clone();
         let runtime = builder.finish(RuntimeHostComposition {
             local_game_context,
             group_order_source: Arc::new(HostGroupOrderSource),
             friend_note_change_sink: Some(friend_note_change_sink),
             favorites_sink: Some(favorites_sink),
+            friend_projection_observer: Some(friend_projection_observer),
             profile_extension: Some(extension.clone()),
         })?;
         let realtime_runtime = Arc::downgrade(&runtime.realtime_runtime);
@@ -530,10 +547,6 @@ impl Deref for DesktopRuntimeHostState {
 }
 
 impl RuntimeHostProfileExtension for DesktopRuntimeProfileExtension {
-    fn observe_runtime_event(&self, payload: &dyn std::any::Any) {
-        self.desktop.services.observe_runtime_event(payload);
-    }
-
     fn start_profile_services(&self, state: &RuntimeHostState) {
         self.start_desktop_services(state);
         self.start_game_services(state);
@@ -1078,14 +1091,15 @@ fn emit_game_log_watcher_status(
     status: vrcx_0_application_core::BackendRuntimeGameLogStatus,
 ) {
     let snapshot = state.backend_runtime.set_game_log_status(status);
-    state
-        .runtime_context
-        .event_bus
-        .emit(vrcx_0_application_core::BackendRuntimeTelemetry {
-            kind: BackendRuntimeTelemetryKind::GameLogWatcher,
-            detail: status.as_str().into(),
-            snapshot,
-        });
+    BackendRuntimeStatusPublisher::new(
+        state.backend_runtime.clone(),
+        state.runtime_context.event_bus.clone(),
+    )
+    .publish_telemetry(
+        BackendRuntimeTelemetryKind::GameLogWatcher,
+        status.as_str(),
+        snapshot,
+    );
 }
 
 fn register_desktop_file_access_grants(
@@ -1220,18 +1234,11 @@ fn emit_profile_background_output(
     detail: impl Into<String>,
 ) {
     let snapshot = backend_runtime.snapshot();
-    if snapshot.mode == BackendRuntimeMode::Headless
-        || snapshot.phase != BackendRuntimePhase::Running
-    {
+    if snapshot.phase != BackendRuntimePhase::Running {
         return;
     }
-    runtime_context
-        .event_bus
-        .emit(vrcx_0_application_core::BackendRuntimeTelemetry {
-            kind,
-            detail: detail.into(),
-            snapshot,
-        });
+    BackendRuntimeStatusPublisher::new(backend_runtime.clone(), runtime_context.event_bus.clone())
+        .publish_telemetry(kind, detail, snapshot);
 }
 
 #[cfg(test)]

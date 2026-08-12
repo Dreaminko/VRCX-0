@@ -148,6 +148,7 @@ impl McpServerController {
             .config
             .get_bool(MCP_ALLOW_VRCHAT_WRITES_CONFIG_KEY, false)?;
         let allow_lan_connections = self.configured_allow_lan_connections()?;
+        let configured_token = self.runtime.config.get_string(MCP_TOKEN_CONFIG_KEY, "")?;
         let handle = self.handle.lock().await;
         let active_connections = self.active_connections.load(Ordering::Relaxed);
         let last_error = self.last_error.lock().ok().and_then(|slot| slot.clone());
@@ -158,6 +159,7 @@ impl McpServerController {
                 allow_vrchat_writes,
                 state: McpServerState::Running,
                 port: Some(handle.port),
+                token: handle.token.clone(),
                 active_connections,
                 last_error,
                 client_config: Some(client_config_snippets(
@@ -173,6 +175,7 @@ impl McpServerController {
                 allow_vrchat_writes,
                 state: McpServerState::Disabled,
                 port: Some(self.configured_port()?),
+                token: configured_token,
                 active_connections,
                 last_error,
                 client_config: None,

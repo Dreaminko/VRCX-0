@@ -67,6 +67,7 @@ pub struct LlmEndpointDto {
     pub id: String,
     pub name: String,
     pub base_url: String,
+    pub api_key: String,
     pub has_key: bool,
     pub models: Vec<String>,
     pub model_reasoning: Vec<LlmModelReasoning>,
@@ -467,11 +468,13 @@ impl EndpointStore {
 }
 
 fn to_dto(endpoint: StoredLlmEndpoint) -> LlmEndpointDto {
+    let api_key = deobfuscate_api_key(&endpoint.api_key);
     LlmEndpointDto {
         id: endpoint.id,
         name: endpoint.name,
         base_url: endpoint.base_url,
-        has_key: !deobfuscate_api_key(&endpoint.api_key).is_empty(),
+        has_key: !api_key.is_empty(),
+        api_key,
         models: endpoint.models,
         model_reasoning: endpoint.model_reasoning,
         last_detected_at: endpoint.last_detected_at,

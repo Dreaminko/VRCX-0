@@ -9,13 +9,13 @@ use chrono::Utc;
 #[cfg(test)]
 use vrcx_0_application::PreparedSharedCollectionImport;
 use vrcx_0_application::{
-    prepare_shared_collection_import, run_shared_collection_import, SharedCollectionImportProgress,
-    SharedCollectionImportResult, SharedCollectionImportStartInput, SharedCollectionImportState,
-    SharedCollectionImportStatus, VrchatSharedCollectionImportActions,
+    prepare_shared_collection_import, run_shared_collection_import, FavoriteMutationCoordinator,
+    SharedCollectionImportProgress, SharedCollectionImportResult, SharedCollectionImportStartInput,
+    SharedCollectionImportState, SharedCollectionImportStatus, VrchatSharedCollectionImportActions,
 };
 use vrcx_0_application_core::{
-    FavoritesChangedPayload, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus,
-    TaskSupervisor, WebClient, WorldCache,
+    RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus, TaskSupervisor, WebClient,
+    WorldCache,
 };
 use vrcx_0_persistence::DatabaseService;
 
@@ -44,6 +44,7 @@ pub struct SharedCollectionImportRuntime {
     event_bus: RuntimeEventBus,
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
+    favorite_mutations: FavoriteMutationCoordinator,
     #[cfg(test)]
     test_runner: Option<TestImportRunner>,
 }
@@ -68,6 +69,7 @@ impl SharedCollectionImportRuntime {
         event_bus: RuntimeEventBus,
         tasks: TaskSupervisor,
         auth_scope: RuntimeAuthScope,
+        favorite_mutations: FavoriteMutationCoordinator,
     ) -> Self {
         Self {
             shared: Arc::new(SharedCollectionImportRuntimeShared {
@@ -80,6 +82,7 @@ impl SharedCollectionImportRuntime {
             event_bus,
             tasks,
             auth_scope,
+            favorite_mutations,
             #[cfg(test)]
             test_runner: None,
         }
@@ -93,11 +96,20 @@ impl SharedCollectionImportRuntime {
         event_bus: RuntimeEventBus,
         tasks: TaskSupervisor,
         auth_scope: RuntimeAuthScope,
+        favorite_mutations: FavoriteMutationCoordinator,
         test_runner: TestImportRunner,
     ) -> Self {
         Self {
             test_runner: Some(test_runner),
-            ..Self::new(db, web, world_cache, event_bus, tasks, auth_scope)
+            ..Self::new(
+                db,
+                web,
+                world_cache,
+                event_bus,
+                tasks,
+                auth_scope,
+                favorite_mutations,
+            )
         }
     }
 
@@ -243,15 +255,8 @@ impl SharedCollectionImportRuntime {
             };
             terminal
         };
-        if terminal.emit_favorites_changed {
-            self.event_bus
-                .emit_favorites_changed(FavoritesChangedPayload::invalidated(
-                    scope,
-                    vrcx_0_application_core::FavoriteChangeScope::World,
-                    true,
-                    false,
-                ));
-        }
+        self.favorite_mutations
+            .complete_shared_collection_import(scope, terminal.status.imported);
         let status = {
             let mut inner = self.lock_inner();
             if !commit_terminal_status(&mut inner, run_id, terminal.status) {
@@ -322,10 +327,7 @@ fn prepare_terminal_result(
         }
     }
     status.finished_at = Some(Utc::now().to_rfc3339());
-    Some(AppliedSharedCollectionImportTerminal {
-        emit_favorites_changed: status.imported > 0,
-        status,
-    })
+    Some(AppliedSharedCollectionImportTerminal { status })
 }
 
 fn commit_terminal_status(
@@ -343,14 +345,13 @@ fn commit_terminal_status(
 
 struct AppliedSharedCollectionImportTerminal {
     status: SharedCollectionImportStatus,
-    emit_favorites_changed: bool,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::Value;
-    use std::{any::Any, path::PathBuf, sync::Condvar, time::Duration};
+    use std::{path::PathBuf, sync::Condvar, time::Duration};
     use vrcx_0_application_core::RuntimeEventSink;
     use vrcx_0_persistence::storage::StorageService;
 
@@ -433,7 +434,7 @@ mod tests {
     }
 
     #[test]
-    fn cancelled_terminal_with_imports_emits_favorites_changed_once() {
+    fn cancelled_terminal_with_imports_is_prepared_once() {
         let mut inner = running_inner();
         let result = SharedCollectionImportResult {
             total: 2,
@@ -455,7 +456,7 @@ mod tests {
             terminal.as_ref().unwrap().status.status,
             SharedCollectionImportState::Cancelled
         );
-        assert!(terminal.unwrap().emit_favorites_changed);
+        assert_eq!(terminal.unwrap().status.imported, 1);
         assert!(duplicate.is_none());
     }
 
@@ -496,7 +497,7 @@ mod tests {
     }
 
     impl RuntimeEventSink for BlockingFavoritesSink {
-        fn emit(&self, event: &str, _payload: Value, _typed_payload: &dyn Any) {
+        fn emit(&self, event: &str, _payload: Value) {
             if event != "favoritesChanged" {
                 return;
             }
@@ -531,6 +532,16 @@ mod tests {
         let tasks = TaskSupervisor::new();
         let auth_scope = RuntimeAuthScope::new();
         auth_scope.set("usr_current", "https://api.vrchat.cloud/api/1");
+        let remote_mutations = Arc::new(vrcx_0_application::RemoteMutationGate::default());
+        let favorite_mutations = FavoriteMutationCoordinator::new(
+            Arc::clone(&db),
+            Arc::clone(&web),
+            vrcx_0_application_core::RuntimeDiagnostics::new(),
+            vrcx_0_application_core::RuntimeSyncEngine::new(),
+            event_bus.clone(),
+            auth_scope.clone(),
+            remote_mutations,
+        );
         let runtime = SharedCollectionImportRuntime::new_with_test_runner(
             db,
             web,
@@ -538,6 +549,7 @@ mod tests {
             event_bus.clone(),
             tasks.clone(),
             auth_scope,
+            favorite_mutations,
             Arc::new(|prepared, cancel| {
                 Box::pin(async move {
                     while !cancel.load(Ordering::Acquire) {
