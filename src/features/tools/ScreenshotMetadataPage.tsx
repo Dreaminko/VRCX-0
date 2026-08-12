@@ -135,10 +135,10 @@ export function ScreenshotMetadataPage() {
     });
 
     const updateRoutePath = useCallback(
-        (path: string) => {
+        (path: string, folderPath?: string) => {
             const nextParams = new URLSearchParams();
             nextParams.set('path', path);
-            const folder = selectedGalleryFolder || routeFolder;
+            const folder = folderPath || selectedGalleryFolder || routeFolder;
             if (folder) {
                 nextParams.set('folder', folder);
             }
@@ -267,14 +267,15 @@ export function ScreenshotMetadataPage() {
         loadScreenshot(routePath, true);
     }, [loadScreenshot, routePath, setSearchViewMode]);
 
-    const { navigateNext, navigatePrev } = useScreenshotMetadataNavigation({
-        loadScreenshot,
-        metadata,
-        onPathChange: updateRoutePath,
-        searchNavigationPaths,
-        selectedPath,
-        setSelectedPath
-    });
+    const { canNavigateNext, canNavigatePrev, navigateNext, navigatePrev } =
+        useScreenshotMetadataNavigation({
+            loadScreenshot,
+            metadata,
+            onPathChange: updateRoutePath,
+            searchNavigationPaths,
+            selectedPath,
+            setSelectedPath
+        });
 
     async function openFolder() {
         if (!metadata?.filePath) {
@@ -541,7 +542,10 @@ export function ScreenshotMetadataPage() {
                     }
                     scanStatus={scanStatus}
                     selectedFolder={selectedGalleryFolder}
-                    onOpenImage={openDetailPath}
+                    onOpenImage={(path) => {
+                        resetSearchContext();
+                        openDetailPath(path);
+                    }}
                     onRefresh={() => {
                         refreshGallery(true);
                     }}
@@ -603,6 +607,8 @@ export function ScreenshotMetadataPage() {
                                 metadata={metadata}
                                 imageUrl={imageUrl}
                                 isMetadataLoading={isMetadataLoading}
+                                canNavigatePrev={canNavigatePrev}
+                                canNavigateNext={canNavigateNext}
                                 onNavigatePrev={() => {
                                     navigatePrev();
                                 }}

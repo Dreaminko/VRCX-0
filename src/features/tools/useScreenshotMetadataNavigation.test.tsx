@@ -12,9 +12,13 @@ function createProps() {
         >(async () => {}),
         metadata: {
             nextFilePath: 'metadata-next.png',
-            previousFilePath: 'metadata-prev.png'
+            nextFolderPath: 'next-folder',
+            previousFilePath: 'metadata-prev.png',
+            previousFolderPath: 'previous-folder'
         },
-        onPathChange: undefined as ((path: string) => void) | undefined,
+        onPathChange: undefined as
+            | ((path: string, folderPath?: string) => void)
+            | undefined,
         searchNavigationPaths: [] as string[],
         selectedPath: '',
         setSelectedPath: vi.fn<(path: string) => void>()
@@ -63,6 +67,61 @@ describe('useScreenshotMetadataNavigation', () => {
             'metadata-next.png',
             true
         );
+    });
+
+    it('routes across folders using global metadata neighbors', async () => {
+        const props = createProps();
+        props.onPathChange = vi.fn();
+        const { result } = renderHook(() =>
+            useScreenshotMetadataNavigation(props)
+        );
+
+        expect(result.current.canNavigatePrev).toBe(true);
+        expect(result.current.canNavigateNext).toBe(true);
+        await act(() => result.current.navigatePrev());
+        await act(() => result.current.navigateNext());
+
+        expect(props.onPathChange).toHaveBeenNthCalledWith(
+            1,
+            'metadata-prev.png',
+            'previous-folder'
+        );
+        expect(props.onPathChange).toHaveBeenNthCalledWith(
+            2,
+            'metadata-next.png',
+            'next-folder'
+        );
+    });
+
+    it('disables navigation at the global first and last screenshots', async () => {
+        const props = createProps();
+        props.metadata.previousFilePath = '';
+        props.metadata.previousFolderPath = '';
+        props.onPathChange = vi.fn();
+        const { result, rerender } = renderHook(
+            (currentProps) => useScreenshotMetadataNavigation(currentProps),
+            { initialProps: props }
+        );
+
+        expect(result.current.canNavigatePrev).toBe(false);
+        expect(result.current.canNavigateNext).toBe(true);
+        await act(() => result.current.navigatePrev());
+        expect(props.onPathChange).not.toHaveBeenCalled();
+
+        rerender({
+            ...props,
+            metadata: {
+                nextFilePath: '',
+                nextFolderPath: '',
+                previousFilePath: 'metadata-prev.png',
+                previousFolderPath: 'previous-folder'
+            }
+        });
+        expect(result.current.canNavigatePrev).toBe(true);
+        expect(result.current.canNavigateNext).toBe(false);
+        await act(() => result.current.navigateNext());
+
+        expect(props.onPathChange).not.toHaveBeenCalled();
     });
 
     it('falls back to metadata when the selected search path is stale', async () => {
@@ -125,11 +184,13 @@ describe('useScreenshotMetadataNavigation', () => {
         expect(right.defaultPrevented).toBe(true);
         expect(props.onPathChange).toHaveBeenNthCalledWith(
             1,
-            'metadata-prev.png'
+            'metadata-prev.png',
+            'previous-folder'
         );
         expect(props.onPathChange).toHaveBeenNthCalledWith(
             2,
-            'metadata-next.png'
+            'metadata-next.png',
+            'next-folder'
         );
 
         unmount();

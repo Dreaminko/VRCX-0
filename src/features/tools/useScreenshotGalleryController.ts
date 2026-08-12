@@ -151,7 +151,11 @@ export function useScreenshotGalleryController({
     ]);
 
     const openGalleryRoute = useCallback(
-        (folder: string = selectedGalleryFolder || routeFolder) => {
+        (folder: string = routeFolder || selectedGalleryFolder) => {
+            if (folder) {
+                selectedGalleryFolderRef.current = folder;
+                setSelectedGalleryFolder(folder);
+            }
             const nextParams = new URLSearchParams();
             if (folder) {
                 nextParams.set('folder', folder);

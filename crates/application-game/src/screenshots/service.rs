@@ -43,6 +43,16 @@ pub fn is_vrchat_screenshot_file_path(path: impl AsRef<Path>) -> bool {
     paths::is_vrchat_screenshot_path(path.as_ref())
 }
 
+pub fn is_screenshot_library_file_path(
+    path: impl AsRef<Path>,
+    root_path: impl AsRef<Path>,
+) -> bool {
+    let path = path.as_ref();
+    paths::is_png_path(path)
+        && is_path_inside_directory(path, root_path.as_ref())
+        && !metadata::is_screenshot_content_asset_path(path)
+}
+
 pub fn is_path_inside_directory(path: &Path, directory: &Path) -> bool {
     let Ok(path) = path.canonicalize() else {
         return false;

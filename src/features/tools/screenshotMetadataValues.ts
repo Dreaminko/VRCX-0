@@ -61,7 +61,9 @@ export type NormalizedScreenshotMetadata = {
     filePath: string;
     fileName: string;
     previousFilePath: string;
+    previousFolderPath: string;
     nextFilePath: string;
+    nextFolderPath: string;
     resolution: string;
     fileSizeBytes: number;
     dateTime: Date | null;
@@ -76,7 +78,9 @@ type ScreenshotExtraData = Record<string, unknown> & {
     filePath?: unknown;
     fileName?: unknown;
     previousFilePath?: unknown;
+    previousFolderPath?: unknown;
     nextFilePath?: unknown;
+    nextFolderPath?: unknown;
     resolution?: unknown;
     fileSizeBytes?: unknown;
     creationDate?: unknown;
@@ -430,7 +434,9 @@ export function normalizeScreenshotMetadata(
         filePath: stringValue(extraData.filePath || source.sourceFile),
         fileName,
         previousFilePath: stringValue(extraData.previousFilePath),
+        previousFolderPath: stringValue(extraData.previousFolderPath),
         nextFilePath: stringValue(extraData.nextFilePath),
+        nextFolderPath: stringValue(extraData.nextFolderPath),
         resolution: stringValue(extraData.resolution),
         fileSizeBytes: Number(extraData.fileSizeBytes) || 0,
         dateTime,

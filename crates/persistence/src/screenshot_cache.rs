@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use vrcx_0_core::screenshots::{
     ScreenshotFolderInfo, ScreenshotFolderTree, ScreenshotLibraryImage,
     ScreenshotLibraryScanStatus, ScreenshotMetadata,
@@ -36,6 +36,18 @@ pub struct ScreenshotLibraryCachedState {
     pub size_bytes: i64,
     pub modified_at: i64,
     pub index_version: i64,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ScreenshotLibraryNeighbor {
+    pub path: String,
+    pub folder_path: String,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ScreenshotLibraryNavigation {
+    pub previous: Option<ScreenshotLibraryNeighbor>,
+    pub next: Option<ScreenshotLibraryNeighbor>,
 }
 
 pub struct ScreenshotThumbnailCacheEntry {
@@ -489,6 +501,61 @@ impl MetadataCacheDb {
             .map_err(|error| Error::sqlite_with_context("read screenshot folder images", error))?;
         rows.collect::<rusqlite::Result<Vec<_>>>()
             .map_err(|error| Error::sqlite_with_context("read screenshot folder image row", error))
+    }
+
+    pub fn screenshot_library_navigation_for_root(
+        &self,
+        root_path: &str,
+        current_path: &str,
+    ) -> Result<Option<ScreenshotLibraryNavigation>> {
+        let conn = self.inner.conn.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "WITH ordered AS (
+                    SELECT path,
+                        LAG(path) OVER library_order AS previous_path,
+                        LAG(folder_path) OVER library_order AS previous_folder_path,
+                        LEAD(path) OVER library_order AS next_path,
+                        LEAD(folder_path) OVER library_order AS next_folder_path
+                    FROM screenshot_files
+                    WHERE scan_root = ?1
+                    WINDOW library_order AS (
+                        ORDER BY lower(folder_path), folder_path, file_name, modified_at, path
+                    )
+                 )
+                 SELECT previous_path, previous_folder_path, next_path, next_folder_path
+                 FROM ordered
+                 WHERE path = ?2",
+            )
+            .map_err(|error| {
+                Error::sqlite_with_context("prepare screenshot library navigation", error)
+            })?;
+        let navigation = stmt
+            .query_row([root_path, current_path], |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                ))
+            })
+            .optional()
+            .map_err(|error| {
+                Error::sqlite_with_context("read screenshot library navigation", error)
+            })?;
+        let Some((previous_path, previous_folder_path, next_path, next_folder_path)) = navigation
+        else {
+            return Ok(None);
+        };
+
+        Ok(Some(ScreenshotLibraryNavigation {
+            previous: previous_path
+                .zip(previous_folder_path)
+                .map(|(path, folder_path)| ScreenshotLibraryNeighbor { path, folder_path }),
+            next: next_path
+                .zip(next_folder_path)
+                .map(|(path, folder_path)| ScreenshotLibraryNeighbor { path, folder_path }),
+        }))
     }
 
     pub fn list_world_screenshots_for_root(
@@ -1075,6 +1142,56 @@ mod tests {
         assert_eq!(images.len(), 2);
         assert_eq!(images[0].file_name, "a.png");
         assert_eq!(images[1].file_name, "b.png");
+        Ok(())
+    }
+
+    #[test]
+    fn screenshot_library_navigation_crosses_folders_without_wrapping() -> Result<()> {
+        let dir = TestDir::new("library-navigation");
+        let cache = open_cache(&dir);
+        let root = dir.path.join("Screenshots");
+        let folder_a = root.join("A");
+        let folder_b = root.join("B");
+        let root_str = path_string(&root);
+        let folder_a_str = path_string(&folder_a);
+        let folder_b_str = path_string(&folder_b);
+        let a = path_string(&folder_a.join("a.png"));
+        let b = path_string(&folder_a.join("b.png"));
+        let c = path_string(&folder_b.join("c.png"));
+        let d = path_string(&folder_b.join("d.png"));
+        let entries = vec![
+            library_entry(&root_str, &d, &folder_b_str, "d.png"),
+            library_entry(&root_str, &b, &folder_a_str, "b.png"),
+            library_entry(&root_str, &c, &folder_b_str, "c.png"),
+            library_entry(&root_str, &a, &folder_a_str, "a.png"),
+        ];
+        store_entries(&cache, &root_str, &entries)?;
+
+        let first = cache.screenshot_library_navigation_for_root(&root_str, &a)?;
+        assert_eq!(first.as_ref().and_then(|item| item.previous.as_ref()), None);
+        assert_eq!(
+            first
+                .as_ref()
+                .and_then(|item| item.next.as_ref())
+                .map(|item| item.path.as_str()),
+            Some(b.as_str())
+        );
+
+        let boundary = cache.screenshot_library_navigation_for_root(&root_str, &c)?;
+        assert_eq!(
+            boundary.and_then(|item| item.previous),
+            Some(ScreenshotLibraryNeighbor {
+                path: b,
+                folder_path: folder_a_str,
+            })
+        );
+
+        let last = cache.screenshot_library_navigation_for_root(&root_str, &d)?;
+        assert_eq!(last.and_then(|item| item.next), None);
+        assert_eq!(
+            cache.screenshot_library_navigation_for_root(&root_str, "missing.png")?,
+            None
+        );
         Ok(())
     }
 

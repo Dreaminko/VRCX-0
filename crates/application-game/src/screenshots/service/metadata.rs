@@ -10,7 +10,12 @@ use super::{
     ScreenshotSearchResult, ScreenshotSearchType,
 };
 
-pub fn extra_screenshot_data(path: &str, carousel_cache: bool) -> Result<String> {
+pub fn extra_screenshot_data(
+    path: &str,
+    carousel_cache: bool,
+    cache: &MetadataCacheDb,
+    root_path: &str,
+) -> Result<String> {
     let p = Path::new(path);
     let mut result = serde_json::Map::new();
 
@@ -39,24 +44,41 @@ pub fn extra_screenshot_data(path: &str, carousel_cache: bool) -> Result<String>
     result.insert("fileName".into(), serde_json::json!(file_name));
 
     if carousel_cache {
-        if let Some(parent) = p.parent() {
+        if let Ok(Some(navigation)) = cache.screenshot_library_navigation_for_root(root_path, path)
+        {
+            if let Some(previous) = navigation.previous {
+                result.insert("previousFilePath".into(), serde_json::json!(previous.path));
+                result.insert(
+                    "previousFolderPath".into(),
+                    serde_json::json!(previous.folder_path),
+                );
+            }
+            if let Some(next) = navigation.next {
+                result.insert("nextFilePath".into(), serde_json::json!(next.path));
+                result.insert("nextFolderPath".into(), serde_json::json!(next.folder_path));
+            }
+        } else if let Some(parent) = p.parent() {
             if let Ok(entries) = std::fs::read_dir(parent) {
                 let mut pngs: Vec<String> = entries
-                    .filter_map(|e| e.ok())
-                    .filter(|e| {
-                        e.path()
+                    .filter_map(|entry| entry.ok())
+                    .filter(|entry| {
+                        entry
+                            .path()
                             .extension()
-                            .is_some_and(|ext| ext.eq_ignore_ascii_case("png"))
+                            .is_some_and(|extension| extension.eq_ignore_ascii_case("png"))
                     })
-                    .map(|e| e.path().to_string_lossy().into_owned())
+                    .map(|entry| entry.path().to_string_lossy().into_owned())
                     .collect();
                 pngs.sort();
-                if let Some(idx) = pngs.iter().position(|f| f == path) {
-                    if idx > 0 {
-                        result.insert("previousFilePath".into(), serde_json::json!(pngs[idx - 1]));
+                if let Some(index) = pngs.iter().position(|file| file == path) {
+                    if index > 0 {
+                        result.insert(
+                            "previousFilePath".into(),
+                            serde_json::json!(pngs[index - 1]),
+                        );
                     }
-                    if idx + 1 < pngs.len() {
-                        result.insert("nextFilePath".into(), serde_json::json!(pngs[idx + 1]));
+                    if index + 1 < pngs.len() {
+                        result.insert("nextFilePath".into(), serde_json::json!(pngs[index + 1]));
                     }
                 }
             }

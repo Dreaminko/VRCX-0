@@ -385,6 +385,8 @@ export function ScreenshotMetadataPreviewCard({
     metadata,
     imageUrl,
     isMetadataLoading,
+    canNavigatePrev,
+    canNavigateNext,
     onNavigatePrev,
     onNavigateNext,
     onImagePreview,
@@ -394,6 +396,8 @@ export function ScreenshotMetadataPreviewCard({
     metadata: NormalizedScreenshotMetadata | null;
     imageUrl: string;
     isMetadataLoading: boolean;
+    canNavigatePrev: boolean;
+    canNavigateNext: boolean;
     onNavigatePrev: () => void;
     onNavigateNext: () => void;
     onImagePreview: () => void;
@@ -417,6 +421,7 @@ export function ScreenshotMetadataPreviewCard({
                         <Button
                             variant="outline"
                             size="sm"
+                            disabled={!canNavigatePrev}
                             onClick={onNavigatePrev}
                         >
                             <ArrowLeftIcon data-icon="inline-start" />
@@ -426,6 +431,7 @@ export function ScreenshotMetadataPreviewCard({
                         <Button
                             variant="outline"
                             size="sm"
+                            disabled={!canNavigateNext}
                             onClick={onNavigateNext}
                         >
                             {t('table.pagination.next')}

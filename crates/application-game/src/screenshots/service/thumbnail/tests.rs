@@ -1,3 +1,4 @@
+use super::super::is_screenshot_library_file_path;
 use super::super::library::{
     find_screenshots, scan_screenshot_library_in, start_screenshot_library_scan,
 };
@@ -593,5 +594,31 @@ fn is_path_inside_directory_rejects_sibling_paths() -> Result<()> {
 
     assert!(is_path_inside_directory(&inside, &root));
     assert!(!is_path_inside_directory(&outside, &root));
+    Ok(())
+}
+
+#[test]
+fn screenshot_library_file_path_accepts_custom_png_names_only_inside_the_library() -> Result<()> {
+    let dir = TestDir::new("screenshot-library-file-path");
+    let root = dir.path.join("VRChat");
+    let month = root.join("2026-07");
+    let prints = root.join("Prints");
+    let sibling = dir.path.join("Other");
+    std::fs::create_dir_all(&month)?;
+    std::fs::create_dir_all(&prints)?;
+    std::fs::create_dir_all(&sibling)?;
+    let custom_png = month.join("IMG_4877.PNG");
+    let print_png = prints.join("custom.png");
+    let outside_png = sibling.join("custom.png");
+    let non_png = month.join("custom.jpg");
+    std::fs::write(&custom_png, b"png")?;
+    std::fs::write(&print_png, b"png")?;
+    std::fs::write(&outside_png, b"png")?;
+    std::fs::write(&non_png, b"jpg")?;
+
+    assert!(is_screenshot_library_file_path(&custom_png, &root));
+    assert!(!is_screenshot_library_file_path(&print_png, &root));
+    assert!(!is_screenshot_library_file_path(&outside_png, &root));
+    assert!(!is_screenshot_library_file_path(&non_png, &root));
     Ok(())
 }

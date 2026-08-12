@@ -1,5 +1,5 @@
 use super::metadata::is_screenshot_content_asset_path;
-use super::paths::{now_rfc3339, option_string, path_string, unix_time_millis};
+use super::paths::{is_png_path, now_rfc3339, option_string, path_string, unix_time_millis};
 use super::thumbnail::delete_thumbnail_cache_for_source_paths;
 use super::{
     get_screenshot_metadata, read_png_dimensions, HashSet, MetadataCacheDb, Path, PathBuf,
@@ -217,12 +217,7 @@ pub(super) fn scan_screenshot_library_in(
             continue;
         }
         let path = entry.path();
-        if !path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("png"))
-            || is_screenshot_content_asset_path(path)
-        {
+        if !is_png_path(path) || is_screenshot_content_asset_path(path) {
             continue;
         }
 

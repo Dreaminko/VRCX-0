@@ -9,17 +9,19 @@ pub(super) const SCREENSHOT_THUMBNAIL_CLEANUP_INTERVAL_SECONDS: i64 = 60;
 
 pub(super) static SCREENSHOT_THUMBNAIL_LAST_CLEANUP_AT: AtomicI64 = AtomicI64::new(0);
 
-pub(super) fn is_vrchat_screenshot_path(path: &Path) -> bool {
-    let is_png = path
-        .extension()
+pub(super) fn is_png_path(path: &Path) -> bool {
+    path.extension()
         .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("png"));
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("png"))
+}
+
+pub(super) fn is_vrchat_screenshot_path(path: &Path) -> bool {
     let has_vrchat_prefix = path
         .file_stem()
         .and_then(|file_stem| file_stem.to_str())
         .is_some_and(|file_stem| file_stem.starts_with("VRChat_"));
 
-    is_png && has_vrchat_prefix
+    is_png_path(path) && has_vrchat_prefix
 }
 
 pub(super) fn sleep_before_next_screenshot_attempt(attempt: usize) {

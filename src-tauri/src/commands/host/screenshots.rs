@@ -16,9 +16,13 @@ fn ensure_screenshot_read_allowed(state: &AppState, path: &str) -> Result<(), Ap
         .desktop
         .host_file_access
         .ensure_read_allowed(path, &state.paths)?;
-    if !screenshot::is_vrchat_screenshot_file_path(Path::new(path)) {
+    let path = Path::new(path);
+    let photos_root = vrchat_paths::vrchat_photos_location();
+    if !screenshot::is_vrchat_screenshot_file_path(path)
+        && !screenshot::is_screenshot_library_file_path(path, Path::new(&photos_root))
+    {
         return Err(AppError::Custom(
-            "Screenshot metadata commands require a VRChat PNG screenshot path.".into(),
+            "Screenshot metadata commands require a VRChat screenshot or library PNG path.".into(),
         ));
     }
     Ok(())
@@ -46,7 +50,12 @@ pub fn app__get_extra_screenshot_data(
 ) -> Result<String, AppError> {
     require_host_capability(HostCapability::ScreenshotCache)?;
     ensure_screenshot_read_allowed(&state, &path)?;
-    Ok(screenshot::extra_screenshot_data(&path, carousel_cache)?)
+    Ok(screenshot::extra_screenshot_data(
+        &path,
+        carousel_cache,
+        &state.game.screenshot_cache,
+        &vrchat_paths::vrchat_photos_location(),
+    )?)
 }
 
 #[tauri::command]

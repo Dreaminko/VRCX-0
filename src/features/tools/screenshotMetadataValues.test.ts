@@ -63,7 +63,9 @@ describe('screenshotMetadataValues', () => {
                 resolution: '1920x1080',
                 fileSizeBytes: 1536,
                 previousFilePath: 'prev.png',
-                nextFilePath: 'next.png'
+                previousFolderPath: 'previous-folder',
+                nextFilePath: 'next.png',
+                nextFolderPath: 'next-folder'
             }
         );
 
@@ -71,7 +73,9 @@ describe('screenshotMetadataValues', () => {
             filePath: 'D:\\VRChat\\renamed.png',
             fileName: 'renamed.png',
             previousFilePath: 'prev.png',
+            previousFolderPath: 'previous-folder',
             nextFilePath: 'next.png',
+            nextFolderPath: 'next-folder',
             resolution: '1920x1080',
             fileSizeBytes: 1536,
             world: { id: 'wrld_1', name: 'Great World' },
