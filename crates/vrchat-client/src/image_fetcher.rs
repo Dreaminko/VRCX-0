@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::cookies::CookieJar;
 use crate::web_client::build_vrcx_user_agent;
+use bytes::Bytes;
 use reqwest::Client;
 use vrcx_0_core::proxy::with_remote_dns;
 use vrcx_0_core::vrchat_endpoints::{
@@ -59,7 +60,7 @@ impl ImageFetcher {
         })
     }
 
-    pub async fn fetch_image(&self, url: &str) -> Result<Vec<u8>> {
+    pub async fn fetch_image(&self, url: &str) -> Result<Bytes> {
         let parsed = validate_image_url(url, &self.allowed_hosts.lock().unwrap())?;
 
         let response = self
@@ -81,7 +82,7 @@ impl ImageFetcher {
             .await
             .map_err(|e| ImageFetchError::Custom(format!("image read: {e}")))?;
 
-        Ok(bytes.to_vec())
+        Ok(bytes)
     }
 }
 
@@ -186,7 +187,10 @@ mod tests {
     async fn image_fetcher_returns_success_bodies_and_rejects_error_statuses() {
         let fetcher = local_fetcher(Client::new());
         let (ok_url, ok_server) = serve_once("200 OK", "image-bytes", Duration::ZERO).await;
-        assert_eq!(fetcher.fetch_image(&ok_url).await.unwrap(), b"image-bytes");
+        assert_eq!(
+            fetcher.fetch_image(&ok_url).await.unwrap().as_ref(),
+            b"image-bytes"
+        );
         ok_server.await.unwrap();
 
         let (error_url, error_server) =

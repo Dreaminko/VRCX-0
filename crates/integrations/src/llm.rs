@@ -387,15 +387,15 @@ impl LlmClient {
 
         while let Some(chunk) = stream.next().await {
             buffer.extend_from_slice(&chunk?);
-            for line in drain_complete_lines(&mut buffer) {
+            drain_complete_lines(&mut buffer, |line| {
                 apply_chat_stream_line(
-                    &line,
+                    line,
                     &mut on_text,
                     &mut content,
                     &mut tool_acc,
                     &mut reasoning_details,
                 );
-            }
+            });
         }
         if let Some(line) = take_remaining_line(&mut buffer) {
             apply_chat_stream_line(
@@ -637,21 +637,16 @@ fn parse_chat_completion_content(body: &str) -> Result<String, LlmError> {
     Ok(content)
 }
 
-// Drain every complete (newline-terminated) line from the byte buffer, decoding
-// each as UTF-8. Partial trailing bytes stay buffered so a multibyte character
-// split across network chunks is never decoded until it is whole.
-fn drain_complete_lines(buffer: &mut Vec<u8>) -> Vec<String> {
+fn drain_complete_lines(buffer: &mut Vec<u8>, mut handle_line: impl FnMut(&str)) {
     let Some(last_newline) = buffer.iter().rposition(|&byte| byte == b'\n') else {
-        return Vec::new();
+        return;
     };
     let consumed = last_newline + 1;
-    let lines = buffer[..consumed]
-        .split_inclusive(|&byte| byte == b'\n')
-        .map(|line| String::from_utf8_lossy(line).into_owned())
-        .collect();
-    // Shift the unconsumed tail down once, instead of once per line.
+    for line in buffer[..consumed].split_inclusive(|&byte| byte == b'\n') {
+        let line = String::from_utf8_lossy(line);
+        handle_line(line.as_ref());
+    }
     buffer.drain(..consumed);
-    lines
 }
 
 fn take_remaining_line(buffer: &mut Vec<u8>) -> Option<String> {
@@ -659,7 +654,9 @@ fn take_remaining_line(buffer: &mut Vec<u8>) -> Option<String> {
         return None;
     }
     let remaining = std::mem::take(buffer);
-    Some(String::from_utf8_lossy(&remaining).into_owned())
+    Some(String::from_utf8(remaining).unwrap_or_else(|error| {
+        String::from_utf8_lossy(error.as_bytes()).into_owned()
+    }))
 }
 
 #[cfg(test)]
@@ -1104,10 +1101,12 @@ mod tests {
 
         // First chunk ends partway through the first multibyte character.
         buffer.extend_from_slice(&full[..8]);
-        assert!(drain_complete_lines(&mut buffer).is_empty());
+        let mut lines = Vec::new();
+        drain_complete_lines(&mut buffer, |line| lines.push(line.to_string()));
+        assert!(lines.is_empty());
 
         buffer.extend_from_slice(&full[8..]);
-        let lines = drain_complete_lines(&mut buffer);
+        drain_complete_lines(&mut buffer, |line| lines.push(line.to_string()));
         assert_eq!(lines, vec!["data: 你好👋\n".to_string()]);
         assert!(!lines[0].contains('\u{FFFD}'));
         assert!(buffer.is_empty());
@@ -1116,7 +1115,9 @@ mod tests {
     #[test]
     fn drain_complete_lines_keeps_trailing_partial_line_buffered() {
         let mut buffer = b"data: a\ndata: b".to_vec();
-        assert_eq!(drain_complete_lines(&mut buffer), vec!["data: a\n"]);
+        let mut lines = Vec::new();
+        drain_complete_lines(&mut buffer, |line| lines.push(line.to_string()));
+        assert_eq!(lines, vec!["data: a\n"]);
         assert_eq!(buffer, b"data: b");
     }
 

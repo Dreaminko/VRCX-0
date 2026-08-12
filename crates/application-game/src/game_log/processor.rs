@@ -73,14 +73,18 @@ pub struct GameLogProcessorDeps {
 }
 
 impl GameLogProcessorDeps {
-    fn set_game_log_snapshot(&self, snapshot: RuntimeSnapshot) {
-        let current_location = snapshot.location.clone();
-        let current_player_user_ids = snapshot
-            .players
-            .iter()
-            .map(|player| player.user_id.clone())
-            .collect::<Vec<_>>();
-        let instance_roster_snapshot =
+    fn set_game_log_snapshot(&self, snapshot: RuntimeSnapshot, publish_roster: bool) {
+        let current_instance_presence = publish_roster.then(|| {
+            (
+                snapshot.location.clone(),
+                snapshot
+                    .players
+                    .iter()
+                    .map(|player| player.user_id.clone())
+                    .collect::<Vec<_>>(),
+            )
+        });
+        let instance_roster_snapshot = if publish_roster {
             self.instance_roster_observer
                 .as_ref()
                 .map(|_| InstanceRosterSnapshot {
@@ -97,7 +101,10 @@ impl GameLogProcessorDeps {
                             joined_at_ms: player.join_time_ms,
                         })
                         .collect(),
-                });
+                })
+        } else {
+            None
+        };
         match self.snapshot.lock() {
             Ok(mut current) => {
                 *current = snapshot;
@@ -106,8 +113,10 @@ impl GameLogProcessorDeps {
                 tracing::warn!("failed to lock game log snapshot: {error}");
             }
         }
-        self.overlay_activity
-            .set_current_instance_presence(&current_location, current_player_user_ids);
+        if let Some((current_location, current_player_user_ids)) = current_instance_presence {
+            self.overlay_activity
+                .set_current_instance_presence(&current_location, current_player_user_ids);
+        }
         if let (Some(observer), Some(snapshot)) =
             (&self.instance_roster_observer, instance_roster_snapshot)
         {
@@ -236,7 +245,8 @@ impl GameLogProcessor {
                 );
                 (output, engine.runtime_snapshot())
             })?;
-            self.deps.set_game_log_snapshot(snapshot);
+            self.deps
+                .set_game_log_snapshot(snapshot, output.instance_roster_changed);
             self.apply_without_core_persistence(output, origin)?;
             if resume_prefix_len == events.len() {
                 return Ok(());
@@ -249,7 +259,8 @@ impl GameLogProcessor {
             let output = engine.ingest_events(events, GameLogIngestOptions { log_resource_load });
             (output, engine.runtime_snapshot())
         })?;
-        self.deps.set_game_log_snapshot(snapshot);
+        self.deps
+            .set_game_log_snapshot(snapshot, output.instance_roster_changed);
         if persistence_disabled {
             return self.apply_without_core_persistence(output, origin);
         }
@@ -262,7 +273,8 @@ impl GameLogProcessor {
             let output = engine.handle_process_event(event);
             (output, engine.runtime_snapshot())
         })?;
-        self.deps.set_game_log_snapshot(snapshot);
+        self.deps
+            .set_game_log_snapshot(snapshot, output.instance_roster_changed);
         if config_store::get_bool(&self.deps.db, "gameLogDisabled", false)? || before_resume_cutoff
         {
             return self.apply_without_core_persistence(output, GameLogEventOrigin::Live);
@@ -283,10 +295,7 @@ impl GameLogProcessor {
         }
 
         self.enrich_ingest_output_world_names(&mut output);
-        let overlay_output = self.overlay_activity_output(&output);
-        self.deps
-            .overlay_activity
-            .ingest_game_log_output(&overlay_output);
+        self.ingest_overlay_activity(&output);
         if let Some(projection) = output.projection {
             self.deps.event_bus.emit_game_log_projection(projection);
         }
@@ -306,13 +315,10 @@ impl GameLogProcessor {
         let write_outcome = self.write_batch_or_emit_failure_telemetry(
             &deps.auth_identity.user_id,
             &output.batch,
-            output.raw_rows.len(),
+            output.input_count,
         )?;
         if let GameLogWriteOutcome::RuntimePersisted { affected_count } = write_outcome {
-            let overlay_output = self.overlay_activity_output(&output);
-            self.deps
-                .overlay_activity
-                .ingest_game_log_output(&overlay_output);
+            self.ingest_overlay_activity(&output);
             self.deps
                 .backend_status
                 .publish_game_log_persisted(affected_count);
@@ -334,26 +340,24 @@ impl GameLogProcessor {
         Ok(())
     }
 
-    fn overlay_activity_output(&self, output: &GameLogIngestOutput) -> GameLogIngestOutput {
-        let current_snapshot = self
+    fn ingest_overlay_activity(&self, output: &GameLogIngestOutput) {
+        let (current_location, current_started_at) = self
             .deps
             .snapshot
             .lock()
-            .map(|snapshot| snapshot.clone())
+            .map(|snapshot| (snapshot.location.clone(), snapshot.started_at.clone()))
             .unwrap_or_default();
         let current_user_id = self.deps.auth_scope.snapshot().current_user_id;
-        let context = OverlayJoinLeaveSuppressionContext::from_output(output, current_snapshot);
-        let mut overlay_output = output.clone();
-        overlay_output.batch.join_leave = output
-            .batch
-            .join_leave
-            .iter()
-            .filter(|entry| {
+        let context = OverlayJoinLeaveSuppressionContext::from_output(
+            output,
+            current_location,
+            current_started_at,
+        );
+        self.deps
+            .overlay_activity
+            .ingest_game_log_output_with_join_leave_filter(output, |entry| {
                 should_deliver_join_leave_overlay_activity(entry, &context, &current_user_id)
-            })
-            .cloned()
-            .collect();
-        overlay_output
+            });
     }
 
     fn enrich_ingest_output_world_names(&self, output: &mut GameLogIngestOutput) {
@@ -455,41 +459,40 @@ impl GameLogProcessor {
     }
 }
 
-struct OverlayJoinLeaveSuppressionContext {
-    current_snapshot: RuntimeSnapshot,
-    location_started_at_by_location: HashMap<String, String>,
-    destination_started_at: Vec<String>,
+struct OverlayJoinLeaveSuppressionContext<'a> {
+    current_location: String,
+    current_started_at: String,
+    location_started_at_by_location: HashMap<&'a str, &'a str>,
+    destination_started_at: &'a [String],
 }
 
-impl OverlayJoinLeaveSuppressionContext {
-    fn from_output(output: &GameLogIngestOutput, current_snapshot: RuntimeSnapshot) -> Self {
+impl<'a> OverlayJoinLeaveSuppressionContext<'a> {
+    fn from_output(
+        output: &'a GameLogIngestOutput,
+        current_location: String,
+        current_started_at: String,
+    ) -> Self {
         let location_started_at_by_location = output
             .batch
             .locations
             .iter()
-            .map(|entry| (entry.location.clone(), entry.created_at.clone()))
-            .collect();
-        let destination_started_at = output
-            .raw_rows
-            .iter()
-            .filter(|row| row.get(2).map(String::as_str) == Some("location-destination"))
-            .filter_map(|row| row.get(1).cloned())
+            .map(|entry| (entry.location.as_str(), entry.created_at.as_str()))
             .collect();
 
         Self {
-            current_snapshot,
+            current_location,
+            current_started_at,
             location_started_at_by_location,
-            destination_started_at,
+            destination_started_at: &output.destination_started_at,
         }
     }
 
     fn join_reference_at(&self, location: &str) -> Option<&str> {
         self.location_started_at_by_location
             .get(location)
-            .map(String::as_str)
+            .copied()
             .or_else(|| {
-                (self.current_snapshot.location == location)
-                    .then_some(self.current_snapshot.started_at.as_str())
+                (self.current_location == location).then_some(self.current_started_at.as_str())
             })
     }
 
@@ -498,8 +501,8 @@ impl OverlayJoinLeaveSuppressionContext {
             .iter()
             .map(String::as_str)
             .chain(
-                (self.current_snapshot.location == "traveling")
-                    .then_some(self.current_snapshot.started_at.as_str()),
+                (self.current_location == "traveling")
+                    .then_some(self.current_started_at.as_str()),
             )
             .any(|reference_at| {
                 is_within_suppression_window(
@@ -513,7 +516,7 @@ impl OverlayJoinLeaveSuppressionContext {
 
 fn should_deliver_join_leave_overlay_activity(
     entry: &vrcx_0_persistence::game_log::GameLogJoinLeaveEntry,
-    context: &OverlayJoinLeaveSuppressionContext,
+    context: &OverlayJoinLeaveSuppressionContext<'_>,
     current_user_id: &str,
 ) -> bool {
     if !current_user_id.trim().is_empty() && entry.user_id.trim() == current_user_id.trim() {

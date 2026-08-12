@@ -65,21 +65,20 @@ fn md5_handles_56_and_64_byte_padding_boundaries() {
 
 #[test]
 fn rsync_signature_matches_golden_and_is_parseable() {
-    let blob = B64.encode(b"hello");
-    let encoded_signature = sign_file_base64(&blob).unwrap();
+    let signature_bytes = sign_file(b"hello");
+    let encoded_signature = B64.encode(&signature_bytes);
 
     assert_eq!(encoded_signature, "cnMBNgAACAAAAAAIB/gCr4ZkN8t6eUvO");
 
-    let bytes = B64.decode(encoded_signature).unwrap();
-    let signature = Signature::deserialize(bytes.clone()).unwrap();
-    assert_eq!(signature.serialized(), bytes);
+    let signature = Signature::deserialize(signature_bytes.clone()).unwrap();
+    assert_eq!(signature.serialized(), signature_bytes);
 }
 
 #[test]
 fn base64_helpers_accept_valid_and_empty_data_and_reject_invalid_data() {
-    assert_eq!(base64_byte_len("aGVsbG8=").unwrap(), 5);
-    assert_eq!(base64_byte_len("").unwrap(), 0);
-    assert!(base64_byte_len("not base64").is_err());
+    assert_eq!(decode_file_base64("aGVsbG8=").unwrap(), b"hello");
+    assert_eq!(decode_file_base64("").unwrap(), b"");
+    assert!(decode_file_base64("not base64").is_err());
 
     let (file_name, bytes) = decode_image_file("avatar.webp", "  aGVsbG8=\n").unwrap();
     assert_eq!(file_name, "avatar.webp");

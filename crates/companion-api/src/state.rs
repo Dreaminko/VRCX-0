@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-
-use crate::wire::{Room, RoomMember};
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RoomMemberState {
@@ -25,14 +24,14 @@ pub struct RoomState {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum RoomChange {
-    Snapshot(RoomState),
+    Snapshot(Arc<RoomState>),
     Joined(Vec<RoomMemberState>),
     Left(Vec<String>),
 }
 
-pub(crate) fn diff_room(previous: Option<&RoomState>, next: &RoomState) -> Vec<RoomChange> {
+pub(crate) fn diff_room(previous: Option<&RoomState>, next: Arc<RoomState>) -> Vec<RoomChange> {
     let Some(previous) = previous else {
-        return vec![RoomChange::Snapshot(next.clone())];
+        return vec![RoomChange::Snapshot(next)];
     };
     if previous.location != next.location
         || previous.world_id != next.world_id
@@ -40,7 +39,7 @@ pub(crate) fn diff_room(previous: Option<&RoomState>, next: &RoomState) -> Vec<R
         || previous.destination != next.destination
         || previous.entered_at != next.entered_at
     {
-        return vec![RoomChange::Snapshot(next.clone())];
+        return vec![RoomChange::Snapshot(next)];
     }
 
     let previous_by_key = members_by_key(&previous.members);
@@ -48,14 +47,14 @@ pub(crate) fn diff_room(previous: Option<&RoomState>, next: &RoomState) -> Vec<R
     if (previous_by_key.len() != previous.members.len() || next_by_key.len() != next.members.len())
         && previous.members != next.members
     {
-        return vec![RoomChange::Snapshot(next.clone())];
+        return vec![RoomChange::Snapshot(next)];
     }
     if next_by_key.iter().any(|(key, member)| {
         previous_by_key
             .get(key)
             .is_some_and(|previous| *previous != *member)
     }) {
-        return vec![RoomChange::Snapshot(next.clone())];
+        return vec![RoomChange::Snapshot(next)];
     }
 
     let joined = next
@@ -87,29 +86,6 @@ fn members_by_key(members: &[RoomMemberState]) -> HashMap<&str, &RoomMemberState
         .collect()
 }
 
-pub(crate) fn wire_room(room: &RoomState) -> Room {
-    Room {
-        location: room.location.clone(),
-        world_id: room.world_id.clone(),
-        world_name: room.world_name.clone(),
-        destination: room.destination.clone(),
-        entered_at: room.entered_at.clone(),
-        members: room.members.iter().map(wire_member).collect(),
-    }
-}
-
-pub(crate) fn wire_member(member: &RoomMemberState) -> RoomMember {
-    RoomMember {
-        user_id: member.user_id.clone(),
-        display_name: member.display_name.clone(),
-        is_self: member.is_self,
-        is_friend: member.is_friend,
-        joined_at: member.joined_at.clone(),
-        languages: member.languages.clone(),
-        note: member.note.clone(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -135,12 +111,12 @@ mod tests {
         let first = room("wrld_a:1", &[("usr_a", "Alice")]);
         let second = room("wrld_b:2", &[("usr_a", "Alice")]);
         assert_eq!(
-            diff_room(None, &first),
-            vec![RoomChange::Snapshot(first.clone())]
+            diff_room(None, Arc::new(first.clone())),
+            vec![RoomChange::Snapshot(Arc::new(first.clone()))]
         );
         assert_eq!(
-            diff_room(Some(&first), &second),
-            vec![RoomChange::Snapshot(second.clone())]
+            diff_room(Some(&first), Arc::new(second.clone())),
+            vec![RoomChange::Snapshot(Arc::new(second.clone()))]
         );
     }
 
@@ -149,11 +125,11 @@ mod tests {
         let first = room("wrld_a:1", &[("usr_a", "Alice")]);
         let joined = room("wrld_a:1", &[("usr_a", "Alice"), ("usr_b", "Bob")]);
         assert_eq!(
-            diff_room(Some(&first), &joined),
+            diff_room(Some(&first), Arc::new(joined.clone())),
             vec![RoomChange::Joined(vec![joined.members[1].clone()])]
         );
         assert_eq!(
-            diff_room(Some(&joined), &first),
+            diff_room(Some(&joined), Arc::new(first.clone())),
             vec![RoomChange::Left(vec!["usr_b".into()])]
         );
     }
@@ -163,7 +139,7 @@ mod tests {
         let first = room("wrld_a:1", &[("usr_a", "Twin")]);
         let second = room("wrld_a:1", &[("usr_a", "Twin"), ("usr_b", "Twin")]);
         assert_eq!(
-            diff_room(Some(&first), &second),
+            diff_room(Some(&first), Arc::new(second.clone())),
             vec![RoomChange::Joined(vec![second.members[1].clone()])]
         );
     }
@@ -174,8 +150,8 @@ mod tests {
         let mut enriched = first.clone();
         enriched.members[0].languages = vec!["eng".into()];
         assert_eq!(
-            diff_room(Some(&first), &enriched),
-            vec![RoomChange::Snapshot(enriched.clone())]
+            diff_room(Some(&first), Arc::new(enriched.clone())),
+            vec![RoomChange::Snapshot(Arc::new(enriched.clone()))]
         );
     }
 
@@ -184,8 +160,8 @@ mod tests {
         let first = room("wrld_a:1", &[("", "Alice")]);
         let second = room("wrld_a:1", &[("", "Bob")]);
         assert_eq!(
-            diff_room(Some(&first), &second),
-            vec![RoomChange::Snapshot(second.clone())]
+            diff_room(Some(&first), Arc::new(second.clone())),
+            vec![RoomChange::Snapshot(Arc::new(second.clone()))]
         );
     }
 
@@ -194,8 +170,8 @@ mod tests {
         let first = room("wrld_a:1", &[("", "Alice"), ("", "Bob")]);
         let second = room("wrld_a:1", &[("", "Carol"), ("", "Bob")]);
         assert_eq!(
-            diff_room(Some(&first), &second),
-            vec![RoomChange::Snapshot(second.clone())]
+            diff_room(Some(&first), Arc::new(second.clone())),
+            vec![RoomChange::Snapshot(Arc::new(second.clone()))]
         );
     }
 
@@ -204,7 +180,7 @@ mod tests {
         let first = room("wrld_a:1", &[("usr_a", "Alice")]);
         let second = room("wrld_a:1", &[("usr_b", "Bob")]);
         assert_eq!(
-            diff_room(Some(&first), &second),
+            diff_room(Some(&first), Arc::new(second.clone())),
             vec![
                 RoomChange::Joined(vec![second.members[0].clone()]),
                 RoomChange::Left(vec!["usr_a".into()])

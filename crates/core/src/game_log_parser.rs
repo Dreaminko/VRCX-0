@@ -157,11 +157,15 @@ pub enum GameLogEventKind {
 }
 
 impl GameLogEvent {
+    pub fn compat_type(&self) -> &'static str {
+        self.kind.compat_type()
+    }
+
     pub fn to_compat_row(&self) -> Vec<String> {
         let mut row = vec![
             self.file_name.clone(),
             self.created_at.clone(),
-            self.kind.compat_type().to_string(),
+            self.compat_type().to_string(),
         ];
         row.extend(self.kind.compat_args());
         row

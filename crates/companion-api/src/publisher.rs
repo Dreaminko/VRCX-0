@@ -10,7 +10,7 @@ const PUBLISHER_CAPACITY: usize = 8;
 pub enum CompanionApiInput {
     Roster {
         lifecycle_epoch: u64,
-        snapshot: InstanceRosterSnapshot,
+        snapshot: Arc<InstanceRosterSnapshot>,
     },
     GameRunning {
         lifecycle_epoch: u64,
@@ -29,7 +29,7 @@ pub struct CompanionApiInputReceiver {
     game_running_receiver: watch::Receiver<LifecycleState>,
     delivered_lifecycle: LifecycleState,
     target_lifecycle: LifecycleState,
-    pending_roster: Option<(u64, InstanceRosterSnapshot)>,
+    pending_roster: Option<(u64, Arc<InstanceRosterSnapshot>)>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -41,7 +41,7 @@ struct LifecycleState {
 #[derive(Clone, Debug)]
 struct RosterEnvelope {
     lifecycle_epoch: u64,
-    snapshot: InstanceRosterSnapshot,
+    snapshot: Arc<InstanceRosterSnapshot>,
 }
 
 pub fn companion_api_publisher_channel() -> (CompanionApiPublisher, CompanionApiInputReceiver) {
@@ -132,7 +132,7 @@ impl InstanceRosterObserver for CompanionApiPublisher {
         }
         let _ = self.roster_sender.send(RosterEnvelope {
             lifecycle_epoch: lifecycle >> 1,
-            snapshot,
+            snapshot: Arc::new(snapshot),
         });
     }
 

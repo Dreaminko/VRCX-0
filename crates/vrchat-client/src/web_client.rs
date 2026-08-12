@@ -55,7 +55,7 @@ pub enum WebUploadMode {
     #[default]
     None,
     FilePut {
-        file_data: String,
+        file_data: Vec<u8>,
         file_mime: String,
         file_md5: Option<String>,
     },
@@ -479,7 +479,7 @@ impl WebClient {
     }
 
     pub async fn execute(&self, request: WebExecuteRequest) -> Result<(i32, String)> {
-        let result = self.do_execute(&request).await;
+        let result = self.do_execute(request).await;
 
         normalize_execute_result(result)
     }
@@ -489,7 +489,7 @@ impl WebClient {
         request: WebExecuteRequest,
     ) -> Result<(i32, String)> {
         let result = self
-            .do_execute_fresh_standard_with_redirects(&request, false)
+            .do_execute_fresh_standard_with_redirects(request, false)
             .await;
 
         normalize_execute_result(result)
@@ -499,14 +499,14 @@ impl WebClient {
         &self,
         request: WebExecuteRequest,
     ) -> Result<(i32, String)> {
-        let result = self.do_execute_fresh_standard(&request).await;
+        let result = self.do_execute_fresh_standard(request).await;
 
         normalize_execute_result(result)
     }
 
     async fn do_execute_fresh_standard(
         &self,
-        request: &WebExecuteRequest,
+        request: WebExecuteRequest,
     ) -> Result<(i32, String)> {
         self.do_execute_fresh_standard_with_redirects(request, true)
             .await
@@ -514,7 +514,7 @@ impl WebClient {
 
     async fn do_execute_fresh_standard_with_redirects(
         &self,
-        request: &WebExecuteRequest,
+        mut request: WebExecuteRequest,
         follow_redirects: bool,
     ) -> Result<(i32, String)> {
         if !matches!(&request.upload, WebUploadMode::None) {
@@ -529,48 +529,49 @@ impl WebClient {
             follow_redirects,
         )?;
         let response_body_limit = request.response_body_limit;
-        let request = self.build_standard_request_with(&client, request)?;
+        let request = self.build_standard_request_with(&client, &mut request)?;
         execute_request(&client, request, response_body_limit).await
     }
 
-    async fn do_execute(&self, request: &WebExecuteRequest) -> Result<(i32, String)> {
+    async fn do_execute(&self, mut request: WebExecuteRequest) -> Result<(i32, String)> {
         let response_body_limit = request.response_body_limit;
-        let request = match &request.upload {
-            WebUploadMode::None => self.build_standard_request(request)?,
+        let upload = std::mem::take(&mut request.upload);
+        let request = match upload {
+            WebUploadMode::None => self.build_standard_request(&mut request)?,
             WebUploadMode::FilePut {
                 file_data,
                 file_mime,
                 file_md5,
-            } => self.build_file_put_request(request, file_data, file_mime, file_md5.as_deref())?,
+            } => self.build_file_put_request(&request, file_data, &file_mime, file_md5.as_deref())?,
             WebUploadMode::LegacyImage {
                 image_data,
                 post_data,
             } => {
-                self.build_legacy_image_upload_request(request, image_data, post_data.as_deref())?
+                self.build_legacy_image_upload_request(&request, &image_data, post_data.as_deref())?
             }
             WebUploadMode::Image {
                 image_data,
                 post_data,
-            } => self.build_image_upload_request(request, image_data, post_data.as_deref())?,
+            } => self.build_image_upload_request(&request, &image_data, post_data.as_deref())?,
             WebUploadMode::PrintImage {
                 image_data,
                 post_data,
             } => {
-                self.build_print_image_upload_request(request, image_data, post_data.as_deref())?
+                self.build_print_image_upload_request(&request, &image_data, post_data.as_deref())?
             }
         };
 
         execute_request(&self.client, request, response_body_limit).await
     }
 
-    fn build_standard_request(&self, request: &WebExecuteRequest) -> Result<reqwest::Request> {
+    fn build_standard_request(&self, request: &mut WebExecuteRequest) -> Result<reqwest::Request> {
         self.build_standard_request_with(&self.client, request)
     }
 
     fn build_standard_request_with(
         &self,
         client: &Client,
-        request: &WebExecuteRequest,
+        request: &mut WebExecuteRequest,
     ) -> Result<reqwest::Request> {
         let method = Method::from_bytes(request.method.as_bytes())
             .map_err(|e| Error::Custom(format!("bad method: {e}")))?;
@@ -597,11 +598,11 @@ impl WebClient {
         }
 
         if method != Method::GET {
-            if let Some(body) = request.body.as_deref() {
+            if let Some(body) = request.body.take() {
                 let ct = content_type_override
                     .as_deref()
                     .unwrap_or("application/json; charset=utf-8");
-                builder = builder.header(CONTENT_TYPE, ct).body(body.to_string());
+                builder = builder.header(CONTENT_TYPE, ct).body(body);
             }
         }
 
@@ -613,19 +614,15 @@ impl WebClient {
     fn build_file_put_request(
         &self,
         request: &WebExecuteRequest,
-        file_data: &str,
+        file_data: Vec<u8>,
         file_mime: &str,
         file_md5: Option<&str>,
     ) -> Result<reqwest::Request> {
-        let bytes = B64
-            .decode(file_data)
-            .map_err(|e| Error::Custom(format!("bad base64: {e}")))?;
-
         let mut builder = self
             .client
             .put(&request.url)
             .header(CONTENT_TYPE, file_mime)
-            .body(bytes);
+            .body(file_data);
 
         if let Some(md5) = file_md5 {
             let md5_bytes = B64
@@ -1100,7 +1097,7 @@ mod tests {
 
         let built = web.build_file_put_request(
             &request,
-            &B64.encode(payload),
+            payload.to_vec(),
             "application/octet-stream",
             None,
         )?;
@@ -1137,7 +1134,7 @@ mod tests {
         let error = web
             .build_file_put_request(
                 &request,
-                &B64.encode(b"payload"),
+                b"payload".to_vec(),
                 "application/octet-stream",
                 Some("not-base64!"),
             )
@@ -1163,7 +1160,7 @@ mod tests {
         request
             .headers
             .push(("user-agent".into(), "caller-override".into()));
-        let built = web.build_standard_request_with(&fresh, &request)?;
+        let built = web.build_standard_request_with(&fresh, &mut request)?;
 
         assert!(Arc::strong_count(&web.jar) > initial_references);
         assert_eq!(web.user_agent, "VRCX-0/2.9.2");

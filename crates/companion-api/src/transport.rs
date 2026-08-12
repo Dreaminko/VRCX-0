@@ -32,7 +32,7 @@ const BROADCAST_CAPACITY: usize = 32;
 pub(crate) enum ServerEvent {
     Snapshot {
         revision: u64,
-        room: Option<RoomState>,
+        room: Option<Arc<RoomState>>,
         at: String,
     },
     Changes {
@@ -52,12 +52,12 @@ pub(crate) struct ServerHub {
 #[derive(Clone, Debug)]
 pub(crate) struct ServerHubSnapshot {
     pub(crate) revision: u64,
-    pub(crate) room: Option<RoomState>,
+    pub(crate) room: Option<Arc<RoomState>>,
 }
 
 struct ServerHubState {
     revision: u64,
-    room: Option<RoomState>,
+    room: Option<Arc<RoomState>>,
 }
 
 impl ServerHub {
@@ -114,9 +114,10 @@ impl ServerHub {
 
     pub(crate) fn publish(&self, room: Option<RoomState>) {
         let at = now_iso();
+        let room = room.map(Arc::new);
         match self.state.lock() {
             Ok(mut state) => {
-                let changes = match (state.room.as_ref(), room.as_ref()) {
+                let changes = match (state.room.as_deref(), room.as_ref()) {
                     (None, None) => Vec::new(),
                     (Some(_), None) => {
                         state.revision = state.revision.saturating_add(1);
@@ -128,8 +129,10 @@ impl ServerHub {
                         });
                         return;
                     }
-                    (None, Some(next)) => vec![RoomChange::Snapshot(next.clone())],
-                    (Some(previous), Some(next)) => diff_room(Some(previous), next),
+                    (None, Some(next)) => vec![RoomChange::Snapshot(Arc::clone(next))],
+                    (Some(previous), Some(next)) => {
+                        diff_room(Some(previous), Arc::clone(next))
+                    }
                 };
                 if changes.is_empty() {
                     return;

@@ -59,11 +59,13 @@ pub enum GameLogSideEffect {
     },
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct GameLogIngestOutput {
     pub batch: GameLogWriteBatch,
-    pub raw_rows: Vec<Vec<String>>,
+    pub input_count: usize,
     pub runtime_persisted_mirrors: Vec<Vec<String>>,
+    pub destination_started_at: Vec<String>,
+    pub instance_roster_changed: bool,
     pub projection: Option<GameLogProjection>,
     pub side_effects: Vec<GameLogSideEffect>,
 }
@@ -119,7 +121,7 @@ impl GameLogIngestEngine {
         }
 
         let mut output = GameLogIngestOutput {
-            raw_rows: events.iter().map(GameLogEvent::to_compat_row).collect(),
+            input_count: events.len(),
             ..Default::default()
         };
 
@@ -129,7 +131,10 @@ impl GameLogIngestEngine {
                 GameLogEventKind::Location {
                     location,
                     world_name,
-                } => self.ingest_location(&mut output.batch, event, location, world_name),
+                } => {
+                    self.ingest_location(&mut output.batch, event, location, world_name);
+                    output.instance_roster_changed |= !location.is_empty();
+                }
                 GameLogEventKind::LocationDestination { .. } => {
                     self.finalize_location_session(&mut output.batch, &event.created_at);
                     self.state.current_location = "traveling".into();
@@ -140,15 +145,25 @@ impl GameLogIngestEngine {
                     self.state.current_location_started_at = event.created_at.clone();
                     self.state.current_location_started_at_ms =
                         parse_event_time_ms(&event.created_at);
+                    output
+                        .destination_started_at
+                        .push(event.created_at.clone());
+                    output.instance_roster_changed = true;
                 }
                 GameLogEventKind::PlayerJoined {
                     display_name,
                     user_id,
-                } => self.ingest_player_joined(&mut output.batch, event, display_name, user_id),
+                } => {
+                    self.ingest_player_joined(&mut output.batch, event, display_name, user_id);
+                    output.instance_roster_changed = true;
+                }
                 GameLogEventKind::PlayerLeft {
                     display_name,
                     user_id,
-                } => self.ingest_player_left(&mut output.batch, event, display_name, user_id),
+                } => {
+                    self.ingest_player_left(&mut output.batch, event, display_name, user_id);
+                    output.instance_roster_changed = true;
+                }
                 GameLogEventKind::PortalSpawn => self.ingest_portal_spawn(&mut output.batch, event),
                 GameLogEventKind::Notification { .. } | GameLogEventKind::AvatarChange { .. } => {}
                 GameLogEventKind::ResourceLoad {
@@ -258,10 +273,10 @@ impl GameLogIngestEngine {
             }
         }
 
-        if let Some(row) = output.raw_rows.last() {
+        if let Some(event) = events.last() {
             output.projection = Some(self.state.projection(
-                row.get(1).map(String::as_str).unwrap_or_default(),
-                row.get(2).map(String::as_str).unwrap_or_default(),
+                &event.created_at,
+                event.compat_type(),
             ));
         }
 
@@ -276,6 +291,7 @@ impl GameLogIngestEngine {
         self.state.is_game_running = event.process.is_game_running;
         self.state.is_steamvr_running = event.process.is_steamvr_running;
         if should_restore_seeded_state {
+            output.instance_roster_changed = true;
             output.projection = Some(self.state.projection(&event.changed_at, "game-started"));
         } else if event.process.game_changed && !event.process.is_game_running {
             self.finalize_location_session(&mut output.batch, &event.changed_at);
@@ -288,6 +304,7 @@ impl GameLogIngestEngine {
             self.state.last_video_url.clear();
             self.state.now_playing_url.clear();
             output.side_effects.push(GameLogSideEffect::NowPlayingReset);
+            output.instance_roster_changed = true;
             output.projection = Some(self.state.projection(&event.changed_at, "game-stopped"));
         }
         output

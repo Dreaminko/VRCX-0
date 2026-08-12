@@ -209,7 +209,7 @@ fn file_upload_start_and_finish_use_put_paths_and_bodies() {
 fn file_put_sets_all_upload_fields() {
     let request = file_put_input(
         "https://files.vrchat.cloud/upload".into(),
-        "file-data".into(),
+        b"file-data".to_vec(),
         "application/octet-stream".into(),
         "base64-md5".into(),
     );
@@ -224,7 +224,7 @@ fn file_put_sets_all_upload_fields() {
             file_data,
             file_mime,
             file_md5: Some(file_md5),
-        }) if file_data == "file-data"
+        }) if file_data == b"file-data"
             && file_mime == "application/octet-stream"
             && file_md5 == "base64-md5"
     ));

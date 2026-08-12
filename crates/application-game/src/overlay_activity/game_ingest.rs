@@ -8,12 +8,36 @@ use crate::game_log::{GameLogIngestOutput, GameLogSideEffect};
 
 pub trait OverlayActivityGameIngestExt {
     fn ingest_game_log_output(&self, output: &GameLogIngestOutput) -> Vec<OverlayActivityEntry>;
+
+    fn ingest_game_log_output_with_join_leave_filter<F>(
+        &self,
+        output: &GameLogIngestOutput,
+        include_join_leave: F,
+    ) -> Vec<OverlayActivityEntry>
+    where
+        F: FnMut(&vrcx_0_persistence::game_log::GameLogJoinLeaveEntry) -> bool;
 }
 
 impl OverlayActivityGameIngestExt for OverlayActivityRuntime {
     fn ingest_game_log_output(&self, output: &GameLogIngestOutput) -> Vec<OverlayActivityEntry> {
+        self.ingest_game_log_output_with_join_leave_filter(output, |_| true)
+    }
+
+    fn ingest_game_log_output_with_join_leave_filter<F>(
+        &self,
+        output: &GameLogIngestOutput,
+        mut include_join_leave: F,
+    ) -> Vec<OverlayActivityEntry>
+    where
+        F: FnMut(&vrcx_0_persistence::game_log::GameLogJoinLeaveEntry) -> bool,
+    {
         let mut entries = Vec::new();
-        for entry in &output.batch.join_leave {
+        for entry in output
+            .batch
+            .join_leave
+            .iter()
+            .filter(|entry| include_join_leave(entry))
+        {
             let candidate = OverlayActivityCandidate {
                 source_id: format!(
                     "game-log:{}:{}:{}:{}",

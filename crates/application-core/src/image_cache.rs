@@ -78,7 +78,7 @@ impl ImageCache {
         let result = self
             .local_cache
             .get_image_with_fetch(file_id, version, || async {
-                match tokio::time::timeout(FETCH_TIMEOUT, self.fetch_image(url)).await {
+                match tokio::time::timeout(FETCH_TIMEOUT, self.fetcher.fetch_image(url)).await {
                     Ok(result) => result.map_err(|error| MediaError::Custom(error.to_string())),
                     Err(_) => Err(MediaError::Custom(format!("image fetch timed out: {url}"))),
                 }
@@ -97,15 +97,12 @@ impl ImageCache {
         Ok(self
             .local_cache
             .save_image_to_file_with_fetch(path, || async {
-                self.fetch_image(url)
+                self.fetcher
+                    .fetch_image(url)
                     .await
                     .map_err(|error| MediaError::Custom(error.to_string()))
             })
             .await?)
-    }
-
-    async fn fetch_image(&self, url: &str) -> Result<Vec<u8>> {
-        Ok(self.fetcher.fetch_image(url).await?)
     }
 }
 

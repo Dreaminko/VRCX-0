@@ -70,7 +70,7 @@ pub enum HttpApiRequestBody {
 #[derive(Clone, Debug, PartialEq)]
 pub enum HttpApiUpload {
     FilePut {
-        file_data: String,
+        file_data: Vec<u8>,
         file_mime: String,
         file_md5: Option<String>,
     },
@@ -872,7 +872,7 @@ mod tests {
         assert!(build_request_url(&request, ApiScope::VrchatMedia).is_err());
 
         request.body = HttpApiRequestBody::Upload(HttpApiUpload::FilePut {
-            file_data: String::new(),
+            file_data: Vec::new(),
             file_mime: "application/octet-stream".into(),
             file_md5: None,
         });

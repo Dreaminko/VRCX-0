@@ -415,7 +415,7 @@ pub fn file_upload_finish_input(endpoint: String, path: String) -> HttpApiReques
 
 pub fn file_put_input(
     url: String,
-    file_data: String,
+    file_data: Vec<u8>,
     file_mime: String,
     file_md5: String,
 ) -> HttpApiRequestInput {

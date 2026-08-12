@@ -61,7 +61,7 @@ pub struct DesktopCompanionApiRuntime {
 struct CompanionApiRosterState {
     lifecycle_epoch: u64,
     game_running: bool,
-    latest: Option<InstanceRosterSnapshot>,
+    latest: Option<Arc<InstanceRosterSnapshot>>,
 }
 
 #[derive(Clone)]
@@ -69,7 +69,7 @@ pub(crate) struct CompanionApiEnrichmentRequest {
     lifecycle_epoch: u64,
     listener_generation: u64,
     auth_scope: RuntimeAuthScopeSnapshot,
-    snapshot: InstanceRosterSnapshot,
+    snapshot: Arc<InstanceRosterSnapshot>,
 }
 
 impl DesktopCompanionApiRuntime {
@@ -121,7 +121,11 @@ impl DesktopCompanionApiRuntime {
         self.controller.rotate_token().await
     }
 
-    async fn observe_roster(&self, lifecycle_epoch: u64, snapshot: InstanceRosterSnapshot) {
+    async fn observe_roster(
+        &self,
+        lifecycle_epoch: u64,
+        snapshot: Arc<InstanceRosterSnapshot>,
+    ) {
         {
             let mut roster = self
                 .roster
@@ -163,7 +167,11 @@ impl DesktopCompanionApiRuntime {
         }
     }
 
-    async fn enqueue_if_running(&self, lifecycle_epoch: u64, snapshot: InstanceRosterSnapshot) {
+    async fn enqueue_if_running(
+        &self,
+        lifecycle_epoch: u64,
+        snapshot: Arc<InstanceRosterSnapshot>,
+    ) {
         let Some(listener_generation) = self.controller.running_generation().await else {
             return;
         };
@@ -292,7 +300,7 @@ fn enrich_room_snapshot(
     owner_user_id: &str,
     auth_scope: &RuntimeAuthScopeSnapshot,
     realtime_runtime: &RealtimeHostRuntime,
-    snapshot: InstanceRosterSnapshot,
+    snapshot: Arc<InstanceRosterSnapshot>,
 ) -> Option<RoomState> {
     let world_id = vrcx_0_core::location::world_id_from_location(&snapshot.location);
     if world_id.is_empty() {
@@ -319,7 +327,7 @@ fn enrich_room_snapshot(
             .collect::<HashMap<_, _>>();
     let members = snapshot
         .members
-        .into_iter()
+        .iter()
         .map(|member| {
             let profile = cached_profiles.get(&member.user_id);
             let local_memo = vrcx_0_persistence::memos::memo_get_user(db, member.user_id.clone())
@@ -352,17 +360,17 @@ fn enrich_room_snapshot(
                     .map(|profile| profile.languages.clone())
                     .unwrap_or_default(),
                 note,
-                user_id: member.user_id,
-                display_name: member.display_name,
+                user_id: member.user_id.clone(),
+                display_name: member.display_name.clone(),
             }
         })
         .collect();
     Some(RoomState {
-        location: snapshot.location,
+        location: snapshot.location.clone(),
         world_id,
-        world_name: snapshot.world_name,
-        destination: snapshot.destination,
-        entered_at: snapshot.entered_at,
+        world_name: snapshot.world_name.clone(),
+        destination: snapshot.destination.clone(),
+        entered_at: snapshot.entered_at.clone(),
         members,
     })
 }
@@ -465,10 +473,10 @@ mod tests {
         runtime
             .observe_roster(
                 1,
-                InstanceRosterSnapshot {
+                Arc::new(InstanceRosterSnapshot {
                     location: "wrld_a:1".into(),
                     ..InstanceRosterSnapshot::default()
-                },
+                }),
             )
             .await;
         assert!(matches!(
@@ -497,10 +505,10 @@ mod tests {
         runtime
             .observe_roster(
                 1,
-                InstanceRosterSnapshot {
+                Arc::new(InstanceRosterSnapshot {
                     location: "wrld_old:1".into(),
                     ..InstanceRosterSnapshot::default()
-                },
+                }),
             )
             .await;
         assert!(matches!(

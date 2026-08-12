@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::state::{RoomMemberState, RoomState};
+
 pub const PROTOCOL_VERSION: u32 = 1;
 pub(crate) const HEARTBEAT_SECONDS: u64 = 20;
 
@@ -36,6 +38,7 @@ pub enum ByeReason {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Type)]
 #[serde(tag = "type")]
+#[allow(dead_code)]
 pub enum ServerMessage {
     #[serde(rename = "hello")]
     Hello {
@@ -71,6 +74,80 @@ pub enum ServerMessage {
     Ping { seq: u64, at: String },
     #[serde(rename = "bye")]
     Bye { reason: ByeReason },
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RoomMemberRef<'a> {
+    user_id: &'a str,
+    display_name: &'a str,
+    is_self: bool,
+    is_friend: bool,
+    joined_at: Option<&'a str>,
+    languages: &'a [String],
+    note: &'a str,
+}
+
+impl<'a> From<&'a RoomMemberState> for RoomMemberRef<'a> {
+    fn from(member: &'a RoomMemberState) -> Self {
+        Self {
+            user_id: &member.user_id,
+            display_name: &member.display_name,
+            is_self: member.is_self,
+            is_friend: member.is_friend,
+            joined_at: member.joined_at.as_deref(),
+            languages: &member.languages,
+            note: &member.note,
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RoomRef<'a> {
+    location: &'a str,
+    world_id: &'a str,
+    world_name: &'a str,
+    destination: &'a str,
+    entered_at: &'a str,
+    members: Vec<RoomMemberRef<'a>>,
+}
+
+impl<'a> From<&'a RoomState> for RoomRef<'a> {
+    fn from(room: &'a RoomState) -> Self {
+        Self {
+            location: &room.location,
+            world_id: &room.world_id,
+            world_name: &room.world_name,
+            destination: &room.destination,
+            entered_at: &room.entered_at,
+            members: room.members.iter().map(RoomMemberRef::from).collect(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(tag = "type")]
+pub(crate) enum ServerMessageRef<'a> {
+    #[serde(rename = "room.snapshot")]
+    Snapshot {
+        seq: u64,
+        at: &'a str,
+        room: Option<RoomRef<'a>>,
+    },
+    #[serde(rename = "room.joined")]
+    Joined {
+        seq: u64,
+        at: &'a str,
+        members: Vec<RoomMemberRef<'a>>,
+    },
+    #[serde(rename = "room.left")]
+    Left {
+        seq: u64,
+        at: &'a str,
+        #[serde(rename = "userIds")]
+        user_ids: &'a [String],
+    },
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]

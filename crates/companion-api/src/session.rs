@@ -3,11 +3,15 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::extract::ws::{CloseFrame, Message, WebSocket};
+use serde::Serialize;
 use tokio::sync::broadcast;
 
-use crate::state::{wire_member, wire_room, RoomChange};
+use crate::state::RoomChange;
 use crate::transport::{now_iso, CompanionApiRouterState, ServerEvent};
-use crate::wire::{ClientMessage, ServerMessage, HEARTBEAT_SECONDS, PROTOCOL_VERSION};
+use crate::wire::{
+    ClientMessage, RoomMemberRef, RoomRef, ServerMessage, ServerMessageRef, HEARTBEAT_SECONDS,
+    PROTOCOL_VERSION,
+};
 
 const MAX_ACTIVE_CONNECTIONS: u32 = 8;
 
@@ -41,7 +45,7 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
         return;
     }
     seq = seq.saturating_add(1);
-    if !send_snapshot(&mut socket, seq, initial_snapshot.room.as_ref(), now_iso()).await {
+    if !send_snapshot(&mut socket, seq, initial_snapshot.room.as_deref(), now_iso()).await {
         return;
     }
 
@@ -98,7 +102,7 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
                             room_revision = revision;
                             continue;
                         }
-                        if !send_snapshot(&mut socket, seq, room.as_ref(), at).await {
+                        if !send_snapshot(&mut socket, seq, room.as_deref(), at).await {
                             break;
                         }
                         room_revision = revision;
@@ -117,10 +121,9 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
                             room_revision = revision;
                             continue;
                         }
-                        for change in changes {
+                        for change in &changes {
                             seq = seq.saturating_add(1);
-                            let message = message_for_change(change, seq, &at);
-                            if !send_message(&mut socket, &message).await {
+                            if !send_change(&mut socket, change, seq, &at).await {
                                 return;
                             }
                         }
@@ -155,23 +158,46 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouter
     }
 }
 
-fn message_for_change(change: RoomChange, seq: u64, at: &str) -> ServerMessage {
+async fn send_change(
+    socket: &mut WebSocket,
+    change: &RoomChange,
+    seq: u64,
+    at: &str,
+) -> bool {
     match change {
-        RoomChange::Snapshot(room) => ServerMessage::RoomSnapshot {
-            seq,
-            at: at.into(),
-            room: Some(wire_room(&room)),
-        },
-        RoomChange::Joined(members) => ServerMessage::RoomJoined {
-            seq,
-            at: at.into(),
-            members: members.iter().map(wire_member).collect(),
-        },
-        RoomChange::Left(user_ids) => ServerMessage::RoomLeft {
-            seq,
-            at: at.into(),
-            user_ids,
-        },
+        RoomChange::Snapshot(room) => {
+            send_message(
+                socket,
+                &ServerMessageRef::Snapshot {
+                    seq,
+                    at,
+                    room: Some(RoomRef::from(room.as_ref())),
+                },
+            )
+            .await
+        }
+        RoomChange::Joined(members) => {
+            send_message(
+                socket,
+                &ServerMessageRef::Joined {
+                    seq,
+                    at,
+                    members: members.iter().map(RoomMemberRef::from).collect(),
+                },
+            )
+            .await
+        }
+        RoomChange::Left(user_ids) => {
+            send_message(
+                socket,
+                &ServerMessageRef::Left {
+                    seq,
+                    at,
+                    user_ids,
+                },
+            )
+            .await
+        }
     }
 }
 
@@ -183,10 +209,10 @@ async fn send_snapshot(
 ) -> bool {
     send_message(
         socket,
-        &ServerMessage::RoomSnapshot {
+        &ServerMessageRef::Snapshot {
             seq,
-            at,
-            room: room.map(wire_room),
+            at: &at,
+            room: room.map(RoomRef::from),
         },
     )
     .await
@@ -198,12 +224,12 @@ async fn send_latest_snapshot(
     state: &CompanionApiRouterState,
 ) -> Option<u64> {
     let snapshot = state.hub.snapshot();
-    send_snapshot(socket, seq, snapshot.room.as_ref(), now_iso())
+    send_snapshot(socket, seq, snapshot.room.as_deref(), now_iso())
         .await
         .then_some(snapshot.revision)
 }
 
-async fn send_message(socket: &mut WebSocket, message: &ServerMessage) -> bool {
+async fn send_message<T: Serialize + ?Sized>(socket: &mut WebSocket, message: &T) -> bool {
     let Ok(payload) = serde_json::to_string(message) else {
         return false;
     };
