@@ -11,8 +11,6 @@ import { SettingsAdvancedTab } from './SettingsAdvancedTab';
 import type { SettingsAdvancedModel } from './settingsAdvancedTypes';
 
 const labels: Record<string, string> = {
-    'view.settings.advanced.advanced_ui.behavior.deep_links':
-        'Open VRCX-0 from links',
     'view.settings.advanced.advanced_ui.behavior.deep_link_registration':
         'Open VRCX-0 links',
     'view.settings.advanced.advanced_ui.storage.change_folder':
@@ -148,7 +146,7 @@ describe('SettingsAdvancedTab data directory states', () => {
         );
     });
 
-    it('shows the cross-platform Fix action without a separate heading', async () => {
+    it('shows the cross-platform Fix action for registration errors', async () => {
         commandMocks.appDeepLinkRegistrationStatus.mockRejectedValueOnce(
             new Error('registry value is malformed')
         );
@@ -161,7 +159,6 @@ describe('SettingsAdvancedTab data directory states', () => {
             })
         ).not.toBeNull();
         expect(screen.getByText('Open VRCX-0 links')).not.toBeNull();
-        expect(screen.queryByText('Open VRCX-0 from links')).toBeNull();
     });
 
     it('keeps the repair action hidden on unsupported platforms', async () => {

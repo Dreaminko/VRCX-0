@@ -382,7 +382,7 @@ describe('friendsSidebarModel current user status dot', () => {
         ).toBe('bg-[var(--status-busy)]');
     });
 
-    it('does not expose a separate visual mode for remote play', () => {
+    it('uses the account status color for remote play', () => {
         const remoteCurrentUser = {
             id: 'usr_self',
             status: 'join me',

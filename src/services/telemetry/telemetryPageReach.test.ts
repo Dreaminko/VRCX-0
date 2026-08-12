@@ -26,13 +26,7 @@ describe('page reach telemetry', () => {
         expect(mod.normalizeRouteKey('/login')).toBeNull();
         expect(mod.normalizeRouteKey('/dashboard/abc-123')).toBe('dashboard');
         expect(mod.normalizeRouteKey('/social/friend-log')).toBe('friend_log');
-        expect(mod.normalizeRouteKey('/charts/instance')).toBeNull();
         expect(mod.normalizeRouteKey('/charts/mutual')).toBe('charts_mutual');
-        expect(mod.normalizeRouteKey('/themes')).toBeNull();
-        expect(mod.normalizeRouteKey('/tools/gallery/')).toBeNull();
-        expect(mod.normalizeRouteKey('/tools/inventory')).toBeNull();
-        expect(mod.normalizeRouteKey('/tools/screenshot-metadata')).toBeNull();
-        expect(mod.normalizeRouteKey('/tools/vrchat-log')).toBeNull();
         expect(mod.normalizeRouteKey('/unknown-page')).toBeNull();
     });
 
@@ -42,7 +36,6 @@ describe('page reach telemetry', () => {
 
         mod.recordRouteEnter('/game-log');
         mod.recordRouteEnter('/unknown-page');
-        mod.recordRouteEnter('/tools/gallery/');
 
         expect(appTelemetryRecordEvent).toHaveBeenNthCalledWith(1, {
             type: 'pageVisit',

@@ -16,7 +16,7 @@ describe('feed columns state helpers', () => {
         expect(sanitizeFeedViewMode('bad')).toBe('table');
     });
 
-    it('provides the accepted default columns without an All column', () => {
+    it('provides the accepted default columns and scopes', () => {
         expect(
             FEED_COLUMNS_DEFAULT_CONFIG.map((column) => column.title)
         ).toEqual(['Favorites', 'Location', 'Profile', 'Presence']);

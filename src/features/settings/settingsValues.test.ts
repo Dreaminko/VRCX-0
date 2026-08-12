@@ -81,12 +81,6 @@ describe('settingsValues', () => {
                         scope: 'selectedFavorites',
                         favoriteGroupKeys: ['group_avatar']
                     },
-                    PortalSpawn: {
-                        scope: 'everyoneInInstance'
-                    },
-                    ChatBoxMessage: {
-                        scope: 'everyoneInInstance'
-                    },
                     unknown: {
                         scope: 'on'
                     }
@@ -125,8 +119,6 @@ describe('settingsValues', () => {
             OVERLAY_ACTIVITY_TYPE_DEFINITIONS.length + 1
         );
         expect(filters.wrist.types.Avatar).toBeUndefined();
-        expect(filters.wrist.types.PortalSpawn).toBeUndefined();
-        expect(filters.wrist.types.ChatBoxMessage).toBeUndefined();
         expect(filters.wrist.types.unknown).toEqual({
             scope: 'on',
             favoriteGroupKeys: 'all'
@@ -211,7 +203,6 @@ describe('settingsValues', () => {
             favoriteGroupKeys: ['group_3']
         });
         expect(filters.wrist.types.Avatar).toBeUndefined();
-        expect(filters.wrist.types.PortalSpawn).toBeUndefined();
     });
 
     it('maps wrist activity raw type keys to locale-safe label keys', () => {

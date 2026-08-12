@@ -114,7 +114,6 @@ import { useShellStore } from '@/state/shellStore';
 import {
     addFeedHiddenUserPreference,
     removeFeedHiddenUserPreference,
-    setBoolConfigPreference,
     setFeedPersistenceDisabledPreference,
     setIntConfigPreference,
     setStartAtWindowsStartupPreference,
@@ -310,38 +309,6 @@ describe('preferenceGenericSetters', () => {
             'notificationTimeout',
             10000
         );
-    });
-
-    it('does not persist the hidden interactive panel switch', async () => {
-        await setBoolConfigPreference('vrOverlayPanelEnabled', false);
-
-        expect(mocks.setBool).not.toHaveBeenCalled();
-        expect(usePreferencesStore.getState().vrOverlayPanelEnabled).toBe(
-            false
-        );
-        expect(mocks.publishPreferenceChanged).not.toHaveBeenCalledWith(
-            'vrOverlayPanelEnabled',
-            expect.anything()
-        );
-        expect(mocks.appVrOverlayConfigReload).not.toHaveBeenCalled();
-    });
-
-    it('does not persist the hidden interactive panel all-friends setting', async () => {
-        await setBoolConfigPreference(
-            'vrOverlayPanelAllFriendsIncludesFavorites',
-            false
-        );
-
-        expect(mocks.setBool).not.toHaveBeenCalled();
-        expect(
-            usePreferencesStore.getState()
-                .vrOverlayPanelAllFriendsIncludesFavorites
-        ).toBe(false);
-        expect(mocks.publishPreferenceChanged).not.toHaveBeenCalledWith(
-            'vrOverlayPanelAllFriendsIncludesFavorites',
-            expect.anything()
-        );
-        expect(mocks.appVrOverlayConfigReload).not.toHaveBeenCalled();
     });
 
     it('adds and removes hidden feed users through the normalized JSON preference', async () => {

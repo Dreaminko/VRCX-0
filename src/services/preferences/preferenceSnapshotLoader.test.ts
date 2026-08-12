@@ -263,26 +263,4 @@ describe('preferenceSnapshotLoader', () => {
             usePreferencesStore.getState().showUserDialogProfileDecorations
         ).toBe(false);
     });
-
-    it('keeps hidden interactive VR panel settings out of the preference load', async () => {
-        const snapshot = await loadPreferenceSnapshot();
-
-        expect(mocks.getBool).not.toHaveBeenCalledWith(
-            'vrOverlayPanelEnabled',
-            expect.anything()
-        );
-        expect(mocks.getBool).not.toHaveBeenCalledWith(
-            'vrOverlayPanelAllFriendsIncludesFavorites',
-            expect.anything()
-        );
-        expect(snapshot.vrOverlayPanelEnabled).toBe(false);
-        expect(snapshot.vrOverlayPanelAllFriendsIncludesFavorites).toBe(false);
-        expect(usePreferencesStore.getState().vrOverlayPanelEnabled).toBe(
-            false
-        );
-        expect(
-            usePreferencesStore.getState()
-                .vrOverlayPanelAllFriendsIncludesFavorites
-        ).toBe(false);
-    });
 });

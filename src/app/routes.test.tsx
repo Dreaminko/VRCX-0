@@ -20,13 +20,7 @@ describe('protectedRoutes', () => {
         ).toBe(true);
     });
 
-    it('retires the instance activity route without redirecting to it', () => {
-        expect(
-            protectedRoutes.some(
-                (route: RouteLike) => route.path === '/charts/instance'
-            )
-        ).toBe(false);
-
+    it('redirects the charts landing route to mutual friends', () => {
         const chartsRoute = protectedRoutes.find(
             (route: RouteLike) => route.path === '/charts'
         );

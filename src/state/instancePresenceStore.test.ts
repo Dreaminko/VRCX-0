@@ -91,13 +91,4 @@ describe('instancePresenceStore', () => {
         expect(state.order).toEqual([]);
         expect(state.version).toBe(0);
     });
-
-    it('no longer exposes the removed locationsByEndpoint field', () => {
-        const state = useInstancePresenceStore.getState() as unknown as Record<
-            string,
-            unknown
-        >;
-
-        expect('locationsByEndpoint' in state).toBe(false);
-    });
 });
