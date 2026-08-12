@@ -1,4 +1,4 @@
-{
+﻿{
     "browse_history": {
         "title": "Historique de consultation",
         "description": "Utilisateurs, mondes, avatars et groupes consultés récemment.",
@@ -58,6 +58,8 @@
         "example_2": "De qui suis-je en train de m'éloigner ?",
         "example_3": "Quel est le meilleur moment pour trouver mes amis en ligne ?",
         "not_configured": "Sélectionnez un endpoint LLM et un modèle pour commencer.",
+        "setup_title": "Connectez un modèle d’IA pour commencer",
+        "open_settings": "Aller aux paramètres de l'IA",
         "entities_title": "Mentionnés",
         "entities_empty": "Les personnes et les mondes mentionnés dans les réponses apparaissent ici.",
         "untitled": "Nouvelle conversation",
@@ -79,15 +81,16 @@
         },
         "runtime": {
             "title": "Runtime",
-            "connection": "Connexion",
             "connection_unset": "Aucun endpoint",
             "model": "Modèle",
-            "model_unset": "Aucun modèle enregistré pour cet endpoint",
+            "model_unset": "Aucun modèle disponible",
             "playbook_mode": "Mode d'analyse",
             "allow_writes": "Autoriser les actions d'écriture",
             "manage_endpoints": "Gérer les endpoints LLM",
             "reasoning_effort": "Effort de raisonnement",
-            "reasoning_effort_provider_default": "Par défaut du fournisseur"
+            "reasoning_effort_provider_default": "Par défaut du fournisseur",
+            "scope_session": "S'applique à cette conversation uniquement",
+            "scope_default": "S'applique à toutes les nouvelles conversations"
         }
     },
     "user_hover_card": {
@@ -197,7 +200,7 @@
     },
     "profile_backup": {
         "header": "Sauvegarde et restauration",
-        "tools_description": "Sauvegardez vos données VRCX-0 et restaurez-les en cas de besoin.",
+        "tools_description": "Sauvegarder et restaurer vos données VRCX-0 .",
         "automatic": "Sauvegardes automatiques",
         "automatic_description": "Enregistrez régulièrement des sauvegardes dans le dossier sélectionné.",
         "automatic_on": "Activées",
@@ -211,7 +214,7 @@
         "no_automatic_backup": "Aucune sauvegarde pour le moment",
         "change_folder": "Changer de dossier",
         "manual_backup": "Sauvegarde manuelle",
-        "manual_backup_description": "Créez une sauvegarde dans le dossier de votre choix sans modifier la planification automatique.",
+        "manual_backup_description": "Créez une sauvegarde dans le dossier de votre choix.",
         "phase_snapshot": "Préparation des données",
         "phase_package": "Création de la sauvegarde",
         "phase_deliver": "Enregistrement dans l’emplacement de sauvegarde",
@@ -220,7 +223,7 @@
         "backup_now": "Sauvegarder maintenant",
         "backup_now_confirm": "Créer la sauvegarde",
         "restore": "Restaurer les données",
-        "restore_description": "Vérifiez une sauvegarde VRCX-0, puis redémarrez l’application pour la restaurer.",
+        "restore_description": "Sélectionnez une sauvegarde VRCX-0 à restaurer. VRCX fera une vérification et redémarrera.",
         "restore_from_backup": "Restaurer depuis une sauvegarde",
         "file_filter": "Sauvegardes VRCX-0",
         "automatic_running": "Sauvegarde automatique en cours",
@@ -241,7 +244,7 @@
         "preparing_restore": "Préparation de la restauration",
         "restore_prepare_description": "VRCX-0 vérifie les données préparées avant de redémarrer.",
         "restore_confirm_title": "Restaurer cette sauvegarde ?",
-        "restore_confirm_description": "Vos données actuelles seront remplacées par la sauvegarde et VRCX-0 redémarrera. Une copie de vos données actuelles sera conservée automatiquement afin de pouvoir les récupérer en cas de problème.",
+        "restore_confirm_description": "Vos données actuelles seront remplacéesn et VRCX-0 redémarrera. Une copie sera conservée en cas de problème.",
         "restore_and_restart": "Restaurer et redémarrer",
         "restarting_to_restore": "VRCX-0 redémarre pour restaurer la sauvegarde",
         "created_at": "Créée le",
@@ -254,10 +257,10 @@
         "restore_succeeded": "Données restaurées depuis la sauvegarde",
         "restore_completed": "Restauration terminée",
         "rollback_data_retained": "Données antérieures à la restauration conservées",
-        "rollback_retained_description": "Les données antérieures à la restauration ont été conservées. Vous pourrez les supprimer après avoir vérifié le résultat.",
+        "rollback_retained_description": "Vous pourrez supprimer cela après avoir vérifié que les données sont correctes.",
         "clear_rollback": "Supprimer les données conservées",
         "rollback_cleanup_confirm_title": "Supprimer les données conservées ?",
-        "rollback_cleanup_confirm_description": "Les données conservées avant la restauration seront définitivement supprimées. Cette action est irréversible. Les données actuellement utilisées ne seront pas affectées.",
+        "rollback_cleanup_confirm_description": "Les données préconservées seront définitivement supprimées. Les données actuellement utilisées ne seront pas affectées.",
         "rollback_cleanup_protected": "Ces données sont protégées tant qu’une restauration est en attente et ne peuvent pas encore être supprimées.",
         "rollback_cleanup_succeeded": "Données conservées supprimées",
         "restore_failed_title": "La sauvegarde n’a pas pu être restaurée",
@@ -518,6 +521,7 @@
         "qq_group": "Groupe QQ (communauté chinoise)",
         "changelog": "Journal des modifications",
         "update": "Mettre à jour",
+        "update_downloading": "Téléchargement…",
         "update_downloaded": "Redémarrer",
         "mark_all_read": "Tout marquer comme lu",
         "edit_dashboard": "Modifier le tableau de bord",
@@ -530,7 +534,7 @@
             "ungroup_folder": "Dissoudre le dossier",
             "move_into_folder": "Déplacer un élément dans ce dossier",
             "restore_default_description": "Remplace votre disposition actuelle par celle par défaut.",
-            "applies_immediately": "Cette action est immédiate et annuler ne la défait pas.",
+            "applies_immediately": "Cette action est immédiate et irréversible.",
             "header": "Personnaliser la navigation",
             "dialog_title": "Personnaliser le menu de navigation",
             "new_folder": "Nouveau dossier",
@@ -663,8 +667,8 @@
             "started_at": "Démarré à",
             "session_duration": "Durée de la session",
             "instance_duration": "Durée dans l'instance",
-            "last_game_event": "Dernier événement de jeu",
-            "last_event_type": "Type du dernier événement",
+            "last_game_event": "Dernier évènement de jeu",
+            "last_event_type": "Type du dernier évènement",
             "minimize_window": "Réduire la fenêtre"
         },
         "action": {
@@ -808,7 +812,7 @@
     },
     "view": {
         "login": {
-            "savedAccounts": "Comptes sauvegardés",
+            "savedAccounts": "Comptes enregistrés",
             "login": "Connexion",
             "signingIn": "Connexion en cours...",
             "register": "Inscription",
@@ -839,7 +843,12 @@
         },
         "feed": {
             "filter": "Filtrer",
-            "feed_persistence_disabled_tooltip": "L’historique du Feed n’est pas enregistré",
+            "feed_persistence_disabled_tooltip": "L’historique du flux n’est pas enregistré",
+            "search_scope": {
+                "aria_label": "Rechercher dans le flux, filtrer par ami",
+                "no_friends": "Aucun ami correspondant",
+                "search_all": "Rechercher dans tout le flux pour \"{query}\""
+            },
             "favorites_only_tooltip": "Filtrer uniquement les favoris",
             "search_placeholder": "Rechercher",
             "date_range": "Plage de dates",
@@ -934,8 +943,8 @@
                 "value_copied": "{value} copié"
             },
             "context": {
-                "hide_user": "Masquer du Feed",
-                "unhide_user": "Ne plus masquer du Feed"
+                "hide_user": "Masquer du flux",
+                "unhide_user": "Ne plus masquer du flux"
             }
         },
         "friends_locations": {
@@ -968,7 +977,7 @@
                 "OnPlayerLeft": "Quitté",
                 "PortalSpawn": "Portail",
                 "VideoPlay": "Vidéo",
-                "Event": "Événement",
+                "Event": "Évènement",
                 "External": "Externe",
                 "StringLoad": "Texte téléchargé",
                 "ImageLoad": "Image téléchargée"
@@ -992,7 +1001,7 @@
                 "session_date_range": "Plage de dates des sessions",
                 "start": "Début",
                 "end": "Fin",
-                "game_log_is_disabled": "L’écriture du GameLog est désactivée",
+                "game_log_is_disabled": "Vous avez désactivé la journal de jeu",
                 "showing": "Affichage",
                 "of": "sur",
                 "game_log_row": "entrée du journal de jeu",
@@ -1006,7 +1015,7 @@
                 "open_link": "Ouvrir le lien",
                 "copy_detail": "Copier le détail",
                 "show_instance_history": "Afficher l'historique de l'instance",
-                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Les nouvelles entrées GameLog ne seront pas enregistrées ; l’historique existant et les fonctions de journal en temps réel restent disponibles."
+                "enable_game_log_ingestion_in_settings_before_this_page_can_load_local_vrchat_activity": "Les nouvelles entrées du journal de jeu ne seront pas enregistrées ; l’historique existant et les fonctions de journal en temps réel restent disponibles."
             },
             "loading": {
                 "loading_the_game_log_snapshot": "Chargement du journal de jeu"
@@ -1276,9 +1285,9 @@
             "error": {
                 "unable_to_open_this_instance_in_vrchat": "Impossible d'ouvrir cette instance dans VRChat",
                 "cannot_self_invite_to_this_instance": "Impossible de s'auto-inviter à cette instance",
-                "cannot_invite_no_current_vrchat_location_is_available": "Impossible d'inviter : aucune position VRChat actuelle n'est disponible",
+                "cannot_invite_no_current_vrchat_location_is_available": "Impossible d'inviter : aucun emplacement actuel n'est disponible",
                 "cannot_invite_from_the_current_instance_type": "Impossible d'inviter depuis le type d'instance actuel",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Impossible d'inviter : la position actuelle n'est pas une instance concrète",
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Impossible d'inviter : l'emplacement actuel n'est pas une instance concrète",
                 "favorites_failed_to_load": "Échec du chargement des favoris"
             },
             "loading": {
@@ -1378,8 +1387,8 @@
             "filters": {
                 "block": "Bloqué",
                 "unblock": "Débloqué",
-                "mute": "Sourdine",
-                "unmute": "Son rétabli",
+                "mute": "Microphone désactivé",
+                "unmute": "Microphone réactivé",
                 "interactOn": "Interaction activée",
                 "interactOff": "Interaction désactivée",
                 "muteChat": "Masquer le chat",
@@ -1432,12 +1441,12 @@
                     "transfer": "Transfert de groupe",
                     "queueReady": "File d'attente prête",
                     "event": {
-                        "created": "Événement de groupe créé"
+                        "created": "Évènement de groupe créé"
                     }
                 },
                 "localNotifs": "Système",
                 "event": {
-                    "announcement": "Annonce d'événement"
+                    "announcement": "Annonce d'évènement"
                 },
                 "moderation": {
                     "warning": {
@@ -1483,9 +1492,9 @@
                 "notification_log_entry_deleted": "Notification supprimée de l'historique"
             },
             "error": {
-                "cannot_invite_no_current_vrchat_location_is_available": "Impossible d'inviter : aucune position VRChat actuelle n'est disponible",
+                "cannot_invite_no_current_vrchat_location_is_available": "Impossible d'inviter : aucun emplacement actuel n'est disponible",
                 "cannot_invite_from_the_current_instance_type": "Impossible d'inviter depuis le type d'instance actuel",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Impossible d'inviter : la position actuelle n'est pas une instance concrète",
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Impossible d'inviter : l'emplacement actuel n'est pas une instance concrète",
                 "cannot_send_invite_response_no_current_user_session_is_available": "Impossible d'envoyer la réponse à l'invitation : aucune session utilisateur actuelle n'est disponible"
             },
             "empty": {
@@ -1564,10 +1573,10 @@
                 "friend_roster_failed_to_load": "Échec du chargement de la liste d'amis",
                 "failed_to_load_friend_details": "Impossible de charger les informations sur les amis",
                 "unable_to_open_this_instance_in_vrchat": "Impossible d'ouvrir cette instance dans VRChat",
-                "cannot_invite_no_current_vrchat_location_is_available": "Impossible d'inviter : aucune position VRChat actuelle disponible",
+                "cannot_invite_no_current_vrchat_location_is_available": "Impossible d'inviter : aucun emplacement actuel n'est disponible",
                 "cannot_invite_from_the_current_instance_type": "Impossible d'inviter depuis le type d'instance actuel",
-                "cannot_invite_current_location_is_not_a_concrete_instance": "Impossible d'inviter : la position actuelle n'est pas une instance concrète",
-                "friend_locations_failed_to_load": "Échec du chargement des positions des amis"
+                "cannot_invite_current_location_is_not_a_concrete_instance": "Impossible d'inviter : l'emplacement actuel n'est pas une instance concrète",
+                "friend_locations_failed_to_load": "Échec du chargement de l'emplacement des amis"
             },
             "description": {
                 "cancelling": "Annulation..."
@@ -1707,7 +1716,7 @@
             "group": {
                 "header": "Groupe",
                 "calendar": "Calendrier",
-                "calendar_description": "Calendrier des événements du groupe",
+                "calendar_description": "Calendrier des évènements du groupe",
                 "moderation": "Modération du groupe",
                 "moderation_description": "Gérez les membres, bannissements, invitations et demandes d'adhésion des groupes que vous modérez."
             },
@@ -1728,14 +1737,14 @@
                 "pictures": {
                     "vrc_photos": "Photos VRChat",
                     "steam_screenshots": "Captures d'écran Steam",
-                    "vrc_photos_description": "Ouvre votre dossier de photos VRChat",
-                    "steam_screenshots_description": "Ouvre votre dossier de captures d'écran Steam"
+                    "vrc_photos_description": "Ouvrir votre dossier de photos VRChat",
+                    "steam_screenshots_description": "Ouvrir votre dossier de captures d'écran Steam"
                 },
                 "header": "Médias",
                 "screenshot": "Capture d'écran",
                 "screenshot_description": "Afficher et gérer les captures d'écran",
                 "gallery": "Galerie",
-                "gallery_description": "Gérer la galerie de photos, les icônes de profil et les impressions VRChat",
+                "gallery_description": "Gérer les photos, icônes, et imprimés",
                 "inventory": "Inventaire",
                 "inventory_description": "Gérer les emojis, autocollants, objets et cosmétiques"
             },
@@ -1756,7 +1765,7 @@
                 "vrchat_log_description": "Lire les journaux de sortie locaux de VRChat",
                 "launch_options_description": "Modifier les options de lancement de VRChat",
                 "app_launcher": "Lanceur d'applications",
-                "app_launcher_description": "Gérer les applications et raccourcis lancés automatiquement au démarrage de VRChat.",
+                "app_launcher_description": "Lancer les applications automatiquement au démarrage de VRChat.",
                 "registry_backup": "Sauvegarde du registre VRChat",
                 "registry_backup_description": "Créer ou restaurer une sauvegarde du registre VRChat",
                 "llm_endpoints": "Endpoints LLM",
@@ -1797,9 +1806,9 @@
             "social_automation": {
                 "header": "Automatisation sociale",
                 "status_schedule": "Planification du statut",
-                "status_schedule_description": "Modifie le statut et le message selon l'heure, éventuellement uniquement lorsque VRChat est en cours d'exécution.",
+                "status_schedule_description": "Planifier le changement de statut, uniquement lorsque VRChat est en cours d'exécution.",
                 "room_status_rules": "Règles de statut selon l'instance et le monde",
-                "room_status_rules_description": "Change le statut selon l'instance, le monde et les amis présents pendant que VRChat est lancé.",
+                "room_status_rules_description": "Modifier automatiquement le statut selon l'instance, le monde ou les amis présents.",
                 "invite_request_auto_reply": "Réponse auto aux demandes d'invitation",
                 "invite_request_auto_reply_description": "Invite automatiquement les amis autorisés qui demandent à rejoindre, lorsque VRChat est en cours d'exécution.",
                 "schedule_rules": "Règles de planification",
@@ -1822,7 +1831,7 @@
                 "only_when_game_running": "Uniquement en jeu",
                 "only_when_game_running_description": "Ignorer cette règle lorsque VRChat n'est pas en cours d'exécution.",
                 "restore_previous_status": "Restaurer le statut précédent",
-                "restore_previous_status_description": "À la fin de la plage horaire, restaure le statut et le message de statut modifiés par cette règle. Désactivez cette option pour conserver les valeurs planifiées.",
+                "restore_previous_status_description": "Restaurer le statut lorsque la plage horaire est terminée. Désactivez cette option pour conserver les valeurs planifiées.",
                 "status": "Statut",
                 "signature": "Message de statut",
                 "do_not_change": "Ne pas modifier",
@@ -1838,7 +1847,7 @@
                 "minimum_friends": "Nombre minimum d'amis",
                 "minimum_players": "Nombre minimum d'utilisateurs",
                 "room_types": "Types d'instance",
-                "room_types_hint": "Laisser vide pour tout type d'instance. Les règles qui vous font apparaître comme rejoignable devraient rester limitées.",
+                "room_types_hint": "Laisser vide pour tout type d'instance. Les règles qui vous définissant un statut devraient cibler des types spécifiques.",
                 "no_custom_room_rules": "Aucune règle d'instance personnalisée configurée.",
                 "preset_alone": "Seul",
                 "preset_with_anyone": "Avec n'importe qui",
@@ -1857,7 +1866,7 @@
                 "all_favorite_friends": "Tous les amis favoris",
                 "selected_favorite_groups": "Groupes de favoris sélectionnés",
                 "selected_favorite_groups_label": "Groupes de favoris sélectionnés",
-                "automatic_replies_note": "Les réponses automatiques ne s'exécutent que lorsque VRChat est en cours d'exécution et que votre emplacement actuel autorise l'envoi d'invitations. Le délai d'attente est appliqué par expéditeur, et les notifications ne sont masquées qu'une fois l'appel à l'API d'invitation réussi.",
+                "automatic_replies_note": "Ne fonctionne que lorsque VRChat est en cours d'exécution et que votre emplacement permet d'inviter. Chaque envois est limité dans le temps",
                 "failed_to_load_schedule_rules": "Échec du chargement des règles de planification.",
                 "failed_to_save_schedule_rules": "Échec de l'enregistrement des règles de planification.",
                 "failed_to_load_room_rules": "Échec du chargement des règles d'instance.",
@@ -1948,8 +1957,6 @@
                 "description": "Connexions partagées compatibles OpenAI pour Social AI et la traduction.",
                 "follow_custom_proxy": "Utiliser le proxy personnalisé de VRCX-0",
                 "follow_custom_proxy_description": "Les requêtes LLM l’utilisent lorsqu’il est configuré ; sinon, le proxy système s’applique.",
-                "endpoint_count": "{count} endpoints",
-                "model_count": "{count} modèles",
                 "add": "Ajouter un endpoint",
                 "empty_description": "Ajoutez un endpoint compatible OpenAI pour Social AI et la traduction compatible OpenAI.",
                 "preset": "Préréglage",
@@ -1958,11 +1965,13 @@
                     "siliconflow": "SiliconFlow"
                 },
                 "name": "Nom",
+                "name_description": "Affiché en tant que nom du groupe lorsque vous prenez un modèle.",
                 "base_url": "URL de base",
+                "base_url_invalid": "Saisissez une adresse http:// ou https:// complète.",
                 "models": "Modèles",
-                "key": "Clé",
-                "actions": "Actions",
-                "no_models": "Aucun modèle",
+                "models_placeholder": "Recherchez des modèles détectés, ou saisissez un nom et appuyez sur Entrée.",
+                "models_empty": "Rien n'a été détecté. Saisissez le nom d'un modèle et appuyez sur Entrée.",
+                "unusable": "Il n'y a aucun modèle, cet endpoint ne peut pas être utilisé.",
                 "key_saved": "Enregistrée",
                 "key_empty": "Vide",
                 "detect_models": "Détecter les modèles",
@@ -1972,9 +1981,9 @@
                 "clear_key": "Effacer la clé",
                 "key_preserve_placeholder": "Laisser vide pour conserver la clé enregistrée",
                 "saved": "Endpoint enregistré",
+                "saved_unusable": "Enregistré, mais aucun modèle n'a été trouvé pour cet endpoint.",
                 "save_failed": "Échec de l'enregistrement de l'endpoint",
                 "load_failed": "Échec du chargement des endpoints",
-                "base_url_required": "L'URL de base est requise.",
                 "models_detected": "{count} modèles détectés",
                 "no_models_detected": "Aucun modèle détecté",
                 "detect_failed": "Échec de la détection des modèles",
@@ -2001,7 +2010,30 @@
                 "ai": "IA",
                 "vr": "VR",
                 "media": "Média",
-                "integrations": "Intégrations"
+                "integrations": "Intégrations",
+                "feedback": "Retour d'expérience"
+            },
+            "feedback": {
+                "title": "Envoyer un retour d'expérience",
+                "description": "Le retour d'expérience est soumis de manière anonyme. Nous lisons chaque message, mais ne pouvons pas y répondre directement.",
+                "privacy_note": "Aucune information concernant le compte n'est attachée.",
+                "placeholder": "Dites-nous ce qui fonctionne, ce qui ne fonctionne pas, ou ce que vous aimeriez voir...",
+                "submit": "Envoyer",
+                "submitting": "Envoi en cours…",
+                "thanks": "Merci pour votre retour d'expérience !",
+                "cooldown": "vous pouvez envoyer à nouveau dans {{seconds}}s",
+                "more_help": "Besoin d'une réponse, ou voulez-vous attacher les journaux ?",
+                "error_generic": "Impossible d'envoyer le retour d'expérience. Veuillez réessayer plus tard."
+            },
+            "ai": {
+                "header": "IA social",
+                "description": "Par défaut pour toutes les nouvelles conversations. Chaque conversation peut les outrepasser depuis le panneau IA social.",
+                "default_model": "Modèle par défaut",
+                "default_model_description": "Les nouvelles conversations commencent avec ce modèle.",
+                "default_model_unset": "Aucun modèle disponible",
+                "setup_hint": "L'IA sociale a besoin d'une connection OpenAI compatible avant de pouvoir répondre.",
+                "playbook_mode_description": "Le degré de liberté que le modèle a lors de l'analyse de vos données.",
+                "endpoints_description": "Partagées par l'IA social et la traduction."
             },
             "social": {
                 "interaction": {
@@ -2011,11 +2043,11 @@
                     "header": "Favoris"
                 },
                 "hidden_feed": {
-                    "header": "Utilisateurs masqués du Feed",
-                    "description": "Masque les utilisateurs sélectionnés du Feed sans supprimer les données enregistrées.",
+                    "header": "Utilisateurs masqués du flux",
+                    "description": "Masque les utilisateurs sélectionnés du flux sans supprimer les données enregistrées.",
                     "add": "Ajouter un utilisateur",
                     "search_placeholder": "Rechercher des utilisateurs",
-                    "empty": "Aucun utilisateur masqué du Feed.",
+                    "empty": "Aucun utilisateur masqué du flux.",
                     "remove": "Retirer l'utilisateur masqué",
                     "unknown_user": "Utilisateur inconnu"
                 }
@@ -2027,7 +2059,7 @@
                     "start_when": "Démarrer quand",
                     "start_when_steamvr": "SteamVR démarre",
                     "start_when_vrchat_vr_mode": "VRChat démarre",
-                    "position": "Position",
+                    "position": "Emplacement",
                     "position_bottom": "Bas",
                     "position_top": "Haut",
                     "position_left": "Gauche",
@@ -2079,13 +2111,13 @@
             "integrations": {
                 "mcp_server": {
                     "header": "Serveur MCP VRCX-0",
-                    "description": "Expose les données sociales locales de VRCX-0 aux clients MCP de confiance. Par défaut, le serveur n'écoute que localhost.",
+                    "description": "Laissez les clients MCP de confiance accéder à vos données VRCX-0. Hôte local par défaut seulement.",
                     "enable": "Activer le serveur MCP",
-                    "enable_description": "Démarre un serveur HTTP MCP protégé par un bearer token. L'accès limité à localhost est le comportement par défaut.",
+                    "enable_description": "Démarre un serveur MCP protégé par un token sur l'hôte local.",
                     "allow_vrchat_writes": "Autoriser l'écriture sur le compte VRChat",
-                    "allow_vrchat_writes_description": "Lorsque cette option est désactivée, les appels d'outils ajoutant des favoris à VRChat sont forcés en mode simulation (dry-run). Activez-la pour laisser l'IA écrire des favoris sur votre véritable compte VRChat. Se réinitialise sur désactivé à chaque démarrage du serveur.",
+                    "allow_vrchat_writes_description": "Permet à l'IA de modifier vos favoris sur votre compte VRChat. Est désactivé à chaque démarrage du serveur.",
                     "allow_lan_connections": "Autoriser les connexions LAN",
-                    "allow_lan_connections_description": "Écoute sur toutes les interfaces IPv4 afin que d'autres appareils du réseau local puissent se connecter avec l'adresse IP de cet ordinateur et le bearer token. Gardez cette option désactivée sur les réseaux non fiables.",
+                    "allow_lan_connections_description": "Permet aux autres appareils de votre réseau local de se connecter. Gardez le désactivé sur les réseaux publics.",
                     "port_label": "Port du serveur",
                     "port_description": "Le modifier redémarre le serveur. Si le port 8798 est occupé, choisissez un port libre et recopiez la configuration du client.",
                     "port_apply": "Appliquer",
@@ -2093,7 +2125,7 @@
                     "status_label": "Statut",
                     "port_active_connections": "Port {port} ; connexions actives {count}",
                     "client_config": "Configuration du client",
-                    "client_config_description": "Choisissez l'option adaptée à votre client. Claude Code : une commande `claude mcp add` à exécuter une seule fois dans le terminal. Générique (HTTP) : une configuration JSON pour une connexion HTTP directe — aucun outil supplémentaire. Générique (mcp-remote) : une configuration JSON qui établit un tunnel via un proxy Node.js pour les clients sans HTTP natif (p. ex. Claude Desktop) ; nécessite Node.js dans le PATH. Lorsque les connexions LAN sont activées, les configurations copiées utilisent `YOUR-LAN-IP` ; remplacez-le par l'adresse IP locale de cet ordinateur avant de les utiliser depuis un autre appareil.",
+                    "client_config_description": "Claude Code : une commande à exécuter une seule fois dans le terminal. Générique (HTTP) : Configuration JSON pour une connexion HTTP. Générique (mcp-remote) : Configuration JSON via un proxy Node.js pour les clients sans HTTP natif ; nécessite Node.js dans le PATH. Avec une connexion LAN sont activée, les configurations utilisent `YOUR-LAN-IP` — remplacez-le par l'adresse IP locale de cet ordinateur.",
                     "copy_mcp_remote": "Générique (mcp-remote)",
                     "copy_generic": "Générique (HTTP)",
                     "security_note": "Les configurations client contiennent un token en clair. Ne les partagez qu'avec des outils ou appareils de confiance.",
@@ -2138,18 +2170,18 @@
                     "startup_system_description": "Crée une entrée de démarrage automatique du bureau qui lance VRCX-0 avec --autostart.",
                     "minimized": "Démarrer minimisé au démarrage du système",
                     "tray": "Réduire dans la zone de notification à la fermeture",
-                    "tray_description": "Lorsque cette option est activée, cliquer sur le bouton de fermeture (X) réduit VRCX-0 dans la zone de notification au lieu de le quitter. Lorsqu'elle est désactivée, cliquer sur X quitte VRCX-0.",
+                    "tray_description": "Minimiser dans la barre des tâches au lieu de quitter l'application.",
                     "system_window_frame": "Mode de compatibilité de fenêtre",
-                    "system_window_frame_description": "Passe au style de fenêtre standard du système. Activez cette option si la fenêtre scintille ou laisse apparaître le bureau. Prend effet après le redémarrage de VRCX-0.",
+                    "system_window_frame_description": "Utiliser le style de fenêtre standard du système. Activez cette option si la fenêtre scintille ou laisse apparaître le bureau. Prend effet après le redémarrage de VRCX-0.",
                     "system_window_frame_saved": "Enregistré. Redémarrez VRCX-0 pour appliquer.",
                     "system_window_frame_restart_now": "Redémarrer maintenant",
-                    "background_mode": "Passer en mode arrière-plan lors de la réduction dans la barre des tâches",
-                    "background_mode_description": "Passe automatiquement en mode arrière-plan lors de la réduction dans la barre des tâches. Réduit l'utilisation de la mémoire à 10 % comme auparavant. Certains états de page peuvent être réinitialisés à la restauration.",
-                    "background_mode_delay": "Délai avant le passage en mode arrière-plan",
-                    "background_mode_delay_description": "Une fois VRCX-0 réduit dans la barre des tâches, il ne passe en mode arrière-plan qu'après le nombre de minutes configuré sans que la fenêtre soit rouverte. Rouvrir la fenêtre réinitialise ce délai.",
+                    "background_mode": "Mode arrière-plan dans la barre des tâches",
+                    "background_mode_description": "Réduit l'utilisation de la mémoire de 90%. Certains états de page peuvent être réinitialisés à la restauration.",
+                    "background_mode_delay": "Délai avant le passage en arrière-plan",
+                    "background_mode_delay_description": "Patientez avant de passer en arrière-plan - Réouvrir avant le délais relance le processus.",
                     "background_mode_delay_button": "Définir le délai en minutes",
                     "auto_install_updates_on_startup": "Mise à jour automatique au démarrage",
-                    "auto_install_updates_on_startup_description": "Une fois activé, VRCX-0 vérifie les mises à jour au démarrage de l'application. Si une mise à jour installable est disponible, elle sera téléchargée, installée et l'application redémarrera automatiquement.",
+                    "auto_install_updates_on_startup_description": "Télécharge automatiquement les mises à jour et les installe au démarrage.",
                     "check_for_updates_and_update": "Rechercher et installer les mises à jour",
                     "update_check_disabled": "Désactivé",
                     "update_check_disabled_build_description": "La recherche de mises à jour est désactivée dans cette version spéciale. Utilisez votre gestionnaire de paquets ou contactez le responsable de la maintenance pour mettre à jour VRCX-0.",
@@ -2220,7 +2252,7 @@
                     "zoom": "Zoom",
                     "vrcplus_profile_icons": "Icônes de profil",
                     "vrcplus_profile_icons_description": "Utiliser l’icône de profil comme image de l’utilisateur lorsqu’elle est disponible.",
-                    "show_instance_id": "Afficher l'ID d'instance",
+                    "show_instance_id": "Afficher l'ID de l'instance",
                     "age_gated_instances": "Afficher les instances soumises à une limite d'âge",
                     "age_gated_instances_description": "Affiche les instances soumises à une limite d'âge. Lorsque cette option est désactivée, ces instances sont masquées et indiquées comme restreintes.",
                     "nicknames": "Surnoms des notes locales",
@@ -2229,6 +2261,8 @@
                     "table_page_sizes_description": "Ajoutez, supprimez et sélectionnez les options de taille de page affichées dans les contrôles de tableau.",
                     "table_page_sizes_error": "La taille de page doit être un nombre compris entre 1 et 1000",
                     "show_notification_icon_dot": "Pastille de notification dans la barre des tâches",
+                    "show_taskbar_icon_dot": "Pastille de notification dans la barre des tâches",
+                    "show_taskbar_icon_dot_description": "Afficher une pastille rouge sur le bouton de la barre des tâches de VRCX-0 tant que les notifications sont non lues.",
                     "striped_data_table_mode": "Tableaux à lignes alternées",
                     "reduced_motion_and_blur": "Réduire les effets",
                     "reduced_motion_and_blur_description": "Désactive les animations, les transitions et le flou d’arrière-plan pour améliorer les performances sur les appareils peu puissants.",
@@ -2317,7 +2351,7 @@
                     "layout_notification_center": "Centre de notifications",
                     "layout_table": "Page des notifications",
                     "post_update_changelog_prompt": "Afficher les notes de mise à jour après l'installation",
-                    "post_update_changelog_prompt_description": "Affiche une invite persistante au démarrage de l'application après l'installation d'une nouvelle version.",
+                    "post_update_changelog_prompt_description": "Affiche ce qui est nouveau dans la version installée.",
                     "vr_notifications": {
                         "header": "Notifications de l'overlay VR",
                         "xsoverlay_notifications": "Notifications XSOverlay",
@@ -2356,6 +2390,20 @@
                         "notification_filters": "Filtres de notifications par webhook",
                         "send_test": "Envoyer un webhook de test",
                         "test_sent": "Webhook de test envoyé (HTTP {status})",
+                        "delivery_status": "Statut de livraison",
+                        "delivery_activity": "Notifications d'activité",
+                        "delivery_auth": "Échecs de la connexion automatique",
+                        "delivery_last_success": "Dernier succès",
+                        "delivery_last_failure": "Dernière erreur",
+                        "delivery_dropped": "Supprimés: {count}",
+                        "delivery_record": "{event} · {status} · tentatives : {attempts} · {time}",
+                        "delivery_no_status": "Aucun statut HTTP",
+                        "delivery_never": "Jamais",
+                        "delivery_contract_title": "Contrat de livraison",
+                        "delivery_contract_http": "Seul les codes HTTP 2xx sont considérés comme succès. Chaque tentative expire après 10 secondes, les corps de réponse sont limités à 64 KiB, et les échecs transitoires sont réessayés jusqu'à deux fois.",
+                        "delivery_contract_auth": "La sélection de champs et les filtres d'activité s'appliquent uniquement aux notifications d'activité. Les échecs de connexion automatique utilisent un payload orienté vers la sécurité et un interrupteur séparé.",
+                        "delivery_contract_queue": "La livraison utilise des files d'attente en mémoire avec une stockage de tentatives persistant. Les évènements peuvent être supprimés, et le statut de livraison est réinitialisé lorsque VRCX-0 redémarre.",
+                        "delivery_contract_secret": "Les URLs de webhook contiennent souvent des identifiants. Traitez cette URL comme un secret et protégez le profil VRCX-0 local et ses sauvegardes.",
                         "examples_title": "Champs et exemples de charge utile du webhook",
                         "examples_description": "Choisissez les champs JSON générique et inspectez ce que VRCX-0 envoie pour chaque format de charge utile de webhook.",
                         "comments_note": "Les exemples montrent la structure du corps de la requête ; les notes sur les champs expliquent leur usage et ne sont pas envoyées.",
@@ -2410,7 +2458,8 @@
                     "enable": "Activer",
                     "enable_tooltip": "Il est recommandé de désactiver la Rich Presence de VRChat dans le fichier config.json de VRChat pour éviter les conflits.",
                     "instance_type_player_count": "Type d'instance / nombre d'utilisateurs",
-                    "join_button": "Bouton rejoindre (en public uniquement)",
+                    "join_button": "Bouton rejoindre",
+                    "join_button_description": "Seulement visible en public",
                     "show_details_in_private": "Afficher les détails dans les instances privées",
                     "show_images": "Afficher les images du monde",
                     "show_current_platform": "Afficher la plateforme actuelle",
@@ -2430,6 +2479,8 @@
                         "header": "Comportement de VRChat",
                         "quit_header": "Fermer les processus VRChat restants",
                         "quit_description": "Après la fermeture de VRChat, fermer les processus VRChat encore actifs.",
+                        "focus_on_join_header": "Placer VRChat au premier plan",
+                        "focus_on_join_description": "Basculer vers la fenêtre VRChat après avoir rejoint une instance. Mode bureau uniquement.",
                         "deep_link_registration": "Ouvrir les liens VRCX-0",
                         "deep_link_registered": "Les liens VRCX-0 s’ouvrent avec VRCX-0 pour ce compte.",
                         "deep_link_not_registered": "Le réglage système permettant d’ouvrir les liens VRCX-0 est absent ou pointe vers une installation non valide.",
@@ -2453,10 +2504,10 @@
                         "description": "Outils de journalisation et de diagnostic pour rechercher les problèmes.",
                         "show": "Afficher les outils",
                         "hide": "Masquer les outils",
-                        "gamelog": "Enregistrer l’historique GameLog",
-                        "gamelog_description": "Lorsque cette option est désactivée, aucun nouvel historique GameLog n’est enregistré. Player List, Now Playing, les métadonnées des captures, Instance Media et les autres fonctions en temps réel restent disponibles.",
-                        "feed_history": "Enregistrer l’historique du Feed",
-                        "feed_history_description": "Lorsque cette option est désactivée, l’historique du Feed n’est ni enregistré ni chargé. Le Feed démarre vide et n’affiche que l’activité en temps réel de cette session. Friends Sidebar et les autres fonctions en temps réel restent disponibles.",
+                        "gamelog": "Enregistrer l’historique du journal de jeu",
+                        "gamelog_description": "Lorsque cette option est désactivée, aucun nouvel historique n’est enregistré. Les fonctionnalités telles que la liste d'utilisateurs et ce qui joue restent disponibles.",
+                        "feed_history": "Enregistrer l’historique du flux",
+                        "feed_history_description": "Lorsque cette option est désactivée, le flux démarre vide chaque session. Les fonctionnalités telles que la barre latérale des amis et les autres fonctions en temps réel restent disponibles.",
                         "tools": "Diagnostic",
                         "database_usage": "Utilisation de la base de données",
                         "refresh_database_usage": "Actualiser l’utilisation de la base de données",
@@ -2505,23 +2556,23 @@
                         "description": "Collecter uniquement les informations anonymes nécessaires pour aider à améliorer VRCX-0."
                     },
                     "save_instance_prints_to_file": {
-                        "header": "Enregistrement des Impressions d'instance dans un fichier",
-                        "header_tooltip": "Nécessite l'option de lancement du VRChat « --enable-sdk-log-levels ».",
-                        "description": "Enregistre les impressions générées dans votre dossier VRChat Pictures",
+                        "header": "Enregistrement des imprimés d'instance dans un fichier",
+                        "header_tooltip": "Nécessite l'option de lancement VRChat « --enable-sdk-log-levels ».",
+                        "description": "Enregistre les imprimés générées dans votre dossier Images -> VRChat",
                         "crop": "Retirer automatiquement la bordure blanche des imprimés"
                     },
                     "save_instance_stickers_to_file": {
                         "header": "Enregistrer les autocollants d'instance dans un fichier",
-                        "description": "Enregistrer les autocollants placés dans votre dossier VRChat Pictures"
+                        "description": "Enregistrer les autocollants placés dans votre dossier Images -> VRChat"
                     },
                     "save_instance_emoji_to_file": {
                         "header": "Enregistrer les émoji de l'instance dans un fichier",
-                        "description": "Enregistrer les émoji apparus dans votre dossier Pictures de VRChat"
+                        "description": "Enregistrer les émoji apparus dans votre dossier Images -> VRChat"
                     },
                     "delete_all_screenshot_metadata": {
                         "button": "Supprimer les métadonnées des captures d'écran",
-                        "ask": "Voulez-vous vraiment supprimer toutes les métadonnées des captures d'écran VRChat et VRCX-0 de votre dossier Pictures de VRChat ?",
-                        "confirm": "La suppression de toutes les métadonnées des captures d'écran est une action très destructrice et irréversible ! Cela inclut tous les imprimés, sous-dossiers et autres images sans rapport présents dans votre dossier Pictures de VRChat ; si ces photos vous sont précieuses, veuillez faire une sauvegarde avant de continuer.",
+                        "ask": "Voulez-vous vraiment supprimer toutes les métadonnées des captures d'écran VRChat et VRCX-0 de votre dossier Images -> VRChat ?",
+                        "confirm": "La suppression de toutes les métadonnées des captures d'écran est une action très destructrice et irréversible ! Cela inclut tous les imprimés, sous-dossiers et autres images sans rapport présents dans votre dossier Images -> VRChat ; si ces photos vous sont précieuses, veuillez faire une sauvegarde avant de continuer.",
                         "confirm_yes": "Oui",
                         "confirm_no": "Non"
                     },
@@ -2538,10 +2589,10 @@
                         "enable_tooltip": "Récupère les titres des vidéos à utiliser avec l'Historique de Jeu et la durée de la barre de progression superposée."
                     },
                     "translation_api": {
-                        "header": "Activer la traduction du contenu",
+                        "header": "Traduction du contenu",
                         "enable": "Activer",
                         "translation_api_key": "Clé d'API de traduction",
-                        "enable_tooltip": "Traduire les bios des utilisateurs et les descriptions des mondes à la demande."
+                        "enable_tooltip": "Traduire la biographie des utilisateurs et les descriptions des mondes sur demande."
                     },
                     "screenshot_helper": {
                         "header": "Aide pour les captures d'écran",
@@ -2554,7 +2605,7 @@
                     },
                     "data_directory": {
                         "header": "Répertoire de données",
-                        "description": "Source active : {source}. Modifier ce réglage enregistre uniquement l'emplacement du dossier ; VRCX-0 ne copiera pas les données.",
+                        "description": "Source active : {source}. Modifie uniquement l'emplacement du dossier — les données existantes ne sont pas déplacées.",
                         "current": "Répertoire actuel",
                         "actions": "Actions sur le répertoire de données",
                         "choose": "Choisir un dossier",
@@ -2597,9 +2648,9 @@
                         "notification": "Notifications :",
                         "location": "Lieu :",
                         "join_leave": "Rejoindre / Quitter :",
-                        "portal_spawn": "Portail d'accès :",
+                        "portal_spawn": "Portail :",
                         "video_play": "Lecture de vidéo :",
-                        "event": "Événement :"
+                        "event": "Évènement :"
                     },
                     "database_cleanup": {
                         "auto_cleanup": "Nettoyage automatique des données d'avatar plus anciennes que",
@@ -2666,7 +2717,7 @@
                 "failed_to_save_setting": "Échec de l'enregistrement du paramètre",
                 "failed_to_load_settings": "Échec du chargement des paramètres",
                 "failed_to_save_trust_color": "Échec de l'enregistrement de la couleur de confiance",
-                "failed_to_refresh_sqlite_table_sizes": "Échec de l'actualisation des tailles des tables SQLite",
+                "failed_to_refresh_sqlite_table_sizes": "Échec de l'actualisation de la taille des tables SQLite",
                 "failed_to_refresh_config_json": "Échec de l'actualisation du config JSON",
                 "failed_to_refresh_online_user_count": "Échec de l'actualisation du nombre d'utilisateurs en ligne",
                 "failed_to_save_proxy_settings": "Échec de l'enregistrement des paramètres de proxy",
@@ -2781,7 +2832,7 @@
                 "no_current_instance_detected": "Aucune instance actuelle détectée",
                 "no_players_reconstructed_for_this_instance_yet": "Aucun utilisateur actuel trouvé pour le moment",
                 "enable_game_log_ingestion_in_settings_before_current_players_can_be_reconstructed": "Activez le journal de jeu dans les paramètres pour afficher les utilisateurs actuels.",
-                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Lancez VRChat et laissez VRCX-0 recevoir les événements du journal de jeu avant que cette page puisse reconstruire l'instance actuelle.",
+                "start_vrchat_and_let_vrcx_receive_game_log_events_before_this_page_can_rebuild_the_current_instance": "Lancez VRChat et laissez VRCX-0 recevoir les évènements du journal de jeu avant que cette page puisse reconstruire l'instance actuelle.",
                 "stay_in_the_instance_until_local_join_leave_events_are_recorded": "Restez dans l'instance jusqu'à ce que VRCX-0 détecte l'activité des utilisateurs. Cette liste se mettra à jour automatiquement.",
                 "current_players_follow_live_instance_locations": "Les utilisateurs actuels apparaîtront lorsque VRCX-0 détectera votre prochain emplacement.",
                 "local_join_leave_history_has_no_current_players": "L'historique d'arrivée/départ local ne contient encore aucun utilisateur actuel pour l'emplacement actif."
@@ -2790,9 +2841,9 @@
                 "instance_master": "Maître de l'instance",
                 "moderator": "Modérateur",
                 "favorite": "Favori",
-                "muted": "Mis en sourdine",
+                "muted": "Microphone désactivé",
                 "avatar_interaction_disabled": "Interaction d'avatar désactivée",
-                "chatbox_muted": "Bulle de chat en sourdine",
+                "chatbox_muted": "Bulle de dialogue désactivée",
                 "timeout": "Exclu temporairement",
                 "age_verified": "Âge vérifié",
                 "all": "Tous",
@@ -2903,7 +2954,7 @@
             },
             "error": {
                 "world_details_unavailable": "Les détails du monde sont indisponibles.",
-                "world_deleted": "This world has been deleted.",
+                "world_deleted": "Ce monde a été supprimé.",
                 "avatar_details_unavailable": "Les détails de l'avatar sont indisponibles."
             },
             "loading": {
@@ -3232,8 +3283,8 @@
                 "show_previous_instances": "Afficher l'historique des instances",
                 "moderation_block": "Bloquer",
                 "moderation_unblock": "Débloquer",
-                "moderation_mute": "Mettre en sourdine",
-                "moderation_unmute": "Rétablir le son",
+                "moderation_mute": "Désactiver le microphone",
+                "moderation_unmute": "Réactiver le microphone",
                 "moderation_hide_avatar": "Masquer l'avatar",
                 "moderation_show_avatar": "Afficher l'avatar",
                 "reset_hidden_avatar": "Réinitialiser l'avatar masqué",
@@ -3242,8 +3293,8 @@
                 "moderation_actions": "Modération...",
                 "moderation_enable_avatar_interaction": "Activer l'interaction avec l'avatar",
                 "moderation_disable_avatar_interaction": "Désactiver l'interaction avec l'avatar",
-                "moderation_enable_chatbox": "Réactiver la bulle de chat",
-                "moderation_disable_chatbox": "Désactiver la bulle de chat",
+                "moderation_enable_chatbox": "Réactiver la bulle de dialogue",
+                "moderation_disable_chatbox": "Désactiver la bulle de dialogue",
                 "edit_status": "Modifier le statut social",
                 "edit_profile_details": "Modifier les détails du profil",
                 "edit_profile_media": "Modifier la bannière et l'icône",
@@ -3388,7 +3439,7 @@
             "activity": {
                 "header": "Activité",
                 "refresh_hint": "Actualiser les données d'activité",
-                "total_events": "{count} événements en ligne",
+                "total_events": "{count} évènements en ligne",
                 "most_active_day": "Jour le plus actif :",
                 "most_active_time": "Heures de pointe :",
                 "period": "Période :",
@@ -3470,7 +3521,7 @@
                 "visibility_friends": "Amis",
                 "visibility_hidden": "Masqué",
                 "moderator": "Modérateur",
-                "muted": "Mis en sourdine",
+                "muted": "Microphone désactivé",
                 "order_by": "Trier par",
                 "group_by": "Grouper par",
                 "trust_level": "Rang de confiance",
@@ -3652,6 +3703,7 @@
                 "url": "Lien VRChat",
                 "vrcx_url": "Lien de partage",
                 "vrcx_url_description": "Ce lien ouvre directement l’application VRCX-0",
+                "vrcx_share_text": "Ouvrir « {name} » dans VRCX-0 : {url}",
                 "copy_vrcx_url": "Copier le lien de partage",
                 "youtube_preview": "Aperçu Youtube",
                 "author_tags": "Tags de l'auteur",
@@ -3854,6 +3906,7 @@
                 "copy_url": "Copier l'URL",
                 "vrcx_url": "Lien de partage",
                 "vrcx_url_description": "Ce lien ouvre directement l’application VRCX-0",
+                "vrcx_share_text": "Ouvrir « {name} » dans VRCX-0: {url}",
                 "copy_vrcx_url": "Copier le lien de partage",
                 "created_at": "Créé le",
                 "last_updated": "Dernière mise à jour",
@@ -3968,8 +4021,8 @@
                 "verified": "Vérifié"
             },
             "actions": {
-                "represent_tooltip": "Mettre en bannière",
-                "unrepresent_tooltip": "Enlever de la bannière",
+                "represent_tooltip": "Représenter",
+                "unrepresent_tooltip": "Ne plus représenter",
                 "cancel_join_request_tooltip": "Annuler la demande d'adhésion",
                 "join_group_tooltip": "Rejoindre le groupe",
                 "share": "Partager",
@@ -3977,10 +4030,10 @@
                 "subscribe": "S'abonner aux annonces",
                 "invite_to_group": "Inviter au groupe",
                 "visibility": "Visibilité du groupe",
-                "visibility_everyone": "Tout le monde peut me voir",
-                "visibility_friends": "Mes amis peuvent me voir",
-                "visibility_hidden": "Personne ne peut me voir",
-                "create_post": "Créer une publication",
+                "visibility_everyone": "Visible",
+                "visibility_friends": "Amis seulement",
+                "visibility_hidden": "Masqué",
+                "create_post": "Créer une annonce",
                 "moderation_tools": "Outils de modération",
                 "leave": "Quitter le groupe",
                 "block": "Bloquer le groupe",
@@ -3990,19 +4043,19 @@
                 "header": "Aperçu",
                 "description": "Description",
                 "basics": "Informations de base",
-                "recent_events": "Événements récents",
-                "open_events": "Événements ouverts",
+                "recent_events": "Évènements récents",
+                "open_events": "Évènements en cours",
                 "no_active_instances": "Aucune Instance active",
                 "no_active_instances_description": "Aucune Instance publique ou de groupe n'est actuellement listée pour ce groupe.",
-                "no_recent_events": "Aucun événement de groupe récent",
+                "no_recent_events": "Aucun évènement de groupe récent",
                 "preview_banner": "Aperçu de la bannière {value}"
             },
             "events": {
-                "header": "Événements",
-                "failed_to_load": "Échec du chargement des événements du groupe",
-                "no_events": "Aucun événement de groupe",
-                "no_upcoming_events": "Aucun événement à venir",
-                "no_past_events": "Aucun événement passé"
+                "header": "Évènements",
+                "failed_to_load": "Échec du chargement des évènements du groupe",
+                "no_events": "Aucun évènement de groupe",
+                "no_upcoming_events": "Aucun évènement à venir",
+                "no_past_events": "Aucun évènement passé"
             },
             "info": {
                 "instances": "Instances",
@@ -4018,8 +4071,8 @@
                 "roles": "Rôles",
                 "role": "Rôle :",
                 "last_visited": "Dernière visite",
-                "past_events": "Événements passés",
-                "upcoming_events": "Événements à venir"
+                "past_events": "Évènements passés",
+                "upcoming_events": "Évènements à venir"
             },
             "posts": {
                 "header": "Publications",
@@ -4331,7 +4384,7 @@
             "icons": "Icônes",
             "emojis": "Émojis",
             "stickers": "Autocollants",
-            "prints": "Impressions",
+            "prints": "Imprimés",
             "inventory": "Inventaire",
             "refresh": "Actualiser",
             "upload": "Téléverser",
@@ -4393,7 +4446,7 @@
             "failed_to_update_profile_background": "Impossible de mettre à jour l’arrière-plan du profil",
             "icon_frame": "Cadre d’icône",
             "profile_effect": "Effet de profil",
-            "nameplate_effect": "Effet de plaque nominative",
+            "nameplate_effect": "Effet de cadre",
             "equipped": "Équipé",
             "equip": "Équiper",
             "unequip": "Déséquiper",
@@ -4406,7 +4459,7 @@
             "all_items": "Tous les objets",
             "drones": "Drones",
             "portals": "Portails",
-            "warp_effects": "Effets de téléportation",
+            "warp_effects": "Effets d'apparition",
             "loading_screens": "Écrans de chargement",
             "archive": "Archiver",
             "unarchive": "Désarchiver",
@@ -4623,8 +4676,8 @@
                 },
                 "systemSafety": {
                     "label": "Système et sécurité",
-                    "description": "Événements système, éléments d'applications externes et activité liée à la modération.",
-                    "example": "Événements, modération"
+                    "description": "Évènements système, éléments d'applications externes et activité liée à la modération.",
+                    "example": "Évènements, modération"
                 },
                 "media": {
                     "label": "Média",
@@ -4660,16 +4713,16 @@
                 "group_invite": "Invitation de groupe",
                 "group_joinRequest": "Demande d'adhésion au groupe",
                 "group_transfer": "Demande de transfert de groupe",
-                "Event": "Événement divers",
+                "Event": "Évènement divers",
                 "External": "Application externe",
                 "Blocked": "Bloqué",
                 "Unblocked": "Débloqué",
-                "Muted": "Mis en sourdine",
-                "Unmuted": "Sourdine retirée",
+                "Muted": "Microphone désactivé",
+                "Unmuted": "Microphone réactivé",
                 "BlockedOnPlayerJoined": "Utilisateur bloqué arrivé",
                 "BlockedOnPlayerLeft": "Utilisateur bloqué parti",
-                "MutedOnPlayerJoined": "Utilisateur en sourdine arrivé",
-                "MutedOnPlayerLeft": "Utilisateur en sourdine parti",
+                "MutedOnPlayerJoined": "Utilisateur avec le microphone désactivé arrivé",
+                "MutedOnPlayerLeft": "Utilisateur avec le microphone désactivé parti",
                 "VideoPlay": "Lecture vidéo"
             },
             "favorite_groups": {
@@ -4681,7 +4734,7 @@
         },
         "previous_instances": {
             "action": {
-                "copy_instance_id": "Copier l'ID d'instance",
+                "copy_instance_id": "Copier l'ID de l'instance",
                 "more_actions": "Plus d'actions"
             },
             "header": "Historique des instances",
@@ -4706,7 +4759,7 @@
                 "loading_instance_details": "Chargement des détails de l'instance..."
             },
             "error": {
-                "failed_to_copy_instance_id": "Impossible de copier l'ID d'instance",
+                "failed_to_copy_instance_id": "Impossible de copier l'ID de l'instance",
                 "failed_to_load_instance_details": "Échec du chargement des détails de l'instance.",
                 "this_user_instance_row_cannot_be_deleted_without_event_ids": "Cette visite ne peut pas être supprimée"
             },
@@ -4723,7 +4776,7 @@
                 "sort_descending": "Tri décroissant"
             },
             "success": {
-                "instance_id_copied": "ID d'instance copié",
+                "instance_id_copied": "ID de l'instance copié",
                 "instance_record_deleted": "Visite supprimée de l'historique des instances"
             }
         },
@@ -4738,10 +4791,10 @@
             "kick": "Expulser",
             "ban": "Bannir",
             "unban": "Débannir",
-            "delete": "Delete",
-            "accept": "Accept",
-            "reject": "Reject",
-            "block": "Block",
+            "delete": "Supprimer",
+            "accept": "Accepter",
+            "reject": "Rejeter",
+            "block": "Bloquer",
             "display_name": "Pseudonyme",
             "created_at": "Créé le",
             "type": "Type",
@@ -4772,20 +4825,20 @@
             "import_bans_cancelled": "Annulé. {success}/{total} utilisateurs bannis.",
             "export_logs": "Exporter les journaux",
             "export_logs_copied": "CSV du journal d'audit copié dans le presse-papiers",
-            "inspector_empty": "Select a row to view details",
-            "view_full_profile": "View full profile",
+            "inspector_empty": "Selectionnez une rangée pour afficher les détails",
+            "view_full_profile": "Afficher le profil complet",
             "loaded_count": "{count} chargés",
-            "no_permission": "You don't have moderation permission for this group.",
+            "no_permission": "Vous n'avez pas la permission de modérer ce groupe.",
             "status": {
-                "member": "Member",
-                "invited": "Invited",
-                "banned": "Banned",
-                "requested": "Requested",
-                "blocked": "Blocked",
-                "userblocked": "Blocked",
-                "joined": "Joined",
-                "active": "Active",
-                "pending": "Pending"
+                "member": "Membre",
+                "invited": "Invité",
+                "banned": "Banni",
+                "requested": "Demandé",
+                "blocked": "Bloqué",
+                "userblocked": "Bloqué",
+                "joined": "Rejoint",
+                "active": "Actif",
+                "pending": "En attente"
             }
         },
         "group_post_edit": {
@@ -4793,14 +4846,14 @@
         },
         "group_calendar": {
             "header": "Calendrier du groupe",
-            "loading_events": "Chargement des événements...",
-            "description": "Afficher les événements du groupe pour la date sélectionnée.",
+            "loading_events": "Chargement des évènements...",
+            "description": "Afficher les évènements du groupe pour la date sélectionnée.",
             "list_view": "Vue liste",
             "calendar_view": "Vue calendrier",
-            "no_events": "Aucun événement trouvé",
-            "search_placeholder": "Rechercher des groupes ou des événements...",
-            "search_no_matching": "Aucun événement correspondant trouvé",
-            "search_no_this_month": "Aucun événement ce mois-ci",
+            "no_events": "Aucun évènement trouvé",
+            "search_placeholder": "Rechercher des groupes ou des évènements...",
+            "search_no_matching": "Aucun évènement correspondant trouvé",
+            "search_no_this_month": "Aucun évènement ce mois-ci",
             "event_card": {
                 "category": "Catégorie",
                 "interested_user": "Utilisateurs intéressés",
@@ -4809,18 +4862,18 @@
                 "description": "Description",
                 "export_to_calendar": "Exporter vers le calendrier",
                 "download_ics": "Télécharger le .ics",
-                "copied_event_link": "URL de l'événement copiée dans le presse-papiers",
-                "untitled_event": "Événement sans titre"
+                "copied_event_link": "URL de l'évènement copiée dans le presse-papiers",
+                "untitled_event": "Évènement sans titre"
             },
-            "featured_events": "Événements à la une",
-            "events_count_short": "{count} événements",
+            "featured_events": "Évènements à la une",
+            "events_count_short": "{count} évènements",
             "following_count_short": "{count} suivi(s)"
         },
         "boop_dialog": {
             "header": "Boop",
-            "emoji_manager": "Gestionnaire d'emojis",
+            "emoji_manager": "Gestionnaire d'émojis",
             "select_default_emoji": "Sélectionner l'émoji par défaut",
-            "default_emojis": "Emojis par défaut",
+            "default_emojis": "Émojis par défaut",
             "send": "Envoyer"
         },
         "vrcx_updater": {
@@ -4914,14 +4967,14 @@
                 "prompt_value": "Valeur de l'invite",
                 "notifications": "Notifications",
                 "unread": "non lu(s)",
-                "runtime_events_and_system_messages_land_here": "Les événements d'exécution et les messages système apparaissent ici",
+                "runtime_events_and_system_messages_land_here": "Les évènements d'exécution et les messages système apparaissent ici",
                 "notifications_are_surfaced_from_the_top_level_status_bar": "Les notifications sont affichées depuis la barre d'état de premier niveau",
-                "follow_event": "Suivre l'événement",
-                "unfollow_event": "Ne plus suivre l'événement"
+                "follow_event": "Suivre l'évènement",
+                "unfollow_event": "Ne plus suivre l'évènement"
             },
             "action": {
                 "mark_all_read": "Tout marquer comme lu",
-                "copy_event_link": "Copier le lien de l'événement"
+                "copy_event_link": "Copier le lien de l'évènement"
             },
             "empty": {
                 "no_notifications_yet": "Aucune notification pour l'instant"
@@ -5015,8 +5068,8 @@
         "close_instance": "Voulez-vous vraiment fermer cette instance ? Une fois fermée, personne ne pourra la rejoindre.",
         "logout": "Se déconnecter ?",
         "delete_log": "Supprimer le journal ?",
-        "disable_gamelog": "Arrêter d’enregistrer le nouvel historique GameLog ? Player List, Now Playing, les métadonnées des captures, Instance Media et les autres fonctions en temps réel restent disponibles.",
-        "disable_feed_persistence": "Arrêter d’enregistrer l’historique du Feed ? Le Feed repartira d’une vue en temps réel vide et les analyses historiques comporteront une lacune définitive. Friends Sidebar et les autres fonctions en temps réel resteront disponibles.",
+        "disable_gamelog": "Arrêter d’enregistrer le nouvel historique du journal de jeu ? La liste d'utilisateurs, ce qui joue, les métadonnées des captures, les médias d'instances et les autres fonctions en temps réel restent disponibles.",
+        "disable_feed_persistence": "Arrêter d’enregistrer l’historique du flux ? Le flux repartira d’une vue en temps réel vide et les analyses historiques comporteront une lacune définitive. La barre latérale des amis et les autres fonctions en temps réel resteront disponibles.",
         "delete_vrc_registry": "Supprimer les paramètres de registre VRChat existants ?",
         "clear_cache": "Effacer tout le cache VRChat ?"
     },
@@ -5152,8 +5205,6 @@
             "migration_restarting_title": "Migration des données",
             "migration_restarting": "VRCX-0 va redémarrer pour terminer la migration...",
             "upgrade_in_progress_title": "Mise à niveau de la base de données en cours",
-            "upgrade_in_progress_description": "Mise à jour de la base de données de la version {from} vers {to}. Veuillez ne pas fermer VRCX-0",
-            "upgrade_in_progress_initializing": "Initialisation de la mise à niveau de la base de données. Veuillez ne pas fermer VRCX-0",
             "upgrade_stage": {
                 "preflight": "Vérification de la base de données",
                 "prepare_legacy_snapshot": "Création d’une copie cohérente de la base de données VRCX",
@@ -5165,6 +5216,7 @@
                 "legacy_performance_indexes": "Ajout des index d’historique",
                 "global_performance_indexes": "Ajout des index de la base de données",
                 "notification_performance_indexes": "Ajout des index de notifications",
+                "schema_migrations": "Application des mises à jour du schéma",
                 "optimize": "Optimisation de la copie de la base de données",
                 "write_version": "Enregistrement de la version de la base de données",
                 "commit": "Passage à la base de données mise à niveau"
@@ -5180,7 +5232,10 @@
             "fresh_start_confirm_title": "Utiliser une nouvelle base de données ?",
             "fresh_start_confirm_description": "VRCX-0 conservera la base actuelle et les fichiers de l’échec dans un dossier de récupération, puis redémarrera avec une nouvelle base vide. Les paramètres, l’historique local et les données de compte enregistrées ne seront pas transférés vers la nouvelle base.",
             "fresh_start_restarting": "Archivage de la base actuelle et redémarrage de VRCX-0...",
-            "fresh_start_failed": "Impossible de créer une nouvelle base de données."
+            "fresh_start_failed": "Impossible de créer une nouvelle base de données.",
+            "upgrade_keep_open": "Veuillez garder VRCX-0 ouvert jusqu'à ce que cela soit terminé.",
+            "failure_reason": "Raison",
+            "restart_app": "Redémarrer VRCX-0"
         },
         "file": {
             "not_image": "Le fichier n'est pas une image",
@@ -5292,6 +5347,7 @@
         "unfriend": "n'est plus votre ami",
         "trust_level": "Le rang de confiance est désormais {trustLevel}",
         "display_name": "a changé son nom en {displayName}",
+        "bio": "a modifié sa biographie",
         "group_announcement_title": "Annonce de groupe",
         "group_informative_title": "Information de groupe",
         "group_invite_title": "Invitation de groupe",
@@ -5299,8 +5355,11 @@
         "group_transfer_request_title": "Demande de transfert de groupe",
         "group_queue_ready_title": "File d'attente d'instance prête",
         "instance_closed_title": "Instance fermée",
-        "portal_spawn_name": "a créé un portail vers {location}",
-        "portal_spawn": "Un utilisateur a créé un portail",
+        "event_title": "Événement",
+        "external_title": "Appplication externe",
+        "video_play_title": "Lecture vidéo",
+        "portal_spawn_name": "a placé un portail vers {location}",
+        "portal_spawn": "Un utilisateur a placé un portail",
         "avatar_change": "a changé pour l'avatar {avatar}",
         "chat_message": "a dit : {message}",
         "blocked_player_joined": "Un utilisateur bloqué a rejoint l'instance",
@@ -5623,7 +5682,7 @@
             "modal": {
                 "launch_vrchat": "Lancer VRChat",
                 "launch": "Lancer",
-                "vrchat_is_already_running_continue_launching_this_instance": "VRChat est déjà en cours d'exécution. VRCX-0 enverra une nouvelle requête de lancement au client actif. Si plusieurs clients sont ouverts, le GameLog, la localisation actuelle, la liste des utilisateurs et certains services en arrière-plan peuvent devenir peu fiables. Continuer ?"
+                "vrchat_is_already_running_continue_launching_this_instance": "VRChat est déjà en cours d'exécution. VRCX-0 enverra une nouvelle requête de lancement au client actif. Si plusieurs clients sont ouverts, le journal de jeu, l'emplacement actuel, la liste des utilisateurs et certains services en arrière-plan peuvent devenir peu fiables. Continuer ?"
             },
             "dynamic": {
                 "value_copied": "{value} copié"
@@ -5673,11 +5732,11 @@
                 "failed_to_export_friends_list": "Échec de l'export de la liste d'amis",
                 "failed_to_export_avatar_list": "Échec de l'export de la liste d'avatars",
                 "failed_to_load_memo_export_rows": "Impossible de préparer les notes locales pour l'exportation",
-                "failed_to_load_group_events": "Échec du chargement des événements de groupe",
-                "failed_to_update_group_event_follow_state": "Impossible de mettre à jour cet événement",
+                "failed_to_load_group_events": "Échec du chargement des évènements de groupe",
+                "failed_to_update_group_event_follow_state": "Impossible de mettre à jour cet évènement",
                 "failed_to_download_ics_file": "Échec du téléchargement du fichier .ics",
                 "failed_to_save_ics_file": "Échec de l'enregistrement du fichier .ics",
-                "failed_to_copy_event_link": "Échec de la copie du lien de l'événement",
+                "failed_to_copy_event_link": "Échec de la copie du lien de l'évènement",
                 "failed_to_load_moderatable_groups": "Échec du chargement des groupes que vous modérez",
                 "failed_to_open_group_moderation": "Échec de l'ouverture de la modération du groupe"
             },
@@ -5685,14 +5744,14 @@
                 "picker_description": "Choisissez un groupe pour gérer les membres, bannissements, invitations et demandes d'adhésion.",
                 "loading": "Chargement des groupes que vous modérez…",
                 "empty_title": "Aucun groupe à modérer",
-                "empty_description": "Vous n'avez pas encore de droits de modération dans vos groupes.",
+                "empty_description": "Vous n'avez pas encore de permission de modération dans vos groupes.",
                 "permissions_degraded": "Certaines autorisations de groupe n'ont pas pu être vérifiées. La liste ci-dessous peut être incomplète.",
                 "member_count": "{count} membres",
-                "rail_title": "Groups you moderate",
-                "select_a_group_title": "Select a group",
-                "select_a_group_description": "Choose a group from the list to manage members, bans, invites, and join requests.",
-                "moderator_hint": "You have moderation access in this group",
-                "member_online_count": "{members} members · {online} online"
+                "rail_title": "Groupes que vous modérez",
+                "select_a_group_title": "Sélectionner un groupe",
+                "select_a_group_description": "Choisissez un groupe dans la liste pour gérer les membres, les bannissements, les invitations et les demandes d'adhésion.",
+                "moderator_hint": "Vous avez la permission de modérer ce groupe",
+                "member_online_count": "{members} membres · {online} en ligne"
             }
         }
     },
@@ -5704,12 +5763,10 @@
         },
         "database_upgrade_service": {
             "label": {
-                "unknown_path": "Chemin inconnu",
                 "database_schema_is_current": "Le schéma de base de données est à jour"
             },
             "error": {
                 "failed_upgrade_description": "La précédente mise à niveau de la base de données a échoué. Cette base de données ne peut pas être utilisée tant qu'elle n'est pas réparée manuellement.\n\nBase de données de travail : {path}",
-                "failed_upgrade_description_with_reason": "La précédente mise à niveau de la base de données a échoué. Cette base de données ne peut pas être utilisée tant qu'elle n'est pas réparée manuellement.\n\nBase de données de travail : {path}\n\nRaison : {reason}",
                 "apply_upgrade_failed": "VRCX-0 n'a pas pu appliquer une mise à niveau de la base de données locale",
                 "legacy_migration_restart_failed": "VRCX-0 n'a pas pu redémarrer pour migrer vos données VRCX existantes. Vous pouvez réessayer ou ignorer pour continuer avec la base de données actuelle.",
                 "newer_schema_requires_newer_app": "Cette base de données utilise le schéma {value}, mais cette version de VRCX-0 ne prend en charge que les schémas jusqu’à {value2}. Installez la dernière version de VRCX-0 pour l’ouvrir."
@@ -5721,9 +5778,6 @@
                 "refresh_config_failed_after_upgrade": "VRCX-0 a mis à niveau la base de données, mais n'a pas pu actualiser la configuration locale. Veuillez redémarrer l'application",
                 "requesting_legacy_migration": "Préparation de la migration de vos données VRCX existantes…",
                 "skipping_legacy_migration": "Migration ignorée, initialisation de votre base de données…"
-            },
-            "dynamic": {
-                "updating_database_from_value_to_value": "Mise à jour de la base de données de {value} vers {value2}"
             }
         },
         "favorite_import_service": {
@@ -5787,7 +5841,7 @@
             "friend_locations": "Emplacements des amis",
             "live_friend_location_board_for_finding_people": "Tableau des emplacements en direct des amis pour retrouver des personnes.",
             "game_log": "Journal de jeu",
-            "table_heavy_game_event_log": "Journal des événements de jeu en mode tableau.",
+            "table_heavy_game_event_log": "Journal des évènements de jeu en mode tableau.",
             "instance_history": "Historique des instances",
             "local_instance_history_for_a_selected_user": "Historique des instances pour un utilisateur sélectionné.",
             "current_players": "Utilisateurs actuels",
