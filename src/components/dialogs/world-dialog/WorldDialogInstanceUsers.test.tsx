@@ -226,13 +226,19 @@ describe('InstanceUserTiles', () => {
                 .getAllByTestId('user-detail-tile')
                 .map((tile) => tile.getAttribute('data-display-name'))
         ).toEqual(['usr_non_friend_owner', 'Self', 'Friend']);
-        expect(screen.getByText('Owner signature')).toBeTruthy();
+        const creatorTile = screen
+            .getAllByTestId('user-detail-tile')
+            .find(
+                (tile) =>
+                    tile.getAttribute('data-display-name') ===
+                    'usr_non_friend_owner'
+            );
         expect(
-            screen
-                .getByText('Owner signature')
-                .closest('[data-testid="user-detail-tile"]')
-                ?.querySelector('[data-testid="instance-timer"]')
-        ).toBeNull();
+            creatorTile?.querySelector<HTMLElement>(
+                '[data-testid="instance-timer"]'
+            )?.dataset.epoch
+        ).toBe('1700000000000');
+        expect(screen.queryByText('Owner signature')).toBeNull();
         expect(
             screen.getByLabelText('dialog.world.instances.instance_creator')
         ).toBeTruthy();
@@ -276,7 +282,7 @@ describe('InstanceUserTiles', () => {
         expect(screen.queryByText('Friend signature')).toBeNull();
     });
 
-    it('shows the localized status when a non-friend creator has no signature', () => {
+    it('shows the timer instead of status for a non-friend creator', () => {
         render(
             <InstanceUserTiles
                 instance={{
@@ -288,8 +294,8 @@ describe('InstanceUserTiles', () => {
             />
         );
 
-        expect(screen.getByText('dialog.user.status.active')).toBeTruthy();
-        expect(screen.queryByTestId('instance-timer')).toBeNull();
+        expect(screen.getByTestId('instance-timer')).toBeTruthy();
+        expect(screen.queryByText('dialog.user.status.active')).toBeNull();
     });
 
     it('shows the instance timer instead of the status signature', () => {
@@ -336,15 +342,14 @@ describe('InstanceUserTiles', () => {
         );
     });
 
-    it('keeps the sidebar fallback when creator profile data arrives later', () => {
+    it('uses the sidebar fallback for a non-friend creator', () => {
         mocks.knownCreatorUser = {
-            id: 'usr_friend_owner',
-            displayName: 'Friend Owner',
-            isFriend: true,
+            id: 'usr_non_friend_owner',
+            displayName: 'Non-friend Owner',
             $location_at: 1_700_000_030_000
         };
         getSharedSameInstanceFallbackJoinTimes().set(
-            'wrld_test:123:usr_friend_owner',
+            'wrld_test:123:usr_non_friend_owner',
             1_700_000_000_000
         );
 
@@ -352,9 +357,9 @@ describe('InstanceUserTiles', () => {
             <InstanceUserTiles
                 instance={{
                     location: 'wrld_test:123',
-                    creatorUserId: 'usr_friend_owner'
+                    creatorUserId: 'usr_non_friend_owner'
                 }}
-                visibleUserIds={new Set(['usr_friend_owner'])}
+                visibleUserIds={new Set()}
                 showInstanceDuration
             />
         );

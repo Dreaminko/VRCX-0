@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { CrownIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FriendInstanceTimer } from '@/components/sidebar/friends-sidebar/FriendsSidebarLocation';
@@ -298,21 +299,8 @@ export function InstanceUserTiles({
                 const subtitle = instanceUserSubtitle(user, t);
                 const travelingTimestamp = instanceUserTravelingTimestamp(user);
                 const isInstanceCreator = userId === creatorUserId;
-                const creatorIsFriend = Boolean(
-                    user.isFriend === true ||
-                    (userId !== currentUserSnapshot?.id &&
-                        visibleUserIds?.has(userId))
-                );
-                const creatorSignature = firstText(
-                    user.statusDescription,
-                    userStatusLabel(user, t)
-                );
-                const shouldShowTimer = Boolean(
-                    showInstanceDuration &&
-                    (!isInstanceCreator || creatorIsFriend)
-                );
                 const sharedFallbackEpoch =
-                    shouldShowTimer && instanceLocation
+                    showInstanceDuration && instanceLocation
                         ? fallbackJoinTimes.get(
                               sameInstanceFallbackKey(
                                   instanceLocation,
@@ -323,6 +311,31 @@ export function InstanceUserTiles({
                 const dwellEpoch = resolveInstanceDwellEpoch(user);
                 const timerEpoch =
                     travelingTimestamp || sharedFallbackEpoch || dwellEpoch;
+                let subline: ReactNode;
+                if (showInstanceDuration) {
+                    subline = (
+                        <FriendInstanceTimer
+                            epoch={timerEpoch}
+                            traveling={Boolean(travelingTimestamp)}
+                        />
+                    );
+                } else if (isInstanceCreator) {
+                    subline = undefined;
+                } else if (travelingTimestamp) {
+                    subline = (
+                        <>
+                            <Spinner
+                                aria-hidden="true"
+                                aria-label={undefined}
+                                role="presentation"
+                                className="mr-1 inline-block size-3"
+                            />
+                            {timeToText(Date.now() - travelingTimestamp)}
+                        </>
+                    );
+                } else {
+                    subline = subtitle || undefined;
+                }
                 return (
                     <UserDetailTile
                         key={`${userId || displayName || 'user'}:${index}`}
@@ -347,37 +360,7 @@ export function InstanceUserTiles({
                                 ? { color: user.$userColour }
                                 : undefined
                         }
-                        subline={
-                            isInstanceCreator ? (
-                                showInstanceDuration && creatorIsFriend ? (
-                                    <FriendInstanceTimer
-                                        epoch={timerEpoch}
-                                        traveling={Boolean(travelingTimestamp)}
-                                    />
-                                ) : (
-                                    creatorSignature || undefined
-                                )
-                            ) : showInstanceDuration ? (
-                                <FriendInstanceTimer
-                                    epoch={timerEpoch}
-                                    traveling={Boolean(travelingTimestamp)}
-                                />
-                            ) : travelingTimestamp ? (
-                                <>
-                                    <Spinner
-                                        aria-hidden="true"
-                                        aria-label={undefined}
-                                        role="presentation"
-                                        className="mr-1 inline-block size-3"
-                                    />
-                                    {timeToText(
-                                        Date.now() - travelingTimestamp
-                                    )}
-                                </>
-                            ) : (
-                                subtitle || undefined
-                            )
-                        }
+                        subline={subline}
                         onOpen={() => {
                             if (!userId) {
                                 return;
