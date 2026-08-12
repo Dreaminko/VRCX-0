@@ -137,6 +137,21 @@ pub struct ApiJsonResponse {
     pub json: Value,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("{message}")]
+pub struct VrchatApiFailure {
+    pub status_code: i32,
+    pub message: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VrchatAuthFailureKind {
+    InvalidCredentials,
+    MissingCredentials,
+    SessionInvalidated,
+    Other,
+}
+
 impl ApiJsonResponse {
     pub fn parse(status: i32, data: &str) -> Self {
         Self {
@@ -179,12 +194,76 @@ impl ApiJsonResponse {
         let message = self.error_message().unwrap_or_else(|| fallback.to_string());
         format!("{message} (HTTP {})", self.status)
     }
+
+    pub fn failure_or(&self, fallback: &str) -> Option<VrchatApiFailure> {
+        if !self.is_failure() {
+            return None;
+        }
+        Some(self.to_failure(fallback))
+    }
+
+    pub fn to_failure(&self, fallback: &str) -> VrchatApiFailure {
+        VrchatApiFailure {
+            status_code: self.status,
+            message: self
+                .error_message()
+                .unwrap_or_else(|| fallback.to_string()),
+        }
+    }
 }
 
 impl From<&HttpApiExecuteResponse> for ApiJsonResponse {
     fn from(response: &HttpApiExecuteResponse) -> Self {
         Self::parse(response.status, &response.data)
     }
+}
+
+pub fn vrchat_auth_error_message(response: &HttpApiExecuteResponse) -> Option<String> {
+    let json = serde_json::from_str::<Value>(&response.data).ok()?;
+    let object = json.as_object();
+    let error = object.and_then(|record| record.get("error"));
+    json.as_str()
+        .map(ToOwned::to_owned)
+        .or_else(|| {
+            auth_scalar_text(object.and_then(|record| record.get("message")))
+        })
+        .or_else(|| {
+            auth_scalar_text(
+                error
+                    .and_then(Value::as_object)
+                    .and_then(|record| record.get("message")),
+            )
+        })
+        .or_else(|| error.and_then(Value::as_str).map(ToOwned::to_owned))
+}
+
+fn auth_scalar_text(value: Option<&Value>) -> Option<String> {
+    match value {
+        Some(Value::String(text)) => Some(text.trim().to_string()),
+        Some(Value::Number(number)) => Some(number.to_string()),
+        Some(Value::Bool(flag)) => Some(flag.to_string()),
+        _ => None,
+    }
+    .filter(|text| !text.is_empty())
+}
+
+pub fn classify_vrchat_auth_failure(
+    response: &HttpApiExecuteResponse,
+) -> VrchatAuthFailureKind {
+    if response.status == 401 {
+        let message = vrchat_auth_error_message(response).unwrap_or_default();
+        if message.contains("Invalid Username/Email or Password") {
+            return VrchatAuthFailureKind::InvalidCredentials;
+        }
+        if message.contains("Missing Credentials") {
+            return VrchatAuthFailureKind::MissingCredentials;
+        }
+        return VrchatAuthFailureKind::SessionInvalidated;
+    }
+    if response.status == 403 {
+        return VrchatAuthFailureKind::SessionInvalidated;
+    }
+    VrchatAuthFailureKind::Other
 }
 
 pub fn parse_api_json(data: &str) -> Value {
@@ -633,6 +712,93 @@ mod tests {
         let ok = ApiJsonResponse::parse(200, r#"{"id":"usr_1"}"#);
         assert!(!ok.is_failure());
         assert_eq!(ok.error_message(), None);
+    }
+
+    #[test]
+    fn classifies_vrchat_auth_failures_without_broadening_credential_matches() {
+        let invalid_credentials = execute_response(
+            401,
+            r#"{"error":{"message":"Invalid Username/Email or Password"}}"#.into(),
+        );
+        let missing_credentials = execute_response(
+            401,
+            r#"{"error":{"message":"Missing Credentials"}}"#.into(),
+        );
+        let generic_unauthorized = execute_response(
+            401,
+            r#"{"error":{"message":"Unauthorized"}}"#.into(),
+        );
+        let forbidden =
+            execute_response(403, r#"{"error":{"message":"Forbidden"}}"#.into());
+        let conflicting_messages = execute_response(
+            401,
+            r#"{"message":"Missing Credentials","error":{"message":"Invalid Username/Email or Password"}}"#.into(),
+        );
+
+        assert_eq!(
+            classify_vrchat_auth_failure(&invalid_credentials),
+            VrchatAuthFailureKind::InvalidCredentials
+        );
+        assert_eq!(
+            classify_vrchat_auth_failure(&missing_credentials),
+            VrchatAuthFailureKind::MissingCredentials
+        );
+        assert_eq!(
+            classify_vrchat_auth_failure(&generic_unauthorized),
+            VrchatAuthFailureKind::SessionInvalidated
+        );
+        assert_eq!(
+            classify_vrchat_auth_failure(&forbidden),
+            VrchatAuthFailureKind::SessionInvalidated
+        );
+        assert_eq!(
+            classify_vrchat_auth_failure(&conflicting_messages),
+            VrchatAuthFailureKind::MissingCredentials
+        );
+    }
+
+    #[test]
+    fn auth_error_message_preserves_scalar_field_compatibility() {
+        let padded_nested = execute_response(
+            401,
+            r#"{"error":{"message":"  Missing Credentials  "}}"#.into(),
+        );
+        let numeric_top_level =
+            execute_response(401, r#"{"message":401}"#.into());
+
+        assert_eq!(
+            vrchat_auth_error_message(&padded_nested).as_deref(),
+            Some("Missing Credentials")
+        );
+        assert_eq!(
+            vrchat_auth_error_message(&numeric_top_level).as_deref(),
+            Some("401")
+        );
+    }
+
+    #[test]
+    fn creates_typed_api_failure_without_encoding_status_in_message() {
+        let response = ApiJsonResponse::parse(
+            404,
+            r#"{"error":{"message":"The specified friend request was not found."}}"#,
+        );
+
+        let failure = response
+            .failure_or("VRChat request failed")
+            .expect("failure response");
+
+        assert_eq!(failure.status_code, 404);
+        assert_eq!(
+            failure.message,
+            "The specified friend request was not found."
+        );
+    }
+
+    #[test]
+    fn typed_api_failure_preserves_existing_redirect_classification() {
+        let response = ApiJsonResponse::parse(302, "{}");
+
+        assert_eq!(response.failure_or("VRChat request failed"), None);
     }
 
     #[test]

@@ -257,10 +257,10 @@ async fn execute_group_quick_moderation_action(
 
     let request = quick_action_request(&endpoint, &group_id, &target_user_id, action)?;
     let response = execute_vrchat_api(&deps, request).await?;
-    if response.is_failure() {
-        return Err(Error::Custom(
-            response.error_message_or("VRChat group quick moderation action failed"),
-        ));
+    if let Some(failure) =
+        response.failure_or("VRChat group quick moderation action failed")
+    {
+        return Err(failure.into());
     }
 
     Ok(GroupQuickModerationActionOutput {
@@ -379,8 +379,8 @@ async fn execute_vrchat_json_request(
     fallback: &str,
 ) -> Result<Value> {
     let response = execute_vrchat_api(deps, request).await?;
-    if response.is_failure() {
-        return Err(Error::Custom(response.error_message_or(fallback)));
+    if let Some(failure) = response.failure_or(fallback) {
+        return Err(failure.into());
     }
     Ok(response.json)
 }

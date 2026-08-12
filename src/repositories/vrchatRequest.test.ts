@@ -168,15 +168,10 @@ describe('vrchat response unwrapping', () => {
 });
 
 describe('vrchat request error classification', () => {
-    it('classifies 401 and explicit missing credentials messages as missing credentials', () => {
+    it('classifies 401 request errors as missing credentials', () => {
         expect(
             isVrchatMissingCredentialsError(
                 createRequestError('Unauthorized', 401, 'auth/user')
-            )
-        ).toBe(true);
-        expect(
-            isVrchatMissingCredentialsError(
-                new Error('Missing Credentials for VRChat request')
             )
         ).toBe(true);
         expect(
@@ -185,6 +180,30 @@ describe('vrchat request error classification', () => {
             )
         ).toBe(false);
         expect(isVrchatMissingCredentialsError(null)).toBe(false);
+    });
+
+    it('classifies typed platform status without parsing VRChat English text', () => {
+        expect(
+            isVrchatMissingCredentialsError(
+                Object.assign(new Error('opaque auth failure'), {
+                    code: 'vrchat_api',
+                    statusCode: 401
+                })
+            )
+        ).toBe(true);
+        expect(
+            isVrchatMissingCredentialsError(
+                new Error('Missing Credentials for VRChat request')
+            )
+        ).toBe(false);
+        expect(
+            isVrchatMissingCredentialsError(
+                Object.assign(new Error('unrelated failure'), {
+                    code: 'custom',
+                    statusCode: 401
+                })
+            )
+        ).toBe(false);
     });
 
     it('unwraps nested and string error messages before using the status fallback', () => {

@@ -4,7 +4,10 @@ use vrcx_0_vrchat_client::auth::{
     config_get_input, current_user_get_input, email_otp_verify_input, login_basic_input,
     otp_verify_input, totp_verify_input,
 };
-use vrcx_0_vrchat_client::http_api::{ApiScope, HttpApiExecuteResponse, HttpApiRequestInput};
+use vrcx_0_vrchat_client::http_api::{
+    classify_vrchat_auth_failure, ApiScope, HttpApiExecuteResponse, HttpApiRequestInput,
+    VrchatAuthFailureKind,
+};
 
 use crate::auth::auth_credentials::saved_credential_login_start_with_api;
 use crate::{
@@ -68,20 +71,12 @@ impl TwoFactorMethodKind {
 }
 
 fn classify_status_failure(response: &HttpApiExecuteResponse) -> LoginFailureKind {
-    if response.status == 401 {
-        let message = auth_response_error_message(response, String::new());
-        if message.contains("Invalid Username/Email or Password") {
-            return LoginFailureKind::InvalidCredentials;
-        }
-        if message.contains("Missing Credentials") {
-            return LoginFailureKind::MissingCredentials;
-        }
-        return LoginFailureKind::SessionInvalidated;
+    match classify_vrchat_auth_failure(response) {
+        VrchatAuthFailureKind::InvalidCredentials => LoginFailureKind::InvalidCredentials,
+        VrchatAuthFailureKind::MissingCredentials => LoginFailureKind::MissingCredentials,
+        VrchatAuthFailureKind::SessionInvalidated => LoginFailureKind::SessionInvalidated,
+        VrchatAuthFailureKind::Other => LoginFailureKind::Other,
     }
-    if response.status == 403 {
-        return LoginFailureKind::SessionInvalidated;
-    }
-    LoginFailureKind::Other
 }
 
 fn interpret_login_response(

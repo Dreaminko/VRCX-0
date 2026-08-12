@@ -195,10 +195,8 @@ async fn execute_vrchat_json_request(
         .await?;
 
     let response = ApiJsonResponse::from(&response);
-    if response.is_failure() {
-        return Err(Error::Custom(response.error_message_with_http_status(
-            "VRChat moderation request failed",
-        )));
+    if let Some(failure) = response.failure_or("VRChat moderation request failed") {
+        return Err(failure.into());
     }
 
     Ok(response.json)
@@ -219,10 +217,8 @@ async fn execute_vrchat_mutation(
         .await?;
 
     let response = ApiJsonResponse::from(&response);
-    if response.is_failure() {
-        return Err(Error::Custom(response.error_message_with_http_status(
-            "VRChat moderation request failed",
-        )));
+    if let Some(failure) = response.failure_or("VRChat moderation request failed") {
+        return Err(failure.into());
     }
 
     Ok(response.json)
@@ -326,11 +322,22 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn moderation_error_message_keeps_http_status() {
-        let message = ApiJsonResponse::parse(500, r#"{"error":{"message":"Application error."}}"#)
-            .error_message_with_http_status("VRChat moderation request failed");
+    fn moderation_error_preserves_typed_status() {
+        let failure = ApiJsonResponse::parse(
+            500,
+            r#"{"error":{"message":"Application error."}}"#,
+        )
+        .failure_or("VRChat moderation request failed")
+        .unwrap();
+        let error = Error::from(failure);
 
-        assert_eq!(message, "Application error. (HTTP 500)");
+        assert!(matches!(
+            error,
+            Error::VrchatApi {
+                status_code: 500,
+                message
+            } if message == "Application error."
+        ));
     }
 
     #[test]

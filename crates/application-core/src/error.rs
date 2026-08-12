@@ -87,3 +87,12 @@ impl From<vrcx_0_vrchat_client::HttpApiError> for Error {
         }
     }
 }
+
+impl From<vrcx_0_vrchat_client::http_api::VrchatApiFailure> for Error {
+    fn from(value: vrcx_0_vrchat_client::http_api::VrchatApiFailure) -> Self {
+        Self::VrchatApi {
+            status_code: value.status_code,
+            message: value.message,
+        }
+    }
+}

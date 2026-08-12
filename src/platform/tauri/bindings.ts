@@ -2753,11 +2753,12 @@ export type AppDataDirState = {
     cleanupPending: DataDirCleanupPending | null;
     migrationStatus: DataDirMigrationStatus;
 };
-export type AppErrorCode = 'database' | 'io' | 'json' | 'custom';
+export type AppErrorCode = 'database' | 'io' | 'json' | 'vrchat_api' | 'custom';
 export type AppErrorPayload = {
     code: AppErrorCode;
     message: string;
     sqliteCategory?: SqliteErrorCategory | null;
+    statusCode?: number | null;
 };
 export type AppLauncherEntry = {
     id: string;

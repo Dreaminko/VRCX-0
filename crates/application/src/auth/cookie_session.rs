@@ -1,9 +1,11 @@
 use serde_json::Value;
 use vrcx_0_core::json::JsonExt;
 use vrcx_0_vrchat_client::auth::{config_get_input, current_user_get_input};
-use vrcx_0_vrchat_client::http_api::{ApiScope, HttpApiExecuteResponse};
+use vrcx_0_vrchat_client::http_api::{
+    classify_vrchat_auth_failure, ApiScope, HttpApiExecuteResponse, VrchatAuthFailureKind,
+};
 
-use super::{auth_response_error_message, LoginApi};
+use super::LoginApi;
 use crate::{Error, Result};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -85,6 +87,5 @@ pub(super) async fn probe_cookie_session(
 }
 
 fn response_is_missing_credentials(response: &HttpApiExecuteResponse) -> bool {
-    response.status == 401
-        && auth_response_error_message(response, String::new()).contains("Missing Credentials")
+    classify_vrchat_auth_failure(response) == VrchatAuthFailureKind::MissingCredentials
 }

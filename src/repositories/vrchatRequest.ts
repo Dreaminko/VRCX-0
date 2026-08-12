@@ -45,14 +45,13 @@ export function isVrchatMissingCredentialsError(error: unknown): boolean {
         isRecord(error) && typeof error.status === 'number'
             ? error.status
             : undefined;
-    const message = error instanceof Error ? error.message : undefined;
-    return Boolean(
-        error &&
-        typeof error === 'object' &&
-        (status === 401 ||
-            (typeof message === 'string' &&
-                message.includes('Missing Credentials')))
-    );
+    const statusCode =
+        isRecord(error) &&
+        error.code === 'vrchat_api' &&
+        typeof error.statusCode === 'number'
+            ? error.statusCode
+            : undefined;
+    return status === 401 || statusCode === 401;
 }
 
 function parseResponseData(data: unknown, allowPlainText: boolean): unknown {

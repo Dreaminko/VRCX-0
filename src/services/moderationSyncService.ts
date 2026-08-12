@@ -4,7 +4,6 @@ import type {
     ModerationSyncMutationOutput as ModerationSyncUpdateResult,
     ModerationSyncRefreshOutput as ModerationSyncRefreshResult
 } from '@/platform/tauri/bindings';
-import { createRequestError } from '@/repositories/vrchatRequest';
 
 interface ModerationSyncRefreshInput {
     userId: string;
@@ -38,50 +37,20 @@ export function subscribeModerationSyncChanges(
     };
 }
 
-function messageFromError(error: unknown): string {
-    return error instanceof Error ? error.message : String(error ?? '');
-}
-
-function normalizeModerationError(error: unknown, path: string): unknown {
-    const message = messageFromError(error);
-    if (message.includes('Missing Credentials')) {
-        return createRequestError(message, 401, path, error);
-    }
-    return error;
-}
-
-function routeModerationAuthFailure(error: unknown, path: string): never {
-    const normalizedError = normalizeModerationError(error, path);
-    throw normalizedError;
-}
-
 export async function refreshModerationSync(
     input: ModerationSyncRefreshInput
 ): Promise<ModerationSyncRefreshResult> {
-    try {
-        const result = await commands.appModerationSyncRefresh(input);
-        publishModerationSyncChange({ ownerUserId: result.userId });
-        return result;
-    } catch (error) {
-        return routeModerationAuthFailure(error, 'auth/user/playermoderations');
-    }
+    const result = await commands.appModerationSyncRefresh(input);
+    publishModerationSyncChange({ ownerUserId: result.userId });
+    return result;
 }
 
 export async function updateModerationSync(
     input: ModerationSyncUpdateInput
 ): Promise<ModerationSyncUpdateResult> {
-    try {
-        const result = await commands.appModerationSyncUpdate(input);
-        publishModerationSyncChange({
-            ownerUserId: result.ownerUserId
-        });
-        return result;
-    } catch (error) {
-        return routeModerationAuthFailure(
-            error,
-            input.enabled
-                ? 'auth/user/playermoderations'
-                : 'auth/user/unplayermoderate'
-        );
-    }
+    const result = await commands.appModerationSyncUpdate(input);
+    publishModerationSyncChange({
+        ownerUserId: result.ownerUserId
+    });
+    return result;
 }

@@ -6,6 +6,7 @@ enum AppErrorCode {
     Database,
     Io,
     Json,
+    VrchatApi,
     Custom,
 }
 
@@ -25,6 +26,8 @@ struct AppErrorPayload {
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     sqlite_category: Option<SqliteErrorCategory>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    status_code: Option<i32>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,6 +44,9 @@ pub enum AppError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
+    #[error("{message}")]
+    VrchatApi { status_code: i32, message: String },
+
     #[error("{0}")]
     Custom(String),
 }
@@ -51,6 +57,7 @@ impl Serialize for AppError {
             code: self.code(),
             message: self.to_string(),
             sqlite_category: self.sqlite_category(),
+            status_code: self.status_code(),
         }
         .serialize(serializer)
     }
@@ -88,6 +95,7 @@ impl AppError {
             Self::Database { .. } => AppErrorCode::Database,
             Self::Io(_) => AppErrorCode::Io,
             Self::Json(_) => AppErrorCode::Json,
+            Self::VrchatApi { .. } => AppErrorCode::VrchatApi,
             Self::Custom(_) => AppErrorCode::Custom,
         }
     }
@@ -97,6 +105,13 @@ impl AppError {
             Self::Database {
                 sqlite_category, ..
             } => *sqlite_category,
+            _ => None,
+        }
+    }
+
+    fn status_code(&self) -> Option<i32> {
+        match self {
+            Self::VrchatApi { status_code, .. } => Some(*status_code),
             _ => None,
         }
     }
@@ -159,7 +174,13 @@ impl From<vrcx_0_application_core::Error> for AppError {
             vrcx_0_application_core::Error::UpdateArtifactInvalid(message) => {
                 AppError::Custom(format!("Update artifact is invalid: {message}"))
             }
-            vrcx_0_application_core::Error::VrchatApi { message, .. } => AppError::Custom(message),
+            vrcx_0_application_core::Error::VrchatApi {
+                status_code,
+                message,
+            } => AppError::VrchatApi {
+                status_code,
+                message,
+            },
             vrcx_0_application_core::Error::Custom(message) => AppError::Custom(message),
         }
     }
@@ -174,7 +195,13 @@ impl From<vrcx_0_runtime_host::Error> for AppError {
             }
             vrcx_0_runtime_host::Error::Io(error) => AppError::Io(error),
             vrcx_0_runtime_host::Error::Json(error) => AppError::Json(error),
-            vrcx_0_runtime_host::Error::VrchatApi { message, .. } => AppError::Custom(message),
+            vrcx_0_runtime_host::Error::VrchatApi {
+                status_code,
+                message,
+            } => AppError::VrchatApi {
+                status_code,
+                message,
+            },
             vrcx_0_runtime_host::Error::AuthInteractionRequired(reason)
             | vrcx_0_runtime_host::Error::AuthSessionInvalidated { reason, .. } => {
                 AppError::Custom(reason)
@@ -270,6 +297,26 @@ mod tests {
             serde_json::json!({
                 "code": "custom",
                 "message": "database or disk is full"
+            })
+        );
+    }
+
+    #[test]
+    fn preserves_vrchat_api_status_in_ipc_payload() {
+        let payload = serde_json::to_value(AppError::from(
+            vrcx_0_application_core::Error::VrchatApi {
+                status_code: 404,
+                message: "Not found".into(),
+            },
+        ))
+        .unwrap();
+
+        assert_eq!(
+            payload,
+            serde_json::json!({
+                "code": "vrchat_api",
+                "message": "Not found",
+                "statusCode": 404
             })
         );
     }

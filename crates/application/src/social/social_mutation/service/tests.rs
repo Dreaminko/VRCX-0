@@ -308,35 +308,34 @@ fn write_friend_request_history_records_friend_request_type() {
 }
 
 #[test]
-fn error_message_with_status_suffix_appends_status_for_error_message_payload() {
-    let message = ApiJsonResponse::parse(
+fn mutation_response_returns_typed_not_found_failure() {
+    let error = validate_vrchat_mutation_response(
         404,
         r#"{"error":{"message":"The specified friend request was not found."}}"#,
     )
-    .error_message_or("VRChat social mutation request failed");
+    .unwrap_err();
 
-    let message = error_message_with_status_suffix(message, 404);
-
-    assert!(message.ends_with("(404)"));
-}
-
-#[test]
-fn error_message_with_status_suffix_does_not_double_append_fallback_message() {
-    let message =
-        ApiJsonResponse::parse(404, "{}").error_message_or("VRChat social mutation request failed");
-
-    let message = error_message_with_status_suffix(message, 404);
-
-    assert_eq!(message.matches("(404)").count(), 1);
+    assert!(matches!(
+        error,
+        Error::VrchatApi {
+            status_code: 404,
+            message
+        } if message == "The specified friend request was not found."
+    ));
 }
 
 #[test]
 fn friend_request_accept_only_treats_status_404_as_not_found() {
-    assert!(is_not_found_error(&Error::Custom(
-        "The specified friend request was not found. (404)".into()
-    )));
+    assert!(is_not_found_error(&Error::VrchatApi {
+        status_code: 404,
+        message: "opaque not found response".into(),
+    }));
+    assert!(!is_not_found_error(&Error::VrchatApi {
+        status_code: 500,
+        message: "The specified friend request was not found. (404)".into(),
+    }));
     assert!(!is_not_found_error(&Error::Custom(
-        "The specified friend request was not found. (500)".into()
+        "The specified friend request was not found. (404)".into(),
     )));
 }
 
