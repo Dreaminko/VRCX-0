@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     ensureUserTables: vi.fn(),
     getInt: vi.fn(),
+    lookupFeedDatabase: vi.fn(),
     queryFeedLatest: vi.fn(),
     searchFeedDatabase: vi.fn()
 }));
@@ -15,6 +16,7 @@ vi.mock('./configRepository', () => ({
 
 vi.mock('./feedPersistenceRepository', () => ({
     default: {
+        lookupFeedDatabase: mocks.lookupFeedDatabase,
         queryFeedLatest: mocks.queryFeedLatest,
         searchFeedDatabase: mocks.searchFeedDatabase
     }
@@ -38,6 +40,7 @@ describe('feedRepository', () => {
             userId: 'usr_feed_limit',
             userPrefix: 'usrfeedlimit'
         });
+        mocks.lookupFeedDatabase.mockResolvedValue([]);
         mocks.queryFeedLatest.mockResolvedValue({
             rows: [],
             maxSequence: 0
@@ -78,5 +81,43 @@ describe('feedRepository', () => {
             false
         );
         expect(mocks.queryFeedLatest).not.toHaveBeenCalled();
+    });
+
+    it('uses the configured search limit when the caller does not override it', async () => {
+        await feedRepository.queryFeed({
+            userId: 'usr_feed_limit',
+            search: 'needle'
+        });
+
+        expect(mocks.searchFeedDatabase).toHaveBeenCalledWith(
+            'needle',
+            [],
+            [],
+            50_000,
+            '',
+            '',
+            'usr_feed_limit',
+            [],
+            [],
+            false
+        );
+    });
+
+    it('uses the configured search limit for a selected friend scope', async () => {
+        await feedRepository.queryFeed({
+            userId: 'usr_feed_limit',
+            scopedUserIds: ['usr_friend']
+        });
+
+        expect(mocks.lookupFeedDatabase).toHaveBeenCalledWith(
+            'usr_feed_limit',
+            [],
+            [],
+            50_000,
+            null,
+            [],
+            ['usr_friend']
+        );
+        expect(mocks.searchFeedDatabase).not.toHaveBeenCalled();
     });
 });

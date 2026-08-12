@@ -151,7 +151,8 @@ class FeedRepository {
             normalizedUserId,
             normalizedFilters,
             normalizedFavorites,
-            maxEntries ?? maxTableSize,
+            maxEntries ??
+                (normalizedScoped.length > 0 ? searchLimit : maxTableSize),
             cursor,
             normalizedExcludedFavorites,
             normalizedScoped

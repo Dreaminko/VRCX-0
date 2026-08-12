@@ -90,7 +90,7 @@ export function useFeedRows({
     );
     const hiddenUserIds = feedHiddenUsers;
     const searchMode = Boolean(
-        deferredSearchQuery.trim() || dateFrom || dateTo
+        deferredSearchQuery.trim() || scopedUserIds.length || dateFrom || dateTo
     );
 
     useEffect(() => {
@@ -283,7 +283,6 @@ export function useFeedRows({
                     scopedUserIds,
                     dateFrom: toIsoRangeStart(dateFrom),
                     dateTo: toIsoRangeEnd(dateTo),
-                    maxEntries: maxFeedRows,
                     favoritesOnly
                 })
                 .then((searchRows) => {

@@ -219,7 +219,32 @@ describe('useFeedRows', () => {
 
         expect(result.current.rows).toEqual([{ userId: 'usr_search' }]);
         expect(mocks.queryFeed).toHaveBeenCalledWith(
-            expect.objectContaining({ search: 'needle', maxEntries: 100 })
+            expect.objectContaining({ search: 'needle' })
+        );
+        expect(mocks.queryFeed.mock.calls[0]?.[0]).not.toHaveProperty(
+            'maxEntries'
+        );
+        expect(mocks.queryFeedLatest).not.toHaveBeenCalled();
+    });
+
+    it('uses the search query path for a selected friend scope', async () => {
+        const { result } = renderHook(
+            (props: FeedRowsProps) => useFeedRows(props),
+            {
+                initialProps: {
+                    ...BASE_PROPS,
+                    scopedUserIds: ['usr_friend']
+                }
+            }
+        );
+        await flush();
+
+        expect(result.current.loadStatus).toBe('ready');
+        expect(mocks.queryFeed).toHaveBeenCalledWith(
+            expect.objectContaining({ scopedUserIds: ['usr_friend'] })
+        );
+        expect(mocks.queryFeed.mock.calls[0]?.[0]).not.toHaveProperty(
+            'maxEntries'
         );
         expect(mocks.queryFeedLatest).not.toHaveBeenCalled();
     });
