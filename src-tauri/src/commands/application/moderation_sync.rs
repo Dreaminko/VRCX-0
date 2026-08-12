@@ -14,7 +14,6 @@ fn deps<'a>(state: &'a State<'_, AppState>) -> ModerationSyncDeps<'a> {
     ModerationSyncDeps {
         db: &state.db,
         web: &state.web,
-        session: &state.runtime_context.session,
         auth_scope: &state.runtime_context.auth_scope,
         remote_mutations: state.runtime_context.remote_mutations.as_ref(),
     }

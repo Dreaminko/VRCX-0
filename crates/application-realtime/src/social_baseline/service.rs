@@ -14,7 +14,7 @@ use vrcx_0_vrchat_client::{favorites as remote_favorites, friends as remote_frie
 use crate::realtime::{FriendBaselineSyncOutcome, RealtimeHostRuntime, RealtimeSessionContext};
 use vrcx_0_application_core::Result;
 use vrcx_0_application_core::RuntimeAuthScope;
-use vrcx_0_application_core::{HostSessionRuntime, WebClient};
+use vrcx_0_application_core::WebClient;
 
 use crate::social_baseline::types::{
     SocialFavoritesBaselineInput, SocialFavoritesBaselineOutput, SocialFavoritesBaselineRequest,
@@ -30,7 +30,6 @@ pub struct SocialBaselineDeps {
     pub db: Arc<DatabaseService>,
     pub web: Arc<WebClient>,
     pub auth_scope: RuntimeAuthScope,
-    pub session: HostSessionRuntime,
 }
 
 fn normalize_text(value: impl AsRef<str>) -> String {
@@ -113,7 +112,7 @@ fn get_config_array(deps: &SocialBaselineDeps, key: &str) -> Result<Vec<String>>
 }
 
 fn auth_scope_matches(deps: &SocialBaselineDeps, user_id: &str, endpoint: &str) -> bool {
-    vrcx_0_application_core::auth_scope_matches(&deps.auth_scope, &deps.session, user_id, endpoint)
+    deps.auth_scope.matches(user_id, endpoint)
 }
 
 fn stale_favorites_output(user_id: String) -> SocialFavoritesBaselineOutput {

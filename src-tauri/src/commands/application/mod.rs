@@ -1,5 +1,4 @@
 pub mod assistant;
-pub mod auth_scope;
 pub mod background_image;
 pub mod background_mode;
 pub mod community_theme;

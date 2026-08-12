@@ -4,13 +4,11 @@ use crate::notification::{
 
 use super::{
     normalize_vrchat_api_endpoint, AtomicFlagGuard, AuthenticatedRuntimeSession,
-    BackendRuntimeMode, BackendRuntimeSnapshot, BackendRuntimeTelemetryKind,
-    NonInteractiveAuthError, RuntimeHostState,
+    AuthenticatedSessionSnapshot, BackendRuntimeMode, BackendRuntimeSnapshot,
+    BackendRuntimeTelemetryKind, NonInteractiveAuthError, RuntimeHostState,
 };
 use vrcx_0_core::time::now_iso;
-
-#[cfg(test)]
-use super::BackendRuntimePhase;
+use vrcx_0_application_core::RuntimeAuthScope;
 
 #[derive(Clone, Debug)]
 struct BackgroundAuthRecoveryContext {
@@ -41,9 +39,12 @@ impl RuntimeHostState {
             return snapshot;
         }
 
-        let context = BackgroundAuthRecoveryContext::from_snapshot(
-            &snapshot,
-            self.background_auth_recovery_endpoint(&snapshot),
+        let Some(session) = self.authenticated_session_projection().session else {
+            return snapshot;
+        };
+        let context = BackgroundAuthRecoveryContext::from_session(
+            snapshot.mode,
+            &session,
             reason.into(),
         );
         self.emit_backend_runtime_telemetry_snapshot(
@@ -51,7 +52,8 @@ impl RuntimeHostState {
             context.reason.clone(),
             snapshot,
         );
-        self.clear_backend_frontend_session();
+        invalidate_background_auth_scope(&self.runtime_context.auth_scope);
+        self.clear_authenticated_session_projection();
         self.backend_runtime.set_authenticating();
 
         match self
@@ -126,28 +128,24 @@ impl RuntimeHostState {
     fn send_background_auth_recovery_webhook(&self, event: AuthWebhookEvent) {
         self.runtime_context.enqueue_auth_webhook(event);
     }
+}
 
-    fn background_auth_recovery_endpoint(&self, snapshot: &BackendRuntimeSnapshot) -> String {
-        let user_id = snapshot.auth_user_id.trim();
-        let auth_scope = self.runtime_context.auth_scope.snapshot();
-        if auth_scope.active && auth_scope.current_user_id == user_id {
-            return auth_scope.endpoint;
-        }
-        self.backend_runtime_frontend_session_snapshot(true)
-            .filter(|session| session.user_id.trim() == user_id)
-            .map(|session| session.endpoint)
-            .unwrap_or_default()
-    }
+fn invalidate_background_auth_scope(auth_scope: &RuntimeAuthScope) {
+    auth_scope.set("", "");
 }
 
 impl BackgroundAuthRecoveryContext {
-    fn from_snapshot(snapshot: &BackendRuntimeSnapshot, endpoint: String, reason: String) -> Self {
+    fn from_session(
+        mode: BackendRuntimeMode,
+        session: &AuthenticatedSessionSnapshot,
+        reason: String,
+    ) -> Self {
         Self {
-            user_id: snapshot.auth_user_id.trim().to_string(),
-            display_name: snapshot.auth_display_name.trim().to_string(),
-            endpoint: normalize_vrchat_api_endpoint(Some(&endpoint)),
+            user_id: session.user_id.trim().to_string(),
+            display_name: session.display_name.trim().to_string(),
+            endpoint: normalize_vrchat_api_endpoint(Some(&session.endpoint)),
             reason: normalize_recovery_reason(reason),
-            mode: snapshot.mode,
+            mode,
             timestamp: now_iso(),
         }
     }
@@ -184,10 +182,22 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn background_auth_recovery_invalidates_the_dropped_login_generation() {
+        let auth_scope = RuntimeAuthScope::new();
+        let dropped = auth_scope.set("usr_before", "https://api.example.test/api/1");
+
+        invalidate_background_auth_scope(&auth_scope);
+        assert!(!auth_scope.snapshot().active);
+        let recovered = auth_scope.set("usr_before", "https://api.example.test/api/1");
+
+        assert!(recovered.generation > dropped.generation);
+    }
+
+    #[test]
     fn recovery_context_matches_only_dropped_user_and_endpoint() {
-        let context = BackgroundAuthRecoveryContext::from_snapshot(
-            &snapshot("usr_before"),
-            "https://api.example.test/api/1/".into(),
+        let context = BackgroundAuthRecoveryContext::from_session(
+            BackendRuntimeMode::Background,
+            &projected_session("usr_before", "https://api.example.test/api/1/"),
             "auth failed".into(),
         );
 
@@ -196,20 +206,17 @@ mod tests {
         assert!(!context.matches_session(&session("usr_before", "https://api.other.test/api/1")));
     }
 
-    fn snapshot(user_id: &str) -> BackendRuntimeSnapshot {
-        BackendRuntimeSnapshot {
-            mode: BackendRuntimeMode::Background,
-            phase: BackendRuntimePhase::Running,
-            auth_status: vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated,
-            auth_user_id: user_id.into(),
-            auth_display_name: "Pizza".into(),
-            ws_status: vrcx_0_core::realtime::RealtimeWsStatus::AuthFailure,
-            game_log_status: vrcx_0_application_core::BackendRuntimeGameLogStatus::Idle,
-            process_status: vrcx_0_application_core::BackendRuntimeProcessStatus::Unknown,
-            game_log_persisted_count: 0,
-            last_error: None,
-            updated_at: "2026-07-03T08:30:00.000Z".into(),
-            friend_profile_load: vrcx_0_application_core::FriendProfileLoadStatusPayload::default(),
+    fn projected_session(user_id: &str, endpoint: &str) -> AuthenticatedSessionSnapshot {
+        AuthenticatedSessionSnapshot {
+            auth_scope_generation: 1,
+            user_id: user_id.into(),
+            display_name: "Pizza".into(),
+            endpoint: endpoint.into(),
+            websocket: "wss://pipeline.vrchat.cloud".into(),
+            current_user_snapshot: json!({
+                "id": user_id,
+                "displayName": "Pizza"
+            }),
         }
     }
 

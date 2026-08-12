@@ -42,7 +42,7 @@ pub use runtime_types::{
 };
 pub use service::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
-    RealtimeCurrentUserRefreshExpectation, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
-    RealtimeStopRequest, SyntheticFriendEventOutcome,
+    RealtimeCurrentUserRefreshExpectation, RealtimeCurrentUserSnapshotSink, RealtimeHostRuntime,
+    RealtimeHostRuntimeDeps, RealtimeStopRequest, SyntheticFriendEventOutcome,
 };
 pub use user_query_cache::{UserQueryCachePolicy, UserQueryKind, UserQueryOptions};

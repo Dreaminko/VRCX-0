@@ -131,14 +131,6 @@ export const commands = {
     async appStartBackgroundMode(): Promise<BackendRuntimeSnapshot> {
         return await TAURI_INVOKE('app__start_background_mode');
     },
-    async appGetBackendRuntimeFrontendSessionSnapshot(
-        includeCurrentUserSnapshot: boolean
-    ): Promise<BackendRuntimeFrontendSessionSnapshot | null> {
-        return await TAURI_INVOKE(
-            'app__get_backend_runtime_frontend_session_snapshot',
-            { includeCurrentUserSnapshot }
-        );
-    },
     async appBackendRuntimeCombinedSnapshotGet(): Promise<BackendRuntimeCombinedSnapshot> {
         return await TAURI_INVOKE('app__backend_runtime_combined_snapshot_get');
     },
@@ -1273,9 +1265,6 @@ export const commands = {
             'app__external_api_youtube_video_metadata_get',
             { input }
         );
-    },
-    async appRuntimeAuthScopeGet(): Promise<RuntimeAuthScopeSnapshot> {
-        return await TAURI_INVOKE('app__runtime_auth_scope_get');
     },
     async appVrchatAuthConfigGet(): Promise<HttpApiExecuteResponse> {
         return await TAURI_INVOKE('app__vrchat_auth_config_get');
@@ -2964,6 +2953,18 @@ export type AuthenticatedRuntimeStepStatus =
     | 'retryWaiting'
     | 'ready'
     | 'failed';
+export type AuthenticatedSessionProjection = {
+    revision: number;
+    session: AuthenticatedSessionSnapshot | null;
+};
+export type AuthenticatedSessionSnapshot = {
+    authScopeGeneration: number;
+    userId: string;
+    displayName: string;
+    endpoint: string;
+    websocket: string;
+    currentUserSnapshot: JsonValue;
+};
 export type AuthorDetail = { id?: string; displayName?: string | null };
 export type AutoLoginOutcome = LoginSessionState | AutoLoginTerminalOutcome;
 export type AutoLoginStartInput = { userId?: string };
@@ -3028,9 +3029,11 @@ export type BackendRuntimeAuthStatus =
 export type BackendRuntimeCombinedSnapshot = {
     backendRuntime: BackendRuntimeSnapshot;
     authenticatedRuntimePhase: AuthenticatedRuntimePhaseSnapshot;
+    authenticatedSession: AuthenticatedSessionProjection;
 };
 export type BackendRuntimeEventPayloadMap = {
     addGameLogEvent: AddGameLogEventPayload;
+    authenticatedSessionProjection: AuthenticatedSessionProjection;
     authenticatedRuntimePhase: AuthenticatedRuntimePhaseSnapshot;
     appUpdateStatus: AppUpdateStatusSnapshot;
     appUpdateDownloadProgress: AppUpdateDownloadProgressPayload;
@@ -3071,14 +3074,6 @@ export type BackendRuntimeEventPayloadMap = {
     realtimeInstanceQueueProjection: RealtimeInstanceQueueProjection;
     realtimeProjectionSync: RealtimeProjectionSync;
     updateIsGameRunning: HostSessionProjection;
-};
-export type BackendRuntimeFrontendSessionSnapshot = {
-    authenticated: boolean;
-    userId: string;
-    displayName: string;
-    endpoint: string;
-    websocket: string;
-    currentUserSnapshot: JsonValue;
 };
 export type BackendRuntimeGameLogStatus =
     | 'idle'
@@ -5023,12 +5018,6 @@ export type RemoteModerationRow = {
 };
 export type ResolvedFriendLogName = { userId: string; displayName: string };
 export type Role = 'user' | 'assistant';
-export type RuntimeAuthScopeSnapshot = {
-    currentUserId: string;
-    endpoint: string;
-    generation: number;
-    active: boolean;
-};
 export type RuntimeGameLogEventPayload = {
     runtimePersisted: boolean;
     raw: string[];

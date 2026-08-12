@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use vrcx_0_application_core::{Result, RuntimeOperationStatus};
 
-use super::state::FriendOwnerGuard;
+use super::state::{ActiveRealtimeContext, FriendOwnerGuard};
 use serde_json::Value;
 use vrcx_0_application_core::LocalGameContextSnapshot;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
@@ -10,8 +10,9 @@ use vrcx_0_persistence::config as config_store;
 use vrcx_0_persistence::realtime::write_realtime_batch;
 
 use crate::realtime::{
-    FriendProjection, PendingOfflineTimerAction, RealtimeCurrentUserOutput, RealtimeFriendOutput,
-    RealtimeInstanceClosedOutput, RealtimeNotificationOutput, RealtimeSessionContext,
+    FriendProjection, PendingOfflineTimerAction, RealtimeCurrentUserOutput,
+    RealtimeCurrentUserProjection, RealtimeFriendOutput, RealtimeInstanceClosedOutput,
+    RealtimeNotificationOutput, RealtimeSessionContext,
 };
 
 use super::RealtimeHostRuntime;
@@ -311,9 +312,32 @@ impl RealtimeHostRuntime {
                     .record_failure("realtimeCurrentUser", error.to_string());
             }
         }
+        if let Some(active) = self
+            .active_current_user_context()
+            .filter(|active| active.generation == projection.generation)
+        {
+            self.apply_current_user_snapshot_sink(&active, &projection);
+        }
         self.deps
             .event_bus
             .emit_realtime_current_user_projection(projection);
+    }
+
+    pub(super) fn apply_current_user_snapshot_sink(
+        &self,
+        active: &ActiveRealtimeContext,
+        projection: &RealtimeCurrentUserProjection,
+    ) {
+        if active.generation != projection.generation {
+            return;
+        }
+        if let Some(sink) = &self.deps.current_user_snapshot_sink {
+            sink(
+                &active.session,
+                active.auth_scope_generation,
+                Value::Object(projection.snapshot.clone()),
+            );
+        }
     }
 
     pub(super) fn apply_instance_closed_output(

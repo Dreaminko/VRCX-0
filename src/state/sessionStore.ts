@@ -1,13 +1,21 @@
 import { create } from 'zustand';
 
-type SessionPhase = 'signed_out' | 'authenticating' | 'authenticated' | string;
-type BootStatus = 'idle' | 'running' | 'completed' | 'error' | string;
+type SessionPhase =
+    | 'signed_out'
+    | 'authenticating'
+    | 'authenticated'
+    | 'bootstrapping'
+    | 'ready';
+type BootStatus = 'idle' | 'booting' | 'partial' | 'error';
 type TransportStatus =
     | 'disconnected'
-    | 'connecting'
-    | 'connected'
-    | 'error'
-    | string;
+    | 'runtime-subscribing'
+    | 'runtime-subscribed'
+    | 'pipeline-connecting'
+    | 'pipeline-connected'
+    | 'pipeline-error'
+    | 'idle'
+    | 'error';
 
 interface SessionState {
     isLoggedIn: boolean;

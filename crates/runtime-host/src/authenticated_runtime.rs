@@ -9,8 +9,8 @@ use vrcx_0_application::{
     AuthenticatedRuntimeStepSnapshot, AuthenticatedRuntimeStepStatus,
 };
 use vrcx_0_application_core::{
-    HostSessionRuntime, RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus,
-    RuntimeVrchatAuthFailurePayload, TaskStopToken, TaskSupervisor, WebClient,
+    RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeEventBus, RuntimeVrchatAuthFailurePayload,
+    TaskStopToken, TaskSupervisor, WebClient,
 };
 use vrcx_0_application_realtime::{
     build_favorites_baseline_from_friend_ids, build_synced_friend_roster_baseline,
@@ -45,7 +45,6 @@ pub struct AuthenticatedRuntimeDeps {
     pub event_bus: RuntimeEventBus,
     pub tasks: TaskSupervisor,
     pub auth_scope: RuntimeAuthScope,
-    pub session: HostSessionRuntime,
     pub realtime_runtime: Arc<RealtimeHostRuntime>,
     pub favorites_sink: Option<RuntimeHostFavoritesCallback>,
 }
@@ -81,7 +80,6 @@ pub struct AuthenticatedRuntimeOrchestrator {
     event_bus: RuntimeEventBus,
     tasks: TaskSupervisor,
     auth_scope: RuntimeAuthScope,
-    session: HostSessionRuntime,
     realtime_runtime: Arc<RealtimeHostRuntime>,
     favorites_sink: Option<RuntimeHostFavoritesCallback>,
 }
@@ -118,7 +116,6 @@ impl AuthenticatedRuntimeOrchestrator {
             event_bus: deps.event_bus,
             tasks: deps.tasks,
             auth_scope: deps.auth_scope,
-            session: deps.session,
             realtime_runtime: deps.realtime_runtime,
             favorites_sink: deps.favorites_sink,
         }
@@ -746,7 +743,6 @@ impl AuthenticatedRuntimeOrchestrator {
             db: Arc::clone(&self.db),
             web: Arc::clone(&self.web),
             auth_scope: self.auth_scope.clone(),
-            session: self.session.clone(),
         }
     }
 

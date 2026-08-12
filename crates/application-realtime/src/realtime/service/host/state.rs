@@ -110,6 +110,7 @@ impl ScopedFriendLogMutation {
 #[derive(Clone, Debug)]
 pub(super) struct ActiveRealtimeContext {
     pub(super) session: RealtimeSessionContext,
+    pub(super) auth_scope_generation: u64,
     pub(super) generation: u64,
     pub(super) client_run_id: u64,
     pub(super) session_generation: u64,
@@ -216,7 +217,11 @@ pub struct RealtimeHostRuntimeDeps {
     pub world_cache: Arc<WorldCache>,
     pub print_cleanup: Arc<dyn PrintCleanupInputSink>,
     pub friend_note_change_sink: Option<Arc<dyn Fn() + Send + Sync>>,
+    pub current_user_snapshot_sink: Option<RealtimeCurrentUserSnapshotSink>,
 }
+
+pub type RealtimeCurrentUserSnapshotSink =
+    Arc<dyn Fn(&RealtimeSessionContext, u64, Value) + Send + Sync>;
 
 pub struct RealtimeHostRuntime {
     pub(super) deps: RealtimeHostRuntimeDeps,

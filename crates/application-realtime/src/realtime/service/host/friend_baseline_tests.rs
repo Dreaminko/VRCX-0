@@ -1820,6 +1820,7 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
                 invalidations.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             })
         }),
+        current_user_snapshot_sink: None,
     }));
     let active_session = RealtimeSessionContext::new(
         "usr_self".into(),
@@ -1832,6 +1833,7 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
         state.connection.generation = 7;
         state.connection.active_context = Some(ActiveRealtimeContext {
             session: active_session.clone(),
+            auth_scope_generation: 1,
             generation: 7,
             client_run_id: 1,
             session_generation: host_session_generation,

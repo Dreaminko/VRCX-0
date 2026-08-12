@@ -119,6 +119,20 @@ describe('authenticatedRuntimeService', () => {
                 displayName: 'Self'
             }
         });
+        useRuntimeStore.getState().setAuthenticatedSessionProjection({
+            revision: 1,
+            session: {
+                authScopeGeneration: 3,
+                userId: 'usr_self',
+                displayName: 'Self',
+                endpoint: 'https://api.example.test/api/1',
+                websocket: 'wss://pipeline.example.test',
+                currentUserSnapshot: {
+                    id: 'usr_self',
+                    displayName: 'Self'
+                }
+            }
+        });
         useSessionStore.getState().setSessionState({
             isLoggedIn: true,
             sessionPhase: 'ready'
@@ -188,6 +202,15 @@ describe('authenticatedRuntimeService', () => {
     it('ignores a phase snapshot for another authenticated user', () => {
         applyAuthenticatedRuntimePhaseSnapshot(
             phaseSnapshot({ userId: 'usr_other' })
+        );
+
+        expect(useSessionStore.getState().isFriendsLoaded).toBe(false);
+        expect(useSessionStore.getState().isFavoritesLoaded).toBe(false);
+    });
+
+    it('ignores a phase snapshot from an older authenticated scope', () => {
+        applyAuthenticatedRuntimePhaseSnapshot(
+            phaseSnapshot({ authScopeGeneration: 2 })
         );
 
         expect(useSessionStore.getState().isFriendsLoaded).toBe(false);

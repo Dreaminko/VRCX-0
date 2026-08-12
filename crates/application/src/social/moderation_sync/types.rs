@@ -3,12 +3,11 @@ use vrcx_0_persistence::local_moderation::{LocalModerationOutput, RemoteModerati
 use vrcx_0_persistence::DatabaseService;
 
 use crate::RemoteMutationGate;
-use vrcx_0_application_core::{HostSessionRuntime, RuntimeAuthScope, WebClient};
+use vrcx_0_application_core::{RuntimeAuthScope, WebClient};
 
 pub struct ModerationSyncDeps<'a> {
     pub db: &'a DatabaseService,
     pub web: &'a WebClient,
-    pub session: &'a HostSessionRuntime,
     pub auth_scope: &'a RuntimeAuthScope,
     pub remote_mutations: &'a RemoteMutationGate,
 }

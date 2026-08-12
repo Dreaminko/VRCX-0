@@ -10,14 +10,14 @@ use crate::RuntimeHostContext;
 
 use super::super::{
     background_capability_session, emit_background_info, emit_background_warning,
-    gui_maintenance_runtime_mode, BackendRuntimeFrontendSessionSnapshot,
+    gui_maintenance_runtime_mode, AuthenticatedSessionProjection,
     BACKGROUND_MODERATION_CADENCE_SECONDS, BACKGROUND_MODERATION_REFRESH_JOB,
 };
 
 pub(in crate::state) async fn run_background_moderation_refresh(
     db: &Arc<DatabaseService>,
     web: &Arc<WebClient>,
-    session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+    session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
     runtime_context: &Arc<RuntimeHostContext>,
     backend_runtime: &BackendRuntime,
     background_jobs: &RuntimeBackgroundJobs,
@@ -37,7 +37,6 @@ pub(in crate::state) async fn run_background_moderation_refresh(
     let deps = ModerationSyncDeps {
         db: db.as_ref(),
         web: web.as_ref(),
-        session: &runtime_context.session,
         auth_scope: &runtime_context.auth_scope,
         remote_mutations: runtime_context.remote_mutations.as_ref(),
     };

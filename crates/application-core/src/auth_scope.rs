@@ -3,8 +3,6 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
-use crate::ports::HostSessionRuntime;
-
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeAuthScopeSnapshot {
@@ -71,23 +69,6 @@ impl RuntimeAuthScope {
     }
 }
 
-pub fn auth_scope_matches(
-    auth_scope: &RuntimeAuthScope,
-    session: &HostSessionRuntime,
-    user_id: &str,
-    endpoint: &str,
-) -> bool {
-    if auth_scope.snapshot().active {
-        return auth_scope.matches(user_id, endpoint);
-    }
-
-    let Some(context) = session.snapshot().realtime_context else {
-        return true;
-    };
-    context.current_user_id == user_id
-        && normalize_endpoint(&context.endpoint) == normalize_endpoint(endpoint)
-}
-
 fn normalize_text(value: impl AsRef<str>) -> String {
     value.as_ref().trim().to_string()
 }
@@ -98,8 +79,7 @@ fn normalize_endpoint(value: impl AsRef<str>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{auth_scope_matches, RuntimeAuthScope};
-    use crate::ports::{HostRealtimeSessionContext, HostSessionRuntime};
+    use super::RuntimeAuthScope;
 
     #[test]
     fn tracks_active_auth_scope() {
@@ -138,46 +118,17 @@ mod tests {
     }
 
     #[test]
-    fn falls_back_to_realtime_context_when_scope_is_inactive() {
+    fn inactive_scope_never_authorizes_requests() {
         let scope = RuntimeAuthScope::new();
-        let session = HostSessionRuntime::new();
 
-        assert!(auth_scope_matches(
-            &scope,
-            &session,
-            "usr_current",
-            "https://api.vrchat.cloud/api/1"
-        ));
-
-        session.set_realtime_context(HostRealtimeSessionContext::new(
-            "usr_current".into(),
-            String::new(),
-            String::new(),
-        ));
-
-        assert!(auth_scope_matches(
-            &scope,
-            &session,
-            "usr_current",
-            "https://api.vrchat.cloud/api/1"
-        ));
-        assert!(!auth_scope_matches(
-            &scope,
-            &session,
-            "usr_other",
-            "https://api.vrchat.cloud/api/1"
-        ));
+        assert!(!scope.matches("usr_current", "https://api.vrchat.cloud/api/1"));
+        assert!(!scope.matches("usr_other", "https://api.vrchat.cloud/api/1"));
     }
 
     #[test]
-    fn realtime_context_fallback_normalizes_both_endpoints() {
+    fn active_scope_normalizes_requested_endpoints() {
         let scope = RuntimeAuthScope::new();
-        let session = HostSessionRuntime::new();
-        session.set_realtime_context(HostRealtimeSessionContext::new(
-            "usr_current".into(),
-            "https://api.vrchat.cloud/api/1".into(),
-            String::new(),
-        ));
+        scope.set("usr_current", "https://api.vrchat.cloud/api/1");
 
         for endpoint in [
             "https://api.vrchat.cloud/api/1",
@@ -186,42 +137,21 @@ mod tests {
             "",
         ] {
             assert!(
-                auth_scope_matches(&scope, &session, "usr_current", endpoint),
-                "endpoint {endpoint:?} should match the realtime context"
+                scope.matches("usr_current", endpoint),
+                "endpoint {endpoint:?} should match the active auth scope"
             );
         }
 
-        assert!(!auth_scope_matches(
-            &scope,
-            &session,
-            "usr_current",
-            "https://api.example.test/api/1"
-        ));
+        assert!(!scope.matches("usr_current", "https://api.example.test/api/1"));
     }
 
     #[test]
-    fn active_scope_wins_over_realtime_context() {
+    fn active_scope_matches_only_its_current_user() {
         let scope = RuntimeAuthScope::new();
-        let session = HostSessionRuntime::new();
-        session.set_realtime_context(HostRealtimeSessionContext::new(
-            "usr_stale".into(),
-            "https://api.example.test/api/1".into(),
-            String::new(),
-        ));
         scope.set("usr_current", "https://api.example.test/api/1");
 
-        assert!(auth_scope_matches(
-            &scope,
-            &session,
-            "usr_current",
-            "https://api.example.test/api/1"
-        ));
-        assert!(!auth_scope_matches(
-            &scope,
-            &session,
-            "usr_stale",
-            "https://api.example.test/api/1"
-        ));
+        assert!(scope.matches("usr_current", "https://api.example.test/api/1"));
+        assert!(!scope.matches("usr_stale", "https://api.example.test/api/1"));
     }
 
     #[test]

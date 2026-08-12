@@ -49,19 +49,15 @@ use background_ticks::{
     BackgroundTickContext,
 };
 pub use combined_snapshot::BackendRuntimeCombinedSnapshot;
-pub use frontend_session::{
-    replace_backend_frontend_session_user_if_session_matches,
-    update_backend_frontend_session_user_if_session_matches,
-};
 use frontend_session::{
-    session_slot_matches, update_backend_frontend_session_user_filtered_if_session_matches,
+    replace_authenticated_session_user_if_session_matches, session_slot_matches,
 };
 use profile_lock::{AtomicFlagGuard, SharedAtomicFlagGuard};
 #[cfg(test)]
 use runtime_host_state::web_ua_app_version;
 pub use runtime_host_state::{
-    BackendRuntimeFrontendSessionSnapshot, RuntimeHostOptions, RuntimeHostState,
-    RuntimeHostStateBuilder,
+    AuthenticatedSessionProjection, AuthenticatedSessionSnapshot, RuntimeHostOptions,
+    RuntimeHostState, RuntimeHostStateBuilder,
 };
 const PROFILE_LOCK_FILE: &str = "runtime.lock";
 const BACKGROUND_CURRENT_USER_REFRESH_JOB: &str = "backgroundCurrentUserRefresh";
@@ -74,32 +70,6 @@ const BACKGROUND_CURRENT_USER_CADENCE_SECONDS: u64 = 300;
 const BACKGROUND_SOCIAL_BASELINE_CADENCE_SECONDS: u64 = 3_600;
 const BACKGROUND_MODERATION_CADENCE_SECONDS: u64 = 3_600;
 const BACKGROUND_PRINT_CLEANUP_CADENCE_SECONDS: u64 = 30 * 60;
-const CURRENT_USER_REFRESH_LOCAL_AUTHORITY_FIELDS: &[&str] = &[
-    "friends",
-    "onlineFriends",
-    "activeFriends",
-    "offlineFriends",
-    "status",
-    "statusDescription",
-    "state",
-    "stateBucket",
-    "pendingOffline",
-    "location",
-    "$location",
-    "$location_at",
-    "locationUpdatedAt",
-    "worldId",
-    "instanceId",
-    "travelingToLocation",
-    "travelingToWorld",
-    "travelingToInstance",
-    "$travelingToLocation",
-    "$travelingToTime",
-    "travelingToTime",
-    "$previousLocation",
-    "$previousLocation_at",
-];
-
 #[cfg(test)]
 mod web_ua_tests {
     use super::{

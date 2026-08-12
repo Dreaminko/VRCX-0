@@ -29,8 +29,7 @@ pub use note_export::NoteExportRuntime;
 pub use profile::RuntimeHostProfile;
 pub use shared_collection_import::SharedCollectionImportRuntime;
 pub use state::{
-    replace_backend_frontend_session_user_if_session_matches,
-    update_backend_frontend_session_user_if_session_matches, BackendRuntimeCombinedSnapshot,
-    BackendRuntimeFrontendSessionSnapshot, CliLoginPrompt, CliTwoFactorChoice, RuntimeHostOptions,
-    RuntimeHostState, RuntimeHostStateBuilder, SocialBaselineRefreshOutput,
+    AuthenticatedSessionProjection, AuthenticatedSessionSnapshot, BackendRuntimeCombinedSnapshot,
+    CliLoginPrompt, CliTwoFactorChoice, RuntimeHostOptions, RuntimeHostState,
+    RuntimeHostStateBuilder, SocialBaselineRefreshOutput,
 };

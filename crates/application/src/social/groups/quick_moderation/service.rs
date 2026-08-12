@@ -11,7 +11,7 @@ use vrcx_0_application_core::vrchat_api::groups::{
     user_groups_get_input,
 };
 use vrcx_0_application_core::vrchat_api::VrchatApiRequest;
-use vrcx_0_application_core::{HostSessionRuntime, RuntimeAuthScope};
+use vrcx_0_application_core::RuntimeAuthScope;
 use vrcx_0_core::json::scalar_text as value_as_string;
 
 use super::super::permissions::{has_permission, parse_permission_map, permissions_for_group};
@@ -29,7 +29,6 @@ const MEMBERSHIP_PROBE_CONCURRENCY: usize = 5;
 pub struct GroupQuickModerationDeps {
     pub groups: GroupApiDeps,
     pub auth_scope: RuntimeAuthScope,
-    pub session: HostSessionRuntime,
 }
 
 struct MembershipProbe {
@@ -424,7 +423,7 @@ fn ensure_user_ids(current_user_id: &str, target_user_id: &str) -> Result<()> {
 }
 
 fn auth_scope_matches(deps: &GroupQuickModerationDeps, user_id: &str, endpoint: &str) -> bool {
-    vrcx_0_application_core::auth_scope_matches(&deps.auth_scope, &deps.session, user_id, endpoint)
+    deps.auth_scope.matches(user_id, endpoint)
 }
 
 fn ensure_current_scope(

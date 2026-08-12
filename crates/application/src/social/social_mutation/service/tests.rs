@@ -99,6 +99,7 @@ fn fixture(name: &str) -> Fixture {
         world_cache,
         print_cleanup: Arc::new(NoopPrintCleanupInputSink),
         friend_note_change_sink: None,
+        current_user_snapshot_sink: None,
     }));
     Fixture {
         _dir: dir,

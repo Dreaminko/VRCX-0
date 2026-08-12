@@ -2,7 +2,10 @@ import { create } from 'zustand';
 
 import type { GroupInstanceRecord } from '@/domain/entities/profileEntities';
 import type { CurrentInstanceRosterPlayer } from '@/domain/instances/currentInstanceRoster';
-import type { DatabaseUpgradeStage } from '@/platform/tauri/bindings';
+import type {
+    AuthenticatedSessionProjection,
+    DatabaseUpgradeStage
+} from '@/platform/tauri/bindings';
 import { MINUTE_MS } from '@/shared/constants/time';
 
 type TaskState = {
@@ -241,6 +244,7 @@ type RuntimeStore = {
     };
     runtimeEvents: Record<string, RuntimeEventState>;
     backendRuntime: Record<string, unknown>;
+    authenticatedSession: AuthenticatedSessionProjection;
     shell: Record<string, unknown> & {
         backendRuntimeSnapshotHydrated: boolean;
         backendRuntimeSessionHydrating: boolean;
@@ -256,6 +260,9 @@ type RuntimeStore = {
     setTransportState(patch: Partial<TransportState>): void;
     recordRuntimeEvent(name: string, payload: unknown): void;
     setBackendRuntimeSnapshot(snapshot: Record<string, unknown> | null): void;
+    setAuthenticatedSessionProjection(
+        projection: AuthenticatedSessionProjection
+    ): boolean;
     setShellState(patch: Record<string, unknown>): void;
     setGameState(patch: Partial<RuntimeStore['gameState']>): void;
     setNowPlayingState(patch: Record<string, unknown>): void;
@@ -432,6 +439,7 @@ type RuntimeStoreState = Omit<
     | 'recordRuntimeEvent'
     | 'setGameState'
     | 'setBackendRuntimeSnapshot'
+    | 'setAuthenticatedSessionProjection'
     | 'setShellState'
     | 'setNowPlayingState'
     | 'resetNowPlayingState'
@@ -556,6 +564,10 @@ const initialState: RuntimeStoreState = {
         failedWorkDbPath: ''
     },
     backendRuntime: {},
+    authenticatedSession: {
+        revision: 0,
+        session: null
+    },
     shell: {
         backendRuntimeSnapshotHydrated: false,
         backendRuntimeSessionHydrating: false
@@ -579,7 +591,7 @@ const initialState: RuntimeStoreState = {
     }
 };
 
-export const useRuntimeStore = create<RuntimeStore>((set) => ({
+export const useRuntimeStore = create<RuntimeStore>((set, get) => ({
     ...initialState,
     setStartupTask(task: string, status: string, detail: string = '') {
         set((state) => ({
@@ -694,6 +706,13 @@ export const useRuntimeStore = create<RuntimeStore>((set) => ({
             backendRuntime:
                 snapshot && typeof snapshot === 'object' ? snapshot : {}
         });
+    },
+    setAuthenticatedSessionProjection(projection) {
+        if (projection.revision < get().authenticatedSession.revision) {
+            return false;
+        }
+        set({ authenticatedSession: projection });
+        return true;
     },
     setShellState(patch: Record<string, unknown>) {
         set((state) => ({

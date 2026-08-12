@@ -387,6 +387,7 @@ fn runtime_with_active_session_game_context(
         world_cache,
         print_cleanup: Arc::new(NoopPrintCleanupInputSink),
         friend_note_change_sink: None,
+        current_user_snapshot_sink: None,
     }));
     let active_session = RealtimeSessionContext::new(
         "usr_self".into(),
@@ -399,6 +400,7 @@ fn runtime_with_active_session_game_context(
         state.connection.generation = 7;
         state.connection.active_context = Some(ActiveRealtimeContext {
             session: active_session.clone(),
+            auth_scope_generation: 1,
             generation: 7,
             client_run_id: 1,
             session_generation: host_session_generation,

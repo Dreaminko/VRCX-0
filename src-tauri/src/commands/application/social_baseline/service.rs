@@ -19,7 +19,6 @@ fn social_baseline_deps(state: &State<'_, AppState>) -> SocialBaselineDeps {
         db: state.db.clone(),
         web: state.web.clone(),
         auth_scope: state.runtime_context.auth_scope.clone(),
-        session: state.runtime_context.session.clone(),
     }
 }
 

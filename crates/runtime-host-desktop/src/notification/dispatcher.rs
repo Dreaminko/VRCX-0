@@ -82,8 +82,7 @@ impl OverlayActivitySink for NotificationDispatcher {
             return;
         }
         let locale = load_notification_locale(&self.config);
-        let (endpoint, current_user_id) =
-            notification_session_identity(&self.session, &self.auth_scope);
+        let (endpoint, current_user_id) = notification_session_identity(&self.auth_scope);
         let world_cache = Arc::clone(&self.world_cache);
         let image_cache = Arc::clone(&self.image_cache);
         let overlay_transport = Arc::clone(&self.overlay_transport);
@@ -186,19 +185,12 @@ async fn dispatch_local_notification(
     overlay_transport.send(plan, render, preferences, local_image);
 }
 
-fn notification_session_identity(
-    session: &HostSessionRuntime,
-    auth_scope: &RuntimeAuthScope,
-) -> (String, String) {
+fn notification_session_identity(auth_scope: &RuntimeAuthScope) -> (String, String) {
     let auth_scope = auth_scope.snapshot();
     if auth_scope.active {
         return (auth_scope.endpoint, auth_scope.current_user_id);
     }
-    session
-        .snapshot()
-        .realtime_context
-        .map(|context| (context.endpoint, context.current_user_id))
-        .unwrap_or_default()
+    Default::default()
 }
 
 fn load_game_state(

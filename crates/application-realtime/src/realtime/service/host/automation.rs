@@ -279,7 +279,6 @@ impl RealtimeHostRuntime {
                 db: Arc::clone(&self.deps.db),
                 web: Arc::clone(&self.deps.web),
                 auth_scope: self.deps.auth_scope.clone(),
-                session: self.deps.session.clone(),
             },
             SocialFavoritesBaselineRequest {
                 user_id: session.user_id.clone(),

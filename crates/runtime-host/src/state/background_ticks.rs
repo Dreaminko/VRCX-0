@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use super::{
-    AuthenticatedRuntimeOrchestrator, BackendRuntime, BackendRuntimeFrontendSessionSnapshot,
+    AuthenticatedRuntimeOrchestrator, AuthenticatedSessionProjection, BackendRuntime,
     DatabaseService, RealtimeHostRuntime, RuntimeBackgroundJobs, RuntimeHostContext, WebClient,
 };
 
@@ -23,7 +23,7 @@ pub(super) use social_baseline::{
 pub(super) struct BackgroundTickContext<'a> {
     pub(super) db: &'a Arc<DatabaseService>,
     pub(super) web: &'a Arc<WebClient>,
-    pub(super) session_slot: &'a Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+    pub(super) session_slot: &'a Arc<Mutex<AuthenticatedSessionProjection>>,
     pub(super) realtime_runtime: &'a Arc<RealtimeHostRuntime>,
     pub(super) runtime_context: &'a Arc<RuntimeHostContext>,
     pub(super) backend_runtime: &'a BackendRuntime,

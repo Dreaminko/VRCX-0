@@ -21,7 +21,6 @@ fn deps(state: &State<'_, AppState>) -> GroupQuickModerationDeps {
             remote_mutations: state.runtime_context.remote_mutations.clone(),
         },
         auth_scope: state.runtime_context.auth_scope.clone(),
-        session: state.runtime_context.session.clone(),
     }
 }
 

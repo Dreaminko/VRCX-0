@@ -22,6 +22,7 @@ pub struct HostRealtimeSessionContext {
 
 #[derive(Clone, Debug, Default)]
 pub struct BackgroundCapabilitySession {
+    pub auth_scope_generation: u64,
     pub current_user_id: String,
     pub endpoint: String,
     pub websocket: String,

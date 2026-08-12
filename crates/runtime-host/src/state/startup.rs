@@ -91,7 +91,7 @@ impl RuntimeHostState {
         self.shared_collection_import.cancel();
         self.note_export.cancel();
         let _ = self.runtime_context.mutual_graph_fetch.cancel_active();
-        self.clear_backend_frontend_session();
+        self.clear_authenticated_session_projection();
         let snapshot = self.backend_runtime.clear_authentication();
         self.emit_backend_runtime_telemetry_snapshot(
             BackendRuntimeTelemetryKind::AuthCleared,
@@ -110,7 +110,7 @@ impl RuntimeHostState {
         let context = BackgroundTickContext {
             db: &self.db,
             web: &self.web,
-            session_slot: &self.backend_frontend_session,
+            session_slot: &self.authenticated_session_projection,
             realtime_runtime: &self.realtime_runtime,
             runtime_context: &self.runtime_context,
             backend_runtime: &self.backend_runtime,
@@ -169,17 +169,17 @@ impl RuntimeHostState {
         }
 
         self.backend_runtime.set_authenticating();
-        let auth_scope = self.runtime_context.auth_scope.snapshot();
+        let authenticated_session = self.authenticated_session_projection().session;
         let interactive_login = cli_login_prompt.is_some();
         let auth_result = if let Some(prompt) = cli_login_prompt {
             self.authenticate_cli_interactive(prompt).await
-        } else if auth_scope.active {
+        } else if let Some(session) = authenticated_session {
             current_user_from_cookie(
                 Arc::clone(&self.web),
                 Arc::clone(&self.db),
-                auth_scope.current_user_id.clone(),
-                auth_scope.endpoint.clone(),
-                String::new(),
+                session.user_id,
+                session.endpoint,
+                session.websocket,
             )
             .await
         } else {
@@ -231,6 +231,11 @@ impl RuntimeHostState {
         &self,
         session: AuthenticatedRuntimeSession,
     ) -> Result<BackendRuntimeSnapshot> {
+        if session.user_id.trim().is_empty() {
+            return Err(crate::Error::Custom(
+                "Authenticated runtime requires an authenticated user id.".into(),
+            ));
+        }
         let auth_scope = self
             .runtime_context
             .auth_scope
@@ -250,7 +255,6 @@ impl RuntimeHostState {
             snapshot,
         );
 
-        self.set_backend_frontend_session(&session);
         let print_cleanup_trigger = PrintCleanupTrigger {
             user_id: session.user_id.clone(),
             endpoint: session.endpoint.clone(),
@@ -268,6 +272,7 @@ impl RuntimeHostState {
             print_cleanup_trigger,
         );
         self.backend_runtime.set_phase(BackendRuntimePhase::Running);
+        self.establish_authenticated_session_projection(&session, auth_scope.generation);
         self.authenticated_runtime.start(session)?;
         self.schedule_activity_warmup(activity_warmup_user_id, auth_scope.generation);
         self.start_social_maintenance_loops();

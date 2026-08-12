@@ -7,7 +7,7 @@ use crate::{GroupOrderSource, RuntimeGroupInstancesProjection, RuntimeHostContex
 
 use super::super::{
     background_capability_session, background_capability_session_matches, emit_background_info,
-    emit_background_warning, gui_maintenance_runtime_mode, BackendRuntimeFrontendSessionSnapshot,
+    emit_background_warning, gui_maintenance_runtime_mode, AuthenticatedSessionProjection,
     SharedAtomicFlagGuard, BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
     BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
 };
@@ -130,7 +130,7 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
 }
 
 fn emit_stale_group_instance_refresh_idle(
-    session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+    session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
     runtime_context: &Arc<RuntimeHostContext>,
     session: &BackgroundCapabilitySession,
 ) {

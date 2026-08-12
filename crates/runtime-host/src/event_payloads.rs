@@ -2,6 +2,8 @@ use serde::Serialize;
 use serde_json::Value;
 use vrcx_0_application_core::RuntimeEventPayload;
 
+use crate::AuthenticatedSessionProjection;
+
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeGroupInstancesProjection {
@@ -91,6 +93,10 @@ impl RuntimeGroupInstancesProjection {
 
 impl RuntimeEventPayload for RuntimeGroupInstancesProjection {
     const EVENT_NAME: &'static str = "runtimeGroupInstancesProjection";
+}
+
+impl RuntimeEventPayload for AuthenticatedSessionProjection {
+    const EVENT_NAME: &'static str = "authenticatedSessionProjection";
 }
 
 #[cfg(test)]

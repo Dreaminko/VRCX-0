@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde_json::Value;
+use vrcx_0_application_realtime::RealtimeSessionContext;
 use vrcx_0_application_game::{
     build_background_presence_facts, run_background_presence_automation,
     BackgroundPresenceAutomationState, BackgroundPresenceFactsInput,
@@ -9,9 +10,7 @@ use vrcx_0_application_game::{
 use super::BackgroundTickContext;
 use super::{
     background_capability_session, background_capability_session_matches, emit_background_error,
-    emit_background_info, replace_backend_frontend_session_user_if_session_matches,
-    update_backend_frontend_session_user_if_session_matches, BACKGROUND_PRESENCE_AUTOMATION_JOB,
-    BACKGROUND_PRESENCE_CADENCE_SECONDS,
+    emit_background_info, BACKGROUND_PRESENCE_AUTOMATION_JOB, BACKGROUND_PRESENCE_CADENCE_SECONDS,
 };
 
 pub(in crate::state) async fn run_background_presence_tick(
@@ -101,9 +100,12 @@ pub(in crate::state) async fn run_background_presence_tick(
         let accepted = context
             .realtime_runtime
             .sync_current_user_snapshot(
-                session.current_user_id.clone(),
-                session.endpoint.clone(),
-                session.websocket.clone(),
+                RealtimeSessionContext::new(
+                    session.current_user_id.clone(),
+                    session.endpoint.clone(),
+                    session.websocket.clone(),
+                ),
+                session.auth_scope_generation,
                 None,
                 updated_user.clone(),
                 overlay_patch,
@@ -111,21 +113,7 @@ pub(in crate::state) async fn run_background_presence_tick(
             .unwrap_or(false);
         if !background_capability_session_matches(context.session_slot, &session) {
             tracing::warn!("ignored stale background presence automation user update");
-        } else if accepted {
-            if let Some(snapshot) = context.realtime_runtime.current_user_snapshot() {
-                replace_backend_frontend_session_user_if_session_matches(
-                    context.session_slot,
-                    &session,
-                    &snapshot,
-                );
-            } else {
-                update_backend_frontend_session_user_if_session_matches(
-                    context.session_slot,
-                    &session,
-                    &updated_user,
-                );
-            }
-        } else {
+        } else if !accepted {
             tracing::warn!("ignored background presence automation update rejected by realtime");
         }
     }

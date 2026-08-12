@@ -117,6 +117,7 @@ fn start_requires_active_realtime_session() -> Result<()> {
         world_cache,
         print_cleanup: Arc::new(vrcx_0_application_core::NoopPrintCleanupInputSink),
         friend_note_change_sink: None,
+        current_user_snapshot_sink: None,
     }));
 
     assert!(runtime.start_friend_profile_bulk_load().is_err());

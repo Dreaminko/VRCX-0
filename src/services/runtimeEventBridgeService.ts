@@ -50,6 +50,7 @@ import {
     resetBackendRealtimeProjectionState
 } from './runtime-event-bridge/backendRealtimeProjection';
 import {
+    handleAuthenticatedSessionProjection,
     handleBackendRuntimeSyncSnapshot,
     hydrateBackendRuntimeSnapshot
 } from './runtime-event-bridge/backendRuntimeHydration';
@@ -68,12 +69,18 @@ import type {
     RuntimeEventName,
     RuntimeEventPayloadMap
 } from './runtime-event-bridge/types';
+
 import { handleScreenshotLibraryScanStatusEvent } from './screenshotLibraryScanService';
 import {
     handleAppUpdateDownloadProgressEvent,
     handleAppUpdateInstalledEvent
 } from './updateInstallService';
 import { applyVrcStatusSnapshot } from './vrcStatusService';
+
+function reconcilePendingBackendRealtimeProjectionEvents(): void {
+    prunePendingBackendRealtimeProjectionEvents();
+    flushPendingBackendRealtimeProjectionEvents();
+}
 
 type RuntimeEventUnsubscribe = () => void;
 
@@ -189,6 +196,15 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
+    if (event.name === 'authenticatedSessionProjection') {
+        runtimeStore.recordRuntimeEvent(event.name, event.payload);
+        handleAuthenticatedSessionProjection(
+            event.payload,
+            reconcilePendingBackendRealtimeProjectionEvents
+        );
+        return;
+    }
+
     if (event.name === 'realtimeWsStatus') {
         handleAuthenticatedRuntimeRealtimeStatus(event.payload);
         return;
@@ -196,10 +212,9 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
 
     if (event.name === 'realtimeProjectionSync') {
         const snapshot = event.payload.snapshot;
-        prunePendingBackendRealtimeProjectionEvents(snapshot);
         handleBackendRuntimeSyncSnapshot(
             snapshot,
-            flushPendingBackendRealtimeProjectionEvents
+            reconcilePendingBackendRealtimeProjectionEvents
         );
         return;
     }
@@ -379,6 +394,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
     const unsubscribers: RuntimeEventUnsubscribe[] = [];
     const events: RuntimeEventName[] = [
         'addGameLogEvent',
+        'authenticatedSessionProjection',
         'authenticatedRuntimePhase',
         'appUpdateStatus',
         'appUpdateDownloadProgress',
@@ -468,7 +484,8 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         }
         await hydrateBackendRuntimeSnapshot(
             combinedSnapshot.backendRuntime,
-            flushPendingBackendRealtimeProjectionEvents
+            combinedSnapshot.authenticatedSession,
+            reconcilePendingBackendRealtimeProjectionEvents
         );
     } catch (error) {
         useRuntimeStore.getState().setShellState({

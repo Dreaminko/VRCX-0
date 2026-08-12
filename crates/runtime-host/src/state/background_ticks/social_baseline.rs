@@ -131,7 +131,6 @@ pub(in crate::state) async fn run_background_social_baseline_refresh(
         db: Arc::clone(context.db),
         web: Arc::clone(context.web),
         auth_scope: context.runtime_context.auth_scope.clone(),
-        session: context.runtime_context.session.clone(),
     };
     let core = match run_social_baseline_refresh_core(
         deps,

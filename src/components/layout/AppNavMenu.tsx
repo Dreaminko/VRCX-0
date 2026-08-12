@@ -11,7 +11,10 @@ import { useDashboardStore } from '@/state/dashboardStore';
 import { useModalStore } from '@/state/modalStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
-import { useSessionStore } from '@/state/sessionStore';
+import {
+    useSessionStore,
+    type SessionPhase
+} from '@/state/sessionStore';
 import { useShellStore } from '@/state/shellStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
@@ -169,7 +172,7 @@ function useAppNavNotifications({
 }: {
     activeIndex: string;
     currentUserId: string | null;
-    sessionPhase: string;
+    sessionPhase: SessionPhase;
     t: Translate;
 }) {
     const notifiedMenus = useShellStore((state) => state.notifiedMenus);

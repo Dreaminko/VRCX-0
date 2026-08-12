@@ -948,6 +948,7 @@ mod activity_output_tests {
             world_cache,
             print_cleanup: Arc::new(NoopPrintCleanupInputSink),
             friend_note_change_sink: None,
+            current_user_snapshot_sink: None,
         }));
         let runtime = crate::runtime::McpRuntime {
             db: Arc::clone(&db),

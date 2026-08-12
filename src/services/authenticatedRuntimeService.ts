@@ -31,15 +31,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function matchesCurrentSession(
     snapshot: AuthenticatedRuntimePhaseSnapshot
 ): boolean {
-    const auth = useRuntimeStore.getState().auth;
+    const authenticatedSession =
+        useRuntimeStore.getState().authenticatedSession.session;
     const session = useSessionStore.getState();
     return Boolean(
         session.isLoggedIn &&
         session.sessionPhase === 'ready' &&
-        auth.currentUserId === snapshot.userId &&
-        normalizeVrchatEndpointKey(auth.currentUserEndpoint) ===
+        authenticatedSession?.userId === snapshot.userId &&
+        authenticatedSession.authScopeGeneration ===
+            snapshot.authScopeGeneration &&
+        normalizeVrchatEndpointKey(authenticatedSession.endpoint) ===
             normalizeVrchatEndpointKey(snapshot.endpoint) &&
-        auth.currentUserWebsocket === snapshot.websocket
+        authenticatedSession.websocket === snapshot.websocket
     );
 }
 

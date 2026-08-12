@@ -170,6 +170,7 @@ impl RealtimeHostRuntime {
             RealtimeFriendBaselineStart::Supplied(friends_by_id) => Some(friends_by_id),
             RealtimeFriendBaselineStart::PendingOrPreserved => None,
         };
+        let auth_scope_generation = self.deps.auth_scope.snapshot().generation;
         let mut pending_feed_entries = Vec::new();
         let mut pending_projection = FriendProjection::new(0, 0);
         let friend_owner = self.lock_friend_owner();
@@ -240,6 +241,7 @@ impl RealtimeHostRuntime {
             };
             state.connection.active_context = Some(ActiveRealtimeContext {
                 session: session.clone(),
+                auth_scope_generation,
                 generation,
                 client_run_id,
                 session_generation,
@@ -375,6 +377,9 @@ impl RealtimeHostRuntime {
                 self.cancel_friend_profile_bulk_load_for_session(&active.session);
             }
             if let Some(output) = final_current_user_output {
+                if preserve_snapshot {
+                    self.apply_current_user_snapshot_sink(&active, &output.projection);
+                }
                 self.apply_current_user_output(output);
             }
             let terminal_status = match &termination {

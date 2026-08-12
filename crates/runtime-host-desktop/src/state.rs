@@ -848,10 +848,8 @@ impl DesktopRuntimeProfileExtension {
     }
 
     fn start_desktop_maintenance_loops(&self, state: &RuntimeHostState) {
-        let session_slot = state.backend_frontend_session_handle();
-        if !is_authenticated_maintenance_active(state, &session_slot)
-            || !desktop_session_scope_matches_auth(state, &session_slot)
-        {
+        let session_slot = state.authenticated_session_projection_handle();
+        if !is_authenticated_maintenance_active(state, &session_slot) {
             return;
         }
         if self
@@ -1085,23 +1083,12 @@ fn is_background_registry_maintenance_active(
 
 fn is_authenticated_maintenance_active(
     state: &RuntimeHostState,
-    session_slot: &Arc<Mutex<Option<vrcx_0_runtime_host::BackendRuntimeFrontendSessionSnapshot>>>,
+    session_slot: &Arc<Mutex<vrcx_0_runtime_host::AuthenticatedSessionProjection>>,
 ) -> bool {
     is_authenticated_maintenance_active_parts(
         &state.backend_runtime,
         &state.runtime_context,
         session_slot,
-    )
-}
-
-fn desktop_session_scope_matches_auth(
-    state: &RuntimeHostState,
-    session_slot: &Arc<Mutex<Option<vrcx_0_runtime_host::BackendRuntimeFrontendSessionSnapshot>>>,
-) -> bool {
-    let auth_scope = state.runtime_context.auth_scope.snapshot();
-    session_matches_auth_scope(
-        background_ticks::background_capability_session(session_slot).as_ref(),
-        &auth_scope,
     )
 }
 
@@ -1112,6 +1099,7 @@ fn session_matches_auth_scope(
     session
         .map(|session| {
             auth_scope.active
+                && session.auth_scope_generation == auth_scope.generation
                 && session.current_user_id == auth_scope.current_user_id
                 && vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint(Some(
                     &session.endpoint,
@@ -1123,34 +1111,28 @@ fn session_matches_auth_scope(
 fn is_authenticated_maintenance_active_parts(
     runtime: &vrcx_0_application_core::BackendRuntime,
     runtime_context: &Arc<vrcx_0_runtime_host::RuntimeHostContext>,
-    session_slot: &Arc<Mutex<Option<vrcx_0_runtime_host::BackendRuntimeFrontendSessionSnapshot>>>,
+    session_slot: &Arc<Mutex<vrcx_0_runtime_host::AuthenticatedSessionProjection>>,
 ) -> bool {
     let snapshot = runtime.snapshot();
     let auth_scope = runtime_context.auth_scope.snapshot();
     if snapshot.phase != BackendRuntimePhase::Running
         || snapshot.auth_status != vrcx_0_application_core::BackendRuntimeAuthStatus::Authenticated
-        || snapshot.auth_user_id.trim().is_empty()
-        || !auth_scope.active
-        || auth_scope.current_user_id != snapshot.auth_user_id
     {
         return false;
     }
-    background_ticks::background_capability_session(session_slot)
-        .map(|session| {
-            session.current_user_id == auth_scope.current_user_id
-                && vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint(Some(
-                    &session.endpoint,
-                )) == auth_scope.endpoint
-        })
-        .unwrap_or(auth_scope.active)
+    session_matches_auth_scope(
+        background_ticks::background_capability_session(session_slot).as_ref(),
+        &auth_scope,
+    )
 }
 
 fn background_capability_session_scope_key(
-    session_slot: &Arc<Mutex<Option<vrcx_0_runtime_host::BackendRuntimeFrontendSessionSnapshot>>>,
+    session_slot: &Arc<Mutex<vrcx_0_runtime_host::AuthenticatedSessionProjection>>,
 ) -> Option<String> {
     background_ticks::background_capability_session(session_slot).map(|session| {
         format!(
-            "{}:{}",
+            "{}:{}:{}",
+            session.auth_scope_generation,
             session.current_user_id,
             vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint(Some(&session.endpoint))
         )

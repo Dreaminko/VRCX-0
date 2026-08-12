@@ -40,8 +40,8 @@ const mocks = vi.hoisted(() => ({
     takePendingDesktopNotificationActivation: vi.fn<() => Promise<void>>(),
     desktopNotificationActivationUnsubscribe: vi.fn(),
     handleRuntimeAuthFailure: vi.fn(),
-    resumeFrontendSessionFromBackendRuntime:
-        vi.fn<(snapshot: unknown) => Promise<boolean>>()
+    applyAuthenticatedSessionProjection:
+        vi.fn<(projection: unknown) => Promise<boolean>>()
 }));
 
 vi.mock('@/platform/tauri/bindings', () => ({
@@ -112,8 +112,8 @@ vi.mock('./vrcStatusService', () => ({
 }));
 
 vi.mock('./backendRuntimeSessionResumeService', () => ({
-    resumeFrontendSessionFromBackendRuntime:
-        mocks.resumeFrontendSessionFromBackendRuntime
+    applyAuthenticatedSessionProjection:
+        mocks.applyAuthenticatedSessionProjection
 }));
 
 vi.mock('./deepLinkService', () => ({
@@ -312,6 +312,10 @@ function createBackendRuntimeCombinedSnapshot(
 ) {
     return {
         backendRuntime: createBackendRuntimeSnapshot(),
+        authenticatedSession: {
+            revision: 0,
+            session: null
+        },
         authenticatedRuntimePhase: createAuthenticatedRuntimePhaseSnapshot({
             runId: 0,
             authScopeGeneration: 0,
@@ -384,6 +388,20 @@ function setBackendRealtimeOwner({
         wsStatus: 'connected'
     };
     useRuntimeStore.getState().setBackendRuntimeSnapshot(snapshot);
+    useRuntimeStore.getState().setAuthenticatedSessionProjection({
+        revision: 1,
+        session: {
+            authScopeGeneration: 7,
+            userId,
+            displayName: userId,
+            endpoint: 'https://api.vrchat.cloud/api/1',
+            websocket: 'wss://pipeline.vrchat.cloud',
+            currentUserSnapshot: {
+                id: userId,
+                displayName: userId
+            }
+        }
+    });
     if (authReady) {
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserId: userId,
@@ -434,7 +452,7 @@ describe('runtimeEventBridgeService', () => {
         mocks.takePendingDesktopNotificationActivation.mockResolvedValue(
             undefined
         );
-        mocks.resumeFrontendSessionFromBackendRuntime.mockResolvedValue(false);
+        mocks.applyAuthenticatedSessionProjection.mockResolvedValue(false);
         mocks.initializeBackgroundImage.mockResolvedValue(undefined);
         mocks.initializeCommunityThemes.mockResolvedValue(undefined);
     });
@@ -470,6 +488,30 @@ describe('runtimeEventBridgeService', () => {
         handlers.get('browserFocus')?.(null);
 
         expect(mocks.handleBrowserFocus).toHaveBeenCalledTimes(1);
+    });
+
+    it('routes the typed authenticated session projection without querying peer state', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        const projection = {
+            revision: 4,
+            session: {
+                authScopeGeneration: 7,
+                userId: 'usr_owner',
+                displayName: 'Projected User',
+                endpoint: 'https://api.vrchat.cloud/api/1',
+                websocket: 'wss://pipeline.vrchat.cloud',
+                currentUserSnapshot: {
+                    id: 'usr_owner',
+                    displayName: 'Projected User'
+                }
+            }
+        };
+
+        handlers.get('authenticatedSessionProjection')?.(projection);
+
+        expect(
+            mocks.applyAuthenticatedSessionProjection
+        ).toHaveBeenLastCalledWith(projection);
     });
 
     it('routes only current-scope structured VRChat 401 events to auth recovery', async () => {
@@ -664,7 +706,7 @@ describe('runtimeEventBridgeService', () => {
             calls.push('get-backend-snapshot');
             return createBackendRuntimeCombinedSnapshot();
         });
-        mocks.resumeFrontendSessionFromBackendRuntime.mockImplementation(
+        mocks.applyAuthenticatedSessionProjection.mockImplementation(
             async () => {
                 calls.push('hydrate-backend-snapshot');
                 return false;
@@ -807,7 +849,7 @@ describe('runtimeEventBridgeService', () => {
             'subscription failed'
         );
 
-        expect(unsubscribe).toHaveBeenCalledTimes(39);
+        expect(unsubscribe).toHaveBeenCalledTimes(40);
         expect(useSessionStore.getState().transportStatus).toBe('disconnected');
         expect(mocks.bindDeepLinkEvents).not.toHaveBeenCalled();
     });
@@ -833,7 +875,7 @@ describe('runtimeEventBridgeService', () => {
         );
         await vi.advanceTimersByTimeAsync(10_000);
 
-        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(40);
+        expect(runtimeUnsubscribe).toHaveBeenCalledTimes(41);
         expect(mocks.deepLinkUnsubscribe).toHaveBeenCalledTimes(1);
         expect(
             mocks.desktopNotificationActivationUnsubscribe
@@ -1162,6 +1204,33 @@ describe('runtimeEventBridgeService', () => {
         });
     });
 
+    it('uses the authenticated session projection instead of diagnostic auth fields', async () => {
+        const { handlers } = await bindCapturedRuntimeEvents();
+        const snapshot = setBackendRealtimeOwner();
+        useRuntimeStore.getState().setBackendRuntimeSnapshot({
+            ...snapshot,
+            authStatus: 'signedOut',
+            authUserId: 'usr_stale_diagnostic'
+        });
+
+        handlers.get('realtimeUserProjection')?.({
+            generation: 1,
+            users: [
+                {
+                    id: 'usr_projected',
+                    endpoint: 'api.vrchat.cloud',
+                    displayName: 'Projected User'
+                }
+            ]
+        });
+
+        expect(
+            Object.values(useUserFactsStore.getState().usersByKey).map(
+                (user) => user.id
+            )
+        ).toEqual(['usr_projected']);
+    });
+
     it('flushes queued backend projections from the projection sync event only', async () => {
         const { handlers } = await bindCapturedRuntimeEvents();
         const runningSnapshot = setBackendRealtimeOwner({
@@ -1205,10 +1274,9 @@ describe('runtimeEventBridgeService', () => {
         });
     });
 
-    it('prunes queued backend projections when the runtime user changes', async () => {
+    it('prunes queued backend projections when the auth generation changes', async () => {
         const { handlers } = await bindCapturedRuntimeEvents();
-        const oldUserSnapshot = setBackendRealtimeOwner({
-            userId: 'usr_old_owner',
+        const runningSnapshot = setBackendRealtimeOwner({
             authReady: false,
             sessionReady: false
         });
@@ -1223,19 +1291,30 @@ describe('runtimeEventBridgeService', () => {
             ]
         });
 
-        handlers.get('realtimeProjectionSync')?.({
-            snapshot: {
-                ...oldUserSnapshot,
-                authUserId: 'usr_new_owner'
+        useRuntimeStore.getState().setAuthenticatedSessionProjection({
+            revision: 2,
+            session: {
+                authScopeGeneration: 4,
+                userId: 'usr_owner',
+                displayName: 'Owner',
+                endpoint: 'https://api.vrchat.cloud/api/1',
+                websocket: 'wss://pipeline.vrchat.cloud',
+                currentUserSnapshot: {
+                    id: 'usr_owner',
+                    displayName: 'Owner'
+                }
             }
+        });
+        handlers.get('realtimeProjectionSync')?.({
+            snapshot: runningSnapshot
         });
         await Promise.resolve();
         useRuntimeStore.getState().setAuthBootstrap({
-            currentUserId: 'usr_old_owner'
+            currentUserId: 'usr_owner'
         });
         useSessionStore.getState().setSessionPhase('ready');
         handlers.get('realtimeProjectionSync')?.({
-            snapshot: oldUserSnapshot
+            snapshot: runningSnapshot
         });
         await Promise.resolve();
         await Promise.resolve();

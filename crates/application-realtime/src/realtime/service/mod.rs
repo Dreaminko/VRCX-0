@@ -5,6 +5,6 @@ pub use host::test_support;
 
 pub use host::{
     FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload,
-    RealtimeCurrentUserRefreshExpectation, RealtimeHostRuntime, RealtimeHostRuntimeDeps,
-    RealtimeStopRequest, SyntheticFriendEventOutcome,
+    RealtimeCurrentUserRefreshExpectation, RealtimeCurrentUserSnapshotSink, RealtimeHostRuntime,
+    RealtimeHostRuntimeDeps, RealtimeStopRequest, SyntheticFriendEventOutcome,
 };

@@ -198,6 +198,7 @@ fn test_realtime_runtime(
             world_cache,
             print_cleanup: Arc::new(vrcx_0_application_core::NoopPrintCleanupInputSink),
             friend_note_change_sink: None,
+            current_user_snapshot_sink: None,
         },
     ));
     (dir, runtime, db, web)

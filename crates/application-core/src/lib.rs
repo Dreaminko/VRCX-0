@@ -29,7 +29,7 @@ pub use async_runtime_policy::{
     recommended_tokio_max_blocking_threads, recommended_tokio_max_blocking_threads_for,
     recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
 };
-pub use auth_scope::{auth_scope_matches, RuntimeAuthScope, RuntimeAuthScopeSnapshot};
+pub use auth_scope::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
 pub use avatar_cache::AvatarCache;
 pub use backend_runtime::{
     BackendRuntime, BackendRuntimeAuthStatus, BackendRuntimeGameLogStatus, BackendRuntimeMode,

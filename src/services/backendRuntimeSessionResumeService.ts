@@ -1,14 +1,16 @@
-import { commands } from '@/platform/tauri/bindings';
 import type {
-    BackendRuntimeFrontendSessionSnapshot,
-    BackendRuntimeSnapshot,
-    RuntimeAuthScopeSnapshot
+    AuthenticatedSessionProjection,
+    AuthenticatedSessionSnapshot
 } from '@/platform/tauri/bindings';
 import { normalizeString } from '@/shared/utils/string';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
 import { beginAuthAttempt, isAuthAttemptSupersededError } from './authAttempt';
+import {
+    resetCurrentUserRuntimeAuth,
+    setSignedOutSessionState
+} from './authExecutionService';
 import { recordCurrentUserSnapshot } from './domainIngestionService';
 import { bootstrapAuthenticatedSession } from './sessionBootstrapService';
 import { loadVrchatConfigSnapshot } from './vrchatConfigService';
@@ -19,61 +21,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
 
-function isAuthenticatedBackendRuntime(
-    snapshot: BackendRuntimeSnapshot | Record<string, unknown> | null
-): snapshot is BackendRuntimeSnapshot {
-    return Boolean(
-        isRecord(snapshot) &&
-        snapshot.phase === 'running' &&
-        snapshot.authStatus === 'authenticated' &&
-        normalizeString(snapshot.authUserId)
-    );
-}
-
-function isCurrentAuthenticatedBackendRuntimeUser(userId: string): boolean {
-    const snapshot = useRuntimeStore.getState().backendRuntime;
-    return Boolean(
-        isAuthenticatedBackendRuntime(snapshot) &&
-        normalizeString(snapshot.authUserId) === userId
-    );
-}
-
-function frontendSessionMatchesUser(
-    frontendSessionSnapshot: BackendRuntimeFrontendSessionSnapshot | null,
-    userId: string
+function isCurrentAuthenticatedSessionProjection(
+    projection: AuthenticatedSessionProjection
 ): boolean {
-    if (!frontendSessionSnapshot) {
-        return true;
-    }
-    const frontendUserId =
-        normalizeString(frontendSessionSnapshot.userId) ||
-        normalizeString(
-            isRecord(frontendSessionSnapshot.currentUserSnapshot)
-                ? frontendSessionSnapshot.currentUserSnapshot.id
-                : ''
-        );
-    return (
-        frontendSessionSnapshot.authenticated === true &&
-        frontendUserId === userId
-    );
-}
-
-function authScopeMatchesUser(
-    scope: RuntimeAuthScopeSnapshot | null,
-    userId: string
-): boolean {
-    return Boolean(
-        scope?.active === true &&
-        normalizeString(scope.currentUserId) === userId
-    );
+    const current = useRuntimeStore.getState().authenticatedSession;
+    return current.revision === projection.revision;
 }
 
 function buildMinimalCurrentUserSnapshot(
-    snapshot: BackendRuntimeSnapshot,
+    session: AuthenticatedSessionSnapshot,
     previousSnapshot: CurrentUserSnapshot | null
 ): CurrentUserSnapshot {
-    const userId = normalizeString(snapshot.authUserId);
-    const displayName = normalizeString(snapshot.authDisplayName) || userId;
+    const userId = normalizeString(session.userId);
+    const displayName = normalizeString(session.displayName) || userId;
     if (previousSnapshot && normalizeString(previousSnapshot.id) === userId) {
         return {
             ...previousSnapshot,
@@ -87,14 +47,6 @@ function buildMinimalCurrentUserSnapshot(
     };
 }
 
-async function getBackendFrontendSessionSnapshot(
-    includeCurrentUserSnapshot: boolean
-) {
-    return commands
-        .appGetBackendRuntimeFrontendSessionSnapshot(includeCurrentUserSnapshot)
-        .catch((): null => null);
-}
-
 async function restoreVrchatConfigSnapshot(): Promise<void> {
     await loadVrchatConfigSnapshot().catch((error: unknown) => {
         console.warn(
@@ -105,44 +57,59 @@ async function restoreVrchatConfigSnapshot(): Promise<void> {
 }
 
 function buildCurrentUserSnapshotForResume({
-    runtimeSnapshot,
-    frontendSessionSnapshot,
+    session,
     previousSnapshot
 }: {
-    runtimeSnapshot: BackendRuntimeSnapshot;
-    frontendSessionSnapshot: BackendRuntimeFrontendSessionSnapshot | null;
+    session: AuthenticatedSessionSnapshot;
     previousSnapshot: CurrentUserSnapshot | null;
 }): CurrentUserSnapshot {
-    const userId = normalizeString(runtimeSnapshot.authUserId);
-    const frontendUserSnapshot = isRecord(
-        frontendSessionSnapshot?.currentUserSnapshot
-    )
-        ? frontendSessionSnapshot.currentUserSnapshot
+    const userId = normalizeString(session.userId);
+    const projectedUserSnapshot = isRecord(session.currentUserSnapshot)
+        ? session.currentUserSnapshot
         : null;
     if (
-        frontendUserSnapshot &&
-        normalizeString(frontendUserSnapshot.id) === userId
+        projectedUserSnapshot &&
+        normalizeString(projectedUserSnapshot.id) === userId
     ) {
         return {
-            ...frontendUserSnapshot,
+            ...projectedUserSnapshot,
             id: userId,
             displayName:
-                normalizeString(frontendUserSnapshot.displayName) ||
-                normalizeString(runtimeSnapshot.authDisplayName) ||
+                normalizeString(projectedUserSnapshot.displayName) ||
+                normalizeString(session.displayName) ||
                 userId
         };
     }
 
-    return buildMinimalCurrentUserSnapshot(runtimeSnapshot, previousSnapshot);
+    return buildMinimalCurrentUserSnapshot(session, previousSnapshot);
 }
 
-export async function resumeFrontendSessionFromBackendRuntime(
-    snapshot: BackendRuntimeSnapshot | Record<string, unknown> | null
+export async function applyAuthenticatedSessionProjection(
+    projection: AuthenticatedSessionProjection
 ): Promise<boolean> {
-    if (!isAuthenticatedBackendRuntime(snapshot)) {
+    const previousProjectionRevision =
+        useRuntimeStore.getState().authenticatedSession.revision;
+    if (
+        !useRuntimeStore
+            .getState()
+            .setAuthenticatedSessionProjection(projection)
+    ) {
         return false;
     }
-
+    const session = projection.session;
+    if (!session) {
+        const sessionPhase = useSessionStore.getState().sessionPhase;
+        if (
+            projection.revision > previousProjectionRevision &&
+            sessionPhase !== 'authenticating' &&
+            sessionPhase !== 'bootstrapping'
+        ) {
+            beginAuthAttempt();
+            resetCurrentUserRuntimeAuth();
+            setSignedOutSessionState();
+        }
+        return false;
+    }
     const sessionState = useSessionStore.getState();
     if (
         sessionState.sessionPhase === 'authenticating' ||
@@ -151,42 +118,20 @@ export async function resumeFrontendSessionFromBackendRuntime(
         return false;
     }
 
-    const userId = normalizeString(snapshot.authUserId);
-    const includeCurrentUserSnapshot = sessionState.sessionPhase !== 'ready';
-    const [scope, initialFrontendSessionSnapshot] = await Promise.all([
-        commands.appRuntimeAuthScopeGet().catch((): null => null),
-        getBackendFrontendSessionSnapshot(includeCurrentUserSnapshot)
-    ]);
-    const latestSessionState = useSessionStore.getState();
-    if (
-        latestSessionState.sessionPhase === 'authenticating' ||
-        latestSessionState.sessionPhase === 'bootstrapping'
-    ) {
-        return false;
-    }
-    if (
-        !authScopeMatchesUser(scope, userId) ||
-        !isCurrentAuthenticatedBackendRuntimeUser(userId) ||
-        !frontendSessionMatchesUser(initialFrontendSessionSnapshot, userId)
-    ) {
+    const userId = normalizeString(session.userId);
+    if (!userId || !isCurrentAuthenticatedSessionProjection(projection)) {
         return false;
     }
 
     const currentRuntimeState = useRuntimeStore.getState();
-    let frontendSessionSnapshot = initialFrontendSessionSnapshot;
-    let endpoint =
-        normalizeString(frontendSessionSnapshot?.endpoint) ||
-        normalizeString(scope?.endpoint) ||
-        normalizeString(currentRuntimeState.auth.currentUserEndpoint);
-    let websocket =
-        normalizeString(frontendSessionSnapshot?.websocket) ||
-        normalizeString(currentRuntimeState.auth.currentUserWebsocket);
+    const endpoint = normalizeString(session.endpoint);
+    const websocket = normalizeString(session.websocket);
     const previousCurrentUserSnapshot = isRecord(
         currentRuntimeState.auth.currentUserSnapshot
     )
         ? currentRuntimeState.auth.currentUserSnapshot
         : null;
-    if (latestSessionState.sessionPhase === 'ready') {
+    if (sessionState.sessionPhase === 'ready') {
         if (
             normalizeString(currentRuntimeState.auth.currentUserId) !== userId
         ) {
@@ -200,32 +145,21 @@ export async function resumeFrontendSessionFromBackendRuntime(
         ) {
             return false;
         }
-        frontendSessionSnapshot = await getBackendFrontendSessionSnapshot(true);
         if (
             useSessionStore.getState().sessionPhase !== 'ready' ||
-            !frontendSessionSnapshot ||
-            !isCurrentAuthenticatedBackendRuntimeUser(userId) ||
-            !frontendSessionMatchesUser(frontendSessionSnapshot, userId)
+            !isCurrentAuthenticatedSessionProjection(projection)
         ) {
             return false;
         }
-        endpoint =
-            normalizeString(frontendSessionSnapshot.endpoint) ||
-            normalizeString(scope?.endpoint) ||
-            normalizeString(currentRuntimeState.auth.currentUserEndpoint);
-        websocket =
-            normalizeString(frontendSessionSnapshot.websocket) ||
-            normalizeString(currentRuntimeState.auth.currentUserWebsocket);
         const currentUserSnapshot = buildCurrentUserSnapshotForResume({
-            runtimeSnapshot: snapshot,
-            frontendSessionSnapshot,
+            session,
             previousSnapshot: previousCurrentUserSnapshot
         });
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserId: userId,
             currentUserDisplayName:
                 normalizeString(currentUserSnapshot.displayName) ||
-                normalizeString(snapshot.authDisplayName) ||
+                normalizeString(session.displayName) ||
                 userId,
             currentUserEndpoint: endpoint,
             currentUserWebsocket: websocket,
@@ -237,8 +171,7 @@ export async function resumeFrontendSessionFromBackendRuntime(
     }
 
     const currentUserSnapshot = buildCurrentUserSnapshotForResume({
-        runtimeSnapshot: snapshot,
-        frontendSessionSnapshot,
+        session,
         previousSnapshot: previousCurrentUserSnapshot
     });
     const attempt = beginAuthAttempt();
@@ -246,7 +179,7 @@ export async function resumeFrontendSessionFromBackendRuntime(
         currentUserId: userId,
         currentUserDisplayName:
             normalizeString(currentUserSnapshot.displayName) ||
-            normalizeString(snapshot.authDisplayName) ||
+            normalizeString(session.displayName) ||
             userId,
         currentUserEndpoint: endpoint,
         currentUserWebsocket: websocket,

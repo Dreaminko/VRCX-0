@@ -26,7 +26,7 @@ use vrcx_0_core::realtime::RealtimeWsStatusPayload;
 use vrcx_0_core::screenshots::ScreenshotLibraryScanStatus;
 use vrcx_0_host_desktop::tts::TtsVoice;
 use vrcx_0_mcp::McpServerStatus;
-use vrcx_0_runtime_host::RuntimeGroupInstancesProjection;
+use vrcx_0_runtime_host::{AuthenticatedSessionProjection, RuntimeGroupInstancesProjection};
 use vrcx_0_runtime_host_desktop::AppLauncherSnapshotEvent;
 
 use crate::commands;
@@ -36,6 +36,7 @@ use crate::commands;
 #[allow(dead_code)]
 struct BackendRuntimeEventPayloadMap {
     add_game_log_event: AddGameLogEventPayload,
+    authenticated_session_projection: AuthenticatedSessionProjection,
     authenticated_runtime_phase: AuthenticatedRuntimePhaseSnapshot,
     app_update_status: AppUpdateStatusSnapshot,
     app_update_download_progress: AppUpdateDownloadProgressPayload,
@@ -136,7 +137,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::realtime::app__friend_profile_load_cancel,
             commands::application::lifecycle::app__ancillary_runtime_snapshot_get,
             commands::application::background_mode::app__start_background_mode,
-            commands::application::background_mode::app__get_backend_runtime_frontend_session_snapshot,
             commands::application::background_mode::app__backend_runtime_combined_snapshot_get,
             commands::application::background_mode::app__ensure_main_window,
             commands::application::deep_link::app__drain_pending_deep_links,
@@ -353,7 +353,6 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::integrations::external_api::service::app__external_api_github_releases_get,
             commands::integrations::external_api::service::app__external_api_image_data_url_get,
             commands::integrations::external_api::service::app__external_api_youtube_video_metadata_get,
-            commands::application::auth_scope::app__runtime_auth_scope_get,
             commands::vrchat::auth::service::app__vrchat_auth_config_get,
             commands::vrchat::auth::service::app__vrchat_auth_config_refresh,
             commands::vrchat::auth::service::app__vrchat_auth_auto_login_start,

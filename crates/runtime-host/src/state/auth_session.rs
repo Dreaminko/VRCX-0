@@ -95,7 +95,11 @@ impl RuntimeHostState {
         kind: LoginSessionEnd,
     ) -> Result<Option<SavedAuthSnapshot>> {
         let user_id = match &kind {
-            LoginSessionEnd::Logout => self.runtime_context.auth_scope.snapshot().current_user_id,
+            LoginSessionEnd::Logout => self
+                .authenticated_session_projection()
+                .session
+                .map(|session| session.user_id)
+                .unwrap_or_default(),
             LoginSessionEnd::Invalidated {
                 expected_user_id, ..
             } => expected_user_id.clone(),
@@ -118,10 +122,9 @@ impl RuntimeHostState {
         if matches!(kind, LoginSessionEnd::Logout) {
             return true;
         }
-        let scope = self.runtime_context.auth_scope.snapshot();
-        if !scope.active {
+        let Some(session) = self.authenticated_session_projection().session else {
             return false;
-        }
+        };
         let active = self
             .authenticated_runtime
             .snapshot()
@@ -131,7 +134,11 @@ impl RuntimeHostState {
                 generation: transport.generation,
                 session_generation: transport.session_generation,
             });
-        kind.matches_invalidation(&scope.current_user_id, scope.generation, active.as_ref())
+        kind.matches_invalidation(
+            &session.user_id,
+            session.auth_scope_generation,
+            active.as_ref(),
+        )
     }
 
     pub(super) async fn authenticate_non_interactive(
