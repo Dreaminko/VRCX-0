@@ -48,7 +48,11 @@ pub async fn app__assistant_get_session(
     state: State<'_, AppState>,
     sessionId: String,
 ) -> Result<Option<Session>, AppError> {
-    Ok(state.assistant().await?.get_session(&sessionId))
+    state
+        .assistant()
+        .await?
+        .get_session(&sessionId)
+        .map_err(AppError::from)
 }
 
 #[tauri::command]

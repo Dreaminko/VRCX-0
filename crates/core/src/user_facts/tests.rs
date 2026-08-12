@@ -155,8 +155,8 @@ fn presence_realtime_beats_profile_but_profile_beats_friend_for_profile_fields()
         Some("FromProfile")
     );
     assert_eq!(
-        second.fact.field_sources.get("state").map(String::as_str),
-        Some("realtime")
+        second.fact.field_ranks.get("state").copied(),
+        Some(presence_source_rank("realtime"))
     );
 }
 

@@ -3,7 +3,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use serde_json::{Map, Value};
 use vrcx_0_core::user_facts::{
-    merge_user_fact, normalize_user_id, user_fact_key, UserFact, UserFactMergeOptions,
+    merge_user_fact_owned, normalize_user_id, user_fact_key, UserFact, UserFactMergeOptions,
 };
 
 const NON_FRIEND_CAPACITY: usize = 256;
@@ -77,7 +77,7 @@ impl UserCacheRuntime {
         }
 
         let mut state = self.lock();
-        let result = merge_user_fact(state.users.get(&key), value, options);
+        let result = merge_user_fact_owned(state.users.remove(&key), value, options);
         let pinned = is_pinned(&result.fact);
         let output = result.changed.then(|| UserCacheOutput {
             user: result.fact.to_object(),

@@ -1230,6 +1230,35 @@ fn friends_panel_avatar_session_clear_rejects_stale_insert() {
 }
 
 #[test]
+fn friends_panel_avatar_cache_evicts_the_least_recently_used_entry() {
+    let mut cache = FriendsPanelAvatarCache::default();
+    for index in 0..FRIENDS_PANEL_AVATAR_CACHE_CAPACITY {
+        cache.insert(
+            format!("usr_{index}"),
+            FriendsPanelAvatarCacheEntry {
+                bitmap: test_avatar_bitmap(),
+                source_url: format!("https://images.example/avatar/{index}"),
+                allow_user_icon: true,
+            },
+        );
+    }
+    assert!(cache.contains_matching("usr_0", "https://images.example/avatar/0", true));
+
+    cache.insert(
+        "usr_new".into(),
+        FriendsPanelAvatarCacheEntry {
+            bitmap: test_avatar_bitmap(),
+            source_url: "https://images.example/avatar/new".into(),
+            allow_user_icon: true,
+        },
+    );
+
+    assert_eq!(cache.entries.len(), FRIENDS_PANEL_AVATAR_CACHE_CAPACITY);
+    assert!(cache.entries.contains_key("usr_0"));
+    assert!(!cache.entries.contains_key("usr_1"));
+}
+
+#[test]
 fn game_stop_hmd_release_and_session_clear_drop_avatar_bitmap_cache() {
     let runtime = VrOverlayRuntime::new_for_test();
     runtime.avatar_bitmap_cache.store_success(

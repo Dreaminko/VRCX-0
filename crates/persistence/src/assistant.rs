@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::common::{row_i64, row_string, ParamsBuilder};
 use crate::database::schema::ensure_assistant_tables;
 use crate::database::DatabaseService;
@@ -28,7 +26,6 @@ pub struct PersistedSession {
     pub model: String,
     pub allow_writes: bool,
     pub playbook_mode: String,
-    pub messages: Vec<PersistedMessage>,
 }
 
 pub fn assistant_sessions_load(
@@ -38,7 +35,7 @@ pub fn assistant_sessions_load(
     ensure_assistant_tables(db)?;
     let owner_id = owner_id_for_filter(db, owner_user_id)?;
     let params = ParamsBuilder::new().set("owner_id", owner_id).build();
-    let mut sessions: Vec<PersistedSession> = db
+    let sessions = db
         .execute(
             "SELECT s.id, s.title, s.created_at, s.updated_at, s.entity_panel_open, s.surfaced_entities, s.endpoint_id, s.model, s.allow_writes, s.playbook_mode, COALESCE(o.user_id, '') FROM assistant_session s LEFT JOIN owners o ON o.id = s.owner_id WHERE s.owner_id IN (0, @owner_id) ORDER BY s.updated_at DESC",
             &params,
@@ -56,30 +53,37 @@ pub fn assistant_sessions_load(
             model: row_string(&row, 7),
             allow_writes: row_i64(&row, 8) != 0,
             playbook_mode: row_string(&row, 9),
-            messages: Vec::new(),
         })
         .collect();
-
-    let mut messages_by_session: HashMap<String, Vec<PersistedMessage>> = HashMap::new();
-    for row in db.execute(
-        "SELECT m.id, m.session_id, m.seq, m.role, m.content, m.created_at FROM assistant_message m JOIN assistant_session s ON s.id = m.session_id WHERE s.owner_id IN (0, @owner_id) ORDER BY m.session_id, m.seq ASC",
-        &params,
-    )? {
-        messages_by_session
-            .entry(row_string(&row, 1))
-            .or_default()
-            .push(PersistedMessage {
-                id: row_string(&row, 0),
-                seq: row_i64(&row, 2),
-                role: row_string(&row, 3),
-                content: row_string(&row, 4),
-                created_at: row_string(&row, 5),
-            });
-    }
-    for session in &mut sessions {
-        session.messages = messages_by_session.remove(&session.id).unwrap_or_default();
-    }
     Ok(sessions)
+}
+
+pub fn assistant_session_messages_load(
+    db: &DatabaseService,
+    owner_user_id: &str,
+    session_id: &str,
+) -> Result<Vec<PersistedMessage>, Error> {
+    ensure_assistant_tables(db)?;
+    let owner_id = owner_id_for_filter(db, owner_user_id)?;
+    let params = ParamsBuilder::new()
+        .set("owner_id", owner_id)
+        .set("session_id", session_id.to_string())
+        .build();
+    let messages = db
+        .execute(
+            "SELECT m.id, m.seq, m.role, m.content, m.created_at FROM assistant_message m JOIN assistant_session s ON s.id = m.session_id WHERE m.session_id = @session_id AND s.owner_id IN (0, @owner_id) ORDER BY m.seq ASC",
+            &params,
+        )?
+        .into_iter()
+        .map(|row| PersistedMessage {
+            id: row_string(&row, 0),
+            seq: row_i64(&row, 1),
+            role: row_string(&row, 2),
+            content: row_string(&row, 3),
+            created_at: row_string(&row, 4),
+        })
+        .collect();
+    Ok(messages)
 }
 
 pub fn assistant_session_upsert(
@@ -238,9 +242,10 @@ mod tests {
         assert_eq!(session.model, "model-a");
         assert!(session.allow_writes);
         assert_eq!(session.playbook_mode, "guided");
-        assert_eq!(session.messages.len(), 2);
-        assert_eq!(session.messages[0].seq, 1);
-        assert_eq!(session.messages[1].role, "assistant");
+        let messages = assistant_session_messages_load(&db, "usr_a", "ses_1").unwrap();
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].seq, 1);
+        assert_eq!(messages[1].role, "assistant");
     }
 
     #[test]

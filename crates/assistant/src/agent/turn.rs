@@ -336,8 +336,21 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
 
     ctx.emitter.answer(&final_answer);
 
-    ctx.sessions
-        .push_message(&ctx.session_id, Role::Assistant, final_answer.clone());
+    match ctx
+        .sessions
+        .push_message(&ctx.session_id, Role::Assistant, final_answer.clone())
+    {
+        Ok(true) => {}
+        Ok(false) => return,
+        Err(error) => {
+            tracing::warn!(%error, "assistant: failed to load session history before reply write");
+            return finish_error(
+                &ctx,
+                "persistence",
+                "Assistant history could not be loaded. Try again.",
+            );
+        }
+    }
 
     let surfaced = surfaced_entities(dedup_entities(collected), &final_answer);
     ctx.sessions

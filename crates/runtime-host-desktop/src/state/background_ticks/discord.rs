@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use serde_json::json;
 use vrcx_0_application_game::{
@@ -49,6 +52,7 @@ pub(in crate::state) async fn run_background_discord_tick(
     discord_rpc: &Arc<DiscordRpc>,
     discord_state: &mut BackgroundDiscordPresenceState,
     last_discord_output: &mut Option<String>,
+    friend_user_ids: &HashSet<String>,
     favorite_friend_groups_by_key: &HashMap<String, Vec<String>>,
 ) {
     context.background_jobs.mark_running(
@@ -64,11 +68,7 @@ pub(in crate::state) async fn run_background_discord_tick(
         return;
     };
     let host_session = context.runtime_context.session.snapshot();
-    let friends_by_id = context
-        .realtime_runtime
-        .friend_snapshot()
-        .map(|snapshot| snapshot.friends_by_id)
-        .unwrap_or_default();
+    let favorite_world_groups_by_key = HashMap::new();
     let facts = match build_background_presence_facts(
         context.db.as_ref(),
         BackgroundPresenceFactsInput {
@@ -83,9 +83,9 @@ pub(in crate::state) async fn run_background_discord_tick(
             last_game_started_at: host_session.last_game_started_at,
             game_log_snapshot: context.desktop_services.game_log_snapshot(),
             now_playing: context.desktop_services.now_playing(),
-            friends_by_id,
-            favorite_friend_groups_by_key: favorite_friend_groups_by_key.clone(),
-            favorite_world_groups_by_key: HashMap::new(),
+            friend_user_ids,
+            favorite_friend_groups_by_key,
+            favorite_world_groups_by_key: &favorite_world_groups_by_key,
         },
     ) {
         Ok(facts) => facts,

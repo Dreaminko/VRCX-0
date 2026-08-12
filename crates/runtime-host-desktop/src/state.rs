@@ -1001,9 +1001,6 @@ impl DesktopRuntimeProfileExtension {
                                 BACKGROUND_OVERLAY_ACTIVITY_CONFIG_CADENCE_SECONDS,
                             );
                     }
-                    let favorite_group_memberships = authenticated_runtime
-                        .favorite_group_memberships()
-                        .unwrap_or_default();
                     let tick_context = BackgroundTickContext {
                         db: &db,
                         web: &web,
@@ -1014,32 +1011,42 @@ impl DesktopRuntimeProfileExtension {
                         backend_runtime: &backend_runtime,
                         background_jobs: &background_jobs,
                     };
-                    if now >= next_presence {
-                        run_background_presence_tick(
-                            &tick_context,
-                            &mut presence_state,
-                            &favorite_group_memberships.friend_groups_by_key,
-                            &favorite_group_memberships.world_groups_by_key,
-                        )
-                        .await;
-                        presence_state.persist_cached(
-                            &presence_state_path,
-                            &mut presence_state_serialized,
-                        );
-                        next_presence =
-                            now + Duration::from_secs(BACKGROUND_PRESENCE_CADENCE_SECONDS);
-                    }
-                    if now >= next_discord {
-                        run_background_discord_tick(
-                            &tick_context,
-                            &discord_rpc,
-                            &mut discord_state,
-                            &mut last_discord_output,
-                            &favorite_group_memberships.friend_groups_by_key,
-                        )
-                        .await;
-                        next_discord =
-                            now + Duration::from_secs(BACKGROUND_DISCORD_CADENCE_SECONDS);
+                    let run_presence = now >= next_presence;
+                    let run_discord = now >= next_discord;
+                    if run_presence || run_discord {
+                        let favorite_group_memberships = authenticated_runtime
+                            .favorite_group_memberships()
+                            .unwrap_or_default();
+                        let friend_user_ids = realtime_runtime.friend_user_ids();
+                        if run_presence {
+                            run_background_presence_tick(
+                                &tick_context,
+                                &mut presence_state,
+                                &friend_user_ids,
+                                &favorite_group_memberships.friend_groups_by_key,
+                                &favorite_group_memberships.world_groups_by_key,
+                            )
+                            .await;
+                            presence_state.persist_cached(
+                                &presence_state_path,
+                                &mut presence_state_serialized,
+                            );
+                            next_presence =
+                                now + Duration::from_secs(BACKGROUND_PRESENCE_CADENCE_SECONDS);
+                        }
+                        if run_discord {
+                            run_background_discord_tick(
+                                &tick_context,
+                                &discord_rpc,
+                                &mut discord_state,
+                                &mut last_discord_output,
+                                &friend_user_ids,
+                                &favorite_group_memberships.friend_groups_by_key,
+                            )
+                            .await;
+                            next_discord =
+                                now + Duration::from_secs(BACKGROUND_DISCORD_CADENCE_SECONDS);
+                        }
                     }
                     if wait_for_desktop_maintenance_tick(&stop_token).await {
                         break;

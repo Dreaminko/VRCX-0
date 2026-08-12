@@ -11,7 +11,7 @@ use super::persistence::{
     add_profile_diff_feed_entries, friend_log_upsert, friend_relationship_feed_entry,
     gps_feed_entry, is_online_state, is_private_location, meaningful_name, meaningful_record_name,
     online_feed_entry, player_joining_feed_entry, trust_level_feed_entry, value_equal_for_diff,
-    FriendChangedProps, FriendRelationshipFeedKind,
+    FriendChangedProps, FriendRelationshipFeedKind, OfflineFeedPrevious,
 };
 use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
 use super::utils::{first_owned, parse_location, EventTime, JsonExt};
@@ -406,7 +406,7 @@ fn apply_active_offline(
                 token,
                 patch: FriendRecordPatch::from_value(&patch),
                 state_bucket: next_state.to_string(),
-                previous: previous.clone(),
+                previous: OfflineFeedPrevious::from_record(previous),
             },
         );
         let pending_patch = json!({
@@ -494,10 +494,9 @@ fn apply_location(
                     StateBucket::Offline.as_str(),
                 )),
                 state_bucket: StateBucket::Offline.as_str().to_string(),
-                previous: previous_record
-                    .as_ref()
-                    .expect("checked previous record")
-                    .clone(),
+                previous: OfflineFeedPrevious::from_record(
+                    previous_record.as_ref().expect("checked previous record"),
+                ),
             },
         );
         if let Some(patch_object) = patch.as_object_mut() {

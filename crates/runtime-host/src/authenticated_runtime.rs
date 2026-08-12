@@ -49,7 +49,7 @@ pub struct AuthenticatedRuntimeDeps {
     pub favorites_sink: Option<RuntimeHostFavoritesCallback>,
 }
 
-#[derive(Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FavoriteGroupMemberships {
     pub friend_groups_by_key: HashMap<String, Vec<String>>,
     pub world_groups_by_key: HashMap<String, Vec<String>>,
@@ -94,6 +94,7 @@ struct AuthenticatedRuntimeState {
     phase: AuthenticatedRuntimePhaseSnapshot,
     friend_baseline: Option<FriendBaselineMetadata>,
     favorites_baseline: Option<SocialFavoritesBaselineOutput>,
+    favorite_group_memberships: Option<Arc<FavoriteGroupMemberships>>,
 }
 
 #[derive(Clone, Debug)]
@@ -168,24 +169,24 @@ impl AuthenticatedRuntimeOrchestrator {
         {
             return;
         }
+        state.favorite_group_memberships = output
+            .snapshot
+            .as_ref()
+            .map(favorite_group_memberships_from_baseline)
+            .map(Arc::new);
         state.favorites_baseline = Some(output);
         state.phase.updated_at = now_iso();
     }
 
     pub(crate) fn favorite_friend_group_membership(&self) -> Option<HashMap<String, Vec<String>>> {
         self.lock_state()
-            .favorites_baseline
+            .favorite_group_memberships
             .as_ref()
-            .and_then(|baseline| baseline.snapshot.as_ref())
-            .map(favorite_group_membership_from_baseline)
+            .map(|memberships| memberships.friend_groups_by_key.clone())
     }
 
-    pub fn favorite_group_memberships(&self) -> Option<FavoriteGroupMemberships> {
-        self.lock_state()
-            .favorites_baseline
-            .as_ref()
-            .and_then(|baseline| baseline.snapshot.as_ref())
-            .map(favorite_group_memberships_from_baseline)
+    pub fn favorite_group_memberships(&self) -> Option<Arc<FavoriteGroupMemberships>> {
+        self.lock_state().favorite_group_memberships.clone()
     }
 
     pub fn apply_favorites_snapshot(&self, snapshot: &FavoriteBaselineSnapshot) {
@@ -970,6 +971,11 @@ fn commit_favorites_baseline(
     output: SocialFavoritesBaselineOutput,
 ) -> AuthenticatedRuntimePhaseSnapshot {
     state.phase.favorites = ready_step(attempt, format!("{} favorites loaded.", output.count));
+    state.favorite_group_memberships = output
+        .snapshot
+        .as_ref()
+        .map(favorite_group_memberships_from_baseline)
+        .map(Arc::new);
     state.favorites_baseline = Some(output.clone());
     state.phase.friend_baseline = None;
     state.phase.favorites_baseline = None;

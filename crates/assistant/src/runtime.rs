@@ -122,6 +122,7 @@ impl AssistantController {
             self.set_default_runtime(endpoint_id, model, allow_writes, playbook_mode)?;
         self.sessions
             .set_runtime(&self.owner_user_id(), session_id, selection)
+            .map_err(AssistantError::from)?
             .ok_or(AssistantError::SessionNotFound)
     }
 
@@ -150,8 +151,10 @@ impl AssistantController {
         self.sessions.list(&self.owner_user_id())
     }
 
-    pub fn get_session(&self, session_id: &str) -> Option<Session> {
-        self.sessions.get(&self.owner_user_id(), session_id)
+    pub fn get_session(&self, session_id: &str) -> Result<Option<Session>, AssistantError> {
+        self.sessions
+            .get(&self.owner_user_id(), session_id)
+            .map_err(AssistantError::from)
     }
 
     pub fn new_session(&self) -> Session {
@@ -203,6 +206,7 @@ impl AssistantController {
         let session = self
             .sessions
             .ensure_session_with_runtime(&owner_user_id, session_id, runtime)
+            .map_err(AssistantError::from)?
             .ok_or(AssistantError::SessionNotFound)?;
         let endpoint_id = session
             .endpoint_id
@@ -240,7 +244,13 @@ impl AssistantController {
         // Record the user message synchronously, before spawning the turn, so a
         // rapid second send can never let a superseded turn's task push it later
         // (which reordered or duplicated messages in history).
-        self.sessions.push_message(&session_id, Role::User, text);
+        if !self
+            .sessions
+            .push_message(&session_id, Role::User, text)
+            .map_err(AssistantError::from)?
+        {
+            return Err(AssistantError::SessionNotFound);
+        }
 
         let cancel = CancellationToken::new();
         // Install the new turn as active and swap in its cancel token before

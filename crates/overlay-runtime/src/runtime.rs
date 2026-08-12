@@ -110,6 +110,8 @@ const MAX_FRIENDS_PANEL_INPUT_EVENTS: usize = 512;
 #[cfg(feature = "friends-panel")]
 const FRIENDS_PANEL_AVATAR_FETCH_BATCH: usize = 8;
 #[cfg(feature = "friends-panel")]
+const FRIENDS_PANEL_AVATAR_CACHE_CAPACITY: usize = 128;
+#[cfg(feature = "friends-panel")]
 const FRIENDS_PANEL_SCROLL_ROW_PIXELS: f32 = 106.0;
 #[cfg(feature = "friends-panel")]
 pub(crate) const FRIENDS_PANEL_ACTION_ARM_TIMEOUT: Duration = Duration::from_secs(3);
@@ -402,8 +404,64 @@ impl FriendsPanelAvatarCacheEntry {
 }
 
 #[cfg(feature = "friends-panel")]
+#[derive(Default)]
+struct FriendsPanelAvatarCache {
+    entries: HashMap<String, FriendsPanelAvatarCacheEntry>,
+    lru: VecDeque<String>,
+}
+
+#[cfg(feature = "friends-panel")]
+impl FriendsPanelAvatarCache {
+    fn insert(&mut self, user_id: String, entry: FriendsPanelAvatarCacheEntry) {
+        self.lru.retain(|cached_user_id| cached_user_id != &user_id);
+        self.lru.push_back(user_id.clone());
+        self.entries.insert(user_id, entry);
+        while self.entries.len() > FRIENDS_PANEL_AVATAR_CACHE_CAPACITY {
+            let Some(oldest_user_id) = self.lru.pop_front() else {
+                break;
+            };
+            self.entries.remove(&oldest_user_id);
+        }
+    }
+
+    fn contains_matching(
+        &mut self,
+        user_id: &str,
+        initial_image_url: &str,
+        allow_user_icon: bool,
+    ) -> bool {
+        let matches = self
+            .entries
+            .get(user_id)
+            .is_some_and(|entry| entry.matches(initial_image_url, allow_user_icon));
+        if matches {
+            self.lru.retain(|cached_user_id| cached_user_id != user_id);
+            self.lru.push_back(user_id.to_string());
+        }
+        matches
+    }
+
+    fn bitmaps(&self) -> HashMap<String, AvatarBitmap> {
+        self.entries
+            .iter()
+            .map(|(user_id, entry)| (user_id.clone(), entry.bitmap.clone()))
+            .collect()
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+        self.lru.clear();
+    }
+
+    #[cfg(test)]
+    fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
+#[cfg(feature = "friends-panel")]
 fn insert_friends_panel_avatar_if_session_current(
-    avatars: &Arc<Mutex<HashMap<String, FriendsPanelAvatarCacheEntry>>>,
+    avatars: &Arc<Mutex<FriendsPanelAvatarCache>>,
     session_generation: &AtomicU64,
     expected_generation: u64,
     user_id: &str,
@@ -460,7 +518,7 @@ pub struct VrOverlayRuntime {
     #[cfg(feature = "friends-panel")]
     friends_panel_favorite_groups: Mutex<FavoriteFriendGroupsSnapshot>,
     #[cfg(feature = "friends-panel")]
-    friends_panel_avatars: Arc<Mutex<HashMap<String, FriendsPanelAvatarCacheEntry>>>,
+    friends_panel_avatars: Arc<Mutex<FriendsPanelAvatarCache>>,
     #[cfg(feature = "friends-panel")]
     friends_panel_avatar_session_generation: Arc<AtomicU64>,
     #[cfg(feature = "friends-panel")]
@@ -605,7 +663,7 @@ impl VrOverlayRuntime {
             #[cfg(feature = "friends-panel")]
             friends_panel_favorite_groups: Mutex::new(FavoriteFriendGroupsSnapshot::default()),
             #[cfg(feature = "friends-panel")]
-            friends_panel_avatars: Arc::new(Mutex::new(HashMap::new())),
+            friends_panel_avatars: Arc::new(Mutex::new(FriendsPanelAvatarCache::default())),
             #[cfg(feature = "friends-panel")]
             friends_panel_avatar_session_generation: Arc::new(AtomicU64::new(0)),
             #[cfg(feature = "friends-panel")]
@@ -845,12 +903,7 @@ impl VrOverlayRuntime {
         let avatars_by_user_id = self
             .friends_panel_avatars
             .lock()
-            .map(|avatars| {
-                avatars
-                    .iter()
-                    .map(|(user_id, entry)| (user_id.clone(), entry.bitmap.clone()))
-                    .collect()
-            })
+            .map(|avatars| avatars.bitmaps())
             .unwrap_or_default();
         build_friends_panel_model(FriendsPanelModelInput {
             selected_category_key,
@@ -1023,10 +1076,8 @@ impl VrOverlayRuntime {
         if self
             .friends_panel_avatars
             .lock()
-            .map(|avatars| {
-                avatars
-                    .get(user_id)
-                    .is_some_and(|entry| entry.matches(&initial_image_url, allow_user_icon))
+            .map(|mut avatars| {
+                avatars.contains_matching(user_id, &initial_image_url, allow_user_icon)
             })
             .unwrap_or(false)
         {

@@ -427,6 +427,10 @@ impl RealtimeHostRuntime {
         self.friends.snapshot()
     }
 
+    pub fn friend_user_ids(&self) -> std::collections::HashSet<String> {
+        self.friends.friend_user_ids()
+    }
+
     pub fn friend_roster_snapshot(
         &self,
         previous_order: &[String],

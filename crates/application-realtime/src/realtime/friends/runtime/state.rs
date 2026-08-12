@@ -17,7 +17,7 @@ use super::event_patch::{
     apply_friend_event, apply_record_patch_to_state, apply_refetched_friend_profile_event,
     apply_trusted_friend_add_event, FriendEventKind, FriendRecordPatch,
 };
-use super::persistence::{is_online_state, offline_feed_entry};
+use super::persistence::{is_online_state, offline_feed_entry, OfflineFeedPrevious};
 use super::utils::EventTime;
 
 pub(super) use crate::realtime::runtime_types::PENDING_OFFLINE_DELAY_MS;
@@ -32,7 +32,7 @@ pub(super) struct PendingOffline {
     pub(super) token: u64,
     pub(super) patch: FriendRecordPatch,
     pub(super) state_bucket: String,
-    pub(super) previous: FriendRecord,
+    pub(super) previous: OfflineFeedPrevious,
 }
 
 pub(crate) struct PendingOfflineSchedule {
@@ -66,7 +66,7 @@ struct ExpectedFriendScope<'a> {
 struct OfflineBaselineTransition {
     user_id: String,
     next: FriendRecord,
-    previous: FriendRecord,
+    previous: OfflineFeedPrevious,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -212,7 +212,7 @@ impl RealtimeFriendsRuntime {
                     pending_to_create.push(OfflineBaselineTransition {
                         user_id: user_id.clone(),
                         next: record.clone(),
-                        previous: existing_record.clone(),
+                        previous: OfflineFeedPrevious::from_record(existing_record),
                     });
                     *record = existing_record.clone();
                     record
@@ -395,6 +395,14 @@ impl RealtimeFriendsRuntime {
 
     pub fn snapshot(&self) -> Option<RealtimeFriendSnapshot> {
         self.lock_state().baseline.clone()
+    }
+
+    pub fn friend_user_ids(&self) -> HashSet<String> {
+        self.lock_state()
+            .baseline
+            .as_ref()
+            .map(|baseline| baseline.friends_by_id.keys().cloned().collect())
+            .unwrap_or_default()
     }
 
     pub(crate) fn with_user_cache_records<R>(

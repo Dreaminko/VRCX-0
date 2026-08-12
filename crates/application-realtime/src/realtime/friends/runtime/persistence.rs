@@ -24,6 +24,38 @@ struct ResolvedLocationNames {
     group_name: String,
 }
 
+#[derive(Clone, Debug)]
+pub(super) struct OfflineFeedPrevious {
+    display_name: String,
+    username: String,
+    location: String,
+    world_name: String,
+    group_name: String,
+    location_updated_at: i64,
+}
+
+impl OfflineFeedPrevious {
+    pub(super) fn from_record(record: &FriendRecord) -> Self {
+        Self {
+            display_name: record.display_name.clone(),
+            username: record.username.clone(),
+            location: record.location.clone(),
+            world_name: record_string(record, "worldName"),
+            group_name: record_string(record, "groupName"),
+            location_updated_at: record
+                .extra
+                .i64_field("locationUpdatedAt")
+                .or_else(|| record.extra.i64_field("$location_at"))
+                .unwrap_or(0),
+        }
+    }
+
+    fn meaningful_name(&self, user_id: &str) -> String {
+        vrcx_0_core::friends::meaningful_display_name(&self.display_name, &self.username, user_id)
+            .unwrap_or_default()
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub(super) enum FriendRelationshipFeedKind {
     Friend,
@@ -378,7 +410,7 @@ pub(super) fn online_feed_entry(
 pub(super) fn offline_feed_entry(
     user_id: &str,
     current: &FriendRecord,
-    previous: &FriendRecord,
+    previous: &OfflineFeedPrevious,
     created_at: &str,
     timestamp_ms: i64,
 ) -> Value {
@@ -391,14 +423,18 @@ pub(super) fn offline_feed_entry(
             group_name: String::new(),
         }
     };
-    let time = duration_ms(previous, timestamp_ms);
+    let time = if previous.location_updated_at > 0 {
+        timestamp_ms.saturating_sub(previous.location_updated_at)
+    } else {
+        0
+    };
     feed_entry_value(&OfflineFeedEntry {
         created_at,
         entry_type: FeedEntryType::Offline,
         user_id,
         display_name: first_owned([
             meaningful_record_name(current, user_id),
-            meaningful_record_name(previous, user_id),
+            previous.meaningful_name(user_id),
             "Unknown".to_string(),
         ]),
         location: &location,
@@ -533,7 +569,7 @@ fn resolve_location_name(
 fn resolve_record_location_name(
     location: &str,
     current: &FriendRecord,
-    previous: Option<&FriendRecord>,
+    previous: Option<&OfflineFeedPrevious>,
 ) -> ResolvedLocationNames {
     let parsed = parse_location(location);
     ResolvedLocationNames {
@@ -550,7 +586,7 @@ fn resolve_record_location_name(
                 }))
                 .chain(once_with(|| {
                     previous
-                        .map(|previous| record_string(previous, "worldName"))
+                        .map(|previous| previous.world_name.clone())
                         .unwrap_or_default()
                 }))
                 .chain(once_with(|| parsed.world_id.clone()))
@@ -560,7 +596,7 @@ fn resolve_record_location_name(
             once_with(|| record_string(current, "groupName"))
                 .chain(once_with(|| {
                     previous
-                        .map(|previous| record_string(previous, "groupName"))
+                        .map(|previous| previous.group_name.clone())
                         .unwrap_or_default()
                 }))
                 .chain(once_with(|| parsed.group_id.unwrap_or_default())),

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 use vrcx_0_application_game::{
@@ -16,6 +16,7 @@ use super::{
 pub(in crate::state) async fn run_background_presence_tick(
     context: &BackgroundTickContext<'_>,
     presence_state: &mut BackgroundPresenceAutomationState,
+    friend_user_ids: &HashSet<String>,
     favorite_friend_groups_by_key: &HashMap<String, Vec<String>>,
     favorite_world_groups_by_key: &HashMap<String, Vec<String>>,
 ) {
@@ -32,11 +33,6 @@ pub(in crate::state) async fn run_background_presence_tick(
         return;
     };
     let host_session = context.runtime_context.session.snapshot();
-    let friends_by_id = context
-        .realtime_runtime
-        .friend_snapshot()
-        .map(|snapshot| snapshot.friends_by_id)
-        .unwrap_or_default();
     let facts = match build_background_presence_facts(
         context.db.as_ref(),
         BackgroundPresenceFactsInput {
@@ -51,9 +47,9 @@ pub(in crate::state) async fn run_background_presence_tick(
             last_game_started_at: host_session.last_game_started_at,
             game_log_snapshot: context.desktop_services.game_log_snapshot(),
             now_playing: context.desktop_services.now_playing(),
-            friends_by_id,
-            favorite_friend_groups_by_key: favorite_friend_groups_by_key.clone(),
-            favorite_world_groups_by_key: favorite_world_groups_by_key.clone(),
+            friend_user_ids,
+            favorite_friend_groups_by_key,
+            favorite_world_groups_by_key,
         },
     ) {
         Ok(facts) => facts,

@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use serde::Serialize;
 use serde_json::Value;
-use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::{normalize_instance_type, parse_location, ParsedLocation};
 use vrcx_0_persistence::DatabaseService;
 
@@ -12,7 +11,7 @@ use super::shared::{non_empty, string_field, BackgroundCapabilitySession};
 use vrcx_0_core::text::first_non_empty;
 
 #[derive(Clone, Debug)]
-pub struct BackgroundPresenceFactsInput {
+pub struct BackgroundPresenceFactsInput<'a> {
     pub session: BackgroundCapabilitySession,
     pub is_game_running: bool,
     pub is_steamvr_running: bool,
@@ -20,9 +19,9 @@ pub struct BackgroundPresenceFactsInput {
     pub last_game_started_at: Option<String>,
     pub game_log_snapshot: RuntimeSnapshot,
     pub now_playing: Value,
-    pub friends_by_id: HashMap<String, FriendRecord>,
-    pub favorite_friend_groups_by_key: HashMap<String, Vec<String>>,
-    pub favorite_world_groups_by_key: HashMap<String, Vec<String>>,
+    pub friend_user_ids: &'a HashSet<String>,
+    pub favorite_friend_groups_by_key: &'a HashMap<String, Vec<String>>,
+    pub favorite_world_groups_by_key: &'a HashMap<String, Vec<String>>,
 }
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -63,7 +62,7 @@ pub struct PresencePlayer {
 
 pub fn build_background_presence_facts(
     db: &DatabaseService,
-    input: BackgroundPresenceFactsInput,
+    input: BackgroundPresenceFactsInput<'_>,
 ) -> Result<BackgroundPresenceFacts> {
     let current_user = ensure_current_user_id(
         input.session.current_user_snapshot,
@@ -94,7 +93,7 @@ pub fn build_background_presence_facts(
     let friend_ids: Vec<String> = players
         .iter()
         .filter_map(|player| {
-            if !player.user_id.is_empty() && input.friends_by_id.contains_key(&player.user_id) {
+            if !player.user_id.is_empty() && input.friend_user_ids.contains(&player.user_id) {
                 Some(player.user_id.clone())
             } else {
                 None
@@ -105,11 +104,11 @@ pub fn build_background_presence_facts(
         db,
         &input.session.current_user_id,
         &players,
-        &input.favorite_friend_groups_by_key,
+        input.favorite_friend_groups_by_key,
     )?;
     let current_world_favorite_group_keys = collect_world_favorite_group_keys(
         &parsed_location.world_id,
-        &input.favorite_world_groups_by_key,
+        input.favorite_world_groups_by_key,
     );
     let can_invite_from_current_location = check_can_invite(
         &current_location,

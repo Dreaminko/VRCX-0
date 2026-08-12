@@ -5,7 +5,7 @@ use serde_json::{Map, Number, Value};
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserFact {
     pub fields: Map<String, Value>,
-    pub field_sources: HashMap<String, String>,
+    field_ranks: HashMap<&'static str, u8>,
     pub updated_at: String,
 }
 
@@ -116,7 +116,7 @@ pub struct UserFactMergeResult {
     pub changed: bool,
 }
 
-fn base_source_rank(source: &str) -> i64 {
+fn base_source_rank(source: &str) -> u8 {
     match source {
         "seed" => 10,
         "instance" => 20,
@@ -130,7 +130,7 @@ fn base_source_rank(source: &str) -> i64 {
     }
 }
 
-fn profile_source_rank(source: &str) -> i64 {
+fn profile_source_rank(source: &str) -> u8 {
     match source {
         "seed" => 10,
         "instance" => 20,
@@ -144,7 +144,7 @@ fn profile_source_rank(source: &str) -> i64 {
     }
 }
 
-fn presence_source_rank(source: &str) -> i64 {
+fn presence_source_rank(source: &str) -> u8 {
     match source {
         "seed" => 10,
         "instance" => 45,
@@ -198,7 +198,7 @@ fn is_self_field(field: &str) -> bool {
     matches!(field, "isBoopingEnabled" | "hasSharedConnectionsOptOut")
 }
 
-fn rank_for_field(field: &str, source: &str) -> i64 {
+fn rank_for_field(field: &str, source: &str) -> u8 {
     if is_presence_field(field) {
         presence_source_rank(source)
     } else if is_profile_field(field) {
@@ -212,13 +212,6 @@ fn rank_for_field(field: &str, source: &str) -> i64 {
     } else {
         base_source_rank(source)
     }
-}
-
-fn existing_rank_for_field(field_sources: &HashMap<String, String>, field: &str) -> i64 {
-    field_sources
-        .get(field)
-        .map(|source| rank_for_field(field, source))
-        .unwrap_or(0)
 }
 
 fn user_fact_field_name(field: &str) -> Option<&'static str> {
@@ -371,12 +364,22 @@ pub fn merge_user_fact(
     input: &Value,
     options: &UserFactMergeOptions,
 ) -> UserFactMergeResult {
+    merge_user_fact_owned(existing.cloned(), input, options)
+}
+
+pub fn merge_user_fact_owned(
+    existing: Option<UserFact>,
+    input: &Value,
+    options: &UserFactMergeOptions,
+) -> UserFactMergeResult {
     let patch = normalize_fact_patch(input);
+    let had_existing = existing.is_some();
 
     let id = {
         let from_patch = patch.get("id").map(normalize_user_id).unwrap_or_default();
         if from_patch.is_empty() {
             existing
+                .as_ref()
                 .map(|fact| fact.id().to_string())
                 .unwrap_or_default()
         } else {
@@ -386,6 +389,7 @@ pub fn merge_user_fact(
     let endpoint = {
         let candidate = if options.endpoint.is_empty() {
             existing
+                .as_ref()
                 .map(|fact| fact.endpoint().to_string())
                 .unwrap_or_default()
         } else {
@@ -414,7 +418,7 @@ pub fn merge_user_fact(
     };
 
     let mut fact = match existing {
-        Some(existing) => existing.clone(),
+        Some(existing) => existing,
         None => UserFact {
             fields: {
                 let mut fields = Map::new();
@@ -422,11 +426,11 @@ pub fn merge_user_fact(
                 fields.insert("endpoint".into(), Value::String(endpoint.clone()));
                 fields
             },
-            field_sources: HashMap::new(),
+            field_ranks: HashMap::new(),
             updated_at: updated_at.clone(),
         },
     };
-    let mut changed = existing.is_none();
+    let mut changed = !had_existing;
 
     if !id.is_empty() && fact.id() != id {
         fact.fields.insert("id".into(), Value::String(id));
@@ -458,8 +462,11 @@ pub fn merge_user_fact(
         if field == "id" || !is_present(value) {
             continue;
         }
-        let rank = rank_for_field(field, &options.source);
-        let existing_rank = existing_rank_for_field(&fact.field_sources, field);
+        let Some(field_name) = user_fact_field_name(field) else {
+            continue;
+        };
+        let rank = rank_for_field(field_name, &options.source);
+        let existing_rank = fact.field_ranks.get(field_name).copied().unwrap_or(0);
         if rank < existing_rank {
             continue;
         }
@@ -468,8 +475,7 @@ pub fn merge_user_fact(
             changed = true;
         }
         if existing_rank != rank {
-            fact.field_sources
-                .insert(field.clone(), options.source.clone());
+            fact.field_ranks.insert(field_name, rank);
             changed = true;
         }
     }
@@ -478,14 +484,7 @@ pub fn merge_user_fact(
         fact.updated_at = updated_at;
     }
 
-    if changed {
-        UserFactMergeResult { fact, changed }
-    } else {
-        UserFactMergeResult {
-            fact: existing.cloned().unwrap_or(fact),
-            changed: false,
-        }
-    }
+    UserFactMergeResult { fact, changed }
 }
 
 pub fn number_value(value: i64) -> Value {
