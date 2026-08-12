@@ -1,5 +1,4 @@
 import {
-    HeartIcon,
     LogInIcon,
     LogOutIcon,
     MapPinIcon,
@@ -7,10 +6,16 @@ import {
     SettingsIcon,
     WaypointsIcon
 } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+    useEffect,
+    useMemo,
+    useState,
+    type ReactNode
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
+import { AffinityBadge } from '@/components/affinity/AffinityBadge';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
@@ -20,7 +25,6 @@ import { openExternalLink } from '@/services/entityMediaService';
 import { normalizeString } from '@/shared/utils/string';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
-import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
@@ -31,15 +35,13 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { Table, TableBody, TableCell, TableRow } from '@/ui/shadcn/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { DashboardWidgetEmptyState } from './DashboardWidgetEmptyState';
 import { DashboardWidgetHeader } from './DashboardWidgetHeader';
+import { DashboardWidgetTimelineRow } from './DashboardWidgetTimeline';
 import {
     buildFavoriteIdSet,
-    formatWidgetExactTime,
-    formatWidgetTime,
     getNextDashboardWidgetFilterConfig,
     isDashboardWidgetFilterActive
 } from './dashboardWidgetUtils';
@@ -161,11 +163,6 @@ function GameLogEntryContent({
                 <div className="flex min-w-0 items-center">
                     <LogInIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
                     <GameLogWidgetUserName row={row} />
-                    {row?.isFriend ? (
-                        <span className="ml-1">
-                            {row?.isFavorite ? '⭐' : '💚'}
-                        </span>
-                    ) : null}
                 </div>
             );
         case 'OnPlayerLeft':
@@ -176,11 +173,6 @@ function GameLogEntryContent({
                         row={row}
                         className="text-muted-foreground/70"
                     />
-                    {row?.isFriend ? (
-                        <span className="ml-1">
-                            {row?.isFavorite ? '⭐' : '💚'}
-                        </span>
-                    ) : null}
                 </div>
             );
         case 'PortalSpawn':
@@ -414,9 +406,10 @@ export function DashboardGameLogWidget({
     const renderShell = (children: ReactNode) => (
         <div className="flex h-full min-h-0 flex-col">
             <DashboardWidgetHeader
-                title={t('dashboard.widget.game_log')}
+                title={t('dashboard.registry.game_log')}
                 icon="ri-history-line"
                 path="/game-log"
+                meta={annotatedRows.length || null}
             >
                 {settingsMenu}
             </DashboardWidgetHeader>
@@ -468,81 +461,41 @@ export function DashboardGameLogWidget({
     }
 
     return renderShell(
-        <>
-            <div className="text-muted-foreground flex flex-wrap gap-2 px-3 pt-3 text-xs">
-                <span>
-                    {annotatedRows.length}{' '}
-                    {t('view.dashboard.label.recent_rows')}
-                </span>
-                <span>
-                    {Array.isArray(config.filters) && config.filters.length
-                        ? `${config.filters.length} type filters`
-                        : 'All game-log types'}
-                </span>
-                {showDetail ? (
-                    <span>{t('view.dashboard.label.detail_expanded')}</span>
-                ) : null}
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-auto">
-                <Table className="app-data-table table-fixed">
-                    <TableBody>
-                        {annotatedRows.map((row, index) => {
-                            return (
-                                <TableRow
-                                    key={`${row.type || 'gamelog'}-${row.created_at || index}-${index}`}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger
-                                            render={
-                                                <TableCell className="text-muted-foreground w-24 align-top text-xs tabular-nums">
-                                                    {formatWidgetTime(
-                                                        row.created_at
-                                                    )}
-                                                </TableCell>
-                                            }
-                                        />
-                                        <TooltipContent>
-                                            {formatWidgetExactTime(
-                                                row.created_at
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <TableCell className="w-24 align-top">
-                                        <Badge
-                                            variant="outline"
-                                            className="text-xs"
-                                        >
-                                            {row.type || ''}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="align-top">
-                                        <div className="flex min-w-0 items-center gap-2 text-sm">
-                                            <div className="min-w-0 flex-1 truncate">
-                                                <GameLogEntryContent
-                                                    row={row}
-                                                    showDetail={showDetail}
-                                                />
-                                            </div>
-                                            {row.isFavorite ? (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="shrink-0 gap-1 px-1.5"
-                                                >
-                                                    <HeartIcon className="size-3 fill-current" />
-                                                    {t(
-                                                        'view.dashboard.label.favorite'
-                                                    )}
-                                                </Badge>
-                                            ) : null}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </div>
-        </>
+        <div className="min-h-0 flex-1 overflow-auto">
+            {annotatedRows.map((row, index) => {
+                return (
+                    <DashboardWidgetTimelineRow
+                        key={`${row.type || 'gamelog'}-${row.created_at || index}-${index}`}
+                        value={row.created_at}
+                        previousValue={annotatedRows[index - 1]?.created_at}
+                        isFirst={index === 0}
+                    >
+                        <div className="flex min-w-0 items-center gap-2">
+                            <div className="min-w-0 flex-1 truncate">
+                                <GameLogEntryContent
+                                    row={row}
+                                    showDetail={showDetail}
+                                />
+                            </div>
+                            <span className="text-muted-foreground max-w-24 shrink-0 truncate text-xs">
+                                {t(
+                                    `view.game_log.filters.${row.type || ''}`,
+                                    {
+                                        defaultValue: row.type || ''
+                                    }
+                                )}
+                            </span>
+                            <AffinityBadge
+                                isFriend={Boolean(
+                                    row.isFriend || row.isFavorite
+                                )}
+                                isFavorite={row.isFavorite}
+                                className="h-auto rounded-none bg-transparent px-0 font-normal"
+                            />
+                        </div>
+                    </DashboardWidgetTimelineRow>
+                );
+            })}
+        </div>
     );
 }

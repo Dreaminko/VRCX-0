@@ -90,4 +90,57 @@ describe('DashboardFeedWidgetView', () => {
             })
         ).toBeTruthy();
     });
+
+    it('groups compact feed rows by day instead of repeating the date per row', async () => {
+        mocks.queryFeedLatest.mockResolvedValue({
+            rows: [
+                {
+                    id: 'feed-1',
+                    type: 'Online',
+                    created_at: '2026-08-12T11:37:00.000Z',
+                    userId: 'usr_one',
+                    displayName: 'One'
+                },
+                {
+                    id: 'feed-2',
+                    type: 'Offline',
+                    created_at: '2026-08-12T10:30:00.000Z',
+                    userId: 'usr_two',
+                    displayName: 'Two'
+                },
+                {
+                    id: 'feed-3',
+                    type: 'Online',
+                    created_at: '2026-08-11T09:00:00.000Z',
+                    userId: 'usr_three',
+                    displayName: 'Three'
+                }
+            ],
+            maxSequence: 3
+        });
+
+        const view = render(
+            <MemoryRouter>
+                <DashboardFeedWidgetView
+                    config={{}}
+                    configUpdater={null}
+                    currentUserId="usr_self"
+                    addGameLogEventCount={0}
+                    liveFeedEntries={[]}
+                    liveFeedVersion={0}
+                    remoteFavoriteFriendIds={[]}
+                    localFriendFavorites={{}}
+                    friendsById={{}}
+                    feedPersistenceDisabled={false}
+                />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => expect(screen.getByText('Three')).toBeTruthy());
+
+        expect(
+            view.container.querySelectorAll('[data-dashboard-widget-day]')
+        ).toHaveLength(2);
+        expect(screen.queryByText('All feed types')).toBeNull();
+    });
 });

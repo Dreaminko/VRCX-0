@@ -9,11 +9,13 @@ export function DashboardWidgetHeader({
     title,
     icon,
     path,
+    meta,
     children
 }: {
     title: ReactNode;
     icon?: string;
     path?: string;
+    meta?: ReactNode;
     children?: ReactNode;
 }) {
     const navigate = useNavigate();
@@ -35,6 +37,11 @@ export function DashboardWidgetHeader({
             >
                 {icon ? <i className={cn(icon, 'text-sm')} /> : null}
                 <span className="truncate">{title}</span>
+                {meta ? (
+                    <span className="text-muted-foreground/70 shrink-0 font-normal tabular-nums">
+                        {meta}
+                    </span>
+                ) : null}
                 {canNavigate ? (
                     <ExternalLinkIcon
                         data-icon="inline-end"

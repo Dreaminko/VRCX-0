@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -83,5 +83,43 @@ describe('DashboardGameLogWidget', () => {
                 limit: 200
             });
         });
+    });
+
+    it('uses session-style day grouping and localized event labels', async () => {
+        mocks.queryGameLog.mockResolvedValue([
+            {
+                type: 'OnPlayerJoined',
+                created_at: '2026-08-12T11:37:00.000Z',
+                userId: 'usr_one',
+                displayName: 'One'
+            },
+            {
+                type: 'OnPlayerLeft',
+                created_at: '2026-08-12T10:30:00.000Z',
+                userId: 'usr_two',
+                displayName: 'Two'
+            },
+            {
+                type: 'OnPlayerJoined',
+                created_at: '2026-08-11T09:00:00.000Z',
+                userId: 'usr_three',
+                displayName: 'Three'
+            }
+        ]);
+
+        const view = render(
+            <MemoryRouter>
+                <DashboardGameLogWidget />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => expect(screen.getByText('One')).toBeTruthy());
+
+        expect(
+            view.container.querySelectorAll('[data-dashboard-widget-day]')
+        ).toHaveLength(2);
+        expect(
+            screen.getAllByText('view.game_log.filters.OnPlayerJoined')
+        ).toHaveLength(2);
     });
 });

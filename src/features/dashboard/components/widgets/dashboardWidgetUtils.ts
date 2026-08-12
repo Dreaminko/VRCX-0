@@ -45,10 +45,39 @@ export function formatWidgetTime(value: unknown) {
     }
 
     try {
-        return formatDateFilter(value, 'short');
+        return formatDateFilter(value, 'time');
     } catch {
         return String(value);
     }
+}
+
+export function formatWidgetDate(value: unknown) {
+    if (!value) {
+        return '--';
+    }
+
+    try {
+        return formatDateFilter(value, 'date');
+    } catch {
+        return String(value);
+    }
+}
+
+export function getWidgetDayKey(value: unknown) {
+    const date = new Date(
+        typeof value === 'string' || typeof value === 'number'
+            ? value
+            : String(value || '')
+    );
+    if (Number.isNaN(date.getTime())) {
+        return String(value || '').slice(0, 10);
+    }
+
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+    ].join('-');
 }
 
 export function formatWidgetExactTime(value: unknown) {
