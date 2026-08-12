@@ -27,6 +27,7 @@ use vrcx_0_host_desktop::vr_overlay::{
 };
 #[cfg(feature = "friends-panel")]
 use vrcx_0_host_desktop::vr_overlay::{OverlayInputEvent, OverlayInputKind};
+#[cfg(feature = "friends-panel")]
 use vrcx_0_runtime_host::notification::UserImageCache;
 #[cfg(feature = "friends-panel")]
 use vrcx_0_vr_overlay::{
@@ -480,6 +481,7 @@ pub struct VrOverlayRuntime {
     #[cfg(feature = "friends-panel")]
     pub(crate) interactive_panel: Arc<Mutex<InteractivePanelRuntimeState>>,
     pub(crate) avatar_bitmap_cache: Arc<AvatarBitmapCache>,
+    #[cfg(feature = "friends-panel")]
     pub(crate) user_image_cache: Arc<UserImageCache>,
     pub(crate) manager: Mutex<VrOverlayManager<HostVrOverlayService>>,
     running_mirror: AtomicBool,
@@ -624,6 +626,7 @@ impl VrOverlayRuntime {
             #[cfg(feature = "friends-panel")]
             interactive_panel: Arc::new(Mutex::new(InteractivePanelRuntimeState::default())),
             avatar_bitmap_cache: Arc::new(AvatarBitmapCache::new()),
+            #[cfg(feature = "friends-panel")]
             user_image_cache: Arc::new(UserImageCache::new()),
             frame_producer_factory,
             frame_producer: Mutex::new(None),

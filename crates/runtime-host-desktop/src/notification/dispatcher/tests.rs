@@ -13,7 +13,25 @@ use vrcx_0_runtime_host::notification::{render_delivery, OverlayLocale, Rendered
 
 use crate::notification::tts::notification_tts_text;
 
-use super::notification_session_identity;
+use super::{notification_session_identity, OrderedDeliveryBuffer};
+
+#[test]
+fn ordered_delivery_buffer_releases_concurrent_results_in_source_order() {
+    let mut buffer = OrderedDeliveryBuffer::new(0);
+
+    assert!(buffer.push(1, Some("second")).is_empty());
+    assert_eq!(buffer.push(0, Some("first")), ["first", "second"]);
+    assert_eq!(buffer.push(2, Some("third")), ["third"]);
+}
+
+#[test]
+fn ordered_delivery_buffer_advances_over_priority_delivery() {
+    let mut buffer = OrderedDeliveryBuffer::new(0);
+
+    assert!(buffer.push(1, None::<&str>).is_empty());
+    assert_eq!(buffer.push(0, Some("first")), ["first"]);
+    assert_eq!(buffer.push(2, Some("third")), ["third"]);
+}
 
 #[test]
 fn notification_identity_uses_the_active_auth_scope() {

@@ -1,16 +1,24 @@
 use std::net::UdpSocket;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread::JoinHandle;
+use std::time::Duration;
 
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, oneshot};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
 pub struct OvrToolkit {
-    sender: Arc<Mutex<Option<WsSender>>>,
+    worker: Mutex<Option<OvrWorker>>,
+}
+
+struct OvrWorker {
+    queue: mpsc::Sender<Vec<serde_json::Value>>,
+    shutdown: oneshot::Sender<()>,
+    thread: JoinHandle<()>,
 }
 
 type WsSender =
@@ -20,11 +28,14 @@ const MAX_UDP_PAYLOAD_BYTES: usize = 65_507;
 const XSOVERLAY_UDP_ADDR: &str = "127.0.0.1:42069";
 const OVRTOOLKIT_WS_URL: &str = "ws://127.0.0.1:11450/api";
 const XS_BUILTIN_DEFAULT_ICON: &str = "default";
+const OVR_QUEUE_CAPACITY: usize = 64;
+const OVR_CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
+const OVR_SEND_TIMEOUT: Duration = Duration::from_secs(1);
 
 impl OvrToolkit {
     pub fn new() -> Self {
         Self {
-            sender: Arc::new(Mutex::new(None)),
+            worker: Mutex::new(None),
         }
     }
 
@@ -39,39 +50,119 @@ impl OvrToolkit {
         _opacity: f64,
         image: Option<&str>,
     ) {
-        let mut messages: Vec<serde_json::Value> = Vec::new();
-        let icon_b64 = ovr_toolkit_icon_base64(image);
-
-        if wrist_notification {
-            messages.push(serde_json::json!({
-                "messageType": "SendWristNotification",
-                "json": serde_json::to_string(&serde_json::json!({
-                    "body": format!("{title} - {body}")
-                })).unwrap_or_default()
-            }));
-        }
-
-        if hud_notification {
-            messages.push(serde_json::json!({
-                "messageType": "SendNotification",
-                "json": serde_json::to_string(&serde_json::json!({
-                    "title": title,
-                    "body": body,
-                    "icon": icon_b64
-                })).unwrap_or_default()
-            }));
-        }
-
+        let messages = ovr_notification_messages(
+            hud_notification,
+            wrist_notification,
+            title,
+            body,
+            image,
+        );
         if messages.is_empty() {
             return;
         }
+        self.enqueue(messages);
+    }
 
-        let sender = Arc::clone(&self.sender);
-        tokio::spawn(async move {
-            if let Err(error) = send_with_persistent_conn(sender, messages).await {
-                tracing::warn!("[OVR Toolkit] notification send failed: {error}");
+    fn enqueue(&self, messages: Vec<serde_json::Value>) {
+        let Ok(mut slot) = self.worker.lock() else {
+            tracing::warn!("[OVR Toolkit] worker lock poisoned; notification dropped");
+            return;
+        };
+        if slot
+            .as_ref()
+            .is_some_and(|worker| worker.thread.is_finished())
+        {
+            if let Some(worker) = slot.take() {
+                worker.shutdown();
             }
-        });
+        }
+        if slot.is_none() {
+            match OvrWorker::spawn() {
+                Ok(worker) => *slot = Some(worker),
+                Err(error) => {
+                    tracing::warn!("[OVR Toolkit] worker start failed: {error}");
+                    return;
+                }
+            }
+        }
+        let Some(worker) = slot.as_ref() else {
+            return;
+        };
+        match worker.queue.try_send(messages) {
+            Ok(()) => {}
+            Err(mpsc::error::TrySendError::Full(_)) => {
+                tracing::warn!("[OVR Toolkit] notification queue full; notification dropped");
+            }
+            Err(mpsc::error::TrySendError::Closed(messages)) => {
+                if let Some(worker) = slot.take() {
+                    worker.shutdown();
+                }
+                let Ok(worker) = OvrWorker::spawn() else {
+                    tracing::warn!("[OVR Toolkit] worker restart failed; notification dropped");
+                    return;
+                };
+                match worker.queue.try_send(messages) {
+                    Ok(()) => *slot = Some(worker),
+                    Err(_) => {
+                        worker.shutdown();
+                        tracing::warn!(
+                            "[OVR Toolkit] restarted worker rejected notification; notification dropped"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl Drop for OvrToolkit {
+    fn drop(&mut self) {
+        if let Ok(slot) = self.worker.get_mut() {
+            if let Some(worker) = slot.take() {
+                worker.shutdown();
+            }
+        }
+    }
+}
+
+impl OvrWorker {
+    fn spawn() -> Result<Self, String> {
+        let (queue, receiver) = mpsc::channel(OVR_QUEUE_CAPACITY);
+        let (shutdown, shutdown_rx) = oneshot::channel();
+        let thread = std::thread::Builder::new()
+            .name("ovr-toolkit-notifications".into())
+            .spawn(move || {
+                let runtime = match tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                {
+                    Ok(runtime) => runtime,
+                    Err(error) => {
+                        tracing::warn!("[OVR Toolkit] runtime start failed: {error}");
+                        return;
+                    }
+                };
+                runtime.block_on(run_ovr_worker(receiver, shutdown_rx));
+            })
+            .map_err(|error| format!("thread: {error}"))?;
+        Ok(Self {
+            queue,
+            shutdown,
+            thread,
+        })
+    }
+
+    fn shutdown(self) {
+        let Self {
+            queue,
+            shutdown,
+            thread,
+        } = self;
+        let _ = shutdown.send(());
+        drop(queue);
+        if thread.join().is_err() {
+            tracing::warn!("[OVR Toolkit] worker thread panicked");
+        }
     }
 }
 
@@ -148,10 +239,43 @@ fn ovr_toolkit_icon_base64(image: Option<&str>) -> String {
         .unwrap_or_default()
 }
 
+fn ovr_notification_messages(
+    hud_notification: bool,
+    wrist_notification: bool,
+    title: &str,
+    body: &str,
+    image: Option<&str>,
+) -> Vec<serde_json::Value> {
+    let mut messages = Vec::new();
+    if wrist_notification {
+        messages.push(serde_json::json!({
+            "messageType": "SendWristNotification",
+            "json": serde_json::to_string(&serde_json::json!({
+                "body": format!("{title} - {body}")
+            })).unwrap_or_default()
+        }));
+    }
+    if hud_notification {
+        messages.push(serde_json::json!({
+            "messageType": "SendNotification",
+            "json": serde_json::to_string(&serde_json::json!({
+                "title": title,
+                "body": body,
+                "icon": ovr_toolkit_icon_base64(image)
+            })).unwrap_or_default()
+        }));
+    }
+    messages
+}
+
 async fn connect_ws() -> Result<WsSender, String> {
-    let (ws_stream, _) = tokio_tungstenite::connect_async(OVRTOOLKIT_WS_URL)
-        .await
-        .map_err(|error| format!("connect: {error}"))?;
+    let (ws_stream, _) = tokio::time::timeout(
+        OVR_CONNECT_TIMEOUT,
+        tokio_tungstenite::connect_async(OVRTOOLKIT_WS_URL),
+    )
+    .await
+    .map_err(|_| format!("connect timed out after {} ms", OVR_CONNECT_TIMEOUT.as_millis()))?
+    .map_err(|error| format!("connect: {error}"))?;
     let (write, read) = ws_stream.split();
 
     tokio::spawn(async move {
@@ -165,30 +289,49 @@ async fn connect_ws() -> Result<WsSender, String> {
 async fn send_all(ws: &mut WsSender, messages: &[serde_json::Value]) -> Result<(), String> {
     for message in messages {
         let text = serde_json::to_string(message).unwrap_or_default();
-        ws.send(Message::Text(text.into()))
+        tokio::time::timeout(OVR_SEND_TIMEOUT, ws.send(Message::Text(text.into())))
             .await
+            .map_err(|_| format!("send timed out after {} ms", OVR_SEND_TIMEOUT.as_millis()))?
             .map_err(|error| format!("send: {error}"))?;
     }
     Ok(())
 }
 
 async fn send_with_persistent_conn(
-    sender: Arc<Mutex<Option<WsSender>>>,
-    messages: Vec<serde_json::Value>,
+    sender: &mut Option<WsSender>,
+    messages: &[serde_json::Value],
 ) -> Result<(), String> {
-    let mut guard = sender.lock().await;
-
-    if let Some(ws) = guard.as_mut() {
-        if send_all(ws, &messages).await.is_ok() {
+    if let Some(ws) = sender.as_mut() {
+        if send_all(ws, messages).await.is_ok() {
             return Ok(());
         }
-        *guard = None;
+        *sender = None;
     }
 
     let mut ws = connect_ws().await?;
-    send_all(&mut ws, &messages).await?;
-    *guard = Some(ws);
+    send_all(&mut ws, messages).await?;
+    *sender = Some(ws);
     Ok(())
+}
+
+async fn run_ovr_worker(
+    mut receiver: mpsc::Receiver<Vec<serde_json::Value>>,
+    mut shutdown: oneshot::Receiver<()>,
+) {
+    let mut sender = None;
+    loop {
+        let messages = tokio::select! {
+            biased;
+            _ = &mut shutdown => break,
+            messages = receiver.recv() => messages,
+        };
+        let Some(messages) = messages else {
+            break;
+        };
+        if let Err(error) = send_with_persistent_conn(&mut sender, &messages).await {
+            tracing::warn!("[OVR Toolkit] notification send failed: {error}");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -227,5 +370,14 @@ mod tests {
     #[test]
     fn ovr_toolkit_icon_is_empty_without_image() {
         assert_eq!(ovr_toolkit_icon_base64(None), "");
+    }
+
+    #[test]
+    fn ovr_notification_batch_keeps_wrist_before_hud() {
+        let messages = ovr_notification_messages(true, true, "Title", "Body", None);
+
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0]["messageType"], "SendWristNotification");
+        assert_eq!(messages[1]["messageType"], "SendNotification");
     }
 }

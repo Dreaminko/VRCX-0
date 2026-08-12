@@ -3,21 +3,21 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use vrcx_0_persistence::config as config_store;
+use vrcx_0_core::friends::FriendRecord;
 
 use crate::realtime::{UserQueryCachePolicy, UserQueryKind, UserQueryOptions};
 use crate::world_enrich::{self, PendingWorldNameResolution};
 
 use super::message_dispatch::json_string_field;
 use super::{
-    is_meaningful_world_name, lookup_game_log_world_name, RealtimeCurrentUserOutput,
-    RealtimeEntryCorrectionStream, RealtimeHostRuntime, RealtimeInstanceQueueProjection,
-    RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
-    RealtimePersistenceBatch, Value, WorldNameFetchOutcome,
+    lookup_game_log_world_name, RealtimeCurrentUserOutput, RealtimeEntryCorrectionStream,
+    RealtimeHostRuntime, RealtimeInstanceQueueProjection, RealtimeNotificationOutput,
+    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimePersistenceBatch, Value,
 };
 
-const NOTIFICATION_RESOLVE_BUDGET_MS: u64 = 2_500;
-const NOTIFICATION_RESOLVE_ATTEMPTS: usize = 3;
-const NOTIFICATION_RESOLVE_RETRY_DELAY_MS: u64 = 100;
+const NOTIFICATION_USERNAME_RESOLVE_BUDGET_MS: u64 = 2_000;
+const NOTIFICATION_USERNAME_RESOLVE_ATTEMPTS: usize = 3;
+const NOTIFICATION_USERNAME_RESOLVE_RETRY_DELAY_MS: u64 = 100;
 
 impl RealtimeHostRuntime {
     pub(super) fn enrich_projection_world_names(
@@ -114,6 +114,19 @@ impl RealtimeHostRuntime {
     }
 
     fn cached_user_display_name(&self, endpoint: &str, user_id: &str) -> Option<String> {
+        if let Some(display_name) = self
+            .friends
+            .with_user_cache_records(|friend_endpoint, records| {
+                if friend_endpoint.trim() != endpoint.trim() {
+                    return None;
+                }
+                let display_name = records.get(user_id.trim())?.display_name.trim();
+                is_meaningful_actor_name(display_name).then(|| display_name.to_string())
+            })
+            .flatten()
+        {
+            return Some(display_name);
+        }
         let user = self.user_cache.get_user(endpoint, user_id)?;
         user_display_name(&Value::Object(user))
     }
@@ -124,8 +137,26 @@ impl RealtimeHostRuntime {
         user_id: &str,
         allow_user_icon: bool,
     ) -> Option<String> {
+        if let Some(url) = self.cached_friend_image_url(endpoint, user_id, allow_user_icon) {
+            return Some(url);
+        }
         let user = self.user_cache.get_user(endpoint, user_id)?;
         user_notification_image_url(&Value::Object(user), allow_user_icon)
+    }
+
+    fn cached_friend_image_url(
+        &self,
+        endpoint: &str,
+        user_id: &str,
+        allow_user_icon: bool,
+    ) -> Option<String> {
+        self.friends.with_user_cache_records(|friend_endpoint, records| {
+            if friend_endpoint.trim() != endpoint.trim() {
+                return None;
+            }
+            let record = records.get(user_id.trim())?;
+            friend_notification_image_url(record, allow_user_icon)
+        })?
     }
 
     pub fn cached_user_notification_image_url(
@@ -190,24 +221,13 @@ impl RealtimeHostRuntime {
         if endpoint.is_empty() {
             return;
         }
-        let deadline = Instant::now() + Duration::from_millis(NOTIFICATION_RESOLVE_BUDGET_MS);
-        let allow_user_icon = self.display_vrc_plus_icons_as_avatar();
-        let owner_user_id = output.owner_user_id.clone();
+        let deadline =
+            Instant::now() + Duration::from_millis(NOTIFICATION_USERNAME_RESOLVE_BUDGET_MS);
         for upsert in &mut output.projection.upserts {
-            if !notification_upsert_needs_remote_resolution(upsert, &owner_user_id) {
+            if !notification_upsert_needs_remote_resolution(upsert) {
                 continue;
             }
             self.resolve_notification_sender_name(&endpoint, &mut upsert.notification, deadline)
-                .await;
-            self.resolve_notification_image(
-                &endpoint,
-                &mut upsert.notification,
-                allow_user_icon,
-                &owner_user_id,
-                deadline,
-            )
-            .await;
-            self.resolve_notification_world_name(&endpoint, &mut upsert.notification, deadline)
                 .await;
         }
         self.sync_persistence_notifications_from_projection(output);
@@ -227,7 +247,7 @@ impl RealtimeHostRuntime {
             return;
         }
         let Some(display_name) = self
-            .fetch_user_value_with_retries(endpoint, &sender_id, deadline, user_display_name)
+            .fetch_user_display_name_with_retries(endpoint, &sender_id, deadline)
             .await
         else {
             return;
@@ -235,62 +255,15 @@ impl RealtimeHostRuntime {
         apply_sender_display_name(value, &display_name);
     }
 
-    async fn resolve_notification_image(
-        self: &Arc<Self>,
-        endpoint: &str,
-        value: &mut Value,
-        allow_user_icon: bool,
-        owner_user_id: &str,
-        deadline: Instant,
-    ) {
-        if self.enrich_notification_image(endpoint, value, allow_user_icon, owner_user_id) {
-            return;
-        }
-        let Some(user_id) = notification_avatar_user_id(value, owner_user_id) else {
-            return;
-        };
-        let Some(image_url) = self
-            .fetch_user_value_with_retries(endpoint, &user_id, deadline, |profile| {
-                user_notification_image_url(profile, allow_user_icon)
-            })
-            .await
-        else {
-            return;
-        };
-        apply_notification_image_url(value, &image_url);
-    }
-
-    async fn resolve_notification_world_name(
-        self: &Arc<Self>,
-        endpoint: &str,
-        value: &mut Value,
-        deadline: Instant,
-    ) {
-        let Some(world_id) = self.enrich_world_name(value) else {
-            return;
-        };
-        let Some(world_name) = self
-            .fetch_world_name_with_retries(endpoint, &world_id, deadline)
-            .await
-        else {
-            return;
-        };
-        apply_world_name(value, &world_name);
-    }
-
-    async fn fetch_user_value_with_retries<F>(
+    async fn fetch_user_display_name_with_retries(
         self: &Arc<Self>,
         endpoint: &str,
         user_id: &str,
         deadline: Instant,
-        mut select: F,
-    ) -> Option<String>
-    where
-        F: FnMut(&Value) -> Option<String>,
-    {
-        for attempt in 0..NOTIFICATION_RESOLVE_ATTEMPTS {
+    ) -> Option<String> {
+        for attempt in 0..NOTIFICATION_USERNAME_RESOLVE_ATTEMPTS {
             if let Some(user) = self.user_cache.get_user(endpoint, user_id) {
-                if let Some(value) = select(&Value::Object(user)) {
+                if let Some(value) = user_display_name(&Value::Object(user)) {
                     return Some(value);
                 }
             }
@@ -310,41 +283,13 @@ impl RealtimeHostRuntime {
             match response {
                 Ok(Ok(response)) if (200..300).contains(&response.status) => {
                     let profile = serde_json::from_str::<Value>(&response.data).ok()?;
-                    return select(&profile);
+                    return user_display_name(&profile);
                 }
                 Ok(Ok(response)) if (500..600).contains(&response.status) => {}
                 Ok(Err(_)) => {}
                 Ok(Ok(_)) | Err(_) => return None,
             }
-            if attempt + 1 < NOTIFICATION_RESOLVE_ATTEMPTS {
-                sleep_before_retry(deadline).await;
-            }
-        }
-        None
-    }
-
-    async fn fetch_world_name_with_retries(
-        self: &Arc<Self>,
-        endpoint: &str,
-        world_id: &str,
-        deadline: Instant,
-    ) -> Option<String> {
-        for attempt in 0..NOTIFICATION_RESOLVE_ATTEMPTS {
-            if let Some(name) = self.world_cache.get_name(world_id) {
-                return Some(name);
-            }
-            let remaining = deadline.checked_duration_since(Instant::now())?;
-            let response = tokio::time::timeout(
-                remaining,
-                self.fetch_and_cache_world_once(endpoint.to_string(), world_id.to_string()),
-            )
-            .await;
-            match response {
-                Ok(WorldNameFetchOutcome::Found(name)) => return Some(name),
-                Ok(WorldNameFetchOutcome::RetryableFailure) => {}
-                Ok(WorldNameFetchOutcome::PermanentFailure) | Err(_) => return None,
-            }
-            if attempt + 1 < NOTIFICATION_RESOLVE_ATTEMPTS {
+            if attempt + 1 < NOTIFICATION_USERNAME_RESOLVE_ATTEMPTS {
                 sleep_before_retry(deadline).await;
             }
         }
@@ -420,9 +365,11 @@ impl RealtimeHostRuntime {
         &self,
         output: &RealtimeNotificationOutput,
     ) -> bool {
-        output.projection.upserts.iter().any(|upsert| {
-            notification_upsert_needs_remote_resolution(upsert, &output.owner_user_id)
-        })
+        output
+            .projection
+            .upserts
+            .iter()
+            .any(notification_upsert_needs_remote_resolution)
     }
 
     pub(super) fn enrich_persistence_world_names(
@@ -543,19 +490,12 @@ fn nested_object_string(object: &serde_json::Map<String, Value>, path: &[&str]) 
         .unwrap_or_default()
 }
 
-fn first_world_id<const N: usize>(values: [String; N]) -> String {
-    values
-        .into_iter()
-        .map(|value| world_enrich::world_id_from_location_or_id(&value))
-        .find(|value| !value.is_empty())
-        .unwrap_or_default()
-}
-
 async fn sleep_before_retry(deadline: Instant) {
     let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
         return;
     };
-    let delay = Duration::from_millis(NOTIFICATION_RESOLVE_RETRY_DELAY_MS).min(remaining);
+    let delay =
+        Duration::from_millis(NOTIFICATION_USERNAME_RESOLVE_RETRY_DELAY_MS).min(remaining);
     if delay > Duration::ZERO {
         tokio::time::sleep(delay).await;
     }
@@ -563,14 +503,11 @@ async fn sleep_before_retry(deadline: Instant) {
 
 fn notification_upsert_needs_remote_resolution(
     upsert: &RealtimeNotificationUpsert,
-    owner_user_id: &str,
 ) -> bool {
     if upsert.insert_defaults.is_some() || !notification_upsert_is_visible(upsert) {
         return false;
     }
     notification_has_unresolved_required_display(&upsert.notification)
-        || upsert.deliver_runtime
-            && notification_needs_avatar_image_resolution(&upsert.notification, owner_user_id)
 }
 
 fn notification_upsert_is_visible(upsert: &RealtimeNotificationUpsert) -> bool {
@@ -585,15 +522,7 @@ fn notification_is_deliverable(value: &Value) -> bool {
 }
 
 fn notification_has_unresolved_required_display(value: &Value) -> bool {
-    (notification_requires_sender_name(value) && meaningful_sender_name(value).is_none())
-        || notification_requires_world_name(value)
-            && !notification_has_meaningful_world_name(value)
-            && !notification_has_private_location_label(value)
-}
-
-fn notification_needs_avatar_image_resolution(value: &Value, owner_user_id: &str) -> bool {
-    !notification_has_direct_image(value)
-        && notification_avatar_user_id(value, owner_user_id).is_some()
+    notification_requires_sender_name(value) && meaningful_sender_name(value).is_none()
 }
 
 fn notification_has_direct_image(value: &Value) -> bool {
@@ -661,42 +590,6 @@ fn notification_avatar_user_id(value: &Value, owner_user_id: &str) -> Option<Str
     Some(user_id)
 }
 
-fn notification_requires_world_name(value: &Value) -> bool {
-    let Some(object) = value.as_object() else {
-        return false;
-    };
-    matches!(
-        object_string(object, "type").as_str(),
-        "invite" | "requestInvite" | "inviteResponse" | "requestInviteResponse"
-    ) && !notification_world_id(value).is_empty()
-}
-
-fn notification_has_meaningful_world_name(value: &Value) -> bool {
-    let Some(object) = value.as_object() else {
-        return false;
-    };
-    is_meaningful_world_name(&object_string(object, "worldName"))
-        || is_meaningful_world_name(&nested_object_string(object, &["details", "worldName"]))
-}
-
-fn notification_has_private_location_label(value: &Value) -> bool {
-    let Some(object) = value.as_object() else {
-        return false;
-    };
-    [
-        object_string(object, "location"),
-        object_string(object, "instanceLocation"),
-        nested_object_string(object, &["details", "location"]),
-    ]
-    .iter()
-    .any(|value| {
-        matches!(
-            value.trim(),
-            "private" | "offline" | "traveling" | "traveling~private"
-        )
-    })
-}
-
 fn meaningful_sender_name(value: &Value) -> Option<String> {
     let object = value.as_object()?;
     [
@@ -745,6 +638,37 @@ fn user_notification_image_url(value: &Value, allow_user_icon: bool) -> Option<S
     .find(|url| !url.trim().is_empty())
 }
 
+fn friend_notification_image_url(
+    record: &FriendRecord,
+    allow_user_icon: bool,
+) -> Option<String> {
+    [
+        allow_user_icon.then(|| friend_record_extra_str(record, "userIcon")),
+        Some(friend_record_extra_str(
+            record,
+            "profilePicOverrideThumbnail",
+        )),
+        Some(friend_record_extra_str(record, "profilePicOverride")),
+        Some(friend_record_extra_str(record, "thumbnailUrl")),
+        Some(record.current_avatar_thumbnail_image_url.as_str()),
+        Some(record.current_avatar_image_url.as_str()),
+    ]
+    .into_iter()
+    .flatten()
+    .map(str::trim)
+    .find(|url| !url.is_empty())
+    .map(str::to_string)
+}
+
+fn friend_record_extra_str<'a>(record: &'a FriendRecord, key: &str) -> &'a str {
+    record
+        .extra
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .unwrap_or_default()
+}
+
 fn apply_sender_display_name(value: &mut Value, display_name: &str) {
     let display_name = display_name.trim();
     if !is_meaningful_actor_name(display_name) {
@@ -777,23 +701,6 @@ fn apply_notification_image_url(value: &mut Value, image_url: &str) {
     object.insert("imageUrl".into(), Value::String(image_url.to_string()));
 }
 
-fn apply_world_name(value: &mut Value, world_name: &str) {
-    let world_name = world_name.trim();
-    if !is_meaningful_world_name(world_name) {
-        return;
-    }
-    let Some(object) = value.as_object_mut() else {
-        return;
-    };
-    if !is_meaningful_world_name(&object_string(object, "worldName")) {
-        object.insert("worldName".into(), Value::String(world_name.to_string()));
-    }
-    let details = ensure_details_object(object);
-    if !is_meaningful_world_name(&object_string(details, "worldName")) {
-        details.insert("worldName".into(), Value::String(world_name.to_string()));
-    }
-}
-
 fn sanitize_notification_display_names(value: &mut Value) {
     let Some(object) = value.as_object_mut() else {
         return;
@@ -823,25 +730,6 @@ fn notification_id(value: &Value) -> String {
     }
 }
 
-fn notification_world_id(value: &Value) -> String {
-    let Some(object) = value.as_object() else {
-        return String::new();
-    };
-    notification_world_id_from_object(object)
-}
-
-fn notification_world_id_from_object(object: &serde_json::Map<String, Value>) -> String {
-    first_world_id([
-        object_string(object, "worldId"),
-        object_string(object, "worldName"),
-        object_string(object, "location"),
-        object_string(object, "instanceLocation"),
-        nested_object_string(object, &["details", "worldId"]),
-        nested_object_string(object, &["details", "worldName"]),
-        nested_object_string(object, &["details", "location"]),
-    ])
-}
-
 #[cfg(test)]
 pub(super) fn feed_entry_correction_id(object: &serde_json::Map<String, Value>) -> String {
     world_enrich::feed_entry_correction_id(object)
@@ -857,18 +745,6 @@ fn sanitize_world_name_fields(object: &mut serde_json::Map<String, Value>) {
         object.insert("worldId".into(), Value::String(world_id));
     }
     object.insert("worldName".into(), Value::String(String::new()));
-}
-
-fn ensure_details_object(
-    object: &mut serde_json::Map<String, Value>,
-) -> &mut serde_json::Map<String, Value> {
-    if !object.get("details").is_some_and(Value::is_object) {
-        object.insert("details".into(), Value::Object(serde_json::Map::new()));
-    }
-    object
-        .get_mut("details")
-        .and_then(Value::as_object_mut)
-        .expect("details was inserted as an object")
 }
 
 fn is_meaningful_actor_name(value: &str) -> bool {

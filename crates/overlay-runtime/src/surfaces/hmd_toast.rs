@@ -8,8 +8,9 @@ use vrcx_0_application_activity::{
 use vrcx_0_application_core::WorldCache;
 use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
-use vrcx_0_core::location::{is_meaningful_world_name, world_id_from_location};
-use vrcx_0_runtime_host::notification::normalize_avatar_image_url_128;
+use vrcx_0_core::location::{
+    is_meaningful_world_name, parse_location, world_id_from_location,
+};
 use vrcx_0_vr_overlay::{AvatarBitmap, OverlaySurfaceId, RgbaFrame, MAIN_SURFACE_ID};
 
 use super::super::localization::OverlayLocale;
@@ -18,7 +19,6 @@ use super::super::runtime::{render_slint_hmd_frame, VrOverlayRuntime, VrOverlayR
 use super::super::service::HostVrOverlayService;
 use super::friend_record::friend_record_avatar_url;
 use super::main::{build_main_surface_model, HmdToastView, MainOverlayFrameInput};
-use vrcx_0_core::text::first_non_empty;
 
 const HMD_TOAST_CAPACITY: usize = 3;
 const HMD_TOAST_WORLD_RESOLVE_BUDGET: Duration = Duration::from_secs(2);
@@ -45,6 +45,10 @@ impl VrOverlayRuntime {
             return;
         }
         let entry = delivery.entry;
+        if entry.activity_type == "OnPlayerJoining" {
+            self.deliver_hmd_toast(entry);
+            return;
+        }
         let pending = self
             .services
             .as_ref()
@@ -98,15 +102,18 @@ impl VrOverlayRuntime {
             return false;
         };
         let last_toast_expired = prune_expired_hmd_toasts(&mut queue, now);
-        if let Some(existing) = queue
+        if let Some(index) = queue
             .iter_mut()
-            .rev()
-            .find(|toast| should_merge_hmd_toast(toast, &entry, now))
+            .rposition(|toast| should_merge_hmd_toast(toast, &entry, now))
         {
+            let mut existing = queue
+                .remove(index)
+                .expect("matched HMD toast index remains present");
             existing.entry = entry;
             existing.merge_count = existing.merge_count.saturating_add(1);
             existing.expires_at = now + timeout;
             existing.last_updated_at = now;
+            queue.push_back(existing);
         } else {
             while queue.len() >= HMD_TOAST_CAPACITY {
                 queue.pop_front();
@@ -287,52 +294,29 @@ impl VrOverlayRuntime {
             .config()
             .get_bool("displayVRCPlusIconsAsAvatar", true)
             .unwrap_or(true);
-        let friend_image_url = friend_record_avatar_url(&friend_record, allow_user_icon, &endpoint);
-        let entry_image_url = normalize_avatar_image_url_128(&entry.content.image_url, &endpoint);
         let initial_image_url =
-            first_non_empty([friend_image_url.as_str(), entry_image_url.as_str()]).to_string();
-        if let Some(bitmap) =
-            self.cached_hmd_avatar(&initial_image_url, &actor_user_id, allow_user_icon)
-        {
+            friend_record_avatar_url(&friend_record, allow_user_icon, &endpoint);
+        if let Some(bitmap) = self.cached_hmd_avatar(&initial_image_url, &actor_user_id) {
             self.update_hmd_avatar(&source_id, bitmap);
             return;
         }
-        let user_image_cache = Arc::clone(&self.user_image_cache);
+        if initial_image_url.is_empty() {
+            tracing::debug!(
+                source_id = %source_id,
+                actor_user_id = %actor_user_id,
+                "HMD avatar fetch skipped: current friend record has no image url"
+            );
+            return;
+        }
         let avatar_cache = Arc::clone(&self.avatar_bitmap_cache);
         let runtime = Arc::clone(self);
-        let resolve_endpoint = endpoint.clone();
         let avatar_cache_generation = avatar_cache.generation();
         let tasks = services.data().tasks.clone();
         tasks.spawn(async move {
-            let image_url = if initial_image_url.is_empty() {
-                if actor_user_id == auth.current_user_id {
-                    return;
-                }
-                user_image_cache
-                    .resolve(
-                        services.data().web.as_ref(),
-                        services.data().db.as_ref(),
-                        &resolve_endpoint,
-                        &actor_user_id,
-                        allow_user_icon,
-                    )
-                    .await
-                    .unwrap_or_default()
-            } else {
-                initial_image_url
-            };
-            if image_url.trim().is_empty() {
-                tracing::debug!(
-                    source_id = %source_id,
-                    actor_user_id = %actor_user_id,
-                    "HMD avatar fetch skipped: user image resolution returned empty url"
-                );
-                return;
-            }
             let Some(bitmap) = avatar_cache
                 .resolve(
                     services.data().web.as_ref(),
-                    image_url.trim(),
+                    initial_image_url.trim(),
                     &actor_user_id,
                 )
                 .await
@@ -354,15 +338,9 @@ impl VrOverlayRuntime {
         &self,
         initial_image_url: &str,
         actor_user_id: &str,
-        allow_user_icon: bool,
     ) -> Option<AvatarBitmap> {
-        let url = if initial_image_url.is_empty() {
-            self.user_image_cache
-                .cached_url(actor_user_id, allow_user_icon)?
-        } else {
-            initial_image_url.to_string()
-        };
-        self.avatar_bitmap_cache.cached(url.trim(), actor_user_id)
+        self.avatar_bitmap_cache
+            .cached(initial_image_url.trim(), actor_user_id)
     }
 
     fn update_hmd_avatar(&self, source_id: &str, avatar: AvatarBitmap) {
@@ -456,16 +434,11 @@ fn is_mergeable_hmd_activity(entry: &OverlayActivityEntry) -> bool {
 }
 
 fn hmd_instance_key(entry: &OverlayActivityEntry) -> Option<String> {
-    [
-        entry.content.location.as_str(),
-        entry.content.display_location.as_str(),
-        entry.content.world_id.as_str(),
-        entry.content.world_name.as_str(),
-    ]
-    .into_iter()
-    .map(str::trim)
-    .find(|value| !value.is_empty())
-    .map(str::to_string)
+    let location = parse_location(&entry.content.location);
+    if location.world_id.is_empty() || location.instance_name.is_empty() {
+        return None;
+    }
+    Some(format!("{}:{}", location.world_id, location.instance_name))
 }
 
 fn unresolved_entry_world_id(entry: &OverlayActivityEntry) -> Option<String> {

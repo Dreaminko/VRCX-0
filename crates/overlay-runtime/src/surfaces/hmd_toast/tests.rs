@@ -75,6 +75,93 @@ fn hmd_toast_queue_merges_non_friend_join_leave_by_instance_only() {
 }
 
 #[test]
+fn hmd_toast_queue_merges_equivalent_instance_tags() {
+    let runtime = VrOverlayRuntime::new_for_test();
+    let now = Instant::now();
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "join-1",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::None,
+            "wrld_a:123~region(jp)&shortName=first",
+        ),
+        now,
+        Duration::from_secs(5),
+    );
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "join-2",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::None,
+            "wrld_a:123~region(us)&shortName=second",
+        ),
+        now + Duration::from_secs(2),
+        Duration::from_secs(5),
+    );
+
+    let toasts = runtime.hmd_toast_views(now + Duration::from_secs(3));
+
+    assert_eq!(toasts.len(), 1);
+    assert_eq!(toasts[0].merge_count, 2);
+    assert_eq!(toasts[0].entry.source_id, "join-2");
+}
+
+#[test]
+fn hmd_toast_queue_keeps_recently_merged_group_at_the_newest_end() {
+    let runtime = VrOverlayRuntime::new_for_test();
+    let now = Instant::now();
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "join-1",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::None,
+            "wrld_a:123",
+        ),
+        now,
+        Duration::from_secs(5),
+    );
+    for index in 0..2 {
+        runtime.enqueue_hmd_toast(
+            hmd_entry(
+                &format!("status-{index}"),
+                "Status",
+                OverlayActivityActorRelation::None,
+                "wrld_a:123",
+            ),
+            now + Duration::from_millis(index + 1),
+            Duration::from_secs(5),
+        );
+    }
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "join-2",
+            "OnPlayerJoined",
+            OverlayActivityActorRelation::None,
+            "wrld_a:123",
+        ),
+        now + Duration::from_secs(1),
+        Duration::from_secs(5),
+    );
+    runtime.enqueue_hmd_toast(
+        hmd_entry(
+            "status-2",
+            "Status",
+            OverlayActivityActorRelation::None,
+            "wrld_a:123",
+        ),
+        now + Duration::from_secs(2),
+        Duration::from_secs(5),
+    );
+
+    let toasts = runtime.hmd_toast_views(now + Duration::from_secs(2));
+
+    assert_eq!(toasts.len(), 3);
+    assert!(toasts
+        .iter()
+        .any(|toast| toast.entry.source_id == "join-2" && toast.merge_count == 2));
+}
+
+#[test]
 fn hmd_toast_queue_does_not_merge_join_leave_without_instance_key() {
     let runtime = VrOverlayRuntime::new_for_test();
     let now = Instant::now();

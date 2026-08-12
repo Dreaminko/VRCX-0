@@ -104,7 +104,7 @@ pub(crate) fn favorite_friend_groups_snapshot_from_baseline(
             continue;
         }
         let label = remote_labels
-            .get(&key)
+            .get(key)
             .cloned()
             .unwrap_or_else(|| fallback_group_label(&key));
         groups.push(FavoriteFriendGroupSnapshot {

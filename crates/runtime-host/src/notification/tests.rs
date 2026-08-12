@@ -8,9 +8,8 @@ use vrcx_0_application_activity::{
 use vrcx_0_persistence::DatabaseService;
 
 use super::{
-    delivery_actor_image_user_id, generic_webhook_payload, parse_webhook_fields,
-    resolve_delivery_actor_image, RealtimeUserImageResolverSlot, RenderedNotification,
-    UserImageCache,
+    generic_webhook_payload, normalize_avatar_image_url_128, parse_webhook_fields,
+    RealtimeUserImageResolverSlot, RenderedNotification,
 };
 
 #[test]
@@ -50,23 +49,6 @@ fn generic_webhook_fields_ignore_localized_names() {
     );
     assert!(payload.get("位置").is_none());
     assert!(payload.get("タイトル").is_none());
-}
-
-#[test]
-fn delivery_actor_image_user_id_skips_current_user_actor() {
-    let mut delivery = delivery();
-    delivery.entry.actor_user_id = "usr_self".into();
-
-    assert_eq!(delivery_actor_image_user_id(&delivery, "usr_self"), None);
-
-    delivery.entry.actor_user_id = "usr_sender".into();
-    assert_eq!(
-        delivery_actor_image_user_id(&delivery, "usr_self"),
-        Some("usr_sender")
-    );
-
-    delivery.entry.content.image_url = "https://images.example/existing.png".into();
-    assert_eq!(delivery_actor_image_user_id(&delivery, "usr_self"), None);
 }
 
 fn rendered() -> RenderedNotification {
@@ -192,9 +174,9 @@ fn test_realtime_runtime(
     (dir, runtime, db, web)
 }
 
-#[tokio::test]
-async fn resolve_delivery_actor_image_prefers_realtime_cache_over_api_fallback() {
-    let (_dir, runtime, db, web) = test_realtime_runtime("actor-image-cache-hit");
+#[test]
+fn realtime_image_resolver_reads_the_realtime_cache() {
+    let (_dir, runtime, _db, _web) = test_realtime_runtime("actor-image-cache-hit");
     let endpoint = "https://api.vrchat.cloud/api/1";
     runtime.record_user_profile(
         endpoint,
@@ -206,21 +188,9 @@ async fn resolve_delivery_actor_image_prefers_realtime_cache_over_api_fallback()
     );
     let resolver = RealtimeUserImageResolverSlot::default();
     resolver.set(&runtime);
-    let user_image_cache = UserImageCache::new();
-    let mut sample = delivery();
-    sample.entry.actor_user_id = "usr_traveler".into();
-
-    let image_url = resolve_delivery_actor_image(
-        &user_image_cache,
-        web.as_ref(),
-        db.as_ref(),
-        endpoint,
-        true,
-        "usr_self",
-        &resolver,
-        &sample,
-    )
-    .await;
+    let image_url = resolver
+        .cached_url(endpoint, "usr_traveler", true)
+        .map(|url| normalize_avatar_image_url_128(&url, endpoint));
 
     assert_eq!(
         image_url.as_deref(),
@@ -230,23 +200,11 @@ async fn resolve_delivery_actor_image_prefers_realtime_cache_over_api_fallback()
     );
 }
 
-#[tokio::test]
-async fn resolve_delivery_actor_image_falls_back_to_none_when_uncached_and_endpoint_missing() {
-    let (_dir, _runtime, db, web) = test_realtime_runtime("actor-image-cache-miss");
+#[test]
+fn realtime_image_resolver_returns_none_when_endpoint_is_missing() {
+    let (_dir, _runtime, _db, _web) = test_realtime_runtime("actor-image-cache-miss");
     let resolver = RealtimeUserImageResolverSlot::default();
-    let user_image_cache = UserImageCache::new();
-
-    let image_url = resolve_delivery_actor_image(
-        &user_image_cache,
-        web.as_ref(),
-        db.as_ref(),
-        "",
-        true,
-        "usr_self",
-        &resolver,
-        &delivery(),
-    )
-    .await;
+    let image_url = resolver.cached_url("", "usr_traveler", true);
 
     assert_eq!(image_url, None);
 }

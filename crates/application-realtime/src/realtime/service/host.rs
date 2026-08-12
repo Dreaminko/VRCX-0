@@ -8,7 +8,6 @@ use crate::realtime::{
 };
 #[cfg(test)]
 use crate::social_baseline::service::friend_log_relationship_candidates;
-use crate::world_enrich::is_meaningful_world_name;
 
 #[cfg(test)]
 use vrcx_0_application_core::Result;
@@ -58,8 +57,6 @@ mod transport_lifecycle_tests;
 mod world_cache;
 #[cfg(test)]
 mod world_cache_tests;
-
-use world_cache::WorldNameFetchOutcome;
 
 pub use current_user::RealtimeCurrentUserRefreshExpectation;
 pub use friend_mutation::SyntheticFriendEventOutcome;

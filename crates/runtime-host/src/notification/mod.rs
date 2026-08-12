@@ -28,10 +28,7 @@ pub use auth_webhook::{
     AuthWebhookEvent, AuthWebhookEventKind,
 };
 pub(crate) use auth_webhook::{AuthWebhookQueue, AuthWebhookQueueDeps};
-pub use enrichment::{
-    delivery_actor_image_user_id, resolve_delivery_actor_image, resolve_delivery_world_name,
-    RealtimeUserImageResolverSlot,
-};
+pub use enrichment::{resolve_delivery_world_name, RealtimeUserImageResolverSlot};
 pub use generic_webhook::{filter_generic_webhook_payload, generic_webhook_payload};
 pub use image_file::{extract_file_id, extract_file_version, fallback_file_version};
 pub use localization::{
