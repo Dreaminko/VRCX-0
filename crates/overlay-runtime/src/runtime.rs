@@ -19,7 +19,6 @@ use vrcx_0_application_activity::{
 use vrcx_0_application_core::{GameProcessEvent, GameProcessEventSink, TaskSupervisor};
 use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
 use vrcx_0_application_realtime::RealtimeFriendSnapshot;
-#[cfg(feature = "friends-panel")]
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::game_log_parser::GameLogEventKind;
 use vrcx_0_host_desktop::vr_overlay::{
@@ -82,6 +81,8 @@ trait VrOverlayFrameProducer: Send {
 
 type VrOverlayFrameProducerFactory = Box<dyn Fn() -> Box<dyn VrOverlayFrameProducer> + Send + Sync>;
 type FriendsPanelSnapshotProvider = Arc<dyn Fn() -> Option<RealtimeFriendSnapshot> + Send + Sync>;
+type HmdFriendMembershipProvider = Arc<dyn Fn(&str) -> bool + Send + Sync>;
+type HmdFriendContextProvider = Arc<dyn Fn(&str) -> Option<(FriendRecord, String)> + Send + Sync>;
 
 thread_local! {
     static SLINT_WRIST_RENDERER: RefCell<Option<SlintWristRenderer>> = const { RefCell::new(None) };
@@ -515,6 +516,8 @@ pub struct VrOverlayRuntime {
     pub(crate) services: Option<Arc<dyn VrOverlayRuntimeServices>>,
     config: Mutex<VrOverlayRuntimeConfig>,
     friends_panel_snapshot_provider: Mutex<Option<FriendsPanelSnapshotProvider>>,
+    hmd_friend_membership_provider: Mutex<Option<HmdFriendMembershipProvider>>,
+    hmd_friend_context_provider: Mutex<Option<HmdFriendContextProvider>>,
     #[cfg(feature = "friends-panel")]
     friends_panel_favorite_groups: Mutex<FavoriteFriendGroupsSnapshot>,
     #[cfg(feature = "friends-panel")]
@@ -660,6 +663,8 @@ impl VrOverlayRuntime {
             refresh_thread_id: Mutex::new(None),
             config: Mutex::new(config),
             friends_panel_snapshot_provider: Mutex::new(None),
+            hmd_friend_membership_provider: Mutex::new(None),
+            hmd_friend_context_provider: Mutex::new(None),
             #[cfg(feature = "friends-panel")]
             friends_panel_favorite_groups: Mutex::new(FavoriteFriendGroupsSnapshot::default()),
             #[cfg(feature = "friends-panel")]
@@ -857,6 +862,50 @@ impl VrOverlayRuntime {
         }
     }
 
+    pub fn set_hmd_friend_membership_provider<F>(&self, provider: F)
+    where
+        F: Fn(&str) -> bool + Send + Sync + 'static,
+    {
+        if let Ok(mut current) = self.hmd_friend_membership_provider.lock() {
+            *current = Some(Arc::new(provider));
+        }
+    }
+
+    pub fn set_hmd_friend_context_provider<F>(&self, provider: F)
+    where
+        F: Fn(&str) -> Option<(FriendRecord, String)> + Send + Sync + 'static,
+    {
+        if let Ok(mut current) = self.hmd_friend_context_provider.lock() {
+            *current = Some(Arc::new(provider));
+        }
+    }
+
+    pub(crate) fn is_current_hmd_friend(&self, user_id: &str) -> bool {
+        let user_id = user_id.trim();
+        if !user_id.starts_with("usr_") {
+            return false;
+        }
+        let provider = self
+            .hmd_friend_membership_provider
+            .lock()
+            .ok()
+            .and_then(|provider| provider.clone());
+        provider.is_some_and(|provider| provider(user_id))
+    }
+
+    pub(crate) fn current_hmd_friend_context(
+        &self,
+        user_id: &str,
+    ) -> Option<(FriendRecord, String)> {
+        let provider = self
+            .hmd_friend_context_provider
+            .lock()
+            .ok()
+            .and_then(|provider| provider.clone());
+        provider.and_then(|provider| provider(user_id))
+    }
+
+    #[cfg(feature = "friends-panel")]
     pub(crate) fn current_friends_panel_snapshot(&self) -> Option<RealtimeFriendSnapshot> {
         let provider = self
             .friends_panel_snapshot_provider

@@ -249,8 +249,6 @@ impl OverlayBackend for OpenVrOverlayBackend {
         self.context_lease = Some(context_lease);
         self.overlay = Some(overlay);
         self.system = Some(system);
-        #[cfg(windows)]
-        self.ensure_gpu_presenter();
         Ok(())
     }
 

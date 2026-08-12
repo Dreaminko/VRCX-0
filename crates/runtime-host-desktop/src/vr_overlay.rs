@@ -3,6 +3,7 @@ use std::sync::Arc;
 use vrcx_0_application_core::GameProcessEvent;
 use vrcx_0_application_game::{GameLogEvent, GameLogEventSink};
 use vrcx_0_application_realtime::{FavoriteBaselineSnapshot, RealtimeFriendSnapshot};
+use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_runtime_host::Result;
 
 use crate::DesktopRuntimeServices;
@@ -159,6 +160,28 @@ impl DesktopVrOverlayRuntime {
     {
         #[cfg(any(windows, target_os = "linux"))]
         self.runtime.set_friends_panel_snapshot_provider(provider);
+
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let _ = provider;
+    }
+
+    pub fn set_hmd_friend_membership_provider<F>(&self, provider: F)
+    where
+        F: Fn(&str) -> bool + Send + Sync + 'static,
+    {
+        #[cfg(any(windows, target_os = "linux"))]
+        self.runtime.set_hmd_friend_membership_provider(provider);
+
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let _ = provider;
+    }
+
+    pub fn set_hmd_friend_context_provider<F>(&self, provider: F)
+    where
+        F: Fn(&str) -> Option<(FriendRecord, String)> + Send + Sync + 'static,
+    {
+        #[cfg(any(windows, target_os = "linux"))]
+        self.runtime.set_hmd_friend_context_provider(provider);
 
         #[cfg(not(any(windows, target_os = "linux")))]
         let _ = provider;

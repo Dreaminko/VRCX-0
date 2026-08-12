@@ -349,6 +349,23 @@ impl DesktopRuntimeHostState {
             profile_extension: Some(extension.clone()),
         })?;
         let realtime_runtime = Arc::downgrade(&runtime.realtime_runtime);
+        let hmd_membership_runtime = realtime_runtime.clone();
+        desktop
+            .vr_overlay_runtime
+            .set_hmd_friend_membership_provider(move |user_id| {
+                hmd_membership_runtime
+                    .upgrade()
+                    .is_some_and(|runtime| runtime.is_current_friend(user_id))
+            });
+        let hmd_context_runtime = realtime_runtime.clone();
+        desktop
+            .vr_overlay_runtime
+            .set_hmd_friend_context_provider(move |user_id| {
+                let snapshot = hmd_context_runtime
+                    .upgrade()?
+                    .current_friend_record(user_id)?;
+                Some((snapshot.record, snapshot.endpoint))
+            });
         desktop
             .vr_overlay_runtime
             .set_friends_panel_snapshot_provider(move || {

@@ -9,8 +9,8 @@ use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
 use crate::realtime::{
     FriendBaselineCausalWatermark, FriendBaselineResult, FriendStateBucketAuthority,
-    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendRosterSnapshot,
-    RealtimeFriendSnapshot,
+    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeFriendRecordSnapshot,
+    RealtimeFriendRosterSnapshot, RealtimeFriendSnapshot,
 };
 
 use super::event_patch::{
@@ -395,6 +395,31 @@ impl RealtimeFriendsRuntime {
 
     pub fn snapshot(&self) -> Option<RealtimeFriendSnapshot> {
         self.lock_state().baseline.clone()
+    }
+
+    pub fn is_current_friend(&self, user_id: &str) -> bool {
+        let user_id = user_id.trim();
+        if user_id.is_empty() {
+            return false;
+        }
+        self.lock_state()
+            .baseline
+            .as_ref()
+            .is_some_and(|baseline| baseline.friends_by_id.contains_key(user_id))
+    }
+
+    pub fn current_friend_record(&self, user_id: &str) -> Option<RealtimeFriendRecordSnapshot> {
+        let user_id = user_id.trim();
+        if user_id.is_empty() {
+            return None;
+        }
+        let state = self.lock_state();
+        let baseline = state.baseline.as_ref()?;
+        let record = baseline.friends_by_id.get(user_id)?.clone();
+        Some(RealtimeFriendRecordSnapshot {
+            endpoint: baseline.endpoint.clone(),
+            record,
+        })
     }
 
     pub fn friend_user_ids(&self) -> HashSet<String> {

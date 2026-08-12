@@ -28,6 +28,12 @@ pub struct RealtimeFriendSnapshot {
     pub friends_by_id: HashMap<String, FriendRecord>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct RealtimeFriendRecordSnapshot {
+    pub endpoint: String,
+    pub record: FriendRecord,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct RealtimeFriendRosterSnapshot {
     pub current_user_id: String,

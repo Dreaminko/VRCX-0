@@ -21,9 +21,10 @@ use crate::realtime::friends::RealtimeFriendsRuntime;
 use crate::realtime::user_cache::UserCacheRuntime;
 use crate::realtime::user_query_cache::UserQueryCache;
 use crate::realtime::{
-    FriendProjection, RealtimeCachedUserProfile, RealtimeFriendOutput, RealtimeSessionContext,
-    RealtimeTransportLifecycleEvent, RealtimeTransportStartResult, RealtimeTransportTermination,
-    RealtimeWsStatus, RealtimeWsStatusPayload,
+    FriendProjection, RealtimeCachedUserProfile, RealtimeFriendOutput,
+    RealtimeFriendRecordSnapshot, RealtimeSessionContext, RealtimeTransportLifecycleEvent,
+    RealtimeTransportStartResult, RealtimeTransportTermination, RealtimeWsStatus,
+    RealtimeWsStatusPayload,
 };
 
 use super::state::{
@@ -425,6 +426,14 @@ impl RealtimeHostRuntime {
 
     pub fn friend_snapshot(&self) -> Option<crate::realtime::RealtimeFriendSnapshot> {
         self.friends.snapshot()
+    }
+
+    pub fn is_current_friend(&self, user_id: &str) -> bool {
+        self.friends.is_current_friend(user_id)
+    }
+
+    pub fn current_friend_record(&self, user_id: &str) -> Option<RealtimeFriendRecordSnapshot> {
+        self.friends.current_friend_record(user_id)
     }
 
     pub fn friend_user_ids(&self) -> std::collections::HashSet<String> {

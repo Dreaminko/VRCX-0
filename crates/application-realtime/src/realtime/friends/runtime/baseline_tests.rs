@@ -58,6 +58,37 @@ mod tests {
     }
 
     #[test]
+    fn current_friend_queries_read_only_the_requested_record() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                endpoint: "https://api.example.test".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            7,
+            3,
+        );
+
+        assert!(runtime.is_current_friend(" usr_friend "));
+        assert!(!runtime.is_current_friend("usr_stranger"));
+        let snapshot = runtime.current_friend_record("usr_friend").unwrap();
+        assert_eq!(snapshot.endpoint, "https://api.example.test");
+        assert_eq!(snapshot.record.id, "usr_friend");
+        assert_eq!(snapshot.record.display_name, "Friend");
+        assert!(runtime.current_friend_record("usr_stranger").is_none());
+    }
+
+    #[test]
     fn roster_snapshot_builds_current_json_with_stable_order() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

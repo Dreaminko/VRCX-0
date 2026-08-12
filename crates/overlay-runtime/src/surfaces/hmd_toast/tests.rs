@@ -1,10 +1,31 @@
 use super::*;
 use crate::avatar_cache::tests::{test_avatar_bitmap, test_avatar_bitmap_with_red};
-use crate::runtime::tests::{
-    friends_panel_snapshot, hmd_enabled_runtime_with_services, test_services,
-};
-use std::sync::atomic::{AtomicBool, Ordering};
+use crate::runtime::tests::{hmd_enabled_runtime_with_services, test_services};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use vrcx_0_core::friends::FriendRecord;
+
+fn set_hmd_friend(runtime: &VrOverlayRuntime, record: FriendRecord) {
+    let membership_id = record.id.clone();
+    runtime.set_hmd_friend_membership_provider(move |user_id| user_id.trim() == membership_id);
+    runtime.set_hmd_friend_context_provider(move |user_id| {
+        (user_id.trim() == record.id)
+            .then(|| (record.clone(), "https://api.example.test".to_string()))
+    });
+}
+
+#[test]
+fn empty_hmd_queue_does_not_query_friend_membership() {
+    let runtime = VrOverlayRuntime::new_for_test();
+    let membership_queries = Arc::new(AtomicUsize::new(0));
+    let provider_queries = Arc::clone(&membership_queries);
+    runtime.set_hmd_friend_membership_provider(move |_| {
+        provider_queries.fetch_add(1, Ordering::AcqRel);
+        false
+    });
+
+    assert!(runtime.hmd_toast_views(Instant::now()).is_empty());
+    assert_eq!(membership_queries.load(Ordering::Acquire), 0);
+}
 
 #[test]
 fn hmd_toast_queue_caps_at_three_and_drops_oldest() {
@@ -228,7 +249,7 @@ fn hmd_toast_queue_does_not_merge_join_leave_across_instances() {
 }
 
 #[test]
-fn hmd_avatar_cache_hit_requires_friend_snapshot() {
+fn hmd_avatar_cache_hit_requires_current_friend_context() {
     let (_dir, _db, services) = test_services("hmd-avatar-friend-gate");
     let runtime = hmd_enabled_runtime_with_services(services);
     let url = "https://images.example/avatar/128";
@@ -253,13 +274,15 @@ fn hmd_avatar_cache_hit_requires_friend_snapshot() {
         .and_then(|toast| toast.avatar.clone())
         .is_none());
 
-    runtime.set_friends_panel_snapshot_provider(|| {
-        Some(friends_panel_snapshot(FriendRecord {
+    set_hmd_friend(
+        &runtime,
+        FriendRecord {
             id: "usr_actor".to_string(),
             display_name: "Friend".to_string(),
+            current_avatar_thumbnail_image_url: url.to_string(),
             ..FriendRecord::default()
-        }))
-    });
+        },
+    );
     runtime.spawn_avatar_fetch(&entry);
 
     assert_eq!(
@@ -313,21 +336,27 @@ fn hmd_avatar_update_wakes_static_rendering_only() {
 }
 
 #[test]
-fn hmd_snapshot_gap_does_not_drop_loaded_toast_avatar() {
-    let (_dir, _db, services) = test_services("hmd-avatar-snapshot-gap");
+fn hmd_membership_gap_does_not_drop_loaded_toast_avatar() {
+    let (_dir, _db, services) = test_services("hmd-avatar-membership-gap");
     let runtime = hmd_enabled_runtime_with_services(services);
-    let snapshot_available = Arc::new(AtomicBool::new(true));
-    let provider_available = Arc::clone(&snapshot_available);
-    runtime.set_friends_panel_snapshot_provider(move || {
-        if provider_available.load(Ordering::Acquire) {
-            Some(friends_panel_snapshot(FriendRecord {
-                id: "usr_actor".to_string(),
-                display_name: "Friend".to_string(),
-                ..FriendRecord::default()
-            }))
-        } else {
-            None
-        }
+    let membership_available = Arc::new(AtomicBool::new(true));
+    let provider_available = Arc::clone(&membership_available);
+    runtime.set_hmd_friend_membership_provider(move |user_id| {
+        provider_available.load(Ordering::Acquire) && user_id == "usr_actor"
+    });
+    runtime.set_hmd_friend_context_provider(|user_id| {
+        (user_id == "usr_actor").then(|| {
+            (
+                FriendRecord {
+                    id: "usr_actor".to_string(),
+                    display_name: "Friend".to_string(),
+                    current_avatar_thumbnail_image_url: "https://images.example/avatar/128"
+                        .to_string(),
+                    ..FriendRecord::default()
+                },
+                "https://api.example.test".to_string(),
+            )
+        })
     });
     let url = "https://images.example/avatar/128";
     let bitmap = test_avatar_bitmap();
@@ -352,12 +381,12 @@ fn hmd_snapshot_gap_does_not_drop_loaded_toast_avatar() {
         Some(bitmap.clone())
     );
 
-    snapshot_available.store(false, Ordering::Release);
+    membership_available.store(false, Ordering::Release);
     let hidden = runtime.hmd_toast_views(Instant::now()).pop().unwrap();
     assert!(!hidden.show_avatar);
     assert!(hidden.avatar.is_none());
 
-    snapshot_available.store(true, Ordering::Release);
+    membership_available.store(true, Ordering::Release);
     let restored = runtime.hmd_toast_views(Instant::now()).pop().unwrap();
     assert!(restored.show_avatar);
     assert_eq!(restored.avatar, Some(bitmap));
@@ -385,13 +414,7 @@ fn hmd_non_friend_toast_hides_avatar_slot() {
 fn hmd_friend_toast_without_bitmap_keeps_avatar_slot() {
     let (_dir, _db, services) = test_services("hmd-friend-avatar-slot");
     let runtime = hmd_enabled_runtime_with_services(services);
-    runtime.set_friends_panel_snapshot_provider(|| {
-        Some(friends_panel_snapshot(FriendRecord {
-            id: "usr_actor".to_string(),
-            display_name: "Friend".to_string(),
-            ..FriendRecord::default()
-        }))
-    });
+    runtime.set_hmd_friend_membership_provider(|user_id| user_id == "usr_actor");
     let entry = hmd_entry(
         "friend-toast",
         "OnPlayerJoined",
@@ -420,8 +443,9 @@ fn hmd_avatar_uses_friend_record_url_before_direct_notification_image() {
     runtime
         .avatar_bitmap_cache
         .store_success(direct_url, "usr_actor", direct_bitmap);
-    runtime.set_friends_panel_snapshot_provider(|| {
-        Some(friends_panel_snapshot(FriendRecord {
+    set_hmd_friend(
+        &runtime,
+        FriendRecord {
             id: "usr_actor".to_string(),
             display_name: "Friend".to_string(),
             extra: serde_json::json!({
@@ -431,8 +455,8 @@ fn hmd_avatar_uses_friend_record_url_before_direct_notification_image() {
             .unwrap()
             .clone(),
             ..FriendRecord::default()
-        }))
-    });
+        },
+    );
     let mut entry = hmd_entry(
         "friend-avatar-direct-image",
         "OnPlayerJoined",

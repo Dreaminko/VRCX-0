@@ -6,7 +6,6 @@ use vrcx_0_application_activity::{
     OverlayActivityActorRelation, OverlayActivityDelivery, OverlayActivityEntry,
 };
 use vrcx_0_application_core::WorldCache;
-use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
 use vrcx_0_core::location::{is_meaningful_world_name, parse_location, world_id_from_location};
 use vrcx_0_vr_overlay::{AvatarBitmap, OverlaySurfaceId, RgbaFrame, MAIN_SURFACE_ID};
@@ -184,8 +183,13 @@ impl VrOverlayRuntime {
             return Vec::new();
         };
         let last_toast_expired = prune_expired_hmd_toasts(&mut queue, now);
-        let friend_snapshot = self.current_friends_panel_snapshot();
-        let views = queue
+        if queue.is_empty() {
+            if last_toast_expired {
+                self.avatar_bitmap_cache.clear();
+            }
+            return Vec::new();
+        }
+        queue
             .iter_mut()
             .enumerate()
             .map(|(index, toast)| {
@@ -193,7 +197,7 @@ impl VrOverlayRuntime {
                     refresh_cached_world_name(&services.data().world_cache, &mut toast.entry);
                 }
                 advance_hmd_toast_slide(toast, index, now);
-                let show_avatar = hmd_entry_should_show_avatar(&toast.entry, &friend_snapshot);
+                let show_avatar = self.is_current_hmd_friend(&toast.entry.actor_user_id);
                 HmdToastView {
                     entry: toast.entry.clone(),
                     avatar: if show_avatar {
@@ -207,11 +211,7 @@ impl VrOverlayRuntime {
                     slide_offset: toast.visual_pos - index as f32,
                 }
             })
-            .collect();
-        if last_toast_expired {
-            self.avatar_bitmap_cache.clear();
-        }
-        views
+            .collect()
     }
 
     pub(crate) fn hmd_toast_refresh_hint(&self, now: Instant) -> Option<Duration> {
@@ -257,9 +257,7 @@ impl VrOverlayRuntime {
         if !actor_user_id.starts_with("usr_") {
             return None;
         }
-        let snapshot = self.current_friends_panel_snapshot()?;
-        let record = snapshot.friends_by_id.get(actor_user_id)?.clone();
-        Some((record, snapshot.endpoint))
+        self.current_hmd_friend_context(actor_user_id)
     }
 
     fn spawn_avatar_fetch(self: &Arc<Self>, entry: &OverlayActivityEntry) {
@@ -277,7 +275,7 @@ impl VrOverlayRuntime {
             tracing::debug!(
                 source_id = %source_id,
                 actor_user_id = %actor_user_id,
-                "HMD avatar fetch skipped: actor is not in the current friend snapshot"
+                "HMD avatar fetch skipped: actor is not a current friend"
             );
             return;
         };
@@ -395,17 +393,6 @@ fn advance_hmd_toast_slide(toast: &mut HmdToastState, index: usize, now: Instant
         / HMD_TOAST_SLIDE_STEP_SECONDS;
     toast.last_frame_at = now;
     toast.visual_pos += (index as f32 - toast.visual_pos).clamp(-step, step);
-}
-
-fn hmd_entry_should_show_avatar(
-    entry: &OverlayActivityEntry,
-    snapshot: &Option<RealtimeFriendSnapshot>,
-) -> bool {
-    let actor_user_id = entry.actor_user_id.trim();
-    actor_user_id.starts_with("usr_")
-        && snapshot
-            .as_ref()
-            .is_some_and(|snapshot| snapshot.friends_by_id.contains_key(actor_user_id))
 }
 
 fn should_merge_hmd_toast(
