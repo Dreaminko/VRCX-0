@@ -6,8 +6,8 @@ use slint::{
 };
 
 use crate::{
-    Color, DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity,
-    OverlaySize, RgbaFrame, WristSurfaceModel,
+    Color, DeviceChip, DeviceRole, DeviceStatus, FeedAccent, FeedKind, FeedLine, FeedRelation,
+    FeedSeverity, OverlaySize, RgbaFrame, WristSurfaceModel,
 };
 
 use super::platform::{
@@ -26,6 +26,9 @@ const WRIST_CRITICAL: Color = Color::rgba(239, 68, 68, 255);
 const WRIST_NORMAL: Color = Color::rgba(34, 197, 94, 255);
 const WRIST_CHARGING: Color = Color::rgba(56, 189, 248, 255);
 const WRIST_WARNING: Color = Color::rgba(251, 191, 36, 255);
+const WRIST_FEED_ONLINE: Color = Color::rgba(46, 211, 25, 255);
+const WRIST_FEED_LOCATION: Color = Color::rgba(14, 165, 233, 255);
+const WRIST_FEED_OFFLINE: Color = Color::rgba(148, 163, 184, 255);
 
 pub struct SlintWristHost {
     size: OverlaySize,
@@ -306,15 +309,16 @@ pub(super) fn wrist_feed_item(row: &FeedLine, dark_background: bool) -> WristFee
     } else {
         (actor, detail_without_actor(row.detail.trim(), actor), true)
     };
+    let (accent_color, show_accent) = wrist_feed_accent(row, dark_background);
     WristFeedItem {
         time: SharedString::from(row.time_text.trim()),
         actor: SharedString::from(actor),
         detail: SharedString::from(detail.as_str()),
         actor_color: to_slint_color(wrist_relation_color(row.relation)),
         detail_color: to_slint_color(wrist_detail_color(row, dark_background)),
-        severity_color: to_slint_color(wrist_severity_color(row.severity)),
+        accent_color: to_slint_color(accent_color),
         has_actor,
-        show_severity: row.severity != FeedSeverity::Normal,
+        show_accent,
     }
 }
 
@@ -341,10 +345,16 @@ fn wrist_detail_color(row: &FeedLine, dark_background: bool) -> Color {
     }
 }
 
-fn wrist_severity_color(severity: FeedSeverity) -> Color {
-    match severity {
-        FeedSeverity::Important => WRIST_LOW,
-        FeedSeverity::Warning => WRIST_CRITICAL,
-        FeedSeverity::Normal => WRIST_NORMAL,
+fn wrist_feed_accent(row: &FeedLine, dark_background: bool) -> (Color, bool) {
+    match row.severity {
+        FeedSeverity::Important => (WRIST_LOW, true),
+        FeedSeverity::Warning => (WRIST_CRITICAL, true),
+        FeedSeverity::Normal => match row.accent {
+            FeedAccent::Online => (WRIST_FEED_ONLINE, true),
+            FeedAccent::Location => (WRIST_FEED_LOCATION, true),
+            FeedAccent::Offline => (WRIST_FEED_OFFLINE, true),
+            FeedAccent::Muted => (wrist_muted_text(dark_background), true),
+            FeedAccent::None => (WRIST_NORMAL, false),
+        },
     }
 }

@@ -8,8 +8,8 @@ use vrcx_0_core::text::first_non_empty_owned;
 use vrcx_0_host_desktop::vr_overlay::{VrDeviceSnapshot, VrDeviceStatus};
 use vrcx_0_i18n::OverlayMessage;
 use vrcx_0_vr_overlay::{
-    DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity,
-    OverlayFooter, OverlaySize, WristSurfaceModel,
+    DeviceChip, DeviceRole, DeviceStatus, FeedAccent, FeedKind, FeedLine, FeedRelation,
+    FeedSeverity, OverlayFooter, OverlaySize, WristSurfaceModel,
 };
 
 use super::super::localization::{OverlayLocale, OverlayLocalizer, OverlayPanelLocalizer};
@@ -208,6 +208,7 @@ fn feed_line_from_activity(entry: &OverlayActivityEntry, localizer: &OverlayLoca
         detail: feed_detail(entry, localizer),
         relation: feed_relation(entry.actor_relation),
         severity: feed_severity(entry),
+        accent: feed_accent(entry),
     }
 }
 
@@ -415,6 +416,16 @@ fn feed_severity(entry: &OverlayActivityEntry) -> FeedSeverity {
         OverlayActivityCategory::ActionRequired => FeedSeverity::Important,
         OverlayActivityCategory::SystemSafety => FeedSeverity::Warning,
         _ => FeedSeverity::Normal,
+    }
+}
+
+fn feed_accent(entry: &OverlayActivityEntry) -> FeedAccent {
+    match entry.activity_type.as_str() {
+        "Online" => FeedAccent::Online,
+        "GPS" => FeedAccent::Location,
+        "Offline" => FeedAccent::Offline,
+        "Status" | "Avatar" | "Bio" => FeedAccent::Muted,
+        _ => FeedAccent::None,
     }
 }
 

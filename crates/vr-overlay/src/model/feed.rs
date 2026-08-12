@@ -20,6 +20,16 @@ pub enum FeedSeverity {
     Warning,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum FeedAccent {
+    #[default]
+    None,
+    Online,
+    Location,
+    Offline,
+    Muted,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum FeedRelation {
@@ -39,4 +49,6 @@ pub struct FeedLine {
     #[serde(default)]
     pub relation: FeedRelation,
     pub severity: FeedSeverity,
+    #[serde(skip)]
+    pub accent: FeedAccent,
 }

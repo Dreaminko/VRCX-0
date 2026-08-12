@@ -5,11 +5,11 @@ pub mod surfaces;
 
 pub use model::{
     grab_follow_transform, grab_follow_transform_facing, ray_quad_intersection, recenter_transform,
-    Color, DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity,
-    OverlayFooter, OverlayQuadSize, OverlaySize, OverlaySurfaceId, OverlayTransform, Ray3,
-    RayQuadHit, Rect, RgbaFrame, UvPoint, FRIENDS_PANEL_ID, FRIENDS_PANEL_LASER_LEFT_SURFACE_ID,
-    FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID, FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID,
-    MAIN_SURFACE_ID,
+    Color, DeviceChip, DeviceRole, DeviceStatus, FeedAccent, FeedKind, FeedLine, FeedRelation,
+    FeedSeverity, OverlayFooter, OverlayQuadSize, OverlaySize, OverlaySurfaceId, OverlayTransform,
+    Ray3, RayQuadHit, Rect, RgbaFrame, UvPoint, FRIENDS_PANEL_ID,
+    FRIENDS_PANEL_LASER_LEFT_SURFACE_ID, FRIENDS_PANEL_LASER_RIGHT_SURFACE_ID,
+    FRIENDS_PANEL_SURFACE_ID, LEGACY_DUMMY_PANEL_ID, MAIN_SURFACE_ID,
 };
 #[cfg(all(feature = "slint-ui", feature = "friends-panel"))]
 pub use slint_ui::{

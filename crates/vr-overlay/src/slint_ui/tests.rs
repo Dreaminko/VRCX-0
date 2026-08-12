@@ -4,8 +4,9 @@ use super::{
     wrist::{wrist_device_item, wrist_device_tokens, wrist_feed_item, wrist_muted_text},
 };
 use crate::{
-    AvatarBitmap, DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation,
-    FeedSeverity, MainSurfaceModel, OverlayFooter, RgbaFrame, ToastCard, WristSurfaceModel,
+    AvatarBitmap, DeviceChip, DeviceRole, DeviceStatus, FeedAccent, FeedKind, FeedLine,
+    FeedRelation, FeedSeverity, MainSurfaceModel, OverlayFooter, OverlaySize, RgbaFrame,
+    ToastCard, WristSurfaceModel,
 };
 #[cfg(feature = "friends-panel")]
 use crate::{
@@ -364,6 +365,7 @@ fn wrist_feed_item_preserves_actor_detail_and_muted_media_detail() {
         detail: "Ada invited you".to_string(),
         relation: FeedRelation::Favorite,
         severity: FeedSeverity::Important,
+        accent: FeedAccent::None,
     };
     let media = FeedLine {
         time_text: String::new(),
@@ -372,6 +374,7 @@ fn wrist_feed_item_preserves_actor_detail_and_muted_media_detail() {
         detail: "Muted media row".to_string(),
         relation: FeedRelation::None,
         severity: FeedSeverity::Normal,
+        accent: FeedAccent::None,
     };
 
     let favorite_item = wrist_feed_item(&favorite, true);
@@ -380,12 +383,46 @@ fn wrist_feed_item_preserves_actor_detail_and_muted_media_detail() {
     assert!(favorite_item.has_actor);
     assert_eq!(favorite_item.actor.to_string(), "Ada");
     assert_eq!(favorite_item.detail.to_string(), "invited you");
-    assert!(favorite_item.show_severity);
+    assert!(favorite_item.show_accent);
     assert!(!media_item.has_actor);
     assert_eq!(media_item.detail.to_string(), "Muted media row");
     assert_eq!(
         media_item.detail_color,
         to_slint_color(wrist_muted_text(true))
+    );
+}
+
+#[test]
+fn wrist_feed_item_uses_feed_type_accents_and_keeps_severity_precedence() {
+    let mut row = FeedLine {
+        time_text: "16:31".to_string(),
+        kind: FeedKind::Friend,
+        actor_text: "Ada".to_string(),
+        detail: "Ada is online".to_string(),
+        relation: FeedRelation::Friend,
+        severity: FeedSeverity::Normal,
+        accent: FeedAccent::Online,
+    };
+
+    let online = wrist_feed_item(&row, true);
+    assert!(online.show_accent);
+    assert_eq!(
+        online.accent_color,
+        to_slint_color(crate::Color::rgba(46, 211, 25, 255))
+    );
+
+    row.accent = FeedAccent::Location;
+    let location = wrist_feed_item(&row, true);
+    assert_eq!(
+        location.accent_color,
+        to_slint_color(crate::Color::rgba(14, 165, 233, 255))
+    );
+
+    row.severity = FeedSeverity::Warning;
+    let warning = wrist_feed_item(&row, true);
+    assert_eq!(
+        warning.accent_color,
+        to_slint_color(crate::Color::rgba(239, 68, 68, 255))
     );
 }
 
@@ -419,6 +456,7 @@ fn sample_wrist_model() -> WristSurfaceModel {
             detail: "Ada invited you to 测试世界".to_string(),
             relation: FeedRelation::Favorite,
             severity: FeedSeverity::Important,
+            accent: FeedAccent::None,
         }],
         footer: OverlayFooter {
             left: "8 players".to_string(),
@@ -494,6 +532,7 @@ fn feed_row(index: u32) -> FeedLine {
         detail: format!("row {index}"),
         relation: FeedRelation::None,
         severity: FeedSeverity::Normal,
+        accent: FeedAccent::None,
     }
 }
 

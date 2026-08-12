@@ -1,6 +1,6 @@
 use vrcx_0_vr_overlay::{
-    DeviceChip, DeviceRole, DeviceStatus, FeedKind, FeedLine, FeedRelation, FeedSeverity,
-    OverlayFooter, OverlaySize, WristSurfaceModel,
+    DeviceChip, DeviceRole, DeviceStatus, FeedAccent, FeedKind, FeedLine, FeedRelation,
+    FeedSeverity, OverlayFooter, OverlaySize, WristSurfaceModel,
 };
 
 use super::ScenarioInfo;
@@ -137,6 +137,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
                 "简体中文好友 加入了 测试世界 🎧",
                 FeedRelation::Favorite,
                 FeedSeverity::Normal,
+                FeedAccent::None,
             ),
             line(
                 "12:31",
@@ -145,6 +146,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
                 "繁體中文好友 傳送了邀請",
                 FeedRelation::Friend,
                 FeedSeverity::Important,
+                FeedAccent::None,
             ),
             line(
                 "12:32",
@@ -153,6 +155,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
                 "日本語ユーザー が 東京ナイト に移動しました",
                 FeedRelation::Friend,
                 FeedSeverity::Normal,
+                FeedAccent::Location,
             ),
             line(
                 "12:33",
@@ -161,6 +164,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
                 "한국어 친구 온라인 상태",
                 FeedRelation::Friend,
                 FeedSeverity::Normal,
+                FeedAccent::Online,
             ),
             line(
                 "12:34",
@@ -169,6 +173,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
                 "Русский друг отправил запрос",
                 FeedRelation::Friend,
                 FeedSeverity::Important,
+                FeedAccent::None,
             ),
             line(
                 "12:35",
@@ -177,6 +182,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
                 "صديق عربي يشاهد فيديو طويل العنوان",
                 FeedRelation::None,
                 FeedSeverity::Warning,
+                FeedAccent::None,
             ),
         ];
     }
@@ -188,6 +194,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
             "Favorite Friend joined The Black Cat",
             FeedRelation::Favorite,
             FeedSeverity::Normal,
+            FeedAccent::None,
         ),
         line(
             "12:31",
@@ -196,6 +203,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
             "Group Member sent an invite",
             FeedRelation::Friend,
             FeedSeverity::Important,
+            FeedAccent::None,
         ),
         line(
             "12:33",
@@ -204,6 +212,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
             "World changed to Japan Shrine",
             FeedRelation::None,
             FeedSeverity::Normal,
+            FeedAccent::None,
         ),
         line(
             "12:35",
@@ -212,6 +221,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
             "Video failed to load: timeout",
             FeedRelation::None,
             FeedSeverity::Warning,
+            FeedAccent::None,
         ),
     ];
     if matches!(scenario, "dense" | "devices") {
@@ -231,6 +241,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
                     FeedRelation::Friend
                 },
                 FeedSeverity::Normal,
+                FeedAccent::Location,
             ));
         }
     }
@@ -242,6 +253,7 @@ fn feed_for_scenario(scenario: &str) -> Vec<FeedLine> {
             "Light Mode came online",
             FeedRelation::Friend,
             FeedSeverity::Normal,
+            FeedAccent::Online,
         ));
     }
     rows
@@ -272,6 +284,7 @@ fn line(
     detail: impl Into<String>,
     relation: FeedRelation,
     severity: FeedSeverity,
+    accent: FeedAccent,
 ) -> FeedLine {
     FeedLine {
         time_text: time_text.into(),
@@ -280,5 +293,6 @@ fn line(
         detail: detail.into(),
         relation,
         severity,
+        accent,
     }
 }

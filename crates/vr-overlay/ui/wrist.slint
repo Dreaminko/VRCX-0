@@ -15,9 +15,9 @@ export struct WristFeedItem {
     detail: string,
     actor-color: color,
     detail-color: color,
-    severity-color: color,
+    accent-color: color,
     has-actor: bool,
-    show-severity: bool,
+    show-accent: bool,
 }
 
 export component WristPanel inherits Window {
@@ -147,13 +147,13 @@ export component WristPanel inherits Window {
             height: root.row-height;
             visible: index < root.visible-rows;
 
-            if line.show-severity : Rectangle {
+            if line.show-accent : Rectangle {
                 x: 0px;
                 y: 8px;
                 width: 3px;
                 height: 22px;
                 border-radius: 2px;
-                background: line.severity-color;
+                background: line.accent-color;
             }
 
             Text {
