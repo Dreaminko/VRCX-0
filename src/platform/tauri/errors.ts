@@ -40,8 +40,8 @@ function appErrorCode(value: unknown): AppErrorCode | null {
         case 'io':
         case 'json':
         case 'vrchat_api':
-        case 'local_api_port_in_use':
-        case 'local_api_bind':
+        case 'companion_api_port_in_use':
+        case 'companion_api_bind':
         case 'custom':
             return value;
         default:

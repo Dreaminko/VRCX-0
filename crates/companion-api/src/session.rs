@@ -6,12 +6,12 @@ use axum::extract::ws::{CloseFrame, Message, WebSocket};
 use tokio::sync::broadcast;
 
 use crate::state::{wire_member, wire_room, RoomChange};
-use crate::transport::{now_iso, LocalApiRouterState, ServerEvent};
+use crate::transport::{now_iso, CompanionApiRouterState, ServerEvent};
 use crate::wire::{ClientMessage, ServerMessage, HEARTBEAT_SECONDS, PROTOCOL_VERSION};
 
 const MAX_ACTIVE_CONNECTIONS: u32 = 8;
 
-pub(crate) async fn run_session(mut socket: WebSocket, state: LocalApiRouterState) {
+pub(crate) async fn run_session(mut socket: WebSocket, state: CompanionApiRouterState) {
     let Some(_guard) = ActiveConnectionGuard::try_new(Arc::clone(&state.active_connections)) else {
         let _ = socket
             .send(Message::Close(Some(CloseFrame {
@@ -67,14 +67,17 @@ pub(crate) async fn run_session(mut socket: WebSocket, state: LocalApiRouterStat
                                 room_revision = revision;
                             }
                             Err(error) => {
-                                tracing::debug!(error = %error, "ignored invalid Local API client frame");
+                                tracing::debug!(
+                                    error = %error,
+                                    "ignored invalid Companion API client frame"
+                                );
                             }
                         }
                     }
                     Some(Ok(Message::Close(_))) | None => break,
                     Some(Ok(_)) => {}
                     Some(Err(error)) => {
-                        tracing::debug!(error = %error, "Local API WebSocket receive failed");
+                        tracing::debug!(error = %error, "Companion API WebSocket receive failed");
                         break;
                     }
                 }
@@ -192,7 +195,7 @@ async fn send_snapshot(
 async fn send_latest_snapshot(
     socket: &mut WebSocket,
     seq: u64,
-    state: &LocalApiRouterState,
+    state: &CompanionApiRouterState,
 ) -> Option<u64> {
     let snapshot = state.hub.snapshot();
     send_snapshot(socket, seq, snapshot.room.as_ref(), now_iso())

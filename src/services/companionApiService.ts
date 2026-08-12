@@ -1,25 +1,25 @@
 import { toast } from 'sonner';
 
 import type {
-    LocalApiStartFailedPayload,
-    LocalApiStatus
+    CompanionApiStartFailedPayload,
+    CompanionApiStatus
 } from '@/platform/tauri/bindings';
 
 import i18n from './i18nService';
 
-type LocalApiStatusRefreshListener = () => void;
+type CompanionApiStatusRefreshListener = () => void;
 
-const statusRefreshListeners = new Set<LocalApiStatusRefreshListener>();
+const statusRefreshListeners = new Set<CompanionApiStatusRefreshListener>();
 let lastPresentedFailure: { key: string; at: number } | null = null;
 
-export function handleLocalApiStartFailed(
-    failure: LocalApiStartFailedPayload
+export function handleCompanionApiStartFailed(
+    failure: CompanionApiStartFailedPayload
 ): void {
     presentStartFailure(failure);
-    requestLocalApiStatusRefresh();
+    requestCompanionApiStatusRefresh();
 }
 
-export function hydrateLocalApiStatus(status: LocalApiStatus): void {
+export function hydrateCompanionApiStatus(status: CompanionApiStatus): void {
     if (status.state !== 'error' || !status.lastError) {
         lastPresentedFailure = null;
         return;
@@ -28,17 +28,17 @@ export function hydrateLocalApiStatus(status: LocalApiStatus): void {
         port: status.lastError.port ?? status.port,
         reason: status.lastError.code === 'portInUse' ? 'portInUse' : 'bind'
     });
-    requestLocalApiStatusRefresh();
+    requestCompanionApiStatusRefresh();
 }
 
-export function requestLocalApiStatusRefresh(): void {
+export function requestCompanionApiStatusRefresh(): void {
     for (const listener of statusRefreshListeners) {
         listener();
     }
 }
 
-export function subscribeLocalApiStatusRefresh(
-    listener: LocalApiStatusRefreshListener
+export function subscribeCompanionApiStatusRefresh(
+    listener: CompanionApiStatusRefreshListener
 ): () => void {
     statusRefreshListeners.add(listener);
     return () => {
@@ -46,7 +46,7 @@ export function subscribeLocalApiStatusRefresh(
     };
 }
 
-function presentStartFailure(failure: LocalApiStartFailedPayload): void {
+function presentStartFailure(failure: CompanionApiStartFailedPayload): void {
     const key = `${failure.reason}:${failure.port}`;
     const now = Date.now();
     if (
@@ -58,11 +58,11 @@ function presentStartFailure(failure: LocalApiStartFailedPayload): void {
     lastPresentedFailure = { key, at: now };
     const reasonKey =
         failure.reason === 'portInUse'
-            ? 'view.settings.integrations.local_api.port_in_use'
-            : 'view.settings.integrations.local_api.bind_failed';
+            ? 'view.settings.integrations.companion_api.port_in_use'
+            : 'view.settings.integrations.companion_api.bind_failed';
     const reason = i18n.t(reasonKey, { port: failure.port });
     toast.error(
-        i18n.t('view.settings.integrations.local_api.start_failed', {
+        i18n.t('view.settings.integrations.companion_api.start_failed', {
             reason
         })
     );

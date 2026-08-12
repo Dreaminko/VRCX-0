@@ -33,7 +33,7 @@ vrcx-0-core = { path = "../core" }
 vrcx-0-host = { path = "../host" }
 vrcx-0-host-desktop = { path = "../host-desktop" }
 vrcx-0-i18n = { path = "../i18n" }
-vrcx-0-local-api = { path = "../local-api" }
+vrcx-0-companion-api = { path = "../companion-api" }
 vrcx-0-persistence = { path = "../persistence" }
 vrcx-0-runtime-host = { path = "../runtime-host" }
 vrcx-0-vrchat-client = { path = "../vrchat-client" }

@@ -25,6 +25,10 @@ import {
     applyCommunityThemeProjectionEvent,
     initializeCommunityThemes
 } from './community-theme/installedThemes';
+import {
+    handleCompanionApiStartFailed,
+    hydrateCompanionApiStatus
+} from './companionApiService';
 import { bindDeepLinkEvents, drainPendingDeepLinks } from './deepLinkService';
 import {
     bindDesktopNotificationActivationEvents,
@@ -34,10 +38,6 @@ import { handleFavoriteImportStatusEvent } from './favoriteImportService';
 import { applyFriendProfileLoadStatusPayload } from './friendProfileLoadService';
 import { handleGroupBanImportStatusEvent } from './groupBanImportService';
 import { isHostCapabilityAvailable } from './hostCapabilityService';
-import {
-    handleLocalApiStartFailed,
-    hydrateLocalApiStatus
-} from './localApiService';
 import { handleMutualGraphFetchStatusEvent } from './mutualGraphFetchService';
 import { handleRealtimeEntryCorrection } from './realtimePresenceService';
 import { runForegroundUpdateRegistryBackupMaintenance } from './registryBackupMaintenanceService';
@@ -268,8 +268,8 @@ function handleRuntimeEvent(event: RuntimeEvent): void {
         return;
     }
 
-    if (event.name === 'localApiStartFailed') {
-        handleLocalApiStartFailed(event.payload);
+    if (event.name === 'companionApiStartFailed') {
+        handleCompanionApiStartFailed(event.payload);
         return;
     }
 
@@ -441,7 +441,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'realtimeInstanceQueueProjection',
         'realtimeProjectionSync',
         'updateIsGameRunning',
-        'localApiStartFailed',
+        'companionApiStartFailed',
         'browserFocus'
     ];
 
@@ -476,9 +476,9 @@ export async function bindRuntimeEvents(): Promise<() => void> {
 
     useSessionStore.getState().setTransportStatus('runtime-subscribed');
     await hydrateRuntimeState(
-        'Failed to hydrate Local API status:',
+        'Failed to hydrate Companion API status:',
         async () => {
-            hydrateLocalApiStatus(await commands.appLocalApiStatus());
+            hydrateCompanionApiStatus(await commands.appCompanionApiStatus());
         }
     );
     let combinedSnapshot: BackendRuntimeCombinedSnapshot | null = null;

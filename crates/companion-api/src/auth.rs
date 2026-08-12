@@ -1,40 +1,40 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use constant_time_eq::constant_time_eq;
 
-use crate::LocalApiError;
+use crate::CompanionApiError;
 
-pub(crate) const BASE_SUBPROTOCOL: &str = "vrcx0.v1";
-const TOKEN_SUBPROTOCOL_PREFIX: &str = "vrcx0.token.";
+pub(crate) const BASE_SUBPROTOCOL: &str = "vrcx0.companion.v1";
+const TOKEN_SUBPROTOCOL_PREFIX: &str = "vrcx0.companion.token.";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct LocalApiAuthPolicy {
+pub(crate) struct CompanionApiAuthPolicy {
     pub port: u16,
     pub token: String,
     pub allow_lan_connections: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
-pub(crate) enum LocalApiAuthError {
-    #[error("Local API requests used an invalid host header")]
+pub(crate) enum CompanionApiAuthError {
+    #[error("Companion API requests used an invalid host header")]
     InvalidHost,
-    #[error("Local API request token was missing or invalid")]
+    #[error("Companion API request token was missing or invalid")]
     Unauthorized,
 }
 
-pub(crate) fn generate_local_api_token() -> Result<String, LocalApiError> {
+pub(crate) fn generate_companion_api_token() -> Result<String, CompanionApiError> {
     let mut token_bytes = [0_u8; 32];
     getrandom::fill(&mut token_bytes)?;
     Ok(URL_SAFE_NO_PAD.encode(token_bytes))
 }
 
-pub(crate) fn authorize_local_api_request(
-    policy: &LocalApiAuthPolicy,
+pub(crate) fn authorize_companion_api_request(
+    policy: &CompanionApiAuthPolicy,
     authorization: Option<&str>,
     host: Option<&str>,
     subprotocols: Option<&str>,
-) -> Result<(), LocalApiAuthError> {
+) -> Result<(), CompanionApiAuthError> {
     if !is_allowed_authority(host, policy.port, policy.allow_lan_connections) {
-        return Err(LocalApiAuthError::InvalidHost);
+        return Err(CompanionApiAuthError::InvalidHost);
     }
 
     let subprotocol_tokens = subprotocols
@@ -50,10 +50,10 @@ pub(crate) fn authorize_local_api_request(
             .iter()
             .find_map(|value| value.strip_prefix(TOKEN_SUBPROTOCOL_PREFIX))
     }
-    .ok_or(LocalApiAuthError::Unauthorized)?;
+    .ok_or(CompanionApiAuthError::Unauthorized)?;
 
     if !constant_time_eq(supplied_token.as_bytes(), policy.token.as_bytes()) {
-        return Err(LocalApiAuthError::Unauthorized);
+        return Err(CompanionApiAuthError::Unauthorized);
     }
     Ok(())
 }
@@ -90,8 +90,8 @@ fn authority_has_expected_port(authority: &str, port: u16) -> bool {
 mod tests {
     use super::*;
 
-    fn policy(allow_lan_connections: bool) -> LocalApiAuthPolicy {
-        LocalApiAuthPolicy {
+    fn policy(allow_lan_connections: bool) -> CompanionApiAuthPolicy {
+        CompanionApiAuthPolicy {
             port: 8799,
             token: "secret-token".into(),
             allow_lan_connections,
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn generated_token_is_base64url_without_padding() {
-        let token = generate_local_api_token().unwrap();
+        let token = generate_companion_api_token().unwrap();
         assert!(token.len() >= 43);
         assert!(token
             .chars()
@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn bearer_auth_accepts_loopback_hosts() {
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(false),
                 Some("Bearer secret-token"),
                 Some("127.0.0.1:8799"),
@@ -119,7 +119,7 @@ mod tests {
             ),
             Ok(())
         );
-        assert!(authorize_local_api_request(
+        assert!(authorize_companion_api_request(
             &policy(false),
             Some("Bearer secret-token"),
             Some("evil.test:8799"),
@@ -131,11 +131,11 @@ mod tests {
     #[test]
     fn websocket_subprotocol_auth_selects_only_the_base_protocol() {
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(false),
                 None,
                 Some("localhost:8799"),
-                Some("vrcx0.v1, vrcx0.token.secret-token")
+                Some("vrcx0.companion.v1, vrcx0.companion.token.secret-token")
             ),
             Ok(())
         );
@@ -144,50 +144,50 @@ mod tests {
     #[test]
     fn bearer_path_has_priority_over_subprotocol_token() {
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(false),
                 Some("Bearer wrong"),
                 Some("localhost:8799"),
-                Some("vrcx0.v1, vrcx0.token.secret-token")
+                Some("vrcx0.companion.v1, vrcx0.companion.token.secret-token")
             ),
-            Err(LocalApiAuthError::Unauthorized)
+            Err(CompanionApiAuthError::Unauthorized)
         );
     }
 
     #[test]
     fn missing_and_incorrect_tokens_are_indistinguishable() {
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(false),
                 None,
                 Some("localhost:8799"),
-                Some("vrcx0.v1")
+                Some("vrcx0.companion.v1")
             ),
-            Err(LocalApiAuthError::Unauthorized)
+            Err(CompanionApiAuthError::Unauthorized)
         );
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(false),
                 Some("Bearer incorrect"),
                 Some("localhost:8799"),
                 None
             ),
-            Err(LocalApiAuthError::Unauthorized)
+            Err(CompanionApiAuthError::Unauthorized)
         );
     }
 
     #[test]
     fn lan_authorities_require_the_flag_and_expected_port() {
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(false),
                 Some("Bearer secret-token"),
                 Some("192.168.1.20:8799"),
                 None
             ),
-            Err(LocalApiAuthError::InvalidHost)
+            Err(CompanionApiAuthError::InvalidHost)
         );
-        assert!(authorize_local_api_request(
+        assert!(authorize_companion_api_request(
             &policy(true),
             Some("Bearer secret-token"),
             Some("192.168.1.20:8799"),
@@ -195,22 +195,22 @@ mod tests {
         )
         .is_ok());
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(true),
                 Some("Bearer secret-token"),
                 Some("192.168.1.20:8800"),
                 None
             ),
-            Err(LocalApiAuthError::InvalidHost)
+            Err(CompanionApiAuthError::InvalidHost)
         );
         assert_eq!(
-            authorize_local_api_request(
+            authorize_companion_api_request(
                 &policy(true),
                 Some("Bearer secret-token"),
                 Some("user@192.168.1.20:8799"),
                 None
             ),
-            Err(LocalApiAuthError::InvalidHost)
+            Err(CompanionApiAuthError::InvalidHost)
         );
     }
 }

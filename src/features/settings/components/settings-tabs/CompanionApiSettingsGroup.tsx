@@ -1,39 +1,50 @@
-import { CopyIcon, KeyRoundIcon, RefreshCwIcon } from 'lucide-react';
+import {
+    CopyIcon,
+    KeyRoundIcon,
+    RefreshCwIcon,
+    UsersRoundIcon
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { commands, type LocalApiStatus } from '@/platform/tauri/bindings';
+import { cn } from '@/lib/utils';
+import { commands, type CompanionApiStatus } from '@/platform/tauri/bindings';
 import { PlatformCommandError } from '@/platform/tauri/errors';
 import { copyTextToClipboard } from '@/services/clipboardService';
-import { subscribeLocalApiStatusRefresh } from '@/services/localApiService';
+import { subscribeCompanionApiStatusRefresh } from '@/services/companionApiService';
+import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
+import { Checkbox } from '@/ui/shadcn/checkbox';
 import { Input } from '@/ui/shadcn/input';
 import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SettingsGroup } from '../SettingsField';
 
-export function LocalApiSettingsGroup() {
+export function CompanionApiSettingsGroup() {
     const { t } = useTranslation();
-    const [status, setStatus] = useState<LocalApiStatus | null>(null);
+    const [status, setStatus] = useState<CompanionApiStatus | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [portInput, setPortInput] = useState('8799');
+    const statusLabel = t(
+        `view.settings.integrations.companion_api.status.${status?.state ?? 'loading'}`
+    );
 
-    const applyStatus = useCallback((next: LocalApiStatus) => {
+    const applyStatus = useCallback((next: CompanionApiStatus) => {
         setStatus(next);
         setPortInput(String(next.port));
         setError(next.lastError?.message ?? null);
     }, []);
 
     const refreshStatus = useCallback(async () => {
-        applyStatus(await commands.appLocalApiStatus());
+        applyStatus(await commands.appCompanionApiStatus());
     }, [applyStatus]);
 
     useEffect(() => {
         let active = true;
         commands
-            .appLocalApiStatus()
+            .appCompanionApiStatus()
             .then((next) => {
                 if (active) {
                     applyStatus(next);
@@ -51,7 +62,7 @@ export function LocalApiSettingsGroup() {
 
     useEffect(
         () =>
-            subscribeLocalApiStatusRefresh(() => {
+            subscribeCompanionApiStatusRefresh(() => {
                 void refreshStatus().catch((caught: unknown) => {
                     setError(errorMessage(caught));
                 });
@@ -60,7 +71,7 @@ export function LocalApiSettingsGroup() {
     );
 
     async function runCommand(
-        action: () => Promise<LocalApiStatus>
+        action: () => Promise<CompanionApiStatus>
     ): Promise<boolean> {
         setBusy(true);
         try {
@@ -81,15 +92,21 @@ export function LocalApiSettingsGroup() {
 
     function localizedError(caught: unknown): string {
         if (caught instanceof PlatformCommandError) {
-            if (caught.code === 'local_api_port_in_use' && caught.port) {
-                return t('view.settings.integrations.local_api.port_in_use', {
-                    port: caught.port
-                });
+            if (caught.code === 'companion_api_port_in_use' && caught.port) {
+                return t(
+                    'view.settings.integrations.companion_api.port_in_use',
+                    {
+                        port: caught.port
+                    }
+                );
             }
-            if (caught.code === 'local_api_bind' && caught.port) {
-                return t('view.settings.integrations.local_api.bind_failed', {
-                    port: caught.port
-                });
+            if (caught.code === 'companion_api_bind' && caught.port) {
+                return t(
+                    'view.settings.integrations.companion_api.bind_failed',
+                    {
+                        port: caught.port
+                    }
+                );
             }
         }
         return errorMessage(caught);
@@ -98,10 +115,12 @@ export function LocalApiSettingsGroup() {
     function applyPort() {
         const port = Number(portInput);
         if (!Number.isInteger(port) || port < 1024 || port > 65535) {
-            toast.error(t('view.settings.integrations.local_api.port_invalid'));
+            toast.error(
+                t('view.settings.integrations.companion_api.port_invalid')
+            );
             return;
         }
-        void runCommand(() => commands.appLocalApiSetPort(port)).then(
+        void runCommand(() => commands.appCompanionApiSetPort(port)).then(
             (succeeded) => {
                 if (!succeeded) {
                     setPortInput(String(port));
@@ -116,7 +135,7 @@ export function LocalApiSettingsGroup() {
         }
         await copyTextToClipboard(status.token, {
             successMessage: t(
-                'view.settings.integrations.local_api.token_copied'
+                'view.settings.integrations.companion_api.token_copied'
             ),
             errorMessage: errorMessage
         });
@@ -124,13 +143,34 @@ export function LocalApiSettingsGroup() {
 
     return (
         <SettingsGroup
-            title={t('view.settings.integrations.local_api.header')}
-            description={t('view.settings.integrations.local_api.description')}
+            title={t('view.settings.integrations.companion_api.header')}
+            description={t(
+                'view.settings.integrations.companion_api.description'
+            )}
+            action={
+                <Badge
+                    variant="outline"
+                    className={cn(
+                        'mt-0.5 gap-1.5',
+                        status?.state === 'error' && 'text-destructive'
+                    )}
+                >
+                    <span
+                        aria-hidden="true"
+                        className={cn(
+                            'bg-muted-foreground/40 size-1.5 rounded-full',
+                            status?.state === 'running' && 'bg-emerald-500',
+                            status?.state === 'error' && 'bg-destructive'
+                        )}
+                    />
+                    {statusLabel}
+                </Badge>
+            }
         >
             <Field
-                label={t('view.settings.integrations.local_api.enable')}
+                label={t('view.settings.integrations.companion_api.enable')}
                 description={t(
-                    'view.settings.integrations.local_api.enable_description'
+                    'view.settings.integrations.companion_api.enable_description'
                 )}
             >
                 <Switch
@@ -138,7 +178,7 @@ export function LocalApiSettingsGroup() {
                     disabled={busy}
                     onCheckedChange={(enabled) => {
                         void runCommand(() =>
-                            commands.appLocalApiSetEnabled(enabled)
+                            commands.appCompanionApiSetEnabled(enabled)
                         );
                     }}
                 />
@@ -146,10 +186,51 @@ export function LocalApiSettingsGroup() {
 
             <Field
                 label={t(
-                    'view.settings.integrations.local_api.allow_lan_connections'
+                    'view.settings.integrations.companion_api.information_types'
                 )}
                 description={t(
-                    'view.settings.integrations.local_api.allow_lan_connections_description'
+                    'view.settings.integrations.companion_api.information_types_description'
+                )}
+                controlClassName="lg:justify-stretch"
+            >
+                <div className="border-primary/20 bg-primary/[0.04] flex w-full items-start gap-3 rounded-lg border px-3 py-2.5">
+                    <Checkbox
+                        checked
+                        disabled
+                        aria-label={t(
+                            'view.settings.integrations.companion_api.room_information'
+                        )}
+                        className="mt-0.5"
+                    />
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <UsersRoundIcon className="text-primary size-4" />
+                            <span className="text-sm font-medium">
+                                {t(
+                                    'view.settings.integrations.companion_api.room_information'
+                                )}
+                            </span>
+                            <Badge variant="secondary">
+                                {t(
+                                    'view.settings.integrations.companion_api.information_type_fixed'
+                                )}
+                            </Badge>
+                        </div>
+                        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                            {t(
+                                'view.settings.integrations.companion_api.room_information_description'
+                            )}
+                        </p>
+                    </div>
+                </div>
+            </Field>
+
+            <Field
+                label={t(
+                    'view.settings.integrations.companion_api.allow_lan_connections'
+                )}
+                description={t(
+                    'view.settings.integrations.companion_api.allow_lan_connections_description'
                 )}
             >
                 <Switch
@@ -157,16 +238,18 @@ export function LocalApiSettingsGroup() {
                     disabled={busy}
                     onCheckedChange={(enabled) => {
                         void runCommand(() =>
-                            commands.appLocalApiSetAllowLanConnections(enabled)
+                            commands.appCompanionApiSetAllowLanConnections(
+                                enabled
+                            )
                         );
                     }}
                 />
             </Field>
 
             <Field
-                label={t('view.settings.integrations.local_api.port_label')}
+                label={t('view.settings.integrations.companion_api.port_label')}
                 description={t(
-                    'view.settings.integrations.local_api.port_description'
+                    'view.settings.integrations.companion_api.port_description'
                 )}
                 error={error ?? undefined}
             >
@@ -187,15 +270,19 @@ export function LocalApiSettingsGroup() {
                         disabled={busy}
                         onClick={applyPort}
                     >
-                        {t('view.settings.integrations.local_api.port_apply')}
+                        {t(
+                            'view.settings.integrations.companion_api.port_apply'
+                        )}
                     </Button>
                 </div>
             </Field>
 
             <Field
-                label={t('view.settings.integrations.local_api.status_label')}
+                label={t(
+                    'view.settings.integrations.companion_api.status_label'
+                )}
                 description={t(
-                    'view.settings.integrations.local_api.port_active_connections',
+                    'view.settings.integrations.companion_api.port_active_connections',
                     {
                         port: status?.port ?? 8799,
                         count: status?.activeConnections ?? 0
@@ -204,9 +291,7 @@ export function LocalApiSettingsGroup() {
             >
                 <div className="flex flex-wrap items-center justify-end gap-2">
                     <span className="text-muted-foreground text-sm">
-                        {t(
-                            `view.settings.integrations.local_api.status.${status?.state ?? 'loading'}`
-                        )}
+                        {statusLabel}
                     </span>
                     <Button
                         type="button"
@@ -214,7 +299,7 @@ export function LocalApiSettingsGroup() {
                         size="sm"
                         disabled={busy}
                         onClick={() => {
-                            void runCommand(commands.appLocalApiStatus);
+                            void runCommand(commands.appCompanionApiStatus);
                         }}
                     >
                         <RefreshCwIcon data-icon="inline-start" />
@@ -224,9 +309,9 @@ export function LocalApiSettingsGroup() {
             </Field>
 
             <Field
-                label={t('view.settings.integrations.local_api.token')}
+                label={t('view.settings.integrations.companion_api.token')}
                 description={t(
-                    'view.settings.integrations.local_api.token_description'
+                    'view.settings.integrations.companion_api.token_description'
                 )}
             >
                 <div className="flex flex-wrap items-center justify-end gap-2">
@@ -252,12 +337,12 @@ export function LocalApiSettingsGroup() {
                         disabled={busy}
                         onClick={() => {
                             void runCommand(
-                                commands.appLocalApiRotateToken
+                                commands.appCompanionApiRotateToken
                             ).then((succeeded) => {
                                 if (succeeded) {
                                     toast.success(
                                         t(
-                                            'view.settings.integrations.local_api.token_rotated'
+                                            'view.settings.integrations.companion_api.token_rotated'
                                         )
                                     );
                                 }
@@ -265,7 +350,9 @@ export function LocalApiSettingsGroup() {
                         }}
                     >
                         <KeyRoundIcon data-icon="inline-start" />
-                        {t('view.settings.integrations.local_api.rotate_token')}
+                        {t(
+                            'view.settings.integrations.companion_api.rotate_token'
+                        )}
                     </Button>
                 </div>
             </Field>

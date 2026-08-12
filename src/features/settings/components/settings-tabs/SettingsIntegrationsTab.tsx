@@ -14,7 +14,7 @@ import { useSettingsPageSection } from '../../SettingsPageStateContext';
 import { normalizeCheckedState } from '../../settingsValues';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
-import { LocalApiSettingsGroup } from './LocalApiSettingsGroup';
+import { CompanionApiSettingsGroup } from './CompanionApiSettingsGroup';
 import { McpServerSettingsGroup } from './McpServerSettingsGroup';
 import { WebhookSettingsGroup } from './WebhookSettingsGroup';
 
@@ -396,7 +396,7 @@ export function SettingsIntegrationsTab() {
             </SettingsGroup>
 
             <McpServerSettingsGroup />
-            <LocalApiSettingsGroup />
+            <CompanionApiSettingsGroup />
         </SettingsTabContent>
     );
 }

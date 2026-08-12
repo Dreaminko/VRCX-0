@@ -1,9 +1,9 @@
 [package]
-name = "vrcx-0-local-api"
+name = "vrcx-0-companion-api"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
-description = "Local instance roster integration API"
+description = "Read-only API for companion application integrations"
 
 [dependencies]
 axum = { version = "0.8", features = ["ws"] }

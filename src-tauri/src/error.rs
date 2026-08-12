@@ -7,8 +7,8 @@ enum AppErrorCode {
     Io,
     Json,
     VrchatApi,
-    LocalApiPortInUse,
-    LocalApiBind,
+    CompanionApiPortInUse,
+    CompanionApiBind,
     Custom,
 }
 
@@ -51,11 +51,11 @@ pub enum AppError {
     #[error("{message}")]
     VrchatApi { status_code: i32, message: String },
 
-    #[error("Local API port {port} is already in use")]
-    LocalApiPortInUse { port: u16 },
+    #[error("Companion API port {port} is already in use")]
+    CompanionApiPortInUse { port: u16 },
 
-    #[error("Local API failed to bind port {port}: {message}")]
-    LocalApiBind { port: u16, message: String },
+    #[error("Companion API failed to bind port {port}: {message}")]
+    CompanionApiBind { port: u16, message: String },
 
     #[error("{0}")]
     Custom(String),
@@ -107,8 +107,8 @@ impl AppError {
             Self::Io(_) => AppErrorCode::Io,
             Self::Json(_) => AppErrorCode::Json,
             Self::VrchatApi { .. } => AppErrorCode::VrchatApi,
-            Self::LocalApiPortInUse { .. } => AppErrorCode::LocalApiPortInUse,
-            Self::LocalApiBind { .. } => AppErrorCode::LocalApiBind,
+            Self::CompanionApiPortInUse { .. } => AppErrorCode::CompanionApiPortInUse,
+            Self::CompanionApiBind { .. } => AppErrorCode::CompanionApiBind,
             Self::Custom(_) => AppErrorCode::Custom,
         }
     }
@@ -131,7 +131,9 @@ impl AppError {
 
     fn port(&self) -> Option<u16> {
         match self {
-            Self::LocalApiPortInUse { port } | Self::LocalApiBind { port, .. } => Some(*port),
+            Self::CompanionApiPortInUse { port } | Self::CompanionApiBind { port, .. } => {
+                Some(*port)
+            }
             _ => None,
         }
     }
@@ -242,15 +244,19 @@ impl From<vrcx_0_mcp::McpError> for AppError {
     }
 }
 
-impl From<vrcx_0_local_api::LocalApiError> for AppError {
-    fn from(value: vrcx_0_local_api::LocalApiError) -> Self {
+impl From<vrcx_0_companion_api::CompanionApiError> for AppError {
+    fn from(value: vrcx_0_companion_api::CompanionApiError) -> Self {
         match value {
-            vrcx_0_local_api::LocalApiError::PortInUse { port } => Self::LocalApiPortInUse { port },
-            vrcx_0_local_api::LocalApiError::Bind { port, source } => Self::LocalApiBind {
-                port,
-                message: source.to_string(),
-            },
-            vrcx_0_local_api::LocalApiError::Io(error) => Self::Io(error),
+            vrcx_0_companion_api::CompanionApiError::PortInUse { port } => {
+                Self::CompanionApiPortInUse { port }
+            }
+            vrcx_0_companion_api::CompanionApiError::Bind { port, source } => {
+                Self::CompanionApiBind {
+                    port,
+                    message: source.to_string(),
+                }
+            }
+            vrcx_0_companion_api::CompanionApiError::Io(error) => Self::Io(error),
             other => Self::Custom(other.to_string()),
         }
     }

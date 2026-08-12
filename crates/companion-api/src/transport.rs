@@ -18,12 +18,13 @@ use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
 use crate::auth::{
-    authorize_local_api_request, LocalApiAuthError, LocalApiAuthPolicy, BASE_SUBPROTOCOL,
+    authorize_companion_api_request, CompanionApiAuthError, CompanionApiAuthPolicy,
+    BASE_SUBPROTOCOL,
 };
 use crate::session::run_session;
 use crate::state::{diff_room, RoomChange, RoomState};
 use crate::wire::ByeReason;
-use crate::{LocalApiError, PROTOCOL_VERSION};
+use crate::{CompanionApiError, PROTOCOL_VERSION};
 
 const BROADCAST_CAPACITY: usize = 32;
 
@@ -99,7 +100,7 @@ impl ServerHub {
                 },
             ),
             Err(error) => {
-                tracing::warn!(error = %error, "Local API room state lock failed");
+                tracing::warn!(error = %error, "Companion API room state lock failed");
                 (
                     self.events.subscribe(),
                     ServerHubSnapshot {
@@ -150,7 +151,7 @@ impl ServerHub {
                 }
             }
             Err(error) => {
-                tracing::warn!(error = %error, "Local API room state lock failed");
+                tracing::warn!(error = %error, "Companion API room state lock failed");
             }
         }
     }
@@ -168,30 +169,30 @@ impl ServerHub {
 }
 
 #[derive(Clone)]
-pub(crate) struct LocalApiRouterState {
-    pub(crate) policy: LocalApiAuthPolicy,
+pub(crate) struct CompanionApiRouterState {
+    pub(crate) policy: CompanionApiAuthPolicy,
     pub(crate) hub: Arc<ServerHub>,
     pub(crate) active_connections: Arc<AtomicU32>,
     pub(crate) session_cancel: CancellationToken,
 }
 
-pub(crate) fn build_local_api_router(state: LocalApiRouterState) -> Router {
+pub(crate) fn build_companion_api_router(state: CompanionApiRouterState) -> Router {
     Router::new()
-        .route("/v1/health", get(local_api_health))
-        .route("/v1/stream", get(local_api_stream))
+        .route("/v1/health", get(companion_api_health))
+        .route("/v1/stream", get(companion_api_stream))
         .layer(middleware::from_fn_with_state(
             state.clone(),
-            local_api_auth_middleware,
+            companion_api_auth_middleware,
         ))
         .with_state(state)
 }
 
-async fn local_api_health() -> impl IntoResponse {
+async fn companion_api_health() -> impl IntoResponse {
     axum::Json(json!({ "ok": true, "protocol": PROTOCOL_VERSION }))
 }
 
-async fn local_api_stream(
-    State(state): State<LocalApiRouterState>,
+async fn companion_api_stream(
+    State(state): State<CompanionApiRouterState>,
     websocket: WebSocketUpgrade,
 ) -> Response {
     websocket
@@ -199,18 +200,20 @@ async fn local_api_stream(
         .on_upgrade(move |socket| run_session(socket, state))
 }
 
-async fn local_api_auth_middleware(
-    State(state): State<LocalApiRouterState>,
+async fn companion_api_auth_middleware(
+    State(state): State<CompanionApiRouterState>,
     request: Request<Body>,
     next: Next,
 ) -> Response {
     let authorization = header_to_str(request.headers(), AUTHORIZATION.as_str());
     let host = header_to_str(request.headers(), HOST.as_str());
     let subprotocols = header_to_str(request.headers(), SEC_WEBSOCKET_PROTOCOL.as_str());
-    match authorize_local_api_request(&state.policy, authorization, host, subprotocols) {
+    match authorize_companion_api_request(&state.policy, authorization, host, subprotocols) {
         Ok(_) => next.run(request).await,
-        Err(LocalApiAuthError::InvalidHost) => (StatusCode::FORBIDDEN, "forbidden").into_response(),
-        Err(LocalApiAuthError::Unauthorized) => {
+        Err(CompanionApiAuthError::InvalidHost) => {
+            (StatusCode::FORBIDDEN, "forbidden").into_response()
+        }
+        Err(CompanionApiAuthError::Unauthorized) => {
             (StatusCode::UNAUTHORIZED, "unauthorized").into_response()
         }
     }
@@ -220,10 +223,10 @@ fn header_to_str<'a>(headers: &'a HeaderMap, name: &str) -> Option<&'a str> {
     headers.get(name).and_then(|value| value.to_str().ok())
 }
 
-pub(crate) fn bind_local_api_listener(
+pub(crate) fn bind_companion_api_listener(
     port: u16,
     allow_lan_connections: bool,
-) -> Result<TcpListener, LocalApiError> {
+) -> Result<TcpListener, CompanionApiError> {
     let socket = Socket::new(Domain::IPV4, SocketType::STREAM, Some(Protocol::TCP))
         .map_err(|error| bind_error(port, error))?;
     #[cfg(not(windows))]
@@ -247,11 +250,11 @@ pub(crate) fn bind_local_api_listener(
     TcpListener::from_std(socket.into()).map_err(|error| bind_error(port, error))
 }
 
-fn bind_error(port: u16, source: std::io::Error) -> LocalApiError {
+fn bind_error(port: u16, source: std::io::Error) -> CompanionApiError {
     if source.kind() == std::io::ErrorKind::AddrInUse {
-        LocalApiError::PortInUse { port }
+        CompanionApiError::PortInUse { port }
     } else {
-        LocalApiError::Bind { port, source }
+        CompanionApiError::Bind { port, source }
     }
 }
 
