@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { commands } from '@/platform/tauri/bindings';
+import { normalizeAvatarAutoCleanupPreference } from '@/shared/constants/settings';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Alert, AlertDescription, AlertTitle } from '@/ui/shadcn/alert';
 import { Button } from '@/ui/shadcn/button';
@@ -401,7 +402,9 @@ export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
                                       )
                         }))}
                         onValueChange={(value) =>
-                            onAvatarAutoCleanupChange(value ?? '')
+                            onAvatarAutoCleanupChange(
+                                normalizeAvatarAutoCleanupPreference(value)
+                            )
                         }
                     >
                         <SelectTrigger

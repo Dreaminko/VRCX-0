@@ -1,3 +1,5 @@
+import { AVATAR_AUTO_CLEANUP_OPTIONS } from '@/shared/constants/settings';
+
 export const notificationLayoutOptions = [
     [
         'notification-center',
@@ -63,7 +65,7 @@ export const notificationTtsNameModeOptions = [
     ]
 ] as const;
 
-export const avatarAutoCleanupOptions = ['Off', '30', '90', '180', '365'];
+export const avatarAutoCleanupOptions = AVATAR_AUTO_CLEANUP_OPTIONS;
 
 export const sqliteTableSizeRows = [
     ['gps', 'view.settings.advanced.advanced.sqlite_table_size.gps'],

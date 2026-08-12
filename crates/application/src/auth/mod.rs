@@ -11,9 +11,7 @@ pub use auth_credentials::{
     SavedCredentialLoginStartInput, SavedCredentialSessionData, SavedCredentialSnapshot,
     SavedCredentialUser, SavedLoginParamsSnapshot,
 };
-pub use authenticated_session_maintenance::{
-    run_authenticated_session_maintenance, AuthenticatedSessionMaintenanceOutcome,
-};
+pub use authenticated_session_maintenance::run_authenticated_session_maintenance;
 pub use login_session::{
     AutoLoginOutcome, AutoLoginStartInput, AutoLoginTerminalOutcome, LoginFailureKind,
     LoginRuntimeTransition, LoginSessionCancelInput, LoginSessionEnd, LoginSessionEndRequest,

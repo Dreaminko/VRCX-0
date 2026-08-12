@@ -40,6 +40,24 @@ const SEARCH_LIMIT_MAX = 100000;
 const DEFAULT_MAX_TABLE_SIZE = 500;
 const DEFAULT_SEARCH_LIMIT = 50000;
 const VRCHAT_MIN_CACHE_SIZE_GB = 30;
+const AVATAR_AUTO_CLEANUP_OPTIONS = ['Off', '30', '90', '180', '365'] as const;
+
+type AvatarAutoCleanupPreference = (typeof AVATAR_AUTO_CLEANUP_OPTIONS)[number];
+
+function normalizeAvatarAutoCleanupPreference(
+    value: unknown
+): AvatarAutoCleanupPreference {
+    switch (value) {
+        case 'Off':
+        case '30':
+        case '90':
+        case '180':
+        case '365':
+            return value;
+        default:
+            return 'Off';
+    }
+}
 
 export {
     VRChatScreenshotResolutions,
@@ -51,6 +69,8 @@ export {
     SEARCH_LIMIT_MAX,
     DEFAULT_MAX_TABLE_SIZE,
     DEFAULT_SEARCH_LIMIT,
-    VRCHAT_MIN_CACHE_SIZE_GB
+    VRCHAT_MIN_CACHE_SIZE_GB,
+    AVATAR_AUTO_CLEANUP_OPTIONS,
+    normalizeAvatarAutoCleanupPreference
 };
-export type { ReleaseBranchKey, VRChatResolution };
+export type { AvatarAutoCleanupPreference, ReleaseBranchKey, VRChatResolution };

@@ -133,7 +133,7 @@ fn selected_files_assertions_detect_missing_paths() {
     let source = files_custom_source(&["C:\\img\\A.png", "C:\\img\\b.png"]);
     let files = vec!["c:\\img\\a.png".to_string(), "C:\\img\\b.png".to_string()];
     assert!(assert_selected_files_available(&source, &files).is_ok());
-    assert!(assert_selected_files_available(&source, &files[..1].to_vec()).is_err());
+    assert!(assert_selected_files_available(&source, &files[..1]).is_err());
 }
 
 #[test]

@@ -75,12 +75,20 @@ fn avatar_auto_cleanup_disables_off_and_invalid_retention() -> Result<(), Error>
         .unwrap()
         .with_timezone(&Utc);
 
-    let off = avatar_auto_cleanup_run(&db, "usr_self", now)?;
-    assert_eq!(off.state, AvatarAutoCleanupState::Disabled);
+    avatar_auto_cleanup_run(&db, "usr_self", now)?;
+    assert_eq!(
+        crate::config::get_string(&db, "lastAvatarCleanupDate_usr_self", "")?,
+        ""
+    );
 
-    crate::config::set_string(&db, "VRCX_avatarAutoCleanup", "invalid")?;
-    let invalid = avatar_auto_cleanup_run(&db, "usr_self", now)?;
-    assert_eq!(invalid.state, AvatarAutoCleanupState::Disabled);
+    for value in ["invalid", "1", "31", "9223372036854775807"] {
+        crate::config::set_string(&db, "VRCX_avatarAutoCleanup", value)?;
+        avatar_auto_cleanup_run(&db, "usr_self", now)?;
+        assert_eq!(
+            crate::config::get_string(&db, "lastAvatarCleanupDate_usr_self", "")?,
+            ""
+        );
+    }
     Ok(())
 }
 
@@ -96,11 +104,26 @@ fn avatar_auto_cleanup_skips_when_last_run_is_less_than_seven_days_old() -> Resu
     let now = DateTime::parse_from_rfc3339("2026-07-17T12:00:00Z")
         .unwrap()
         .with_timezone(&Utc);
+    let prefix = normalize_user_table_prefix("usr_self")?;
+    ensure_realtime_tables(&db, &prefix)?;
+    db.execute_non_query(
+        &format!("INSERT INTO {prefix}_feed_avatar (created_at) VALUES (@created_at)"),
+        &ParamsBuilder::new()
+            .set("created_at", "2026-05-01T00:00:00Z")
+            .build(),
+    )?;
 
-    let outcome = avatar_auto_cleanup_run(&db, "usr_self", now)?;
+    avatar_auto_cleanup_run(&db, "usr_self", now)?;
 
-    assert_eq!(outcome.state, AvatarAutoCleanupState::NotDue);
-    assert_eq!(outcome.retention_days, Some(30));
+    let remaining = db.execute(
+        &format!("SELECT COUNT(*) FROM {prefix}_feed_avatar"),
+        &Default::default(),
+    )?;
+    assert_eq!(remaining.first().map(|row| row_i64(row, 0)), Some(1));
+    assert_eq!(
+        crate::config::get_string(&db, "lastAvatarCleanupDate_usr_self", "")?,
+        "2026-07-12T12:00:00Z"
+    );
     Ok(())
 }
 
@@ -122,14 +145,113 @@ fn avatar_auto_cleanup_treats_invalid_last_date_as_due_and_commits_delete_with_f
         .unwrap()
         .with_timezone(&Utc);
 
-    let outcome = avatar_auto_cleanup_run(&db, "usr_self", now)?;
+    avatar_auto_cleanup_run(&db, "usr_self", now)?;
 
-    assert_eq!(outcome.state, AvatarAutoCleanupState::Ran);
-    assert_eq!(outcome.removed_count, 1);
+    let remaining = db.execute(
+        &format!("SELECT COUNT(*) FROM {prefix}_feed_avatar"),
+        &Default::default(),
+    )?;
+    assert_eq!(remaining.first().map(|row| row_i64(row, 0)), Some(0));
     assert_eq!(
         crate::config::get_string(&db, "lastAvatarCleanupDate_usr_self", "")?,
         "2026-07-17T12:00:00.000Z"
     );
+    Ok(())
+}
+
+#[test]
+fn avatar_auto_cleanup_runs_when_last_completion_is_in_the_future() -> Result<(), Error> {
+    let (_dir, db) = cleanup_test_db("avatar-cleanup-future-completion")?;
+    crate::config::set_string(&db, "VRCX_avatarAutoCleanup", "30")?;
+    crate::config::set_string(
+        &db,
+        "lastAvatarCleanupDate_usr_self",
+        "2027-07-17T12:00:00Z",
+    )?;
+    let prefix = normalize_user_table_prefix("usr_self")?;
+    ensure_realtime_tables(&db, &prefix)?;
+    db.execute_non_query(
+        &format!("INSERT INTO {prefix}_feed_avatar (created_at) VALUES (@created_at)"),
+        &ParamsBuilder::new()
+            .set("created_at", "2026-05-01T00:00:00Z")
+            .build(),
+    )?;
+    let now = DateTime::parse_from_rfc3339("2026-07-17T12:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+
+    avatar_auto_cleanup_run(&db, "usr_self", now)?;
+    assert_eq!(
+        crate::config::get_string(&db, "lastAvatarCleanupDate_usr_self", "")?,
+        "2026-07-17T12:00:00.000Z"
+    );
+    Ok(())
+}
+
+#[test]
+fn avatar_cleanup_compares_mixed_timestamp_formats_by_instant() -> Result<(), Error> {
+    let (_dir, db) = cleanup_test_db("avatar-cleanup-timestamps")?;
+    crate::config::set_string(&db, "VRCX_avatarAutoCleanup", "30")?;
+    let prefix = normalize_user_table_prefix("usr_self")?;
+    ensure_realtime_tables(&db, &prefix)?;
+    for (user_id, created_at) in [
+        ("old", "2026-06-17T11:59:59+00:00"),
+        ("old-positive-offset", "2026-06-18T01:59:59+14:00"),
+        ("equal", "2026-06-17T12:00:00+00:00"),
+        ("equal-positive-offset", "2026-06-18T02:00:00+14:00"),
+        ("new-space", "2026-06-17 12:00:01"),
+        ("invalid", "not-a-date"),
+    ] {
+        db.execute_non_query(
+            &format!(
+                "INSERT INTO {prefix}_feed_avatar (user_id, created_at) VALUES (@user_id, @created_at)"
+            ),
+            &ParamsBuilder::new()
+                .set("user_id", user_id)
+                .set("created_at", created_at)
+                .build(),
+        )?;
+    }
+    let now = DateTime::parse_from_rfc3339("2026-07-17T12:00:00Z")
+        .unwrap()
+        .with_timezone(&Utc);
+
+    avatar_auto_cleanup_run(&db, "usr_self", now)?;
+    let rows = db.execute(
+        &format!("SELECT user_id FROM {prefix}_feed_avatar ORDER BY user_id"),
+        &Default::default(),
+    )?;
+    let remaining_ids = rows
+        .iter()
+        .map(|row| row_string(row, 0))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        remaining_ids,
+        vec!["equal", "equal-positive-offset", "invalid", "new-space"]
+    );
+    Ok(())
+}
+
+#[test]
+fn avatar_cleanup_uses_the_created_at_index() -> Result<(), Error> {
+    let (_dir, db) = cleanup_test_db("avatar-cleanup-query-plan")?;
+    let prefix = normalize_user_table_prefix("usr_self")?;
+    ensure_realtime_tables(&db, &prefix)?;
+
+    let plan = db.execute(
+        &format!(
+            "EXPLAIN QUERY PLAN {}",
+            crate::feed::feed_avatar_delete_before_sql(&prefix)
+        ),
+        &ParamsBuilder::new()
+            .set("cutoff", "2026-06-17T12:00:00.000Z")
+            .build(),
+    )?;
+    let expected_index = format!("USING INDEX {prefix}_feed_avatar_created_id_idx");
+
+    assert!(plan
+        .iter()
+        .any(|row| row_string(row, 3).contains(&expected_index)));
     Ok(())
 }
 

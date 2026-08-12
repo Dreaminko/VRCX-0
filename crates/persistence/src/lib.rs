@@ -37,9 +37,8 @@ pub mod maintenance {
         database_maintenance_broken_leave_entries_get,
         database_maintenance_max_friend_log_number_get, database_maintenance_run,
         database_maintenance_table_sizes_get, ensure_required_database_schema, user_tables_ensure,
-        vacuum_after_secret_migration, AvatarAutoCleanupOutcome, AvatarAutoCleanupState,
-        BrokenGameLogDisplayNameOutput, DatabaseMaintenanceTask, MaintenanceTableSizesOutput,
-        UserTableContextOutput,
+        vacuum_after_secret_migration, BrokenGameLogDisplayNameOutput, DatabaseMaintenanceTask,
+        MaintenanceTableSizesOutput, UserTableContextOutput,
     };
 }
 

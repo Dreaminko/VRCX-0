@@ -99,6 +99,21 @@ describe('preferencesStore normalizers', () => {
         });
     });
 
+    it('accepts only supported avatar cleanup retention values', () => {
+        for (const value of ['Off', '30', '90', '180', '365']) {
+            expect(
+                normalizePreferenceSnapshot({ avatarAutoCleanup: value })
+                    .avatarAutoCleanup
+            ).toBe(value);
+        }
+        for (const value of ['', '0', '31', ' 30 ', 'invalid', 30]) {
+            expect(
+                normalizePreferenceSnapshot({ avatarAutoCleanup: value })
+                    .avatarAutoCleanup
+            ).toBe('Off');
+        }
+    });
+
     it('keeps custom font selector fields round-trippable', () => {
         expect(DEFAULT_PREFERENCES.customFontPrimary).toBe('');
         expect(DEFAULT_PREFERENCES.customFontSecondary).toBe('');

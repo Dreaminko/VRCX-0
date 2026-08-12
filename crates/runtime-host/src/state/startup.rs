@@ -1,6 +1,8 @@
 use std::sync::{atomic::Ordering, Arc};
 use std::time::{Duration, Instant};
 
+use vrcx_0_application_core::{RuntimeAuthScope, RuntimeAuthScopeSnapshot};
+
 use super::{
     current_user_from_cookie, run_background_group_instance_refresh, AtomicFlagGuard,
     AuthenticatedRuntimeSession, BackendRuntimePhase, BackendRuntimeSnapshot,
@@ -8,6 +10,8 @@ use super::{
     NonInteractiveAuthError, PrintCleanupDeps, PrintCleanupTrigger, Result, RuntimeHostProfile,
     RuntimeHostState,
 };
+
+const AUTHENTICATED_SESSION_MAINTENANCE_DELAY: Duration = Duration::from_secs(30);
 
 impl RuntimeHostState {
     pub fn stop_backend_runtime(&self, reason: impl Into<String>) -> BackendRuntimeSnapshot {
@@ -259,7 +263,6 @@ impl RuntimeHostState {
             self.db.as_ref(),
             session.user_id.clone(),
         )?;
-        self.run_authenticated_session_maintenance_for_user(&session.user_id)?;
         let snapshot = self
             .backend_runtime
             .set_auth_success(session.user_id.clone(), session.display_name.clone());
@@ -291,6 +294,76 @@ impl RuntimeHostState {
         self.schedule_activity_warmup(activity_warmup_user_id, auth_scope.generation);
         self.start_social_maintenance_loops();
         self.start_profile_maintenance_loops();
+        self.schedule_authenticated_session_maintenance(auth_scope);
         Ok(self.backend_runtime.snapshot())
+    }
+
+    fn schedule_authenticated_session_maintenance(&self, expected_scope: RuntimeAuthScopeSnapshot) {
+        let db = Arc::clone(&self.db);
+        let auth_scope = self.runtime_context.auth_scope.clone();
+        self.runtime_context
+            .tasks
+            .spawn_cancellable(move |stop_token| async move {
+                tokio::time::sleep(AUTHENTICATED_SESSION_MAINTENANCE_DELAY).await;
+                if stop_token.is_stop_requested()
+                    || !authenticated_session_maintenance_scope_matches(
+                        &auth_scope,
+                        &expected_scope,
+                    )
+                {
+                    return;
+                }
+                let blocking_auth_scope = auth_scope.clone();
+                if let Err(error) = tokio::task::spawn_blocking(move || {
+                    if authenticated_session_maintenance_scope_matches(
+                        &blocking_auth_scope,
+                        &expected_scope,
+                    ) {
+                        vrcx_0_application::run_authenticated_session_maintenance(
+                            &db,
+                            &expected_scope.current_user_id,
+                        );
+                    }
+                })
+                .await
+                {
+                    tracing::warn!(error = %error, "authenticated session maintenance task failed");
+                }
+            });
+    }
+}
+
+fn authenticated_session_maintenance_scope_matches(
+    auth_scope: &RuntimeAuthScope,
+    expected: &RuntimeAuthScopeSnapshot,
+) -> bool {
+    auth_scope.snapshot().generation_matches(expected)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn authenticated_session_maintenance_scope_rejects_account_switches_and_logout() {
+        let auth_scope = RuntimeAuthScope::new();
+        let first = auth_scope.set("usr_first", "");
+        assert!(authenticated_session_maintenance_scope_matches(
+            &auth_scope,
+            &first
+        ));
+
+        auth_scope.set("usr_second", "");
+        assert!(!authenticated_session_maintenance_scope_matches(
+            &auth_scope,
+            &first
+        ));
+
+        let second = auth_scope.snapshot();
+        auth_scope.set("", "");
+        assert!(!authenticated_session_maintenance_scope_matches(
+            &auth_scope,
+            &second
+        ));
     }
 }

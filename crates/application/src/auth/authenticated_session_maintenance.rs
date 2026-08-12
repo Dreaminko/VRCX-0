@@ -1,31 +1,54 @@
 use chrono::Utc;
-use serde::Serialize;
-use vrcx_0_persistence::{
-    maintenance::{avatar_auto_cleanup_run, AvatarAutoCleanupOutcome},
-    DatabaseService,
-};
+use vrcx_0_persistence::{maintenance::avatar_auto_cleanup_run, DatabaseService};
 
-use crate::{Error, Result};
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AuthenticatedSessionMaintenanceOutcome {
-    pub user_id: String,
-    pub avatar_cleanup: AvatarAutoCleanupOutcome,
-}
-
-pub fn run_authenticated_session_maintenance(
-    db: &DatabaseService,
-    user_id: &str,
-) -> Result<AuthenticatedSessionMaintenanceOutcome> {
+pub fn run_authenticated_session_maintenance(db: &DatabaseService, user_id: &str) {
     let user_id = user_id.trim();
     if user_id.is_empty() {
-        return Err(Error::Custom(
-            "Authenticated session maintenance requires a user id.".into(),
-        ));
+        tracing::warn!("authenticated session maintenance skipped without a user id");
+        return;
     }
-    Ok(AuthenticatedSessionMaintenanceOutcome {
-        user_id: user_id.to_string(),
-        avatar_cleanup: avatar_auto_cleanup_run(db, user_id, Utc::now())?,
-    })
+    if let Err(error) = avatar_auto_cleanup_run(db, user_id, Utc::now()) {
+        tracing::warn!(user_id, error = %error, "avatar auto-cleanup failed");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+
+    struct TestDir(PathBuf);
+
+    impl TestDir {
+        fn new() -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-auth-maintenance-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn cleanup_failure_does_not_escape_authenticated_session_maintenance() {
+        let dir = TestDir::new();
+        let db = DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap();
+        let _frozen = db.freeze_for_migration().unwrap();
+
+        run_authenticated_session_maintenance(&db, "usr_self");
+
+        assert!(!db.is_main_mode());
+    }
 }

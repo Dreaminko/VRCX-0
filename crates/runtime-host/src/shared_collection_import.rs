@@ -89,28 +89,9 @@ impl SharedCollectionImportRuntime {
     }
 
     #[cfg(test)]
-    fn new_with_test_runner(
-        db: Arc<DatabaseService>,
-        web: Arc<WebClient>,
-        world_cache: Arc<WorldCache>,
-        event_bus: RuntimeEventBus,
-        tasks: TaskSupervisor,
-        auth_scope: RuntimeAuthScope,
-        favorite_mutations: FavoriteMutationCoordinator,
-        test_runner: TestImportRunner,
-    ) -> Self {
-        Self {
-            test_runner: Some(test_runner),
-            ..Self::new(
-                db,
-                web,
-                world_cache,
-                event_bus,
-                tasks,
-                auth_scope,
-                favorite_mutations,
-            )
-        }
+    fn with_test_runner(mut self, test_runner: TestImportRunner) -> Self {
+        self.test_runner = Some(test_runner);
+        self
     }
 
     pub fn status(&self) -> SharedCollectionImportStatus {
@@ -542,7 +523,7 @@ mod tests {
             auth_scope.clone(),
             remote_mutations,
         );
-        let runtime = SharedCollectionImportRuntime::new_with_test_runner(
+        let runtime = SharedCollectionImportRuntime::new(
             db,
             web,
             world_cache,
@@ -550,21 +531,21 @@ mod tests {
             tasks.clone(),
             auth_scope,
             favorite_mutations,
-            Arc::new(|prepared, cancel| {
-                Box::pin(async move {
-                    while !cancel.load(Ordering::Acquire) {
-                        tokio::time::sleep(Duration::from_millis(5)).await;
-                    }
-                    Ok(SharedCollectionImportResult {
-                        total: prepared.world_ids.len(),
-                        processed: 1,
-                        imported: 1,
-                        cancelled: true,
-                        ..Default::default()
-                    })
+        )
+        .with_test_runner(Arc::new(|prepared, cancel| {
+            Box::pin(async move {
+                while !cancel.load(Ordering::Acquire) {
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+                Ok(SharedCollectionImportResult {
+                    total: prepared.world_ids.len(),
+                    processed: 1,
+                    imported: 1,
+                    cancelled: true,
+                    ..Default::default()
                 })
-            }),
-        );
+            })
+        }));
         let input = SharedCollectionImportStartInput {
             world_ids: vec!["wrld_11111111-1111-1111-1111-111111111111".into()],
             group_name: "Imported worlds".into(),

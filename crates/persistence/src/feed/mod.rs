@@ -10,4 +10,5 @@ pub use types::{
     FeedCursorInput, FeedFilter, FeedLatestQueryInput, FeedLiveEntryInput, FeedQueryMode,
     FeedReadModelOutput, FeedRowOutput, FeedRowsQueryInput, FeedSearchQueryInput,
 };
+pub(crate) use write::feed_avatar_delete_before_sql;
 pub use write::feed_avatar_purge;

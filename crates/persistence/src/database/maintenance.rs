@@ -19,9 +19,7 @@ use super::DatabaseService;
 mod avatar_cleanup;
 mod copresence_repair;
 
-pub use avatar_cleanup::{
-    avatar_auto_cleanup_run, AvatarAutoCleanupOutcome, AvatarAutoCleanupState,
-};
+pub use avatar_cleanup::avatar_auto_cleanup_run;
 use copresence_repair::repair_zero_copresence_durations;
 
 pub fn vacuum_after_secret_migration(db: &DatabaseService) -> Result<(), Error> {

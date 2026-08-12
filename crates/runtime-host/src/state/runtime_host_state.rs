@@ -14,10 +14,9 @@ use crate::{
     RuntimeHostProfileExtension, SharedCollectionImportRuntime, UnavailableGroupOrderSource,
 };
 use vrcx_0_application::{
-    AuthenticatedSessionMaintenanceOutcome, DataDirMigrationRuntime, FavoriteImportRuntime,
-    FavoriteImportRuntimeDeps, GroupApiDeps, GroupBanImportRuntime, PrintCleanupDeps,
-    PrintCleanupQueueSink, ProfileBackupRuntime, ProfileBackupRuntimeDeps,
-    VrchatGroupBanImportActions,
+    DataDirMigrationRuntime, FavoriteImportRuntime, FavoriteImportRuntimeDeps, GroupApiDeps,
+    GroupBanImportRuntime, PrintCleanupDeps, PrintCleanupQueueSink, ProfileBackupRuntime,
+    ProfileBackupRuntimeDeps, VrchatGroupBanImportActions,
 };
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeStatusPublisher, BackgroundCapabilitySession, ImageCache,
@@ -135,8 +134,6 @@ pub struct RuntimeHostState {
     pub(super) activity_warmup_generation: Arc<AtomicU64>,
     pub(super) background_group_instances_refresh_running: Arc<AtomicBool>,
     pub(super) authenticated_session_projection: Arc<Mutex<AuthenticatedSessionProjection>>,
-    pub(super) authenticated_session_maintenance:
-        Mutex<Option<AuthenticatedSessionMaintenanceOutcome>>,
     pub(super) _profile_lock: ProfileLock,
 }
 
@@ -648,7 +645,6 @@ impl RuntimeHostStateBuilder {
             activity_warmup_generation: Arc::new(AtomicU64::new(0)),
             background_group_instances_refresh_running: Arc::new(AtomicBool::new(false)),
             authenticated_session_projection,
-            authenticated_session_maintenance: Mutex::new(None),
             _profile_lock: self.profile_lock,
         })
     }

@@ -27,6 +27,7 @@ fn validate_config_mutation(key: &str, value: Option<&str>) -> Result<()> {
         "config:vrcx_savedcredentials" => Err(Error::Custom(
             "savedCredentials must be changed through the dedicated auth service.".into(),
         )),
+        "config:vrcx_avatarautocleanup" => validate_avatar_auto_cleanup(value),
         "config:vrcx_usergeneratedcontentpath" => validate_ugc_path(value.unwrap_or_default()),
         "config:vrcx_translationapiendpoint" => validate_optional_provider_url(
             value.unwrap_or_default(),
@@ -40,6 +41,15 @@ fn validate_config_mutation(key: &str, value: Option<&str>) -> Result<()> {
             validate_provider_list(value.unwrap_or_default())
         }
         _ => Ok(()),
+    }
+}
+
+fn validate_avatar_auto_cleanup(value: Option<&str>) -> Result<()> {
+    match value {
+        None | Some("Off" | "30" | "90" | "180" | "365") => Ok(()),
+        Some(_) => Err(Error::Custom(
+            "avatarAutoCleanup must be Off, 30, 90, 180, or 365.".into(),
+        )),
     }
 }
 
@@ -174,6 +184,23 @@ mod tests {
 
         assert!(set_config_values(&db, vec![entry("savedCredentials", "{}")]).is_err());
         assert!(remove_config_value(&db, "config:vrcx_savedcredentials".into()).is_err());
+    }
+
+    #[test]
+    fn avatar_auto_cleanup_accepts_only_supported_retention_values() {
+        let (_dir, db) = test_db("avatar-auto-cleanup");
+
+        for value in ["Off", "30", "90", "180", "365"] {
+            set_config_values(&db, vec![entry("avatarAutoCleanup", value)]).unwrap();
+        }
+        for value in ["", "0", "31", " 30 ", "9223372036854775807"] {
+            assert!(set_config_values(&db, vec![entry("avatarAutoCleanup", value)]).is_err());
+        }
+
+        assert_eq!(
+            remove_config_value(&db, "avatarAutoCleanup".into()).unwrap(),
+            1
+        );
     }
 
     #[test]

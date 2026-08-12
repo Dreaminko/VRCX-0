@@ -1,36 +1,18 @@
 use chrono::{DateTime, Duration, Utc};
-use serde::Serialize;
 use serde_json::Value;
 
 use crate::common::ParamsBuilder;
+use crate::feed::feed_avatar_delete_before_sql;
 use crate::realtime::{ensure_realtime_tables, normalize_user_table_prefix};
 use crate::Error;
 
 use super::super::DatabaseService;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub enum AvatarAutoCleanupState {
-    Disabled,
-    NotDue,
-    Ran,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AvatarAutoCleanupOutcome {
-    pub state: AvatarAutoCleanupState,
-    pub retention_days: Option<i64>,
-    pub removed_count: i64,
-    pub cutoff: Option<String>,
-    pub completed_at: Option<String>,
-}
-
 pub fn avatar_auto_cleanup_run(
     db: &DatabaseService,
     user_id: &str,
     now: DateTime<Utc>,
-) -> Result<AvatarAutoCleanupOutcome, Error> {
+) -> Result<(), Error> {
     crate::config::ensure_config_table(db)?;
     let user_prefix = normalize_user_table_prefix(user_id)?;
     ensure_realtime_tables(db, &user_prefix)?;
@@ -39,7 +21,7 @@ pub fn avatar_auto_cleanup_run(
         crate::config::resolve_config_key(&format!("lastAvatarCleanupDate_{}", user_id.trim()));
 
     db.write_transaction(|tx| {
-        let setting = tx
+        let retention_days = tx
             .execute(
                 "SELECT value FROM configs WHERE key = @key LIMIT 1",
                 &ParamsBuilder::new().set("key", cleanup_key).build(),
@@ -47,17 +29,10 @@ pub fn avatar_auto_cleanup_run(
             .first()
             .and_then(|row| row.first())
             .and_then(Value::as_str)
-            .unwrap_or("Off")
-            .trim()
-            .to_string();
-        let Some(retention_days) = setting.parse::<i64>().ok().filter(|days| *days > 0) else {
-            return Ok(AvatarAutoCleanupOutcome {
-                state: AvatarAutoCleanupState::Disabled,
-                retention_days: None,
-                removed_count: 0,
-                cutoff: None,
-                completed_at: None,
-            });
+            .map(str::trim)
+            .and_then(parse_retention_days);
+        let Some(retention_days) = retention_days else {
+            return Ok(());
         };
 
         let last_completed = tx
@@ -70,37 +45,41 @@ pub fn avatar_auto_cleanup_run(
             .and_then(Value::as_str)
             .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
             .map(|value| value.with_timezone(&Utc));
-        if last_completed.is_some_and(|last| now.signed_duration_since(last) < Duration::days(7)) {
-            return Ok(AvatarAutoCleanupOutcome {
-                state: AvatarAutoCleanupState::NotDue,
-                retention_days: Some(retention_days),
-                removed_count: 0,
-                cutoff: None,
-                completed_at: last_completed.map(|value| value.to_rfc3339()),
-            });
+        if last_completed.is_some_and(|last| {
+            last <= now && now.signed_duration_since(last) < Duration::days(7)
+        }) {
+            return Ok(());
         }
 
-        let cutoff = (now - Duration::days(retention_days))
+        let retention = Duration::try_days(retention_days)
+            .ok_or_else(|| Error::Custom("Avatar cleanup retention is out of range.".into()))?;
+        let cutoff = now
+            .checked_sub_signed(retention)
+            .ok_or_else(|| Error::Custom("Avatar cleanup cutoff is out of range.".into()))?
             .format("%Y-%m-%dT%H:%M:%S%.3fZ")
             .to_string();
         let completed_at = now.format("%Y-%m-%dT%H:%M:%S%.3fZ").to_string();
-        let removed_count = tx.execute_non_query(
-            &format!("DELETE FROM {user_prefix}_feed_avatar WHERE created_at < @cutoff"),
-            &ParamsBuilder::new().set("cutoff", cutoff.clone()).build(),
+        tx.execute_non_query(
+            &feed_avatar_delete_before_sql(&user_prefix),
+            &ParamsBuilder::new().set("cutoff", cutoff).build(),
         )?;
         tx.execute_non_query(
             "INSERT INTO configs (key, value) VALUES (@key, @value) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             &ParamsBuilder::new()
                 .set("key", completed_key)
-                .set("value", completed_at.clone())
+                .set("value", completed_at)
                 .build(),
         )?;
-        Ok(AvatarAutoCleanupOutcome {
-            state: AvatarAutoCleanupState::Ran,
-            retention_days: Some(retention_days),
-            removed_count,
-            cutoff: Some(cutoff),
-            completed_at: Some(completed_at),
-        })
+        Ok(())
     })
+}
+
+fn parse_retention_days(value: &str) -> Option<i64> {
+    match value {
+        "30" => Some(30),
+        "90" => Some(90),
+        "180" => Some(180),
+        "365" => Some(365),
+        _ => None,
+    }
 }

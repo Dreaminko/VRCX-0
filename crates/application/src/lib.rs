@@ -12,6 +12,7 @@ mod system;
 
 pub use vrcx_0_application_core::{ports, vrchat_api};
 
+pub use auth::run_authenticated_session_maintenance;
 pub use auth::{
     auth_response_error_message, current_user_from_cookie, parse_current_user_response,
     probe_current_user_from_cookie, probe_saved_current_user_from_cookie,
@@ -24,7 +25,6 @@ pub use auth::{
     SavedCredentialLoginStartInput, SavedCredentialSessionData, SavedCredentialSnapshot,
     SavedCredentialUser, SavedLoginParamsSnapshot,
 };
-pub use auth::{run_authenticated_session_maintenance, AuthenticatedSessionMaintenanceOutcome};
 pub use auth::{
     AutoLoginOutcome, AutoLoginStartInput, AutoLoginTerminalOutcome, LoginFailureKind,
     LoginRuntimeTransition, LoginSessionCancelInput, LoginSessionEnd, LoginSessionEndRequest,

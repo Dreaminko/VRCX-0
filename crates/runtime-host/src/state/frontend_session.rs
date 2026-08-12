@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 use serde_json::Value;
 
 use super::{
-    string_field, AuthenticatedRuntimeSession, AuthenticatedSessionMaintenanceOutcome,
-    AuthenticatedSessionProjection, AuthenticatedSessionSnapshot, BackgroundCapabilitySession,
-    Result, RuntimeGroupInstancesProjection, RuntimeHostState,
+    string_field, AuthenticatedRuntimeSession, AuthenticatedSessionProjection,
+    AuthenticatedSessionSnapshot, BackgroundCapabilitySession, RuntimeGroupInstancesProjection,
+    RuntimeHostState,
 };
 
 fn establish_authenticated_session_projection(
@@ -54,9 +54,6 @@ impl RuntimeHostState {
                 (previous, current.clone())
             })
         };
-        if let Ok(mut maintenance) = self.authenticated_session_maintenance.lock() {
-            *maintenance = None;
-        }
         if let Some((_, projection)) = &cleared {
             self.runtime_context.event_bus.emit(projection.clone());
         }
@@ -115,52 +112,6 @@ impl RuntimeHostState {
             current.clone()
         };
         self.runtime_context.event_bus.emit(published);
-    }
-
-    pub fn authenticated_session_maintenance(
-        &self,
-    ) -> Result<AuthenticatedSessionMaintenanceOutcome> {
-        let projection = self.authenticated_session_projection();
-        let Some(session) = projection.session else {
-            return Err(crate::Error::Custom(
-                "Authenticated session maintenance requires an active auth scope.".into(),
-            ));
-        };
-        let scope = self.runtime_context.auth_scope.snapshot();
-        if !scope.active
-            || scope.generation != session.auth_scope_generation
-            || scope.current_user_id != session.user_id
-            || scope.endpoint != session.endpoint
-        {
-            return Err(crate::Error::Custom(
-                "Authenticated session maintenance requires an active auth scope.".into(),
-            ));
-        }
-        self.run_authenticated_session_maintenance_for_user(&session.user_id)
-    }
-
-    pub(super) fn run_authenticated_session_maintenance_for_user(
-        &self,
-        user_id: &str,
-    ) -> Result<AuthenticatedSessionMaintenanceOutcome> {
-        let user_id = user_id.trim();
-        let scope = self.runtime_context.auth_scope.snapshot();
-        if !scope.active || scope.current_user_id != user_id {
-            return Err(crate::Error::Custom(
-                "Authenticated session maintenance scope does not match the current user.".into(),
-            ));
-        }
-        let mut slot = self
-            .authenticated_session_maintenance
-            .lock()
-            .map_err(|error| crate::Error::Custom(format!("session maintenance lock: {error}")))?;
-        if let Some(current) = slot.as_ref().filter(|current| current.user_id == user_id) {
-            return Ok(current.clone());
-        }
-        let outcome =
-            vrcx_0_application::run_authenticated_session_maintenance(self.db.as_ref(), user_id)?;
-        *slot = Some(outcome.clone());
-        Ok(outcome)
     }
 }
 

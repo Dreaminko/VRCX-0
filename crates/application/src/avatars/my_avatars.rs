@@ -234,7 +234,7 @@ mod tests {
             .as_millis() as f64
             - 60_000.0;
         let delta = live_swap_delta_ms(one_minute_ago);
-        assert!(delta >= 60_000 && delta < 120_000);
+        assert!((60_000..120_000).contains(&delta));
     }
 
     #[test]

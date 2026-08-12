@@ -1,4 +1,4 @@
-use crate::common::{delete_all_sql, delete_where_lt_sql, ParamsBuilder};
+use crate::common::{delete_all_sql, ParamsBuilder};
 use crate::database::DatabaseService;
 use crate::realtime::{ensure_realtime_tables, normalize_user_table_prefix};
 use crate::Error;
@@ -12,16 +12,20 @@ pub fn feed_avatar_purge(
     ensure_realtime_tables(db, &user_prefix)?;
     if let Some(cutoff_date) = cutoff_date.filter(|value| !value.trim().is_empty()) {
         return db.execute_non_query(
-            &delete_where_lt_sql(
-                &format!("{user_prefix}_feed_avatar"),
-                "created_at",
-                "cutoff",
-            ),
+            &feed_avatar_delete_before_sql(&user_prefix),
             &ParamsBuilder::new().set("cutoff", cutoff_date).build(),
         );
     }
     db.execute_non_query(
         &delete_all_sql(&format!("{user_prefix}_feed_avatar")),
         &Default::default(),
+    )
+}
+
+pub(crate) fn feed_avatar_delete_before_sql(user_prefix: &str) -> String {
+    format!(
+        "DELETE FROM {user_prefix}_feed_avatar
+         WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ', @cutoff, '+1 day')
+           AND julianday(created_at) < julianday(@cutoff)"
     )
 }

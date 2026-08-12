@@ -49,10 +49,3 @@ pub fn delete_all_sql(table: &str) -> String {
     query.from_table(ident(table));
     query.to_string(SqliteQueryBuilder)
 }
-
-pub fn delete_where_lt_sql(table: &str, column: &str, param: &str) -> String {
-    let mut query = Query::delete();
-    query.from_table(ident(table));
-    query.and_where(Expr::col(ident(column)).lt(named_param(param)));
-    query.to_string(SqliteQueryBuilder)
-}

@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 
+import type { AvatarAutoCleanupPreference } from '@/shared/constants/settings';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -18,8 +19,7 @@ export function SettingsAdvancedSection() {
             avatarAutoCleanup: state.avatarAutoCleanup,
             gameLogDisabled: state.gameLogDisabled,
             feedPersistenceDisabled: state.feedPersistenceDisabled,
-            avatarFeedPersistenceDisabled:
-                state.avatarFeedPersistenceDisabled,
+            avatarFeedPersistenceDisabled: state.avatarFeedPersistenceDisabled,
             anonymousUsageTelemetry: state.anonymousUsageTelemetry,
             udonExceptionLogging: state.udonExceptionLogging,
             logResourceLoad: state.logResourceLoad
@@ -125,7 +125,7 @@ export function SettingsAdvancedSection() {
                 normalizeCheckedState(checked)
             );
         },
-        onAvatarAutoCleanupChange: (value: string) => {
+        onAvatarAutoCleanupChange: (value: AvatarAutoCleanupPreference) => {
             saveStringPreference(
                 'avatarAutoCleanup',
                 'avatarAutoCleanup',

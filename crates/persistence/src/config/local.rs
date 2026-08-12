@@ -58,6 +58,29 @@ pub fn config_set_values(
     Ok(())
 }
 
+pub fn config_list_values(db: &DatabaseService) -> Result<Vec<ConfigReadEntry>, Error> {
+    ensure_config_table(db)?;
+    Ok(db
+        .execute("SELECT key, value FROM configs", &Default::default())?
+        .into_iter()
+        .map(|row| {
+            let key = row_string(&row, 0);
+            let value = decode_config_value(&key, row_string(&row, 1));
+            ConfigReadEntry { key, value }
+        })
+        .collect())
+}
+
+pub fn config_remove_value(db: &DatabaseService, key: String) -> Result<i64, Error> {
+    ensure_config_table(db)?;
+    db.execute_non_query(
+        "DELETE FROM configs WHERE key = @key",
+        &ParamsBuilder::new()
+            .set("key", resolve_config_key(&key))
+            .build(),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
@@ -105,27 +128,4 @@ mod tests {
         let _ = fs::remove_file(path.with_extension("sqlite3-wal"));
         let _ = fs::remove_file(path.with_extension("sqlite3-shm"));
     }
-}
-
-pub fn config_list_values(db: &DatabaseService) -> Result<Vec<ConfigReadEntry>, Error> {
-    ensure_config_table(db)?;
-    Ok(db
-        .execute("SELECT key, value FROM configs", &Default::default())?
-        .into_iter()
-        .map(|row| {
-            let key = row_string(&row, 0);
-            let value = decode_config_value(&key, row_string(&row, 1));
-            ConfigReadEntry { key, value }
-        })
-        .collect())
-}
-
-pub fn config_remove_value(db: &DatabaseService, key: String) -> Result<i64, Error> {
-    ensure_config_table(db)?;
-    db.execute_non_query(
-        "DELETE FROM configs WHERE key = @key",
-        &ParamsBuilder::new()
-            .set("key", resolve_config_key(&key))
-            .build(),
-    )
 }
