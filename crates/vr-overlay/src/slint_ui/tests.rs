@@ -5,8 +5,8 @@ use super::{
 };
 use crate::{
     AvatarBitmap, DeviceChip, DeviceRole, DeviceStatus, FeedAccent, FeedKind, FeedLine,
-    FeedRelation, FeedSeverity, MainSurfaceModel, OverlayFooter, OverlaySize, RgbaFrame,
-    ToastCard, WristSurfaceModel,
+    FeedRelation, FeedSeverity, MainSurfaceModel, OverlayFooter, OverlaySize, RgbaFrame, ToastCard,
+    WristSurfaceModel,
 };
 #[cfg(feature = "friends-panel")]
 use crate::{

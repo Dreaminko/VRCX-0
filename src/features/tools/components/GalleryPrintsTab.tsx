@@ -305,9 +305,7 @@ export function GalleryPrintsTab({ printsTab }: GalleryPrintsTabProps) {
                         <EmptyState
                             icon={ImageIcon}
                             title={t('empty_state.prints_title')}
-                            description={t(
-                                'empty_state.prints_description'
-                            )}
+                            description={t('empty_state.prints_description')}
                         >
                             <Button
                                 type="button"

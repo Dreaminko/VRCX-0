@@ -1812,20 +1812,21 @@ fn disabled_avatar_feed_persistence_keeps_feed_and_activity_delivery() -> Result
     )?;
     assert_eq!(persisted.len(), 1);
     assert_eq!(persisted[0].r#type.as_deref(), Some("GPS"));
-    let search_rows = runtime.runtime().query_feed_search(
-        vrcx_0_persistence::feed::FeedSearchQueryInput {
-            user_id: active_session.user_id.clone(),
-            search: String::new(),
-            filters: Vec::new(),
-            favorite_user_ids: Vec::new(),
-            scoped_user_ids: Vec::new(),
-            excluded_user_ids: Vec::new(),
-            favorites_only: false,
-            date_from: "2026-06-21T00:00:00.000Z".into(),
-            date_to: "2026-06-21T00:00:01.000Z".into(),
-            max_rows: 10,
-        },
-    )?;
+    let search_rows =
+        runtime
+            .runtime()
+            .query_feed_search(vrcx_0_persistence::feed::FeedSearchQueryInput {
+                user_id: active_session.user_id.clone(),
+                search: String::new(),
+                filters: Vec::new(),
+                favorite_user_ids: Vec::new(),
+                scoped_user_ids: Vec::new(),
+                excluded_user_ids: Vec::new(),
+                favorites_only: false,
+                date_from: "2026-06-21T00:00:00.000Z".into(),
+                date_to: "2026-06-21T00:00:01.000Z".into(),
+                max_rows: 10,
+            })?;
     assert_eq!(search_rows.len(), 2);
     assert!(search_rows
         .iter()
@@ -1874,36 +1875,41 @@ fn changing_avatar_feed_persistence_keeps_existing_live_entries() -> Result<()> 
         .runtime()
         .set_avatar_feed_persistence_disabled(true)?;
 
-    let latest = runtime.runtime().query_feed_latest(
-        vrcx_0_persistence::feed::FeedLatestQueryInput {
-            user_id: active_session.user_id.clone(),
-            filters: vec![vrcx_0_persistence::feed::FeedFilter::Avatar],
-            favorite_user_ids: Vec::new(),
-            scoped_user_ids: Vec::new(),
-            excluded_user_ids: Vec::new(),
-            favorites_only: false,
-            max_rows: 10,
-        },
-    )?;
+    let latest =
+        runtime
+            .runtime()
+            .query_feed_latest(vrcx_0_persistence::feed::FeedLatestQueryInput {
+                user_id: active_session.user_id.clone(),
+                filters: vec![vrcx_0_persistence::feed::FeedFilter::Avatar],
+                favorite_user_ids: Vec::new(),
+                scoped_user_ids: Vec::new(),
+                excluded_user_ids: Vec::new(),
+                favorites_only: false,
+                max_rows: 10,
+            })?;
     assert_eq!(latest.rows.len(), 1);
-    assert_eq!(latest.rows[0].avatar_name.as_deref(), Some("Transient Avatar"));
+    assert_eq!(
+        latest.rows[0].avatar_name.as_deref(),
+        Some("Transient Avatar")
+    );
     runtime
         .runtime()
         .set_avatar_feed_persistence_disabled(false)?;
-    let search_rows = runtime.runtime().query_feed_search(
-        vrcx_0_persistence::feed::FeedSearchQueryInput {
-            user_id: active_session.user_id,
-            search: "Transient Avatar".into(),
-            filters: vec![vrcx_0_persistence::feed::FeedFilter::Avatar],
-            favorite_user_ids: Vec::new(),
-            scoped_user_ids: Vec::new(),
-            excluded_user_ids: Vec::new(),
-            favorites_only: false,
-            date_from: "2026-06-21T00:00:00.000Z".into(),
-            date_to: "2026-06-21T00:00:00.000Z".into(),
-            max_rows: 10,
-        },
-    )?;
+    let search_rows =
+        runtime
+            .runtime()
+            .query_feed_search(vrcx_0_persistence::feed::FeedSearchQueryInput {
+                user_id: active_session.user_id,
+                search: "Transient Avatar".into(),
+                filters: vec![vrcx_0_persistence::feed::FeedFilter::Avatar],
+                favorite_user_ids: Vec::new(),
+                scoped_user_ids: Vec::new(),
+                excluded_user_ids: Vec::new(),
+                favorites_only: false,
+                date_from: "2026-06-21T00:00:00.000Z".into(),
+                date_to: "2026-06-21T00:00:00.000Z".into(),
+                max_rows: 10,
+            })?;
     assert_eq!(search_rows.len(), 1);
     assert_eq!(
         search_rows[0].avatar_name.as_deref(),

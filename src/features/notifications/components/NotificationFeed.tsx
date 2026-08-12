@@ -140,11 +140,7 @@ export function NotificationFeed({
                     ) : (
                         <EmptyState
                             variant="table"
-                            icon={
-                                sourceRowsCount > 0
-                                    ? SearchXIcon
-                                    : BellIcon
-                            }
+                            icon={sourceRowsCount > 0 ? SearchXIcon : BellIcon}
                             title={t(
                                 sourceRowsCount > 0
                                     ? 'common.no_matching_entries'
@@ -162,9 +158,7 @@ export function NotificationFeed({
                                     variant="link"
                                     onClick={onClearFilters}
                                 >
-                                    {t(
-                                        'empty_state.clear_search_and_filters'
-                                    )}
+                                    {t('empty_state.clear_search_and_filters')}
                                 </Button>
                             ) : null}
                         </EmptyState>

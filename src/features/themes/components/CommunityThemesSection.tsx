@@ -57,7 +57,9 @@ export function CommunityThemesSection({
     accentControlled
 }: CommunityThemesSectionProps) {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'browse' | 'installed'>('browse');
+    const [activeTab, setActiveTab] = useState<'browse' | 'installed'>(
+        'browse'
+    );
 
     return (
         <Tabs

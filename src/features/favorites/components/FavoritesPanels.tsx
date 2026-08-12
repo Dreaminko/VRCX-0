@@ -318,9 +318,7 @@ export function FavoritesContentPanel({
         emptyDescription = t('view.favorite.label.try_a_different_search_term');
     } else if (!viewData.selectedGroup) {
         emptyTitle = t('view.favorites.empty.no_group_selected');
-        emptyDescription = t(
-            'empty_state.favorite_choose_group_description'
-        );
+        emptyDescription = t('empty_state.favorite_choose_group_description');
     }
     const searchTab = kind === 'friend' ? 'user' : kind;
 
@@ -471,9 +469,7 @@ export function FavoritesContentPanel({
                                         navigate(`/search?tab=${searchTab}`)
                                     }
                                 >
-                                    {t(
-                                        `empty_state.find_more_${kind}s`
-                                    )}
+                                    {t(`empty_state.find_more_${kind}s`)}
                                 </Button>
                             ) : null}
                         </FavoritesEmptyState>

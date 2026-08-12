@@ -681,8 +681,7 @@ fn notification_facts_prefer_the_current_friend_record() -> Result<()> {
                     id: "usr_target".into(),
                     display_name: "Current Friend".into(),
                     location: "wrld_target:instance~region(jp)".into(),
-                    current_avatar_thumbnail_image_url:
-                        "https://images.example/current.png".into(),
+                    current_avatar_thumbnail_image_url: "https://images.example/current.png".into(),
                     extra: json!({
                         "world": { "name": "Current World" }
                     })

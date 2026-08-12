@@ -279,9 +279,7 @@ describe('SettingsAdvancedTab data directory states', () => {
 
     it('changes avatar history persistence without changing Feed persistence', () => {
         const onAvatarFeedPersistenceDisabledChange = vi.fn();
-        renderTab(
-            createModel({ onAvatarFeedPersistenceDisabledChange })
-        );
+        renderTab(createModel({ onAvatarFeedPersistenceDisabledChange }));
 
         fireEvent.click(
             screen.getByRole('switch', {

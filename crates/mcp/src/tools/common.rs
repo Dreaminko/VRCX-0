@@ -146,7 +146,10 @@ fn parse_relative_window(text: &str) -> Result<TimeWindowParams, String> {
         "today" => return Ok(window(rfc(start_of_day(now)), None)),
         "yesterday" => {
             let start_today = start_of_day(now);
-            return Ok(window(rfc(start_today - Duration::days(1)), rfc(start_today)));
+            return Ok(window(
+                rfc(start_today - Duration::days(1)),
+                rfc(start_today),
+            ));
         }
         "this week" | "week" => return Ok(window(rfc(start_of_week(now)), None)),
         "last week" | "past week" | "previous week" => {
@@ -155,7 +158,10 @@ fn parse_relative_window(text: &str) -> Result<TimeWindowParams, String> {
         }
         "this month" | "month" => return Ok(window(rfc(start_of_month(now)), None)),
         "last month" | "past month" | "previous month" => {
-            return Ok(window(rfc(start_of_prev_month(now)), rfc(start_of_month(now))));
+            return Ok(window(
+                rfc(start_of_prev_month(now)),
+                rfc(start_of_month(now)),
+            ));
         }
         _ => {}
     }
@@ -592,9 +598,11 @@ mod time_window_tests {
         assert!(time_window_from_value(&serde_json::json!({ "from": 7 }))
             .unwrap_err()
             .contains("timeWindow.from must be a string or null"));
-        assert!(time_window_from_value(&serde_json::json!({ "since": "7d" }))
-            .unwrap_err()
-            .contains("unknown timeWindow field"));
+        assert!(
+            time_window_from_value(&serde_json::json!({ "since": "7d" }))
+                .unwrap_err()
+                .contains("unknown timeWindow field")
+        );
     }
 
     #[test]

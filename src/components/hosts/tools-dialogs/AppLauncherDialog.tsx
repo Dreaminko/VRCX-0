@@ -421,7 +421,9 @@ export function AppLauncherDialog({
                                     <EmptyTitle>
                                         {loading
                                             ? t('dialog.app_launcher.loading')
-                                            : t('empty_state.app_launcher_title')}
+                                            : t(
+                                                  'empty_state.app_launcher_title'
+                                              )}
                                     </EmptyTitle>
                                     {!loading ? (
                                         <EmptyDescription>

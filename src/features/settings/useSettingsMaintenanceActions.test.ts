@@ -208,9 +208,9 @@ describe('handleAvatarFeedPersistenceDisabledChange', () => {
         await actions.handleAvatarFeedPersistenceDisabledChange(true);
 
         expect(confirm).not.toHaveBeenCalled();
-        expect(
-            setAvatarFeedPersistenceDisabledPreference
-        ).toHaveBeenCalledWith(true);
+        expect(setAvatarFeedPersistenceDisabledPreference).toHaveBeenCalledWith(
+            true
+        );
     });
 });
 

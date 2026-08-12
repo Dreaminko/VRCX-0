@@ -8,8 +8,8 @@ export function useSearchFilters() {
     const requestedTab = searchParams.get('tab');
     const activeTab: SearchActiveTab =
         requestedTab === 'avatar' ||
-            requestedTab === 'group' ||
-            requestedTab === 'world'
+        requestedTab === 'group' ||
+        requestedTab === 'world'
             ? requestedTab
             : 'user';
     const [searchText, setSearchText] = useState('');

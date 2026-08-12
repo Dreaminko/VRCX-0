@@ -1049,10 +1049,10 @@ mod tests {
     use vrcx_0_core::json::RawJson;
 
     use super::{
-        feed_latest_query, feed_row_from_value, feed_rows_query,
-        feed_rows_query_interruptible, merge_feed_rows_with_live, FeedCursorInput, FeedFilter,
-        FeedLatestQueryInput, FeedLiveEntryInput, FeedLiveRowsMergeContext, FeedQueryMode,
-        FeedReadModelOutput, FeedRowsQueryInput,
+        feed_latest_query, feed_row_from_value, feed_rows_query, feed_rows_query_interruptible,
+        merge_feed_rows_with_live, FeedCursorInput, FeedFilter, FeedLatestQueryInput,
+        FeedLiveEntryInput, FeedLiveRowsMergeContext, FeedQueryMode, FeedReadModelOutput,
+        FeedRowsQueryInput,
     };
     use crate::database::DatabaseService;
     use crate::realtime::{write_realtime_batch, RealtimePersistenceBatch};
@@ -1353,10 +1353,7 @@ mod tests {
             ..MergeCase::default()
         });
         assert_eq!(public_output.rows.len(), 1);
-        assert_eq!(
-            public_output.rows[0].user_id.as_deref(),
-            Some("usr_public")
-        );
+        assert_eq!(public_output.rows[0].user_id.as_deref(), Some("usr_public"));
     }
 
     #[test]
@@ -1858,5 +1855,4 @@ mod tests {
         assert_eq!(literal_percent[0].user_id.as_deref(), Some("usr_percent"));
         Ok(())
     }
-
 }

@@ -31,7 +31,6 @@ impl RealtimeUserImageResolverSlot {
         let runtime = self.inner.lock().ok()?.upgrade()?;
         runtime.cached_user_notification_image_url(endpoint, user_id, allow_user_icon)
     }
-
 }
 
 pub async fn resolve_delivery_world_name(

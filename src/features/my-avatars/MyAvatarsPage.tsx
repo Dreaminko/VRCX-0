@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { LoadingState, PageScaffold } from '@/components/layout/PageScaffold';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { IMAGE_UPLOAD_ACCEPT } from '@/shared/utils/imageUpload';
-import { Input } from '@/ui/shadcn/input';
 import { Button } from '@/ui/shadcn/button';
+import { Input } from '@/ui/shadcn/input';
 
 import { MyAvatarsDialogs } from './components/MyAvatarsDialogs';
 import { MyAvatarsGridView } from './components/MyAvatarsGridView';

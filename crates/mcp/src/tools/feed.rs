@@ -18,8 +18,8 @@ use crate::server::VrcxMcpServer;
 
 use super::common::{
     deserialize_optional_bool, map_persistence_error, require_current_user_id,
-    resolve_optional_target_or_result, structured_result, TargetResolutionOutcome, TimeWindowParams,
-    WithResolution,
+    resolve_optional_target_or_result, structured_result, TargetResolutionOutcome,
+    TimeWindowParams, WithResolution,
 };
 
 const DEFAULT_LIMIT: i64 = 20;
@@ -68,7 +68,9 @@ impl VrcxMcpServer {
         let date_from = canonical_time_bound(time_window.from)?;
         let date_to = canonical_time_bound(time_window.to)?;
         if !date_from.is_empty() && !date_to.is_empty() && date_from > date_to {
-            return Err("search_friend_feed timeWindow.from must not be after timeWindow.to".into());
+            return Err(
+                "search_friend_feed timeWindow.from must not be after timeWindow.to".into(),
+            );
         }
         if target_user_id.is_none() && date_from.is_empty() && input.all_history != Some(true) {
             return Err(
@@ -517,14 +519,17 @@ mod tests {
 
     #[test]
     fn friend_feed_projection_excludes_avatar_urls_and_keeps_visibility() {
-        let row = SearchFriendFeedRow::from_feed_row(FeedRowOutput {
-            user_id: Some("usr_friend".into()),
-            owner_id: Some("usr_friend".into()),
-            avatar_name: Some("Avatar".into()),
-            current_avatar_image_url: Some("https://example.com/full.png".into()),
-            current_avatar_thumbnail_image_url: Some("https://example.com/thumb.png".into()),
-            ..FeedRowOutput::default()
-        }, "");
+        let row = SearchFriendFeedRow::from_feed_row(
+            FeedRowOutput {
+                user_id: Some("usr_friend".into()),
+                owner_id: Some("usr_friend".into()),
+                avatar_name: Some("Avatar".into()),
+                current_avatar_image_url: Some("https://example.com/full.png".into()),
+                current_avatar_thumbnail_image_url: Some("https://example.com/thumb.png".into()),
+                ..FeedRowOutput::default()
+            },
+            "",
+        );
         let value = serde_json::to_value(row).unwrap();
 
         assert_eq!(value["avatarVisibility"], "private");

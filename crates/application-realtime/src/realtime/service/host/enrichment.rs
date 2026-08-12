@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use vrcx_0_persistence::config as config_store;
 use vrcx_0_core::friends::FriendRecord;
+use vrcx_0_persistence::config as config_store;
 
 use crate::realtime::{UserQueryCachePolicy, UserQueryKind, UserQueryOptions};
 use crate::world_enrich::{self, PendingWorldNameResolution};
@@ -150,13 +150,14 @@ impl RealtimeHostRuntime {
         user_id: &str,
         allow_user_icon: bool,
     ) -> Option<String> {
-        self.friends.with_user_cache_records(|friend_endpoint, records| {
-            if friend_endpoint.trim() != endpoint.trim() {
-                return None;
-            }
-            let record = records.get(user_id.trim())?;
-            friend_notification_image_url(record, allow_user_icon)
-        })?
+        self.friends
+            .with_user_cache_records(|friend_endpoint, records| {
+                if friend_endpoint.trim() != endpoint.trim() {
+                    return None;
+                }
+                let record = records.get(user_id.trim())?;
+                friend_notification_image_url(record, allow_user_icon)
+            })?
     }
 
     pub fn cached_user_notification_image_url(
@@ -494,16 +495,13 @@ async fn sleep_before_retry(deadline: Instant) {
     let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
         return;
     };
-    let delay =
-        Duration::from_millis(NOTIFICATION_USERNAME_RESOLVE_RETRY_DELAY_MS).min(remaining);
+    let delay = Duration::from_millis(NOTIFICATION_USERNAME_RESOLVE_RETRY_DELAY_MS).min(remaining);
     if delay > Duration::ZERO {
         tokio::time::sleep(delay).await;
     }
 }
 
-fn notification_upsert_needs_remote_resolution(
-    upsert: &RealtimeNotificationUpsert,
-) -> bool {
+fn notification_upsert_needs_remote_resolution(upsert: &RealtimeNotificationUpsert) -> bool {
     if upsert.insert_defaults.is_some() || !notification_upsert_is_visible(upsert) {
         return false;
     }
@@ -638,10 +636,7 @@ fn user_notification_image_url(value: &Value, allow_user_icon: bool) -> Option<S
     .find(|url| !url.trim().is_empty())
 }
 
-fn friend_notification_image_url(
-    record: &FriendRecord,
-    allow_user_icon: bool,
-) -> Option<String> {
+fn friend_notification_image_url(record: &FriendRecord, allow_user_icon: bool) -> Option<String> {
     [
         allow_user_icon.then(|| friend_record_extra_str(record, "userIcon")),
         Some(friend_record_extra_str(

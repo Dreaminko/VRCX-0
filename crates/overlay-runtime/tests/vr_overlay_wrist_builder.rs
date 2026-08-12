@@ -73,18 +73,26 @@ fn wrist_builder_keeps_renderer_model_free_of_application_entry_shape() {
 #[test]
 fn wrist_builder_maps_feed_icon_types_to_matching_accents() {
     let snapshot = OverlayActivitySnapshot {
-        entries: ["GPS", "Online", "Offline", "Status", "Avatar", "Bio", "OnPlayerJoined"]
-            .into_iter()
-            .enumerate()
-            .map(|(index, activity_type)| {
-                activity_entry(
-                    index as u64,
-                    activity_type,
-                    OverlayActivityCategory::FavoriteMovement,
-                    activity_type,
-                )
-            })
-            .collect(),
+        entries: [
+            "GPS",
+            "Online",
+            "Offline",
+            "Status",
+            "Avatar",
+            "Bio",
+            "OnPlayerJoined",
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(index, activity_type)| {
+            activity_entry(
+                index as u64,
+                activity_type,
+                OverlayActivityCategory::FavoriteMovement,
+                activity_type,
+            )
+        })
+        .collect(),
     };
 
     let model = build_wrist_surface_model(WristOverlayFrameInput {

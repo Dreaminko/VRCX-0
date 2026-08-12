@@ -36,10 +36,10 @@ export function GameLogPage({ embedded = false }: { embedded?: boolean } = {}) {
     const hasRows = annotations.annotatedRows.length > 0;
     const hasActiveFilters = Boolean(
         filters.deferredSearchQuery.trim() ||
-            filters.favoritesOnly ||
-            filters.queryFilterTypes.length ||
-            (filters.viewMode === 'sessions' &&
-                (filters.sessionDateFrom || filters.sessionDateTo))
+        filters.favoritesOnly ||
+        filters.queryFilterTypes.length ||
+        (filters.viewMode === 'sessions' &&
+            (filters.sessionDateFrom || filters.sessionDateTo))
     );
     const emptyIcon = hasActiveFilters ? SearchXIcon : HistoryIcon;
     let emptyTitleKey = 'empty_state.game_log_title';

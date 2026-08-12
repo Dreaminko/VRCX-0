@@ -169,9 +169,7 @@ export function SearchAvatarTabPanel({
                         <SearchEmptyState
                             kind="avatar"
                             searched={searched}
-                            avatarProviderConfigured={
-                                avatarProviderConfigured
-                            }
+                            avatarProviderConfigured={avatarProviderConfigured}
                             onClear={onClear}
                             onConfigureAvatarProvider={
                                 onConfigureAvatarProvider

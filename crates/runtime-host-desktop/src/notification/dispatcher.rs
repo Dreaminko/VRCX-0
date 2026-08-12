@@ -231,12 +231,7 @@ async fn prepare_notification(
         job.preferences.show_instance_id_in_location,
     );
     let local_image = if needs_local_image {
-        resolve_local_image_with_budget(
-            &tasks,
-            image_cache,
-            &render.image_url,
-        )
-        .await
+        resolve_local_image_with_budget(&tasks, image_cache, &render.image_url).await
     } else {
         None
     };

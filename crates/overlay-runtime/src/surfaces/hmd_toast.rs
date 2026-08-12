@@ -8,9 +8,7 @@ use vrcx_0_application_activity::{
 use vrcx_0_application_core::WorldCache;
 use vrcx_0_application_realtime::RealtimeFriendSnapshot;
 use vrcx_0_core::friends::FriendRecord;
-use vrcx_0_core::location::{
-    is_meaningful_world_name, parse_location, world_id_from_location,
-};
+use vrcx_0_core::location::{is_meaningful_world_name, parse_location, world_id_from_location};
 use vrcx_0_vr_overlay::{AvatarBitmap, OverlaySurfaceId, RgbaFrame, MAIN_SURFACE_ID};
 
 use super::super::localization::OverlayLocale;

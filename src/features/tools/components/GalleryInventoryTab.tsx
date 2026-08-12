@@ -192,9 +192,7 @@ export function GalleryInventoryTab({
                         <EmptyState
                             icon={GiftIcon}
                             title={t('empty_state.inventory_title')}
-                            description={t(
-                                'empty_state.inventory_description'
-                            )}
+                            description={t('empty_state.inventory_description')}
                         >
                             <Button
                                 type="button"

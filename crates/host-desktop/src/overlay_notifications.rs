@@ -50,13 +50,8 @@ impl OvrToolkit {
         _opacity: f64,
         image: Option<&str>,
     ) {
-        let messages = ovr_notification_messages(
-            hud_notification,
-            wrist_notification,
-            title,
-            body,
-            image,
-        );
+        let messages =
+            ovr_notification_messages(hud_notification, wrist_notification, title, body, image);
         if messages.is_empty() {
             return;
         }
@@ -274,7 +269,12 @@ async fn connect_ws() -> Result<WsSender, String> {
         tokio_tungstenite::connect_async(OVRTOOLKIT_WS_URL),
     )
     .await
-    .map_err(|_| format!("connect timed out after {} ms", OVR_CONNECT_TIMEOUT.as_millis()))?
+    .map_err(|_| {
+        format!(
+            "connect timed out after {} ms",
+            OVR_CONNECT_TIMEOUT.as_millis()
+        )
+    })?
     .map_err(|error| format!("connect: {error}"))?;
     let (write, read) = ws_stream.split();
 

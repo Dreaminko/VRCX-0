@@ -93,9 +93,7 @@ export function MutualFriendsStageOverlay({
                         variant="link"
                         onClick={onLoadConnections}
                     >
-                        {t(
-                            'empty_state.load_mutual_friends'
-                        )}
+                        {t('empty_state.load_mutual_friends')}
                     </Button>
                 </AppEmptyState>
             </StageOverlay>

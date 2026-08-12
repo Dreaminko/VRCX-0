@@ -119,9 +119,10 @@ impl RealtimeHostRuntime {
         if feed_persistence_disabled {
             output.persistence.feed_entries.clear();
         } else if avatar_feed_persistence_disabled {
-            output.persistence.feed_entries.retain(|entry| {
-                entry.get("type").and_then(Value::as_str) != Some("Avatar")
-            });
+            output
+                .persistence
+                .feed_entries
+                .retain(|entry| entry.get("type").and_then(Value::as_str) != Some("Avatar"));
         }
         let friend_note_changed = output.friend_note_changed;
         let mut world_name_fetch_ids =
