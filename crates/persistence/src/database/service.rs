@@ -4,8 +4,9 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc, Mutex, RwLock,
+    Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, TryLockError,
 };
+use std::time::Duration;
 
 use rusqlite::{
     types::{ToSql, Value as SqlValue},
@@ -262,6 +263,28 @@ impl DatabaseService {
         }
     }
 
+    pub(crate) fn execute_interruptible<F>(
+        &self,
+        sql: &str,
+        args: &HashMap<String, serde_json::Value>,
+        should_interrupt: F,
+    ) -> Result<Vec<Vec<serde_json::Value>>, Error>
+    where
+        F: Fn() -> bool + Send + Sync + 'static,
+    {
+        let inner = read_lock_interruptibly(&self.inner, &should_interrupt)?;
+        match &*inner {
+            DatabaseMode::Main(main) => main.execute_read_interruptible(sql, args, should_interrupt),
+            DatabaseMode::Upgrade(upgrade) => {
+                let conn = lock_interruptibly(&upgrade.conn, &should_interrupt)?;
+                execute_on_connection_interruptible(&conn, sql, args, should_interrupt)
+            }
+            DatabaseMode::Closed => Err(Error::Database(
+                "Database connection is temporarily unavailable.".into(),
+            )),
+        }
+    }
+
     pub(crate) fn execute_non_query(
         &self,
         sql: &str,
@@ -387,6 +410,46 @@ impl MainDatabase {
             .lock()
             .map_err(|e| Error::Database(e.to_string()))?;
         execute_on_connection(&conn, sql, args)
+    }
+
+    fn execute_read_interruptible<F>(
+        &self,
+        sql: &str,
+        args: &HashMap<String, serde_json::Value>,
+        should_interrupt: F,
+    ) -> Result<Vec<Vec<serde_json::Value>>, Error>
+    where
+        F: Fn() -> bool + Send + Sync + 'static,
+    {
+        if self.readers.is_empty() {
+            let conn = lock_interruptibly(&self.writer, &should_interrupt)?;
+            return execute_on_connection_interruptible(&conn, sql, args, should_interrupt);
+        }
+
+        let start = self.next_reader.fetch_add(1, Ordering::Relaxed) % self.readers.len();
+        loop {
+            for offset in 0..self.readers.len() {
+                let index = (start + offset) % self.readers.len();
+                match self.readers[index].try_lock() {
+                    Ok(conn) => {
+                        return execute_on_connection_interruptible(
+                            &conn,
+                            sql,
+                            args,
+                            should_interrupt,
+                        );
+                    }
+                    Err(TryLockError::WouldBlock) => {}
+                    Err(TryLockError::Poisoned(error)) => {
+                        return Err(Error::Database(error.to_string()));
+                    }
+                }
+            }
+            if should_interrupt() {
+                return Err(interrupted_error());
+            }
+            std::thread::sleep(Duration::from_millis(2));
+        }
     }
 
     fn execute_on_writer(
@@ -565,6 +628,71 @@ fn execute_on_connection(
         result.push(row.map_err(Error::sqlite)?);
     }
     Ok(result)
+}
+
+fn execute_on_connection_interruptible<F>(
+    conn: &Connection,
+    sql: &str,
+    args: &HashMap<String, serde_json::Value>,
+    should_interrupt: F,
+) -> Result<Vec<Vec<serde_json::Value>>, Error>
+where
+    F: Fn() -> bool + Send + Sync + 'static,
+{
+    conn.progress_handler(1_000, Some(should_interrupt))
+        .map_err(Error::sqlite)?;
+    let result = execute_on_connection(conn, sql, args);
+    conn.progress_handler(0, None::<fn() -> bool>)
+        .map_err(Error::sqlite)?;
+    result
+}
+
+fn read_lock_interruptibly<'a, T, F>(
+    lock: &'a RwLock<T>,
+    should_interrupt: &F,
+) -> Result<RwLockReadGuard<'a, T>, Error>
+where
+    F: Fn() -> bool,
+{
+    loop {
+        match lock.try_read() {
+            Ok(guard) => return Ok(guard),
+            Err(TryLockError::WouldBlock) => {}
+            Err(TryLockError::Poisoned(error)) => {
+                return Err(Error::Database(error.to_string()));
+            }
+        }
+        if should_interrupt() {
+            return Err(interrupted_error());
+        }
+        std::thread::sleep(Duration::from_millis(2));
+    }
+}
+
+fn lock_interruptibly<'a, T, F>(
+    lock: &'a Mutex<T>,
+    should_interrupt: &F,
+) -> Result<MutexGuard<'a, T>, Error>
+where
+    F: Fn() -> bool,
+{
+    loop {
+        match lock.try_lock() {
+            Ok(guard) => return Ok(guard),
+            Err(TryLockError::WouldBlock) => {}
+            Err(TryLockError::Poisoned(error)) => {
+                return Err(Error::Database(error.to_string()));
+            }
+        }
+        if should_interrupt() {
+            return Err(interrupted_error());
+        }
+        std::thread::sleep(Duration::from_millis(2));
+    }
+}
+
+fn interrupted_error() -> Error {
+    Error::Database("SQLite query interrupted".into())
 }
 
 fn execute_non_query_on_connection(

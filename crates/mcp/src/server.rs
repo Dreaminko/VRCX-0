@@ -25,7 +25,7 @@ Ground rules:
 - Ranked tools pre-sort and limit rows: read the top rows; do not loop to enumerate everyone. Pass a small `limit` only to widen or narrow the ranking.
 - User-targeting tools accept a usr_ id or a display name. Check `resolvedUser` is the intended person; on `needsDisambiguation`, ask the user instead of guessing.
 - Results with a `summary` field are ready-to-read fact bundles; narrate from the summary, then add only the caveats and details the question needs.
-- `timeWindow` accepts {from, to} RFC3339 or a relative string (\"this week\", \"7d\"); omit it to search all history.
+- `timeWindow` accepts {from, to} RFC3339 or a relative string (\"this week\", \"7d\"); omit it only when the chosen tool permits all history.
 - Writes (favorite_local, favorite_vrchat, set_friend_note) default to dry_run=true and never message other users; confirm before a real write.
 
 Tool tiers — pick the right altitude:
@@ -47,6 +47,7 @@ Map fuzzy requests to tools, then read each tool's own description for details (
 - Recap a week or month -> summarize_social_period
 - Who someone else hangs out with -> get_companions_of
 - A single friend, or who is online now -> get_friend_profile, get_online_friends
+- Exact observed friend Feed history -> search_friend_feed
 - Which of my friends know each other / friend groups -> get_friend_circles
 - History, mutuals, invites, status changes -> get_friend_log, get_social_graph (refresh_mutual_graph if stale), get_invite_history, get_friend_changes
 
@@ -118,6 +119,8 @@ mod instructions_tests {
             "dry_run",
             "relative string",
             "`timeWindow`",
+            "search_friend_feed",
+            "Exact observed friend Feed history",
         ] {
             assert!(
                 SERVER_INSTRUCTIONS.contains(phrase),

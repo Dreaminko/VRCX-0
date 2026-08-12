@@ -14,6 +14,7 @@ impl VrcxMcpServer {
     fn tool_router() -> ToolRouter<Self> {
         Self::activity_tool_router()
             + Self::favorites_tool_router()
+            + Self::feed_tool_router()
             + Self::friends_tool_router()
             + Self::graph_tool_router()
             + Self::invites_tool_router()
@@ -59,6 +60,7 @@ mod router_tests {
                 "get_social_graph",
                 "recall_encounter",
                 "refresh_mutual_graph",
+                "search_friend_feed",
                 "search_worlds_visited",
                 "set_friend_note",
                 "summarize_social_period",
@@ -108,5 +110,43 @@ mod router_tests {
             schema["$defs"]["FavoriteListKind"]["enum"],
             serde_json::json!(["all", "world", "friend", "avatar"])
         );
+    }
+
+    #[test]
+    fn friend_feed_search_exposes_its_cost_and_paging_boundaries() {
+        let router = VrcxMcpServer::tool_router();
+        let tool = router
+            .list_all()
+            .into_iter()
+            .find(|tool| tool.name.as_ref() == "search_friend_feed")
+            .expect("search_friend_feed should be registered");
+
+        for phrase in ["exact event evidence", "allHistory=true", "at most 50 rows"] {
+            assert!(
+                tool.description
+                    .as_deref()
+                    .is_some_and(|description| description.contains(phrase)),
+                "missing phrase: {phrase}"
+            );
+        }
+        for property in [
+            "query",
+            "target",
+            "eventTypes",
+            "timeWindow",
+            "allHistory",
+            "limit",
+            "cursor",
+        ] {
+            assert!(
+                tool.input_schema["properties"].get(property).is_some(),
+                "missing property: {property}"
+            );
+        }
+
+        let time_window_schema = tool.input_schema["properties"]["timeWindow"].to_string();
+        assert!(time_window_schema.contains("\"oneOf\""));
+        assert!(time_window_schema.contains("\"string\""));
+        assert!(time_window_schema.contains("\"object\""));
     }
 }

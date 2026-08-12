@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 use rmcp::model::CallToolResult;
 use rmcp::schemars;
@@ -25,10 +27,39 @@ where
     }
 }
 
-#[derive(Clone, Debug, Default, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default)]
 pub(super) struct TimeWindowParams {
     pub(super) from: Option<String>,
     pub(super) to: Option<String>,
+}
+
+impl schemars::JsonSchema for TimeWindowParams {
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn schema_name() -> Cow<'static, str> {
+        "TimeWindow".into()
+    }
+
+    fn json_schema(_generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "oneOf": [
+                {
+                    "type": "string",
+                    "description": "Relative window such as 90d, this week, or all history."
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "from": { "type": ["string", "null"] },
+                        "to": { "type": ["string", "null"] }
+                    },
+                    "additionalProperties": false
+                }
+            ]
+        })
+    }
 }
 
 impl<'de> Deserialize<'de> for TimeWindowParams {
@@ -36,11 +67,8 @@ impl<'de> Deserialize<'de> for TimeWindowParams {
     where
         D: serde::Deserializer<'de>,
     {
-        // Accept the documented object form `{from, to}` but also tolerate a
-        // bare natural-language string (e.g. "this week") that models often pass
-        // despite the schema. Unrecognized strings fall back to all history.
         let value = Value::deserialize(deserializer)?;
-        Ok(time_window_from_value(&value))
+        time_window_from_value(&value).map_err(serde::de::Error::custom)
     }
 }
 
@@ -53,56 +81,58 @@ impl From<TimeWindowParams> for social_aggregates::TimeWindow {
     }
 }
 
-fn time_window_from_value(value: &Value) -> TimeWindowParams {
+fn time_window_from_value(value: &Value) -> Result<TimeWindowParams, String> {
     match value {
         Value::String(text) => parse_relative_window(text),
-        Value::Object(map) => TimeWindowParams {
-            from: map
-                .get("from")
-                .and_then(Value::as_str)
-                .and_then(normalize_time_bound),
-            to: map
-                .get("to")
-                .and_then(Value::as_str)
-                .and_then(normalize_time_bound),
-        },
-        _ => TimeWindowParams::default(),
+        Value::Object(map) => {
+            if let Some(field) = map.keys().find(|field| *field != "from" && *field != "to") {
+                return Err(format!("unknown timeWindow field '{field}'"));
+            }
+            Ok(TimeWindowParams {
+                from: time_window_bound(map.get("from"), "from")?,
+                to: time_window_bound(map.get("to"), "to")?,
+            })
+        }
+        _ => Err("timeWindow must be a relative string or an object with from/to bounds".into()),
     }
 }
 
-/// Coerce a single `from`/`to` bound into RFC3339, since models pass shorthand
-/// (`7d`, `now`), date-only (`2025-07-11`), or timezone-less datetimes despite
-/// the schema. Returns `None` (unbounded) for anything unparseable so the tool
-/// never sees an invalid RFC3339 string.
-fn normalize_time_bound(raw: &str) -> Option<String> {
+fn time_window_bound(value: Option<&Value>, field: &str) -> Result<Option<String>, String> {
+    match value {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(value)) => normalize_time_bound(value),
+        Some(_) => Err(format!("timeWindow.{field} must be a string or null")),
+    }
+}
+
+fn normalize_time_bound(raw: &str) -> Result<Option<String>, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
-        return None;
+        return Ok(None);
     }
     if DateTime::parse_from_rfc3339(trimmed).is_ok() {
-        return Some(trimmed.to_string());
+        return Ok(Some(trimmed.to_string()));
     }
     let lowered = trimmed.to_ascii_lowercase();
     if lowered == "now" || lowered == "today" {
-        return Some(Utc::now().to_rfc3339());
+        return Ok(Some(Utc::now().to_rfc3339()));
     }
     if let Ok(date) = chrono::NaiveDate::parse_from_str(trimmed, "%Y-%m-%d") {
         let naive = date.and_time(chrono::NaiveTime::MIN);
-        return Some(Utc.from_utc_datetime(&naive).to_rfc3339());
+        return Ok(Some(Utc.from_utc_datetime(&naive).to_rfc3339()));
     }
     for fmt in ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"] {
         if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(trimmed, fmt) {
-            return Some(Utc.from_utc_datetime(&naive).to_rfc3339());
+            return Ok(Some(Utc.from_utc_datetime(&naive).to_rfc3339()));
         }
     }
     if let Some(duration) = parse_duration(&lowered) {
-        return Some((Utc::now() - duration).to_rfc3339());
+        return Ok(Some((Utc::now() - duration).to_rfc3339()));
     }
-    tracing::warn!(input = %raw, "assistant: unrecognized time bound, ignoring");
-    None
+    Err(format!("unrecognized timeWindow bound '{raw}'"))
 }
 
-fn parse_relative_window(text: &str) -> TimeWindowParams {
+fn parse_relative_window(text: &str) -> Result<TimeWindowParams, String> {
     let normalized = text.trim().to_ascii_lowercase();
     let now = Utc::now();
     let rfc = |dt: DateTime<Utc>| Some(dt.to_rfc3339());
@@ -111,31 +141,30 @@ fn parse_relative_window(text: &str) -> TimeWindowParams {
     match normalized.as_str() {
         "" | "all" | "all time" | "alltime" | "all history" | "all-history" | "entire history"
         | "any" | "anytime" | "ever" | "always" | "so far" | "forever" | "lifetime" => {
-            return TimeWindowParams::default();
+            return Ok(TimeWindowParams::default());
         }
-        "today" => return window(rfc(start_of_day(now)), None),
+        "today" => return Ok(window(rfc(start_of_day(now)), None)),
         "yesterday" => {
             let start_today = start_of_day(now);
-            return window(rfc(start_today - Duration::days(1)), rfc(start_today));
+            return Ok(window(rfc(start_today - Duration::days(1)), rfc(start_today)));
         }
-        "this week" | "week" => return window(rfc(start_of_week(now)), None),
+        "this week" | "week" => return Ok(window(rfc(start_of_week(now)), None)),
         "last week" | "past week" | "previous week" => {
             let this = start_of_week(now);
-            return window(rfc(this - Duration::days(7)), rfc(this));
+            return Ok(window(rfc(this - Duration::days(7)), rfc(this)));
         }
-        "this month" | "month" => return window(rfc(start_of_month(now)), None),
+        "this month" | "month" => return Ok(window(rfc(start_of_month(now)), None)),
         "last month" | "past month" | "previous month" => {
-            return window(rfc(start_of_prev_month(now)), rfc(start_of_month(now)));
+            return Ok(window(rfc(start_of_prev_month(now)), rfc(start_of_month(now))));
         }
         _ => {}
     }
 
     if let Some(window) = parse_rolling_window(&normalized, now) {
-        return window;
+        return Ok(window);
     }
 
-    tracing::warn!(input = %text, "assistant: unrecognized time window string, using all history");
-    TimeWindowParams::default()
+    Err(format!("unrecognized timeWindow string '{text}'"))
 }
 
 fn parse_rolling_window(text: &str, now: DateTime<Utc>) -> Option<TimeWindowParams> {
@@ -485,7 +514,7 @@ mod time_window_tests {
     #[test]
     fn parses_object_form() {
         let value = serde_json::json!({ "from": "2026-01-01T00:00:00Z", "to": null });
-        let window = time_window_from_value(&value);
+        let window = time_window_from_value(&value).unwrap();
         assert_eq!(window.from.as_deref(), Some("2026-01-01T00:00:00Z"));
         assert_eq!(window.to, None);
     }
@@ -499,7 +528,7 @@ mod time_window_tests {
             "last 7 days",
             "past 3 weeks",
         ] {
-            let window = time_window_from_value(&serde_json::json!(phrase));
+            let window = time_window_from_value(&serde_json::json!(phrase)).unwrap();
             assert!(window.from.is_some(), "{phrase} should set a lower bound");
         }
     }
@@ -507,7 +536,7 @@ mod time_window_tests {
     #[test]
     fn all_history_phrases_stay_empty() {
         for phrase in ["all", "all time", "ever", ""] {
-            let window = time_window_from_value(&serde_json::json!(phrase));
+            let window = time_window_from_value(&serde_json::json!(phrase)).unwrap();
             assert!(
                 window.from.is_none() && window.to.is_none(),
                 "{phrase} should be unbounded"
@@ -516,9 +545,9 @@ mod time_window_tests {
     }
 
     #[test]
-    fn unknown_string_falls_back_to_all_history() {
-        let window = time_window_from_value(&serde_json::json!("whenever-ish"));
-        assert!(window.from.is_none() && window.to.is_none());
+    fn unknown_string_is_rejected() {
+        let error = time_window_from_value(&serde_json::json!("whenever-ish")).unwrap_err();
+        assert!(error.contains("unrecognized timeWindow string"));
     }
 
     #[test]
@@ -530,7 +559,7 @@ mod time_window_tests {
             serde_json::json!({ "from": "2025-07-11", "to": "2025-07-18" }),
             serde_json::json!({ "from": "2025-07-11T10:00:00" }),
         ] {
-            let window = time_window_from_value(&value);
+            let window = time_window_from_value(&value).unwrap();
             for bound in [window.from.as_deref(), window.to.as_deref()]
                 .into_iter()
                 .flatten()
@@ -550,16 +579,22 @@ mod time_window_tests {
     #[test]
     fn valid_rfc3339_bounds_pass_through() {
         let value = serde_json::json!({ "from": "2025-07-11T10:00:00Z" });
-        let window = time_window_from_value(&value);
+        let window = time_window_from_value(&value).unwrap();
         assert_eq!(window.from.as_deref(), Some("2025-07-11T10:00:00Z"));
     }
 
     #[test]
-    fn unparseable_bound_becomes_unbounded() {
+    fn invalid_object_values_are_rejected() {
         let value = serde_json::json!({ "from": "soon", "to": "2025-07-18" });
-        let window = time_window_from_value(&value);
-        assert!(window.from.is_none(), "garbage 'from' should drop to None");
-        assert!(window.to.is_some(), "valid 'to' should remain");
+        assert!(time_window_from_value(&value)
+            .unwrap_err()
+            .contains("unrecognized timeWindow bound"));
+        assert!(time_window_from_value(&serde_json::json!({ "from": 7 }))
+            .unwrap_err()
+            .contains("timeWindow.from must be a string or null"));
+        assert!(time_window_from_value(&serde_json::json!({ "since": "7d" }))
+            .unwrap_err()
+            .contains("unknown timeWindow field"));
     }
 
     #[test]

@@ -71,6 +71,70 @@ fn executes_daily_named_parameter_reads_and_writes() -> Result<(), Error> {
 }
 
 #[test]
+fn interruptible_read_stops_work_and_releases_its_reader() -> Result<(), Error> {
+    let dir = TestDir::new("sqlite-interruptible-read");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let empty = HashMap::new();
+
+    let interrupted = db.execute_interruptible(
+        "WITH RECURSIVE numbers(value) AS (VALUES(1) UNION ALL SELECT value + 1 FROM numbers WHERE value < 1000000) SELECT SUM(value) FROM numbers",
+        &empty,
+        || true,
+    );
+    assert!(matches!(
+        interrupted,
+        Err(Error::Sqlite { ref message, .. }) if message.contains("interrupted")
+    ));
+
+    assert_eq!(db.execute("SELECT 1", &empty)?, vec![vec![serde_json::json!(1)]]);
+    assert_eq!(db.execute("SELECT 2", &empty)?, vec![vec![serde_json::json!(2)]]);
+    Ok(())
+}
+
+#[test]
+fn interruptible_read_can_cancel_while_all_readers_are_busy() -> Result<(), Error> {
+    let dir = TestDir::new("sqlite-interruptible-reader-wait");
+    let db = Arc::new(DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?);
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::channel();
+    let held_db = Arc::clone(&db);
+    let holder = std::thread::spawn(move || {
+        let inner = held_db.inner.read().unwrap();
+        let DatabaseMode::Main(main) = &*inner else {
+            panic!("expected main database");
+        };
+        let _first = main.readers[0].lock().unwrap();
+        let _second = main.readers[1].lock().unwrap();
+        ready_tx.send(()).unwrap();
+        release_rx.recv().unwrap();
+    });
+    ready_rx.recv().unwrap();
+
+    let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let cancel_flag = Arc::clone(&cancelled);
+    let canceller = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(20));
+        cancel_flag.store(true, Ordering::Release);
+    });
+    let empty = HashMap::new();
+    let wait_started = std::time::Instant::now();
+    let query_cancelled = Arc::clone(&cancelled);
+    let result = db.execute_interruptible("SELECT 1", &empty, move || {
+        query_cancelled.load(Ordering::Acquire)
+    });
+
+    release_tx.send(()).unwrap();
+    holder.join().unwrap();
+    canceller.join().unwrap();
+    assert!(matches!(
+        result,
+        Err(Error::Database(ref message)) if message.contains("interrupted")
+    ));
+    assert!(wait_started.elapsed() < Duration::from_secs(1));
+    Ok(())
+}
+
+#[test]
 fn configured_writer_enables_secure_delete() -> Result<(), Error> {
     let conn = Connection::open_in_memory().map_err(|e| Error::Database(e.to_string()))?;
     configure_connection(&conn)?;
