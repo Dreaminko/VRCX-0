@@ -5,7 +5,7 @@ import { Marker, MarkerContent, MarkerIcon } from '@/ui/shadcn/marker';
 import { Message, MessageContent } from '@/ui/shadcn/message';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-import type { UIMessage } from '../assistantTypes';
+import type { UIMessage } from '@/domain/assistant/assistantTypes';
 import { AssistantMarkdown } from './AssistantMarkdown';
 import { ToolCallStatus } from './ToolCallStatus';
 

@@ -273,6 +273,7 @@ export function useWorldDialogCurrentInstance({
         };
     }, [
         currentEndpoint,
+        currentLocationPlayers,
         currentResolvedLocation,
         currentLocationStartedAt,
         currentUserId,

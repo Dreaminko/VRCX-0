@@ -102,13 +102,9 @@ export function useLoginPageState() {
         setProxyInput(proxyServer || '');
     }, [proxyEnabled, proxyServer]);
 
-    function applySnapshot(nextSnapshot: SavedAuthSnapshot): void {
-        setSnapshot(nextSnapshot);
-    }
-
     const { cancelPendingAutoLogin } = useLoginAutoLogin({
         activeSavedUserId,
-        applySnapshot,
+        applySnapshot: setSnapshot,
         databaseReady,
         isLoading,
         isSubmitting,
@@ -128,7 +124,7 @@ export function useLoginPageState() {
 
         const cachedSnapshot = getCachedAuthSnapshot();
         if (cachedSnapshot) {
-            applySnapshot(cachedSnapshot);
+            setSnapshot(cachedSnapshot);
             setIsLoading(false);
             return;
         }
@@ -136,7 +132,7 @@ export function useLoginPageState() {
         refreshSavedAuthSnapshot()
             .then((nextSnapshot) => {
                 if (active) {
-                    applySnapshot(nextSnapshot);
+                    setSnapshot(nextSnapshot);
                 }
             })
             .catch((error: unknown) => {
@@ -157,7 +153,7 @@ export function useLoginPageState() {
         return () => {
             active = false;
         };
-    }, []);
+    }, [t]);
 
     async function handleLanguageChange(nextLanguage: string) {
         cancelPendingAutoLogin();
@@ -268,7 +264,7 @@ export function useLoginPageState() {
         setIsDeleting(true);
         try {
             const nextSnapshot = await deleteSavedAuthSnapshot(deleteUserId);
-            applySnapshot(nextSnapshot);
+            setSnapshot(nextSnapshot);
             toast.success(t('message.auth.account_removed'));
         } catch (error) {
             toast.error(
@@ -318,14 +314,14 @@ export function useLoginPageState() {
                 password: loginForm.password,
                 saveCredentials: loginForm.saveCredentials
             });
-            applySnapshot(nextSnapshot);
+            setSnapshot(nextSnapshot);
             toast.success(
                 t('common.label.authenticated_and_prepared_the_session')
             );
         } catch (error) {
             const failureSnapshot = getAuthSnapshotFromError(error);
             if (failureSnapshot) {
-                applySnapshot(failureSnapshot);
+                setSnapshot(failureSnapshot);
             }
             toast.error(
                 getErrorMessage(
@@ -355,7 +351,7 @@ export function useLoginPageState() {
         setActiveSavedUserId(userId);
         try {
             const nextSnapshot = await executeSavedCredentialLogin(entry);
-            applySnapshot(nextSnapshot);
+            setSnapshot(nextSnapshot);
             toast.success(
                 t(
                     'view.auth.dynamic.authenticated_and_prepared_the_session_for_value',
@@ -365,7 +361,7 @@ export function useLoginPageState() {
         } catch (error) {
             const failureSnapshot = getAuthSnapshotFromError(error);
             if (failureSnapshot) {
-                applySnapshot(failureSnapshot);
+                setSnapshot(failureSnapshot);
             }
             toast.error(
                 getErrorMessage(

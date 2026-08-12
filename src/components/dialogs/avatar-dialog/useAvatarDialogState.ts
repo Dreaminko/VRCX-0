@@ -58,6 +58,8 @@ export function useAvatarDialogState({
     const [avatar, setAvatar] = useState(() =>
         seedData ? avatarProfileRepository.normalize(seedData) : null
     );
+    const avatarAssetUrl = avatar?.assetUrl;
+    const avatarUnityPackages = avatar?.unityPackages;
     const [loadStatus, setLoadStatus] = useState<AvatarLoadStatus>(
         normalizedAvatarId ? 'running' : 'idle'
     );
@@ -161,9 +163,16 @@ export function useAvatarDialogState({
             const galleryRows =
                 galleryResult.status === 'fulfilled' ? galleryResult.value : [];
             return Promise.allSettled([
-                readAvatarCacheInfo(avatar, sdkUnityVersion),
+                readAvatarCacheInfo(
+                    {
+                        id: avatar?.id,
+                        assetUrl: avatarAssetUrl,
+                        unityPackages: avatarUnityPackages
+                    },
+                    sdkUnityVersion
+                ),
                 getFileAnalysisForUnityPackages({
-                    unityPackages: avatar.unityPackages,
+                    unityPackages: avatarUnityPackages,
                     sdkUnityVersion,
                     endpoint: currentEndpoint
                 })
@@ -195,6 +204,8 @@ export function useAvatarDialogState({
         avatar?.id,
         avatar?.updated_at,
         avatar?.version,
+        avatarAssetUrl,
+        avatarUnityPackages,
         currentEndpoint,
         sdkUnityVersion
     ]);

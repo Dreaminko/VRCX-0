@@ -476,7 +476,13 @@ export function DataTableView<TData extends RowData>({
                 .filter((columnId): columnId is string => Boolean(columnId)),
         [columns]
     );
-    const tableLayout = usePersistedDataTableLayout({
+    const {
+        columnOrder,
+        columnSizing,
+        setColumnOrder,
+        setColumnSizing,
+        writePersistedState
+    } = usePersistedDataTableLayout({
         tableId: persistKey,
         columnIds
     });
@@ -492,33 +498,25 @@ export function DataTableView<TData extends RowData>({
             return;
         }
 
-        tableLayout.writePersistedState({
-            columnOrder: sanitizeTableColumnOrder(
-                tableLayout.columnOrder,
-                columnIds
-            )
+        writePersistedState({
+            columnOrder: sanitizeTableColumnOrder(columnOrder, columnIds)
         });
-    }, [
-        columnIds,
-        persistTableLayout,
-        tableLayout.columnOrder,
-        tableLayout.writePersistedState
-    ]);
+    }, [columnIds, columnOrder, persistTableLayout, writePersistedState]);
 
     const table = useAppTable<TData>({
         columns,
         data,
         state: persistTableLayout
             ? {
-                  columnOrder: tableLayout.columnOrder,
-                  columnSizing: tableLayout.columnSizing
+                  columnOrder,
+                  columnSizing
               }
             : undefined,
         onColumnOrderChange: persistTableLayout
-            ? tableLayout.setColumnOrder
+            ? setColumnOrder
             : undefined,
         onColumnSizingChange: persistTableLayout
-            ? tableLayout.setColumnSizing
+            ? setColumnSizing
             : undefined,
         enableColumnResizing: persistTableLayout,
         columnResizeMode: 'onChange'

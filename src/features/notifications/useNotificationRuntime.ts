@@ -8,6 +8,8 @@ import {
     resolveCurrentInviteLocation
 } from './notificationRows';
 
+const EMPTY_GROUP_INSTANCES: unknown[] = [];
+
 export function useNotificationRuntime() {
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
@@ -48,7 +50,7 @@ export function useNotificationRuntime() {
         groupInstancesUserId === currentUserId &&
         groupInstancesEndpoint === endpoint
             ? groupInstances
-            : [];
+            : EMPTY_GROUP_INSTANCES;
     const gameState = useMemo(
         () => ({
             currentDestination,

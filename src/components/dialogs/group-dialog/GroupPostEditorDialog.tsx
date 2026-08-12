@@ -1,5 +1,5 @@
 import { ImageIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -62,7 +62,7 @@ export function GroupPostEditorDialog({
     const [galleryError, setGalleryError] = useState('');
     const galleryRequestIdRef = useRef(0);
 
-    async function loadGalleryRows() {
+    const loadGalleryRows = useCallback(async () => {
         if (!open) {
             return;
         }
@@ -94,7 +94,7 @@ export function GroupPostEditorDialog({
                     : 'Failed to load gallery images.'
             );
         }
-    }
+    }, [open]);
 
     useEffect(() => {
         if (open) {
@@ -105,7 +105,7 @@ export function GroupPostEditorDialog({
             setGalleryStatus('idle');
             setGalleryError('');
         }
-    }, [open]);
+    }, [loadGalleryRows, open]);
 
     if (!form) {
         return null;

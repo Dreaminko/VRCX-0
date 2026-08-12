@@ -29,18 +29,19 @@ vi.mock('@tanstack/react-query', async (importOriginal) => {
     return {
         ...actual,
         useQuery: (options: QueryOptions) => {
+            const { enabled, queryFn } = options;
             useEffect(() => {
-                if (options.enabled) {
-                    void options.queryFn();
+                if (enabled) {
+                    void queryFn();
                 }
-            }, [options.enabled]);
+            }, [enabled, queryFn]);
             return { data: mocks.queryData };
         }
     };
 });
 
 vi.mock('@/components/layout/PageScaffold', () => ({}));
-vi.mock('@/features/game-log/gameLogUserLookup', () => ({
+vi.mock('@/services/gameLogUserDialogService', () => ({
     openGameLogUser: vi.fn()
 }));
 vi.mock('@/lib/useKnownUser', () => ({

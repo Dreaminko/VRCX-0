@@ -39,9 +39,6 @@ export function useModerationColumns({
 }: ModerationColumnsOptions) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const getModerationTypeLabel = (type: unknown) =>
-        resolveModerationTypeLabel(type, t);
-
     return useMemo<AppColumnDef<ModerationRow>[]>(
         () => [
             {
@@ -114,7 +111,7 @@ export function useModerationColumns({
                 ),
                 cell: ({ row }) => (
                     <Badge variant="outline" className="text-muted-foreground">
-                        {getModerationTypeLabel(row.original?.type)}
+                        {resolveModerationTypeLabel(row.original?.type, t)}
                     </Badge>
                 )
             },
@@ -258,7 +255,6 @@ export function useModerationColumns({
         [
             currentUserId,
             deletingModerationKey,
-            getModerationTypeLabel,
             onDeleteModeration,
             onOpenUser,
             shiftHeld,

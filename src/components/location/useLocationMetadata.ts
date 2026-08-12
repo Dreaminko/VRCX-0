@@ -29,6 +29,7 @@ import type {
 export type { LocationMetadata, LocationMetadataEntry };
 
 const WORLD_PROFILE_REQUEST_KEY_SEPARATOR = '\u0000';
+const EMPTY_GROUP_INSTANCES: unknown[] = [];
 
 export function useLocationMetadataBatch(
     entries: readonly (LocationMetadataEntry | null | undefined)[] = [],
@@ -49,7 +50,7 @@ export function useLocationMetadataBatch(
         groupInstancesState.userId === currentUserId &&
         groupInstancesState.endpoint === currentEndpoint
             ? groupInstancesState.instances
-            : [];
+            : EMPTY_GROUP_INSTANCES;
     const groupInstancesRevision =
         groupInstancesState.userId === currentUserId &&
         groupInstancesState.endpoint === currentEndpoint
@@ -57,10 +58,14 @@ export function useLocationMetadataBatch(
               groupInstancesState.fetchedAt ||
               groupInstancesState.status
             : '';
-    const cachedInstances = useMemo(
-        () => buildCachedInstanceMap(groupInstances),
+    const cachedInstanceSnapshot = useMemo(
+        () => ({
+            revision: groupInstancesRevision,
+            instances: buildCachedInstanceMap(groupInstances)
+        }),
         [groupInstances, groupInstancesRevision]
     );
+    const cachedInstances = cachedInstanceSnapshot.instances;
     const normalizedEntries = useMemo(
         () =>
             (Array.isArray(entries) ? entries : []).map((entry, index) =>

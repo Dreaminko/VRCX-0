@@ -47,6 +47,7 @@ import {
 import { normalizeUserId } from './userProfileFields';
 
 const locationUserProfileFetchConcurrency = 4;
+const EMPTY_GROUP_INSTANCES: unknown[] = [];
 
 type UserDialogLocationPanelData = {
     location: unknown;
@@ -248,7 +249,7 @@ export function useUserDialogLocationPanel({
         groupInstancesState.endpoint === currentEndpoint;
     const groupInstances = groupInstancesScopeMatches
         ? groupInstancesState.instances
-        : [];
+        : EMPTY_GROUP_INSTANCES;
     const groupInstancesRevision = groupInstancesScopeMatches
         ? groupInstancesState.lastLoadedAt ||
           groupInstancesState.fetchedAt ||
@@ -672,6 +673,7 @@ export function useUserDialogLocationPanel({
         gameState?.currentLocationStartedAt,
         gameState?.currentLocationPlayerIds,
         gameState?.currentLocationPlayers,
+        gameState?.isGameRunning,
         gameState?.currentWorldId,
         gameState?.currentWorldName,
         locationRefreshToken,
@@ -746,7 +748,7 @@ export function useUserDialogLocationPanel({
         return null;
     }
 
-    const inviteInstanceCache = useMemo(() => {
+    const inviteInstanceSnapshot = useMemo(() => {
         const cache = buildCachedInstanceMap(groupInstances);
 
         function setCachedInstance(location: unknown, instanceValue: unknown) {
@@ -795,7 +797,10 @@ export function useUserDialogLocationPanel({
             );
         }
 
-        return cache;
+        return {
+            cache,
+            revision: groupInstancesRevision
+        };
     }, [
         currentInviteLocation,
         currentInviteInstance,
@@ -804,6 +809,7 @@ export function useUserDialogLocationPanel({
         locationPanel.instance,
         locationPanel.location
     ]);
+    const inviteInstanceCache = inviteInstanceSnapshot.cache;
 
     const canInviteFromCurrentLocation =
         currentInviteInstanceStatus !== 'running' &&

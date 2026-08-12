@@ -14,7 +14,7 @@ import {
     PageToolbar,
     PageToolbarRow
 } from '@/components/layout/PageScaffold';
-import { openGameLogUser } from '@/features/game-log/gameLogUserLookup';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import {
     formatClock,
     formatDateFilterOrFallback,

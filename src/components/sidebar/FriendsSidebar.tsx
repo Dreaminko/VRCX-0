@@ -371,7 +371,13 @@ export function FriendsSidebar({
             currentLocationSnapshot,
             sameInstanceFallbackJoinTimes
         );
-    }, [currentLocationSnapshot, favoriteCollectionTab, prefs, rows]);
+    }, [
+        currentLocationSnapshot,
+        favoriteCollectionTab,
+        prefs,
+        rows,
+        sameInstanceFallbackJoinTimes
+    ]);
     const favoriteCollectionSameInstanceGroups = useMemo(() => {
         if (!favoriteCollectionTab) {
             return [];
@@ -386,7 +392,8 @@ export function FriendsSidebar({
         currentLocationSnapshot,
         favoriteCollectionRows,
         favoriteCollectionTab,
-        prefs
+        prefs,
+        sameInstanceFallbackJoinTimes
     ]);
     const favoriteCollectionSameInstanceIds = useMemo(
         () =>
@@ -679,9 +686,7 @@ export function FriendsSidebar({
         offlineRows,
         onlineRows,
         openGroups,
-        prefs.isShowCurrentUserInSameInstance,
-        prefs.isSameInstanceAboveFavorites,
-        prefs.isSidebarDivideByFriendGroup,
+        prefs,
         rows.length,
         sameInstanceGroups,
         t

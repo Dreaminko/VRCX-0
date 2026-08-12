@@ -56,10 +56,14 @@ export function useUserHoverCardData({
         ReturnType<typeof worldProfileRepository.getWorldProfile>
     > | null>(null);
 
-    const nowMs = useMemo(() => Date.now(), [profile, effectiveSeed]);
     const model = useMemo(
-        () => buildUserHoverCardModel({ seed: effectiveSeed, profile, nowMs }),
-        [effectiveSeed, profile, nowMs]
+        () =>
+            buildUserHoverCardModel({
+                seed: effectiveSeed,
+                profile,
+                nowMs: Date.now()
+            }),
+        [effectiveSeed, profile]
     );
 
     useEffect(() => {

@@ -8,7 +8,13 @@ import {
     subYears
 } from 'date-fns';
 import { ChevronDownIcon, RefreshCwIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    useEffect,
+    useEffectEvent,
+    useMemo,
+    useRef,
+    useState
+} from 'react';
 import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -326,6 +332,8 @@ export function GroupCalendarDialog({
         }
     }
 
+    const loadVisibleCalendar = useEffectEvent(() => loadCalendar());
+
     useEffect(() => {
         if (!open) {
             return;
@@ -344,7 +352,7 @@ export function GroupCalendarDialog({
             loadRequestRef.current += 1;
             return;
         }
-        loadCalendar();
+        loadVisibleCalendar();
     }, [
         currentEndpoint,
         currentUserId,

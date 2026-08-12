@@ -100,7 +100,7 @@ export function FriendInstanceTimer({
             Math.max(1, nextStepMs - elapsedMs)
         );
         return () => window.clearTimeout(timeoutId);
-    }, [elapsedMs, normalizedEpoch]);
+    }, [elapsedMs, nextStepMs, normalizedEpoch]);
 
     return (
         <span className="inline-flex min-w-0 items-center">

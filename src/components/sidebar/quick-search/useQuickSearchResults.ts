@@ -9,6 +9,8 @@ import type { QuickSearchCatalog } from '../quickSearchCatalog';
 import { buildQuickSearchResults } from './quickSearchResultModel';
 import { useWorldSearchDetails } from './useWorldSearchDetails';
 
+const EMPTY_GROUP_INSTANCES: unknown[] = [];
+
 export function useQuickSearchResults({
     catalog,
     normalizedQuery
@@ -32,7 +34,7 @@ export function useQuickSearchResults({
         groupInstancesState.userId === currentUserId &&
         groupInstancesState.endpoint === currentEndpoint
             ? groupInstancesState.instances
-            : [];
+            : EMPTY_GROUP_INSTANCES;
     const friendIds = useMemo(
         () => Object.keys(friendsById || {}).filter(Boolean),
         [friendsById]

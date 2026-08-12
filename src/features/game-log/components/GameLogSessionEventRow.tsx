@@ -38,7 +38,7 @@ import type {
     GameLogSessionEvent,
     GameLogSessionMember
 } from '../gameLogTypes';
-import { openGameLogUser } from '../gameLogUserLookup';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 
 const VIDEO_SOURCE_WITHOUT_LINK = new Set(['LSMedia', 'PopcornPalace']);
 const PLAYER_EVENT_GRID_CLASS =

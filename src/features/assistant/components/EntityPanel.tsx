@@ -6,7 +6,7 @@ import { openWorldDialog } from '@/services/dialogService';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 
-import type { Entity } from '../assistantTypes';
+import type { Entity } from '@/domain/assistant/assistantTypes';
 
 const EMPTY: Entity[] = [];
 

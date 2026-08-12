@@ -34,6 +34,7 @@ const GROUP_INSTANCE_ROW_SIZE = 49;
 const GROUP_MESSAGE_ROW_SIZE = 64;
 const GROUP_FOOTER_ROW_SIZE = 16;
 const EMPTY_GROUP_ORDER: string[] = [];
+const EMPTY_GROUP_INSTANCES: GroupInstanceRecord[] = [];
 
 type GroupHeaderSidebarRow = {
     type: 'group-header';
@@ -454,7 +455,7 @@ export function GroupsSidebar() {
         groupInstancesState.userId === currentUserId &&
         groupInstancesState.endpoint === currentEndpoint
             ? groupInstancesState.instances
-            : [];
+            : EMPTY_GROUP_INSTANCES;
     const [collapsedGroups, setCollapsedGroups] = useState(
         () => new Set<string>()
     );

@@ -4,7 +4,10 @@ import { cn } from '@/lib/utils';
 import { Marker, MarkerContent, MarkerIcon } from '@/ui/shadcn/marker';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-import type { ToolCallStatus as Status, UIToolCall } from '../assistantTypes';
+import type {
+    ToolCallStatus as Status,
+    UIToolCall
+} from '@/domain/assistant/assistantTypes';
 
 interface ToolCallStatusProps {
     toolCall: UIToolCall;

@@ -152,7 +152,7 @@ export function useLoginAutoLogin({
                 autoLoginInFlightKeyRef.current = '';
             }
         };
-    }, [isAutoLoginStartBlocked, isLoading, snapshot, t]);
+    }, [applySnapshot, isAutoLoginStartBlocked, isLoading, snapshot, t]);
 
     useEffect(
         () => () => {

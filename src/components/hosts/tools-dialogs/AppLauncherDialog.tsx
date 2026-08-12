@@ -48,6 +48,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
 const MAX_LAUNCH_DELAY_SECONDS = 4_294_967_295;
+const EMPTY_APP_LAUNCHER_ENTRIES: AppLauncherEntry[] = [];
 
 type AppLauncherDialogProps = {
     open: boolean;
@@ -187,7 +188,7 @@ export function AppLauncherDialog({
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState<AppLauncherEntry | null>(null);
 
-    const entries = snapshot?.entries ?? [];
+    const entries = snapshot?.entries ?? EMPTY_APP_LAUNCHER_ENTRIES;
     useEffect(() => {
         if (!open) {
             return undefined;

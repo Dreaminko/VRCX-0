@@ -485,19 +485,15 @@ export function UserDialogTabbedView({
             )
         }),
         [
-            favoriteWorlds.length,
+            favoriteWorlds,
             isCurrentUser,
             mutualFriendCount,
-            mutualFriends.length,
+            mutualFriends,
             previousInstances.length,
-            profileAvatars.length,
-            profileGroups.length,
-            profileWorlds.length,
-            remoteStatus.mutual,
-            remoteStatus.avatars,
-            remoteStatus['favorite-worlds'],
-            remoteStatus.groups,
-            remoteStatus.worlds,
+            profileAvatars,
+            profileGroups,
+            profileWorlds,
+            remoteStatus,
             remoteTabCounts
         ]
     );

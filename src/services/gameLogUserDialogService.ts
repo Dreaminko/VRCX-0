@@ -5,14 +5,17 @@ import { openUserDialog } from '@/services/dialogService';
 import { resolveUserByDisplayName } from '@/services/userIdentityService';
 import { normalizeString as normalizeId } from '@/shared/utils/string';
 
-import type { GameLogRow } from './gameLogTypes';
+type GameLogUserTarget = {
+    userId?: unknown;
+    displayName?: unknown;
+};
 
 function recordOrNull(value: unknown): Record<string, unknown> | null {
     return value && typeof value === 'object' ? { ...value } : null;
 }
 
 export async function openGameLogUser(
-    row: GameLogRow | null | undefined,
+    row: GameLogUserTarget | null | undefined,
     t: TFunction
 ) {
     const userId = normalizeId(row?.userId);

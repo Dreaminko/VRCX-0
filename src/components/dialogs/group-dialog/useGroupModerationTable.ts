@@ -51,7 +51,18 @@ export function useGroupModerationTable<TData extends RowData>({
     rows: TData[];
     tableId: string;
 }) {
-    const tableLayout = usePersistedDataTableLayout({ tableId, columnIds });
+    const {
+        columnOrder,
+        columnOrderLocked,
+        columnSizing,
+        columnVisibility,
+        persistedState,
+        setColumnOrder,
+        setColumnOrderLocked,
+        setColumnSizing,
+        setColumnVisibility,
+        writePersistedState
+    } = usePersistedDataTableLayout({ tableId, columnIds });
     const preferencesHydrated = usePreferencesStore(
         (state) => state.preferencesHydrated
     );
@@ -64,7 +75,7 @@ export function useGroupModerationTable<TData extends RowData>({
     const hasWrittenLayoutRef = useRef(false);
     const appliedPreferredPageSizeRef = useRef(false);
     const [sorting, setSorting] = useState<SortingState>(() =>
-        sanitizeSorting(tableLayout.persistedState.sorting, columnIds)
+        sanitizeSorting(persistedState.sorting, columnIds)
     );
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
@@ -106,23 +117,23 @@ export function useGroupModerationTable<TData extends RowData>({
             hasWrittenLayoutRef.current = true;
             return;
         }
-        tableLayout.writePersistedState({
+        writePersistedState({
             columnOrder: sanitizeTableColumnOrder(
-                tableLayout.columnOrder,
+                columnOrder,
                 columnIds
             ),
             columnVisibility: sanitizeTableColumnVisibility(
-                tableLayout.columnVisibility,
+                columnVisibility,
                 columnIds
             ),
             sorting: sanitizeSorting(sorting, columnIds)
         });
     }, [
         columnIds,
+        columnOrder,
+        columnVisibility,
         sorting,
-        tableLayout.columnOrder,
-        tableLayout.columnVisibility,
-        tableLayout.writePersistedState
+        writePersistedState
     ]);
 
     useEffect(() => {
@@ -145,14 +156,14 @@ export function useGroupModerationTable<TData extends RowData>({
         columns,
         data: rows,
         state: {
-            columnOrder: tableLayout.columnOrder,
-            columnSizing: tableLayout.columnSizing,
-            columnVisibility: tableLayout.columnVisibility,
+            columnOrder,
+            columnSizing,
+            columnVisibility,
             ...(paged ? { sorting, pagination } : {})
         },
-        onColumnOrderChange: tableLayout.setColumnOrder,
-        onColumnSizingChange: tableLayout.setColumnSizing,
-        onColumnVisibilityChange: tableLayout.setColumnVisibility,
+        onColumnOrderChange: setColumnOrder,
+        onColumnSizingChange: setColumnSizing,
+        onColumnVisibilityChange: setColumnVisibility,
         onSortingChange: paged ? setSorting : undefined,
         onPaginationChange: paged ? setPagination : undefined,
         manualSorting: !paged,
@@ -160,8 +171,8 @@ export function useGroupModerationTable<TData extends RowData>({
         enableColumnResizing: true,
         columnResizeMode: 'onChange',
         meta: {
-            columnOrderLocked: tableLayout.columnOrderLocked,
-            setColumnOrderLocked: tableLayout.setColumnOrderLocked
+            columnOrderLocked,
+            setColumnOrderLocked
         }
     });
 

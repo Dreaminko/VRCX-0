@@ -1,5 +1,5 @@
 import { CopyIcon, ExternalLinkIcon, PersonStandingIcon } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FadeInImage } from '@/components/media/FadeInImage';
@@ -399,16 +399,19 @@ export function AvatarDialogTabbedView({
     );
     const hasGalleryTab =
         galleryImages.length > 0 || listings.length > 0 || canManageAvatar;
-    const tabs: Array<{ value: AvatarDialogTab; label: string }> = [
-        { value: 'info', label: t('dialog.avatar.info.header') }
-    ];
-    if (hasGalleryTab) {
-        tabs.push({
-            value: 'gallery',
-            label: t('dialog.avatar.info.gallery')
-        });
-    }
-    tabs.push({ value: 'json', label: t('dialog.avatar.json.header') });
+    const tabs = useMemo(() => {
+        const nextTabs: Array<{ value: AvatarDialogTab; label: string }> = [
+            { value: 'info', label: t('dialog.avatar.info.header') }
+        ];
+        if (hasGalleryTab) {
+            nextTabs.push({
+                value: 'gallery',
+                label: t('dialog.avatar.info.gallery')
+            });
+        }
+        nextTabs.push({ value: 'json', label: t('dialog.avatar.json.header') });
+        return nextTabs;
+    }, [hasGalleryTab, t]);
 
     function changeTab(tab: string) {
         setActiveTab(resolveAvatarDialogTab(tabs, tab));
@@ -427,7 +430,7 @@ export function AvatarDialogTabbedView({
 
     useEffect(() => {
         setActiveTab((tab) => resolveAvatarDialogTab(tabs, tab));
-    }, [hasGalleryTab]);
+    }, [tabs]);
 
     function openAvatarAuthor() {
         if (!avatar.authorId) {

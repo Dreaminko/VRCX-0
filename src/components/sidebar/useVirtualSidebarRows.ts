@@ -32,14 +32,15 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
         viewportElementRef.current = node;
         setViewportElement(node);
     }, []);
-    const measuredSizesRef = useRef(new Map<VirtualRowKey, number>());
+    const [measuredSizes, setMeasuredSizes] = useState(
+        () => new Map<VirtualRowKey, number>()
+    );
     const rowObserversRef = useRef(new Map<VirtualRowKey, ResizeObserver>());
     const rowRefCallbacksRef = useRef(new Map<VirtualRowKey, RowRefCallback>());
     const [viewport, setViewport] = useState<VirtualSidebarViewport>({
         scrollTop: 0,
         height: 0
     });
-    const [measureVersion, setMeasureVersion] = useState(0);
     const overscan =
         typeof options.overscan === 'number' &&
         Number.isFinite(options.overscan)
@@ -53,7 +54,7 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
 
         rows.forEach((row, index) => {
             const key = row?.key ?? index;
-            const measuredSize = Number(measuredSizesRef.current.get(key));
+            const measuredSize = Number(measuredSizes.get(key));
             const estimatedSize = Number(estimateSize?.(row, index));
             const size =
                 Number.isFinite(measuredSize) && measuredSize > 0
@@ -67,7 +68,7 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
         });
 
         return { offsets, sizes, totalSize };
-    }, [estimateSize, measureVersion, rows]);
+    }, [estimateSize, measuredSizes, rows]);
 
     const measureElement = useCallback(
         (key: VirtualRowKey, element: HTMLElement | null) => {
@@ -87,12 +88,14 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
                     return;
                 }
 
-                if (measuredSizesRef.current.get(key) === nextSize) {
-                    return;
-                }
-
-                measuredSizesRef.current.set(key, nextSize);
-                setMeasureVersion((version) => version + 1);
+                setMeasuredSizes((current) => {
+                    if (current.get(key) === nextSize) {
+                        return current;
+                    }
+                    const next = new Map(current);
+                    next.set(key, nextSize);
+                    return next;
+                });
             };
 
             updateSize();
@@ -123,15 +126,10 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
         const liveKeys = new Set<VirtualRowKey>(
             rows.map((row, index) => row?.key ?? index)
         );
-        let changed = false;
-
-        for (const key of measuredSizesRef.current.keys()) {
+        for (const key of rowObserversRef.current.keys()) {
             if (!liveKeys.has(key)) {
-                measuredSizesRef.current.delete(key);
                 rowObserversRef.current.get(key)?.disconnect();
                 rowObserversRef.current.delete(key);
-                rowRefCallbacksRef.current.delete(key);
-                changed = true;
             }
         }
 
@@ -141,17 +139,21 @@ export function useVirtualSidebarRows<T extends VirtualSidebarRow>(
             }
         }
 
-        if (changed) {
-            setMeasureVersion((version) => version + 1);
-        }
+        setMeasuredSizes((current) => {
+            const next = new Map(
+                Array.from(current).filter(([key]) => liveKeys.has(key))
+            );
+            return next.size === current.size ? current : next;
+        });
     }, [rows]);
 
     useEffect(() => {
+        const rowObservers = rowObserversRef;
         return () => {
-            for (const observer of rowObserversRef.current.values()) {
+            for (const observer of rowObservers.current.values()) {
                 observer.disconnect();
             }
-            rowObserversRef.current.clear();
+            rowObservers.current.clear();
         };
     }, []);
 

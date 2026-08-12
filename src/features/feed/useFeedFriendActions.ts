@@ -39,9 +39,6 @@ function resolveActionFriendId(friend: FeedFriendActionTarget) {
 export function useFeedFriendActions(): FeedFriendActions {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const currentEndpoint = useRuntimeStore(
-        (state) => state.auth.currentUserEndpoint
-    );
     const currentUserSnapshot = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot
     );
@@ -283,7 +280,6 @@ export function useFeedFriendActions(): FeedFriendActions {
         [
             canInviteFromCurrentLocation,
             confirm,
-            currentEndpoint,
             currentInviteLocation,
             normalizedCurrentUserId,
             t
@@ -331,7 +327,6 @@ export function useFeedFriendActions(): FeedFriendActions {
         },
         [
             confirm,
-            currentEndpoint,
             currentUserSnapshot,
             normalizedCurrentUserId,
             t

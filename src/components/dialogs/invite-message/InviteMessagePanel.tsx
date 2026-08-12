@@ -1,5 +1,6 @@
 import { ImageIcon, PencilIcon, RefreshCcwIcon, SendIcon } from 'lucide-react';
 import {
+    useCallback,
     useEffect,
     useRef,
     useState,
@@ -106,7 +107,7 @@ export function InviteMessagePanel({
     const [nowMs, setNowMs] = useState(() => Date.now());
     const requestIdRef = useRef(0);
 
-    async function loadRows() {
+    const loadRows = useCallback(async () => {
         if (!currentUserId) {
             requestIdRef.current += 1;
             setRows([]);
@@ -149,14 +150,14 @@ export function InviteMessagePanel({
                 setLoading(false);
             }
         }
-    }
+    }, [currentUserId, resolvedMessageType, t]);
 
     useEffect(() => {
         loadRows();
         return () => {
             requestIdRef.current += 1;
         };
-    }, [currentUserId, endpoint, resolvedMessageType]);
+    }, [currentUserId, endpoint, loadRows, resolvedMessageType]);
 
     useEffect(() => {
         setConfirmRow(null);

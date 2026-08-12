@@ -115,6 +115,11 @@ export function useUserDialogProfileResource({
     ]);
     const profileRef = useRef(profile);
     profileRef.current = profile;
+    const currentAvatar = normalizeUserId(profile?.currentAvatar);
+    const currentAvatarImageUrl =
+        normalizedAvatarName(profile?.currentAvatarImageUrl) ||
+        normalizedAvatarName(profile?.currentAvatarThumbnailImageUrl);
+    const currentAvatarShouldHydrate = shouldHydrateCurrentAvatar(profile);
     const [loadStatus, setLoadStatus] = useState<UserDialogProfileLoadStatus>(
         normalizedUserId ? 'running' : 'idle'
     );
@@ -324,17 +329,19 @@ export function useUserDialogProfileResource({
         return () => {
             active = false;
         };
-    }, [currentEndpoint, isTargetCurrentUser, normalizedUserId, reloadToken]);
+    }, [
+        currentEndpoint,
+        isFriend,
+        isTargetCurrentUser,
+        normalizedUserId,
+        reloadToken
+    ]);
 
     useEffect(() => {
-        if (!isTargetCurrentUser || !shouldHydrateCurrentAvatar(profile)) {
+        if (!isTargetCurrentUser || !currentAvatarShouldHydrate) {
             return undefined;
         }
 
-        const currentAvatar = normalizeUserId(profile?.currentAvatar);
-        const currentAvatarImageUrl =
-            normalizedAvatarName(profile?.currentAvatarImageUrl) ||
-            normalizedAvatarName(profile?.currentAvatarThumbnailImageUrl);
         const hydrationKey = `${currentEndpoint || ''}\u0000${normalizedUserId || ''}\u0000${currentAvatar}\u0000${currentAvatarImageUrl}\u0000${reloadToken}`;
         if (avatarHydrationKeyRef.current === hydrationKey) {
             return undefined;
@@ -345,7 +352,7 @@ export function useUserDialogProfileResource({
         getCurrentAvatarDetails({
             avatarId: currentAvatar,
             currentUserId: normalizedUserId,
-            profile
+            profile: profileRef.current
         })
             .then((avatar) => {
                 if (!active) {
@@ -359,8 +366,7 @@ export function useUserDialogProfileResource({
                                 currentProfile,
                                 normalizedUserId
                             ) ||
-                                profileRef.current ||
-                                profile,
+                                profileRef.current,
                             avatar
                         ),
                         normalizedUserId
@@ -377,13 +383,11 @@ export function useUserDialogProfileResource({
         };
     }, [
         currentEndpoint,
+        currentAvatar,
+        currentAvatarImageUrl,
+        currentAvatarShouldHydrate,
         isTargetCurrentUser,
         normalizedUserId,
-        profile?.avatarName,
-        profile?.currentAvatar,
-        profile?.currentAvatarImageUrl,
-        profile?.currentAvatarName,
-        profile?.currentAvatarThumbnailImageUrl,
         reloadToken
     ]);
 

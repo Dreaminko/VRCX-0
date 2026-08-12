@@ -51,7 +51,7 @@ vi.mock('@/repositories/gameLogRepository', () => ({
     }
 }));
 
-vi.mock('../gameLogUserLookup', () => ({
+vi.mock('@/services/gameLogUserDialogService', () => ({
     openGameLogUser: vi.fn()
 }));
 

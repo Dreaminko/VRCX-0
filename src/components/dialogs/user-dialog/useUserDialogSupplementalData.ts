@@ -1,6 +1,7 @@
 import {
     useCallback,
     useEffect,
+    useEffectEvent,
     useRef,
     useState,
     type SetStateAction
@@ -99,6 +100,11 @@ export function useUserDialogSupplementalData({
     reloadToken,
     targetKey
 }: UseUserDialogSupplementalDataInput) {
+    const targetIsActive = useEffectEvent(
+        (userId: string, endpoint: string) =>
+            activeUserTargetRef.current.userId === userId &&
+            activeUserTargetRef.current.endpoint === endpoint
+    );
     const previousInstancesRequestRef = useRef(0);
     const [previousInstancesState, setPreviousInstancesState] = useState(
         () => ({
@@ -141,6 +147,8 @@ export function useUserDialogSupplementalData({
     const profileDisplayName = normalizeUserId(
         profile?.displayName || profile?.username
     );
+    const profileId = profile?.id;
+    const profilePresenceLocation = resolvePresenceLocation(profile);
     const profileDisplayNameRef = useRef('');
     profileDisplayNameRef.current = profileDisplayName;
     const representedGroupMatchesTarget =
@@ -252,8 +260,7 @@ export function useUserDialogSupplementalData({
             .then((group) => {
                 if (
                     !active ||
-                    activeUserTargetRef.current.userId !== targetUserId ||
-                    activeUserTargetRef.current.endpoint !== targetEndpoint
+                    !targetIsActive(targetUserId, targetEndpoint)
                 ) {
                     return;
                 }
@@ -267,8 +274,7 @@ export function useUserDialogSupplementalData({
             .catch(() => {
                 if (
                     !active ||
-                    activeUserTargetRef.current.userId !== targetUserId ||
-                    activeUserTargetRef.current.endpoint !== targetEndpoint
+                    !targetIsActive(targetUserId, targetEndpoint)
                 ) {
                     return;
                 }
@@ -357,13 +363,12 @@ export function useUserDialogSupplementalData({
             stats: readCachedUserStats(targetKey)
         });
 
-        if (!profile?.id) {
+        if (!profileId) {
             return () => {
                 active = false;
             };
         }
 
-        const activeLocation = resolvePresenceLocation(profile);
         const currentLocation =
             currentGameLocation === 'traveling'
                 ? currentGameDestination
@@ -371,15 +376,15 @@ export function useUserDialogSupplementalData({
                   currentGameDestination ||
                   currentSnapshotLocation;
         const inCurrentWorld = Boolean(
-            activeLocation &&
+            profilePresenceLocation &&
             currentLocation &&
-            isSameLocationTag(activeLocation, currentLocation)
+            isSameLocationTag(profilePresenceLocation, currentLocation)
         );
 
         gameLogRepository
             .getUserStats(
                 {
-                    id: profile.id,
+                    id: profileId,
                     displayName: profileDisplayNameRef.current
                 },
                 inCurrentWorld
@@ -418,10 +423,9 @@ export function useUserDialogSupplementalData({
         currentGameDestination,
         currentGameLocation,
         currentSnapshotLocation,
-        profile?.id,
-        profile?.location,
-        profile?.travelingToLocation,
         openNonce,
+        profileId,
+        profilePresenceLocation,
         reloadToken,
         setUserStatsForTarget,
         targetKey

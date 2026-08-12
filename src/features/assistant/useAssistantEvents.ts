@@ -15,7 +15,7 @@ import type {
     AssistantToolCallEvent,
     AssistantToolResultEvent,
     AssistantTurnEntitiesEvent
-} from './assistantTypes';
+} from '@/domain/assistant/assistantTypes';
 
 const EVENT_NAMES = [
     'assistantDelta',

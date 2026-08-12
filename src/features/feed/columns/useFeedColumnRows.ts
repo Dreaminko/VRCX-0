@@ -260,6 +260,7 @@ export function useFeedColumnRows(column: FeedColumnConfig) {
     }, [
         buildMergeOptions,
         column.feedTypes,
+        column.friendScope.kind,
         currentUserId,
         excludedFavoriteUserIds,
         favoriteUserIds,

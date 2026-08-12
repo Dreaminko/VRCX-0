@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -183,7 +183,7 @@ export function GroupDialogTabbedView({
     const filteredPosts = filterGroupPosts(posts, search.posts);
     const filteredMembers = filterGroupMembers(members, search.members);
 
-    useEffect(() => {
+    const resetForTarget = useEffectEvent(() => {
         loadContextRef.current = {
             endpoint: currentEndpoint,
             groupId: group.id,
@@ -204,9 +204,13 @@ export function GroupDialogTabbedView({
         const nextTab = resolveGroupDialogTab(tabs, lastGroupDialogTab);
         lastGroupDialogTab = nextTab;
         setActiveTab(nextTab);
-    }, [currentEndpoint, group.id]);
+    });
 
     useEffect(() => {
+        resetForTarget();
+    }, [currentEndpoint, group.id]);
+
+    const syncGalleryContext = useEffectEvent(() => {
         loadContextRef.current = {
             endpoint: currentEndpoint,
             groupId: group.id,
@@ -225,6 +229,10 @@ export function GroupDialogTabbedView({
         if (activeTab === 'photos' && gallerySignature) {
             loadTab('photos', { force: true });
         }
+    });
+
+    useEffect(() => {
+        syncGalleryContext();
     }, [currentEndpoint, gallerySignature, group.id]);
 
     function isCurrentLoadContext(context: GroupLoadContext) {
@@ -437,8 +445,12 @@ export function GroupDialogTabbedView({
         setActiveTab(lastGroupDialogTab);
     }
 
-    useEffect(() => {
+    const loadActiveTab = useEffectEvent(() => {
         loadTab(activeTab);
+    });
+
+    useEffect(() => {
+        loadActiveTab();
     }, [
         activeTab,
         currentEndpoint,
@@ -448,17 +460,25 @@ export function GroupDialogTabbedView({
         memberSort
     ]);
 
-    useEffect(() => {
+    const loadEventsForTarget = useEffectEvent(() => {
         if (!group.id) {
             return;
         }
         loadGroupEvents();
-    }, [currentEndpoint, group.id]);
+    });
 
     useEffect(() => {
+        loadEventsForTarget();
+    }, [currentEndpoint, group.id]);
+
+    const reloadMembersForFilter = useEffectEvent(() => {
         if (activeTab === 'members') {
             loadTab('members', { force: true });
         }
+    });
+
+    useEffect(() => {
+        reloadMembersForFilter();
     }, [memberRoleId, memberSort]);
 
     async function loadAllMembers() {

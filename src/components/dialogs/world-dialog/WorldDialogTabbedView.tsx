@@ -253,7 +253,7 @@ export function WorldDialogTabbedView({
     >({});
     const instanceRows = useMemo(
         () => resolveInstanceRows(world),
-        [world?.id, world?.instances]
+        [world]
     );
     const instanceDetailTargets = useMemo(() => {
         const targetsByLocation = new Map<
@@ -276,7 +276,7 @@ export function WorldDialogTabbedView({
             }
         }
         return Array.from(targetsByLocation.values());
-    }, [instanceRows, world?.id]);
+    }, [instanceRows, world]);
     const instanceData = useWorldDialogInstanceData({
         endpoint: currentEndpoint,
         targets: instanceDetailTargets

@@ -53,7 +53,6 @@ export function UserActivityPanel({
     active = false
 }: UserActivityPanelProps) {
     const { t } = useTranslation();
-    const locale = useShellStore((state) => state.locale);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const currentUserSnapshot = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot
@@ -73,7 +72,7 @@ export function UserActivityPanel({
             t('dialog.user.activity.days.fri'),
             t('dialog.user.activity.days.sat')
         ],
-        [locale, t]
+        [t]
     );
     const currentHomeLocation = currentUserSnapshot?.homeLocation || '';
     const currentHomeWorldId =

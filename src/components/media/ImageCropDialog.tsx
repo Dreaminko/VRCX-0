@@ -362,7 +362,7 @@ export function ImageCropDialog({
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
-    }, [open, previewSrc, setCropperReady]);
+    }, [cropWrapperRef, open, previewSrc, setCropperReady]);
 
     const onCropComplete = useCallback(
         (_croppedArea: Area, pixels: Area) => {

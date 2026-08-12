@@ -50,7 +50,6 @@ export function useNotificationActions({
     canInviteFromCurrentLocation,
     currentInviteLocation,
     currentUserId,
-    endpoint,
     notificationTypeLabel,
     reload,
     setBoopReplyRequest,
@@ -59,9 +58,8 @@ export function useNotificationActions({
     canInviteFromCurrentLocation: boolean;
     currentInviteLocation?: string;
     currentUserId?: string;
-    endpoint?: string;
     notificationTypeLabel: (type: unknown) => string;
-    reload: () => void;
+    reload: () => void | Promise<unknown>;
     setBoopReplyRequest: (request: NotificationRow | null) => void;
     setInviteResponseRequest: (request: NotificationDialogRequest) => void;
 }) {
@@ -227,7 +225,7 @@ export function useNotificationActions({
                     userId: currentUserId,
                     version: notification.version
                 });
-                reload();
+                await reload();
                 toast.success(
                     t(
                         'view.notification.success.notification_log_entry_deleted'
@@ -264,7 +262,7 @@ export function useNotificationActions({
                 const acceptResult = await acceptFriendRequestNotification({
                     notification
                 });
-                reload();
+                await reload();
                 if (acceptResult.status === 'not-found') {
                     return;
                 }
@@ -321,7 +319,7 @@ export function useNotificationActions({
                     currentUserId,
                     notification
                 });
-                reload();
+                await reload();
                 toast.success(
                     t('view.notification.success.notification_declined')
                 );
@@ -335,7 +333,7 @@ export function useNotificationActions({
                 );
             }
         },
-        [confirm, currentUserId, endpoint, notificationTypeLabel, reload, t]
+        [confirm, currentUserId, notificationTypeLabel, reload, t]
     );
 
     const acceptRequestInvite = useCallback(
@@ -384,7 +382,7 @@ export function useNotificationActions({
                     notification,
                     worldId: parsedLocation.worldId
                 });
-                reload();
+                await reload();
                 toast.success(t('message.invite.sent'));
             } catch (error) {
                 toast.error(
@@ -399,7 +397,6 @@ export function useNotificationActions({
             confirm,
             currentInviteLocation,
             currentUserId,
-            endpoint,
             reload,
             t
         ]
@@ -437,27 +434,30 @@ export function useNotificationActions({
                 responseSlot: row?.slot,
                 withUploadTimeout
             });
-            reload();
+            await reload();
             toast.success(
                 result.sentPhoto
                     ? t('view.notifications.toast.invite_response_photo_sent')
                     : t('view.notifications.toast.invite_response_sent')
             );
         },
-        [currentUserId, endpoint, reload, t]
+        [currentUserId, reload, t]
     );
 
     const sendBoopReply = useCallback(
         async (notification: NotificationRow | null, emojiId: unknown = '') => {
+            if (!notification) {
+                return;
+            }
             await sendBoopReplyNotification({
                 currentUserId,
                 emojiId,
                 notification
             });
-            reload();
+            await reload();
             toast.success(t('view.notification.success.boop_sent'));
         },
-        [currentUserId, endpoint, reload, t]
+        [currentUserId, reload, t]
     );
 
     const sendNotificationResponse = useCallback(
@@ -479,12 +479,12 @@ export function useNotificationActions({
                     notification,
                     response
                 });
-                reload();
+                await reload();
                 toast.success(
                     t('view.notification.success.notification_response_sent')
                 );
             } catch (error) {
-                reload();
+                await reload();
                 toast.error(
                     error instanceof Error
                         ? error.message
@@ -496,7 +496,6 @@ export function useNotificationActions({
         },
         [
             currentUserId,
-            endpoint,
             openNotificationLink,
             reload,
             setBoopReplyRequest,

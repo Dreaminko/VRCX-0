@@ -13,6 +13,7 @@
         "no-unused-vars": "warn",
         "no-control-regex": "warn",
         "react/rules-of-hooks": "error",
+        "react/exhaustive-deps": "error",
         "jsx-a11y/alt-text": "error",
         "jsx-a11y/anchor-has-content": "error",
         "jsx-a11y/anchor-is-valid": "error",
@@ -33,6 +34,39 @@
             "files": ["**/*.{ts,tsx}"],
             "rules": {
                 "typescript/no-explicit-any": "error"
+            }
+        },
+        {
+            "files": ["src/{domain,shared}/**/*.{ts,tsx}"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/features/**", "@/platform/**"],
+                                "message": "Domain and shared modules must not depend on feature or platform adapters."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["src/{services,state}/**/*.{ts,tsx}"],
+            "excludeFiles": ["**/*.test.{ts,tsx}"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["@/features/**"],
+                                "message": "Services and stores must not depend on feature modules."
+                            }
+                        ]
+                    }
+                ]
             }
         },
         {

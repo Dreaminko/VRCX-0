@@ -30,7 +30,7 @@ import {
     shouldLinkGameLogPrimaryDetailToWorld as shouldLinkPrimaryDetailToWorld
 } from '../gameLogRows';
 import type { GameLogColumns, GameLogRow } from '../gameLogTypes';
-import { openGameLogUser } from '../gameLogUserLookup';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import {
     EmptyTableValue,
     GameLogLocationDetail,

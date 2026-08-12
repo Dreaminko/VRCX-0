@@ -144,7 +144,7 @@ export function AppMenuBar({
                 .map((category) => ({
                     ...category,
                     tools: getToolsByCategory(category.key).filter((tool) =>
-                        isToolCapabilityAvailable(tool)
+                        isToolCapabilityAvailable(tool, hostCapabilities)
                     )
                 }))
                 .filter((category) => category.tools.length > 0),

@@ -1,5 +1,5 @@
 import { ImageIcon, XIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -255,7 +255,7 @@ export function UserDialogProfileMediaPanel({
     const [mutatingKey, setMutatingKey] = useState('');
     const busy = actionStatus !== 'idle';
 
-    async function refreshSection(section: MediaSection) {
+    const refreshSection = useCallback(async (section: MediaSection) => {
         setLoadingBySection((current) => ({
             ...current,
             [section.assetKey]: true
@@ -285,13 +285,13 @@ export function UserDialogProfileMediaPanel({
                 [section.assetKey]: false
             }));
         }
-    }
+    }, [t]);
 
     useEffect(() => {
         for (const section of MEDIA_SECTIONS) {
             refreshSection(section);
         }
-    }, [profile?.id]);
+    }, [profile?.id, refreshSection]);
 
     async function applyProfileMedia(
         fieldName: ProfileMediaFieldName,

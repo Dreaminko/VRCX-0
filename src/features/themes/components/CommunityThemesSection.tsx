@@ -12,7 +12,7 @@ import { Button } from '@/ui/shadcn/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-import type { CommunityThemeInstallMetadata } from '../communityThemeTypes';
+import type { CommunityThemeInstallMetadata } from '@/domain/themes/communityThemeTypes';
 import {
     COMMUNITY_THEMES_REPOSITORY_URL,
     isSameThemeVersion

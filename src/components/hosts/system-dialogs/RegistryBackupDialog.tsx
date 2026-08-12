@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { formatDateFilter } from '@/lib/dateTime';
@@ -130,9 +130,11 @@ export function RegistryBackupDialog({
         }
     }
 
+    const refreshBackupsForOpen = useEffectEvent(refreshBackups);
+
     useEffect(() => {
         if (open) {
-            refreshBackups();
+            refreshBackupsForOpen();
         } else {
             refreshRequestRef.current += 1;
         }

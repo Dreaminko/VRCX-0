@@ -534,26 +534,20 @@ function EntityActionSub({
 }
 
 type EntityRawJsonProps<TValue> = {
-    value?: TValue;
-    valueFactory?: () => TValue;
+    value: TValue;
 };
 
-function EntityRawJson<TValue>({
-    value,
-    valueFactory
-}: EntityRawJsonProps<TValue>) {
+function EntityRawJson<TValue>({ value }: EntityRawJsonProps<TValue>) {
     const { t } = useTranslation();
 
-    const [snapshot, setSnapshot] = useState(() =>
-        valueFactory ? valueFactory() : value
-    );
+    const [snapshot, setSnapshot] = useState(value);
 
     useEffect(() => {
-        setSnapshot(valueFactory ? valueFactory() : value);
+        setSnapshot(value);
     }, [value]);
 
     function refreshJson() {
-        setSnapshot(valueFactory ? valueFactory() : value);
+        setSnapshot(value);
     }
 
     return (

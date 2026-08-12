@@ -1,5 +1,12 @@
 import type { TFunction } from 'i18next';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+    useEffect,
+    useEffectEvent,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState
+} from 'react';
 
 import type { EntityRecord } from '@/domain/entities/profileEntities';
 import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
@@ -230,7 +237,7 @@ export function useUserDialogTabData({
         ]
     );
 
-    useEffect(() => {
+    const resetForTarget = useEffectEvent(() => {
         loadContextRef.current = {
             endpoint: currentEndpoint,
             userId: profileUserId,
@@ -251,6 +258,10 @@ export function useUserDialogTabData({
         );
         lastUserDialogTab = nextTab;
         setActiveTab(nextTab);
+    });
+
+    useEffect(() => {
+        resetForTarget();
     }, [
         currentEndpoint,
         currentUserHasSharedConnectionsOptOut,
@@ -503,13 +514,17 @@ export function useUserDialogTabData({
         await loadTab(tab, { force: true });
     }
 
-    useEffect(() => {
+    const loadActiveTab = useEffectEvent(() => {
         const shouldForceReload =
             reloadToken > 0 && handledReloadTokenRef.current !== reloadToken;
         if (shouldForceReload) {
             handledReloadTokenRef.current = reloadToken;
         }
         loadTab(activeTab, { force: shouldForceReload });
+    });
+
+    useEffect(() => {
+        loadActiveTab();
     }, [
         activeTab,
         currentAvatarId,
@@ -520,7 +535,7 @@ export function useUserDialogTabData({
         reloadToken
     ]);
 
-    useEffect(() => {
+    const loadCountsForTarget = useEffectEvent(() => {
         const shouldForceReload =
             reloadToken > 0 &&
             handledCountReloadTokenRef.current !== reloadToken;
@@ -528,6 +543,10 @@ export function useUserDialogTabData({
             handledCountReloadTokenRef.current = reloadToken;
         }
         loadTabCounts({ force: shouldForceReload });
+    });
+
+    useEffect(() => {
+        loadCountsForTarget();
     }, [
         currentEndpoint,
         currentUserId,
@@ -538,16 +557,24 @@ export function useUserDialogTabData({
         reloadToken
     ]);
 
-    useEffect(() => {
+    const reloadWorldsForSort = useEffectEvent(() => {
         if (activeTab === 'worlds') {
             loadTab('worlds', { force: true });
         }
-    }, [worldOrder, worldSort]);
+    });
 
     useEffect(() => {
+        reloadWorldsForSort();
+    }, [worldOrder, worldSort]);
+
+    const reloadAvatarsForFilter = useEffectEvent(() => {
         if (activeTab === 'avatars' && profileUserId === currentUserId) {
             loadTab('avatars', { force: true });
         }
+    });
+
+    useEffect(() => {
+        reloadAvatarsForFilter();
     }, [
         avatarReleaseStatus,
         avatarSort,
@@ -555,38 +582,36 @@ export function useUserDialogTabData({
         previousAvatarSwapTime
     ]);
 
+    const handleAvatarProviderPreferenceChanged = useEffectEvent(() => {
+        if (profileUserId === currentUserId) {
+            return;
+        }
+        setRemoteData((current) => ({ ...current, avatars: [] }));
+        setRemoteStatus((current) => ({
+            ...current,
+            avatars: ''
+        }));
+        setRemoteErrors((current) => ({
+            ...current,
+            avatars: ''
+        }));
+        setRemoteTabCounts((current) => ({
+            ...current,
+            avatars: undefined
+        }));
+        loadTabCounts({ force: true });
+        if (activeTab === 'avatars') {
+            loadTab('avatars', { force: true });
+        }
+    });
+
     useEffect(
         () =>
-            onPreferenceChanged(AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS, () => {
-                if (profileUserId === currentUserId) {
-                    return;
-                }
-                setRemoteData((current) => ({ ...current, avatars: [] }));
-                setRemoteStatus((current) => ({
-                    ...current,
-                    avatars: ''
-                }));
-                setRemoteErrors((current) => ({
-                    ...current,
-                    avatars: ''
-                }));
-                setRemoteTabCounts((current) => ({
-                    ...current,
-                    avatars: undefined
-                }));
-                loadTabCounts({ force: true });
-                if (activeTab === 'avatars') {
-                    loadTab('avatars', { force: true });
-                }
-            }),
-        [
-            activeTab,
-            avatarReleaseStatus,
-            avatarSort,
-            currentEndpoint,
-            currentUserId,
-            profileUserId
-        ]
+            onPreferenceChanged(
+                AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS,
+                () => handleAvatarProviderPreferenceChanged()
+            ),
+        []
     );
 
     useEffect(() => {

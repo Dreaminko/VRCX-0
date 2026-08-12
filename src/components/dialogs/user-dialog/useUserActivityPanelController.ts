@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import configRepository from '@/repositories/configRepository';
@@ -496,7 +496,7 @@ export function useUserActivityPanelController({
         }
     }
 
-    useEffect(() => {
+    const initializeActivity = useEffectEvent(() => {
         if (!active) {
             activityRequestIdRef.current += 1;
             overlapRequestIdRef.current += 1;
@@ -584,7 +584,9 @@ export function useUserActivityPanelController({
         return () => {
             isMounted = false;
         };
-    }, [active, activityContextKey]);
+    });
+
+    useEffect(() => initializeActivity(), [active, activityContextKey]);
 
     useEffect(
         () => () => {
@@ -594,10 +596,14 @@ export function useUserActivityPanelController({
         []
     );
 
-    useEffect(() => {
+    const refreshTopWorldsForHomeWorldChange = useEffectEvent(() => {
         if (active && isCurrentUser && excludeHomeWorldEnabled && hasAnyData) {
             refreshTopWorldsOnly();
         }
+    });
+
+    useEffect(() => {
+        refreshTopWorldsForHomeWorldChange();
     }, [currentHomeWorldId]);
 
     async function changePeriod(value: unknown) {

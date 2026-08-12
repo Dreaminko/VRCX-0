@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import feedRepository from '@/repositories/feedRepository';
 import friendLogRepository from '@/repositories/friendLogRepository';
@@ -102,27 +102,38 @@ export function useFeedRows({
         setRows([]);
     }, [feedPersistenceDisabled]);
 
-    function createMergeOptionsBuilder({
-        excludedUserIds,
-        favoriteUserIds
-    }: {
-        excludedUserIds: string[];
-        favoriteUserIds: string[];
-    }): FeedLiveMergeOptionsBuilder {
-        return ({ rows }) => ({
-            rows,
-            userId: currentUserId,
-            search: deferredSearchQuery,
-            filters: activeFilters,
-            excludedFavoriteUserIds: excludedUserIds,
-            favoriteUserIds,
-            scopedUserIds,
-            dateFrom: toIsoRangeStart(dateFrom),
-            dateTo: toIsoRangeEnd(dateTo),
+    const createMergeOptionsBuilder = useCallback(
+        ({
+            excludedUserIds,
+            favoriteUserIds
+        }: {
+            excludedUserIds: string[];
+            favoriteUserIds: string[];
+        }): FeedLiveMergeOptionsBuilder =>
+            ({ rows }) => ({
+                rows,
+                userId: currentUserId,
+                search: deferredSearchQuery,
+                filters: activeFilters,
+                excludedFavoriteUserIds: excludedUserIds,
+                favoriteUserIds,
+                scopedUserIds,
+                dateFrom: toIsoRangeStart(dateFrom),
+                dateTo: toIsoRangeEnd(dateTo),
+                favoritesOnly,
+                maxRows: maxFeedRows
+            }),
+        [
+            activeFilters,
+            currentUserId,
+            dateFrom,
+            dateTo,
+            deferredSearchQuery,
             favoritesOnly,
-            maxRows: maxFeedRows
-        });
-    }
+            maxFeedRows,
+            scopedUserIds
+        ]
+    );
 
     useEffect(() => {
         lastLiveFeedSequenceRef.current = useFeedLiveStore.getState().version;
@@ -350,6 +361,7 @@ export function useFeedRows({
             });
     }, [
         activeFilters,
+        createMergeOptionsBuilder,
         currentUserId,
         dateFrom,
         dateTo,
@@ -405,6 +417,7 @@ export function useFeedRows({
         });
     }, [
         activeFilters,
+        createMergeOptionsBuilder,
         currentUserId,
         dateFrom,
         dateTo,

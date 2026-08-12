@@ -61,7 +61,7 @@ export function GroupModerationWorkspace({
     const resetKeyRef = useRef('');
     const moderationTabs = useMemo(
         () => getGroupModerationTabs(t, group),
-        [group.id, group.myMember, group.roles, t]
+        [group, t]
     );
     const resetKey = `${endpoint}\u0000${group.id || ''}`;
     const members = useGroupMembersPagination({

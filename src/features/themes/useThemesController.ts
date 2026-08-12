@@ -36,7 +36,7 @@ import type {
     CommunityThemeInstallMetadata,
     CommunityThemeManifest,
     CommunityThemeStatsById
-} from './communityThemeTypes';
+} from '@/domain/themes/communityThemeTypes';
 import { resolveActiveThemeSource, type ThemeSource } from './themeHelpers';
 import { useThemesRuntimeState } from './useThemesRuntimeState';
 

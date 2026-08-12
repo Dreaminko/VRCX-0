@@ -221,7 +221,7 @@ export function AvatarContentTagsDialog({
         return () => {
             active = false;
         };
-    }, [avatar, open]);
+    }, [avatar, open, t]);
 
     function toggleBuiltInTag(tag: string) {
         const nextTags = new Set(selectedTags);

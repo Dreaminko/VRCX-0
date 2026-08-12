@@ -104,7 +104,6 @@ function renderActions() {
             canInviteFromCurrentLocation: true,
             currentInviteLocation: 'wrld_target:12345',
             currentUserId: 'usr_self',
-            endpoint: 'https://api.vrchat.cloud/api/1',
             notificationTypeLabel: () => 'Friend request',
             reload: mocks.reload,
             setBoopReplyRequest: vi.fn(),

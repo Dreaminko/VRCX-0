@@ -84,7 +84,7 @@ export function LaunchOptionsDialog({
         return () => {
             active = false;
         };
-    }, [open]);
+    }, [open, t]);
 
     async function handleSave() {
         const normalizedArguments = String(launchArguments)

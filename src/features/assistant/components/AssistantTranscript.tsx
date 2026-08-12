@@ -10,7 +10,7 @@ import {
     MessageScrollerViewport
 } from '@/ui/shadcn/message-scroller';
 
-import type { UIMessage } from '../assistantTypes';
+import type { UIMessage } from '@/domain/assistant/assistantTypes';
 import { AssistantMessage } from './AssistantMessage';
 
 interface AssistantTranscriptProps {

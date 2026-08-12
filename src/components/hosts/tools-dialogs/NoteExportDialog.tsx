@@ -6,7 +6,7 @@ import {
     TriangleAlertIcon,
     XIcon
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -196,7 +196,7 @@ export function NoteExportDialog({
         }
     }
 
-    useEffect(() => {
+    const initializeExportDialog = useEffectEvent(() => {
         if (!open) {
             refreshRequestRef.current += 1;
             if (activeRunIdRef.current) {
@@ -245,7 +245,9 @@ export function NoteExportDialog({
             unsubscribe?.();
             refreshRequestRef.current += 1;
         };
-    }, [open]);
+    });
+
+    useEffect(() => initializeExportDialog(), [open]);
 
     async function exportNotes() {
         const snapshot = [...rows]

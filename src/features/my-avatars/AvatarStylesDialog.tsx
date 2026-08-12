@@ -195,7 +195,7 @@ export function AvatarStylesDialog({
         return () => {
             active = false;
         };
-    }, [endpoint, open]);
+    }, [endpoint, open, t]);
 
     const styleIdByName = useMemo(() => {
         const map = new Map<string, string>();

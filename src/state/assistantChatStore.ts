@@ -10,7 +10,7 @@ import type {
     Entity,
     SessionSummary,
     UIMessage
-} from '@/features/assistant/assistantTypes';
+} from '@/domain/assistant/assistantTypes';
 import type { Session } from '@/platform/tauri/bindings';
 
 interface AssistantChatState {

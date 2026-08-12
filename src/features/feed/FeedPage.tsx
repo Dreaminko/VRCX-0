@@ -170,78 +170,99 @@ function FeedTableMode({
         tableModel
     } = useFeedPageController({ routeScopedUserIds });
     const arrivals = useFeedRowArrivals(rows, loadStatus);
-    const setUserScope = filters.setUserScope;
+    const {
+        activeFilters,
+        applyDateFilter,
+        clearDateFilter,
+        clearSearch,
+        commitSearch,
+        dateDraftFrom,
+        dateDraftRange,
+        dateDraftTo,
+        dateFilterOpen,
+        dateFrom,
+        dateTo,
+        favoritesOnly,
+        feedFilterTypes,
+        onDateRangeSelect,
+        scopedUserIds,
+        searchDraft,
+        setDateFilterOpen,
+        setFavoritesOnly,
+        setFeedFilters,
+        setSearchDraft,
+        setUserScope,
+        todayDate,
+        toggleFeedFilter
+    } = filters;
     const isSearching =
         loadStatus === 'running' &&
         Boolean(
             filters.deferredSearchQuery.trim() ||
             filters.deferredScopedUserIds.length
         );
-    const columnsMenu = useMemo(
-        () => <TableColumnVisibilityMenu table={table} />,
-        [table, tableModel.columnOrderLocked, tableModel.columnVisibility]
-    );
+    const columnsMenu = <TableColumnVisibilityMenu table={table} />;
     const filterModel = useMemo(
         () => ({
-            activeFilters: filters.activeFilters,
-            dateDraftFrom: filters.dateDraftFrom,
-            dateDraftRange: filters.dateDraftRange,
-            dateDraftTo: filters.dateDraftTo,
-            dateFilterOpen: filters.dateFilterOpen,
-            dateFrom: filters.dateFrom,
-            dateTo: filters.dateTo,
-            favoritesOnly: filters.favoritesOnly,
-            feedFilterTypes: filters.feedFilterTypes,
-            scopedUserIds: filters.scopedUserIds,
-            searchDraft: filters.searchDraft,
-            todayDate: filters.todayDate
+            activeFilters,
+            dateDraftFrom,
+            dateDraftRange,
+            dateDraftTo,
+            dateFilterOpen,
+            dateFrom,
+            dateTo,
+            favoritesOnly,
+            feedFilterTypes,
+            scopedUserIds,
+            searchDraft,
+            todayDate
         }),
         [
-            filters.activeFilters,
-            filters.dateDraftFrom,
-            filters.dateDraftRange,
-            filters.dateDraftTo,
-            filters.dateFilterOpen,
-            filters.dateFrom,
-            filters.dateTo,
-            filters.favoritesOnly,
-            filters.feedFilterTypes,
-            filters.scopedUserIds,
-            filters.searchDraft,
-            filters.todayDate
+            activeFilters,
+            dateDraftFrom,
+            dateDraftRange,
+            dateDraftTo,
+            dateFilterOpen,
+            dateFrom,
+            dateTo,
+            favoritesOnly,
+            feedFilterTypes,
+            scopedUserIds,
+            searchDraft,
+            todayDate
         ]
     );
     const filterCommands = useMemo(
         () => ({
-            onApplyDateFilter: filters.applyDateFilter,
-            onClearDateFilter: filters.clearDateFilter,
-            onClearFeedFilters: () => filters.setFeedFilters([]),
-            onClearSearch: filters.clearSearch,
-            onCommitSearch: () => filters.commitSearch(),
-            onDateFilterOpenChange: filters.setDateFilterOpen,
-            onDateRangeSelect: filters.onDateRangeSelect,
+            onApplyDateFilter: applyDateFilter,
+            onClearDateFilter: clearDateFilter,
+            onClearFeedFilters: () => setFeedFilters([]),
+            onClearSearch: clearSearch,
+            onCommitSearch: () => commitSearch(),
+            onDateFilterOpenChange: setDateFilterOpen,
+            onDateRangeSelect,
             onScopeChange: (userIds: readonly string[]) => {
                 setUserScope(userIds);
                 setRouteScopedUserIds(userIds);
             },
-            onSearchDraftChange: filters.setSearchDraft,
+            onSearchDraftChange: setSearchDraft,
             onToggleFavoritesOnly: () =>
-                filters.setFavoritesOnly((current) => !current),
-            onToggleFeedFilter: filters.toggleFeedFilter
+                setFavoritesOnly((current) => !current),
+            onToggleFeedFilter: toggleFeedFilter
         }),
         [
-            filters.applyDateFilter,
-            filters.clearDateFilter,
-            filters.clearSearch,
-            filters.commitSearch,
-            filters.onDateRangeSelect,
-            filters.setDateFilterOpen,
-            filters.setFavoritesOnly,
-            filters.setFeedFilters,
-            filters.setSearchDraft,
-            setUserScope,
+            applyDateFilter,
+            clearDateFilter,
+            clearSearch,
+            commitSearch,
+            onDateRangeSelect,
+            setDateFilterOpen,
+            setFavoritesOnly,
+            setFeedFilters,
             setRouteScopedUserIds,
-            filters.toggleFeedFilter
+            setSearchDraft,
+            setUserScope,
+            toggleFeedFilter
         ]
     );
 

@@ -1,8 +1,28 @@
-import type { ParsedLocation as BackendParsedLocation } from '@/platform/tauri/bindings';
-
 import { isRealInstance } from './instance';
 
-export type ParsedLocation = BackendParsedLocation & Record<string, unknown>;
+export interface ParsedLocation extends Record<string, unknown> {
+    tag: string;
+    isOffline: boolean;
+    isPrivate: boolean;
+    isTraveling: boolean;
+    isRealInstance: boolean;
+    worldId: string;
+    instanceId: string;
+    instanceName: string;
+    accessType: string;
+    accessTypeName: string;
+    region: string;
+    shortName: string;
+    userId: string | null;
+    hiddenId: string | null;
+    privateId: string | null;
+    friendsId: string | null;
+    groupId: string | null;
+    groupAccessType: string | null;
+    canRequestInvite: boolean;
+    strict: boolean;
+    ageGate: boolean;
+}
 
 interface LocationRecord extends Record<string, unknown> {
     tag?: unknown;

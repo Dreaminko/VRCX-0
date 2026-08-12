@@ -75,7 +75,8 @@ export function useMyAvatarsRows() {
         currentEndpoint,
         currentUserId,
         previousAvatarSwapTime,
-        refreshToken
+        refreshToken,
+        t
     ]);
 
     function refresh() {

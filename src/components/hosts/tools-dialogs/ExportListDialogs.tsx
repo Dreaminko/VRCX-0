@@ -121,7 +121,7 @@ export function ExportFriendsListDialog({
         return () => {
             active = false;
         };
-    }, [friendsById, open, orderedFriendIds]);
+    }, [friendsById, open, orderedFriendIds, t]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,7 +201,7 @@ export function ExportAvatarsListDialog({
         return () => {
             active = false;
         };
-    }, [open]);
+    }, [open, t]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

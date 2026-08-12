@@ -161,6 +161,7 @@ export function useGameLogRows({
         sessionDateFrom,
         sessionDateTo,
         sessionLimit,
+        t,
         viewMode
     ]);
 

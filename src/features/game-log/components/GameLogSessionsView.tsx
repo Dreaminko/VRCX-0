@@ -49,7 +49,7 @@ import {
     type GameLogSessionDurationDetails
 } from '../gameLogSessionDurations';
 import type { GameLogSession, GameLogSessionEvent } from '../gameLogTypes';
-import { openGameLogUser } from '../gameLogUserLookup';
+import { openGameLogUser } from '@/services/gameLogUserDialogService';
 import { SessionEventGroups } from './GameLogSessionEventRow';
 
 const EMPTY_DURATION_BY_KEY = new Map<string, number>();

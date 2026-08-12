@@ -199,6 +199,7 @@ export function WorldDialogContentWorkflow({
         isCurrentWorldTarget,
         showLaunchDialog
     });
+    const { openNewInstanceDialog } = instanceActions;
 
     const imageUpload = useWorldImageUpload({
         world,
@@ -277,21 +278,16 @@ export function WorldDialogContentWorkflow({
 
         handledInitialActionRef.current = actionKey;
         if (normalizedInitialAction === 'newInstanceSelfInvite') {
-            instanceActions.openNewInstanceDialog(
-                true,
-                initialNewInstanceDefaults
-            );
+            openNewInstanceDialog(true, initialNewInstanceDefaults);
         } else if (normalizedInitialAction === 'newInstance') {
-            instanceActions.openNewInstanceDialog(
-                false,
-                initialNewInstanceDefaults
-            );
+            openNewInstanceDialog(false, initialNewInstanceDefaults);
         }
     }, [
         initialAction,
-        initialActionNonce,
+        normalizedInitialActionNonce,
         initialNewInstanceDefaults,
         newInstanceGroups,
+        openNewInstanceDialog,
         profileWorldId,
         world?.id
     ]);

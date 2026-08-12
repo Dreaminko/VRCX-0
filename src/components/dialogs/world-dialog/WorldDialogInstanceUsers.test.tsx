@@ -34,11 +34,12 @@ vi.mock('@tanstack/react-query', async (importOriginal) => {
     return {
         ...actual,
         useQuery: (options: QueryOptions) => {
+            const { enabled, queryFn } = options;
             useEffect(() => {
-                if (options.enabled) {
-                    void options.queryFn();
+                if (enabled) {
+                    void queryFn();
                 }
-            }, [options.enabled]);
+            }, [enabled, queryFn]);
             return { data: mocks.queryData };
         }
     };

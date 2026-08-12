@@ -6,26 +6,16 @@ import { toast } from 'sonner';
 import { InviteMessageDialog } from '@/components/dialogs/InviteMessageDialog';
 import { BoopReplyDialog } from '@/features/notifications/components/NotificationViewParts';
 import { NotificationDrawerList } from '@/features/notifications/drawer/NotificationDrawerList';
-import { shouldOpenBoopReplyDialog } from '@/features/notifications/notificationResponseModel';
+import type {
+    NotificationDialogRequest,
+    NotificationRow
+} from '@/features/notifications/notificationPageTypes';
+import { useNotificationActions } from '@/features/notifications/useNotificationActions';
 import { useNotificationTypeLabel } from '@/features/notifications/useNotificationTypeLabel';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { preserveAppTitleBarOnOpenChange } from '@/lib/overlayTitlebar';
-import notificationPersistenceRepository, {
-    type NotificationResponse,
-    type NotificationRow
-} from '@/repositories/notificationPersistenceRepository';
 import { openWorldDialog } from '@/services/dialogService';
-import {
-    acceptFriendRequestNotification,
-    acceptRequestInviteNotification,
-    hideRemoteAndExpireNotification,
-    sendBoopReplyNotification,
-    sendInviteResponseNotification,
-    sendNotificationButtonResponse
-} from '@/services/notificationActionService';
 import { checkCanInvite } from '@/shared/utils/invite';
-import { parseLocation } from '@/shared/utils/location';
-import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 import { Badge } from '@/ui/shadcn/badge';
@@ -42,14 +32,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import {
     buildCachedInstanceMap,
-    openNotificationLink,
     resolveCurrentInviteLocation
 } from './vrc-notification-center/notificationCenterUtils';
-
-type InviteResponseRequest = {
-    notification: NotificationRow;
-    messageType: string;
-};
 
 type InviteResponseSlotPayload = {
     notification: NotificationRow;
@@ -58,10 +42,11 @@ type InviteResponseSlotPayload = {
     };
 };
 
+const EMPTY_GROUP_INSTANCES: unknown[] = [];
+
 export function VrcNotificationCenterHost() {
     const { t } = useTranslation();
     const notificationTypeLabel = useNotificationTypeLabel();
-    const confirm = useModalStore((state) => state.confirm);
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
     const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
     const currentUserLocationTag = useRuntimeStore(
@@ -107,19 +92,15 @@ export function VrcNotificationCenterHost() {
     const refreshForCurrentUser = useVrcNotificationStore(
         (state) => state.refreshForCurrentUser
     );
-    const markNotificationSeen = useVrcNotificationStore(
-        (state) => state.markNotificationSeen
-    );
-    const markAllSeen = useVrcNotificationStore((state) => state.markAllSeen);
     const [inviteResponseRequest, setInviteResponseRequest] =
-        useState<InviteResponseRequest | null>(null);
+        useState<NotificationDialogRequest>(null);
     const [boopReplyRequest, setBoopReplyRequest] =
         useState<NotificationRow | null>(null);
     const groupInstanceRows =
         groupInstancesUserId === currentUserId &&
         groupInstancesEndpoint === endpoint
             ? groupInstances
-            : [];
+            : EMPTY_GROUP_INSTANCES;
     const gameState = useMemo(
         () => ({
             currentLocation,
@@ -153,19 +134,32 @@ export function VrcNotificationCenterHost() {
         [cachedInstances, currentInviteLocation, currentUserId]
     );
 
+    const {
+        acceptFriendRequest,
+        acceptRequestInvite,
+        deleteNotification,
+        hideNotification,
+        markAllSeen,
+        markSeen,
+        sendBoopReply,
+        sendInviteResponseSlot,
+        sendInviteResponseWithMessage,
+        sendNotificationResponse
+    } = useNotificationActions({
+        canInviteFromCurrentLocation,
+        currentInviteLocation,
+        currentUserId: currentUserId ?? undefined,
+        notificationTypeLabel,
+        reload: refreshForCurrentUser,
+        setBoopReplyRequest,
+        setInviteResponseRequest
+    });
+
     function markAllRead() {
         if (unseenCount <= 0) {
             return;
         }
-        markAllSeen().catch((error: unknown) => {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t(
-                          'host.vrc_notification_center.toast.failed_to_mark_notifications_as_seen'
-                      )
-            );
-        });
+        void markAllSeen();
     }
 
     function handleOpenChange(open: boolean) {
@@ -193,249 +187,6 @@ export function VrcNotificationCenterHost() {
     function navigateToTable() {
         handleOpenChange(false);
         window.location.hash = '#/notification?fromCenter=1';
-    }
-
-    async function refreshCenter() {
-        await refreshForCurrentUser();
-    }
-
-    async function acceptFriendRequest(notification: NotificationRow) {
-        try {
-            const result = await confirm({
-                title: t(
-                    'host.vrc_notification_center.modal.accept_friend_request'
-                ),
-                description: t(
-                    'host.vrc_notification_center.dynamic.accept_the_friend_request_from_value',
-                    { value: notification.senderUsername || 'this user' }
-                )
-            });
-            if (!result.ok) {
-                return;
-            }
-            const acceptResult = await acceptFriendRequestNotification({
-                notification
-            });
-            await refreshCenter();
-            if (acceptResult.status === 'not-found') {
-                return;
-            }
-            toast.success(
-                t('view.notification.success.friend_request_accepted')
-            );
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t(
-                          'host.vrc_notification_center.toast.failed_to_accept_friend_request'
-                      )
-            );
-        }
-    }
-
-    async function hideNotification(notification: NotificationRow) {
-        try {
-            const result = await confirm({
-                title: t(
-                    'host.vrc_notification_center.modal.decline_notification'
-                ),
-                description: t(
-                    'host.vrc_notification_center.dynamic.decline_the_value_notification',
-                    { value: notificationTypeLabel(notification.type) }
-                ),
-                confirmText: t('host.vrc_notification_center.modal.decline'),
-                destructive: true
-            });
-            if (!result.ok) {
-                return;
-            }
-            await hideRemoteAndExpireNotification({
-                currentUserId,
-                notification
-            });
-            await refreshCenter();
-            toast.success(t('view.notification.success.notification_declined'));
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t(
-                          'host.vrc_notification_center.toast.failed_to_decline_notification'
-                      )
-            );
-        }
-    }
-
-    async function acceptRequestInvite(notification: NotificationRow) {
-        try {
-            if (!currentInviteLocation) {
-                toast.error(
-                    t(
-                        'view.notification.error.cannot_invite_no_current_vrchat_location_is_available'
-                    )
-                );
-                return;
-            }
-            if (!canInviteFromCurrentLocation) {
-                toast.error(
-                    t(
-                        'view.notification.error.cannot_invite_from_the_current_instance_type'
-                    )
-                );
-                return;
-            }
-            const parsedLocation = parseLocation(currentInviteLocation);
-            if (!parsedLocation.worldId || !parsedLocation.instanceId) {
-                toast.error(
-                    t(
-                        'view.notification.error.cannot_invite_current_location_is_not_a_concrete_instance'
-                    )
-                );
-                return;
-            }
-            const result = await confirm({
-                title: t('host.vrc_notification_center.modal.send_invite'),
-                description: t(
-                    'host.vrc_notification_center.dynamic.send_an_invite_to_value',
-                    { value: notification.senderUsername || 'this user' }
-                )
-            });
-            if (!result.ok) {
-                return;
-            }
-
-            await acceptRequestInviteNotification({
-                currentUserId,
-                instanceId: currentInviteLocation,
-                worldId: parsedLocation.worldId,
-                notification
-            });
-            await refreshCenter();
-            toast.success(t('message.invite.sent'));
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t(
-                          'host.vrc_notification_center.toast.failed_to_send_invite'
-                      )
-            );
-        }
-    }
-
-    function sendInviteResponseWithMessage(
-        notification: NotificationRow,
-        messageType: string
-    ) {
-        if (!currentUserId) {
-            toast.error(
-                t(
-                    'view.notification.error.cannot_send_invite_response_no_current_user_session_is_available'
-                )
-            );
-            return;
-        }
-        setInviteResponseRequest({ notification, messageType });
-    }
-
-    async function sendInviteResponseSlot({
-        notification,
-        row
-    }: InviteResponseSlotPayload) {
-        await sendInviteResponseNotification({
-            currentUserId,
-            notification,
-            responseSlot: row?.slot
-        });
-        await refreshCenter();
-        toast.success(t('view.notification.success.invite_response_sent'));
-    }
-
-    async function sendBoopReply(
-        notification: NotificationRow | null,
-        emojiId: unknown = ''
-    ) {
-        if (!notification) {
-            return;
-        }
-        await sendBoopReplyNotification({
-            currentUserId,
-            emojiId,
-            notification
-        });
-        await refreshCenter();
-        toast.success(t('view.notification.success.boop_sent'));
-    }
-
-    async function sendNotificationResponse(
-        notification: NotificationRow,
-        response: NotificationResponse
-    ) {
-        try {
-            if (response?.type === 'link') {
-                openNotificationLink(response.data);
-                return;
-            }
-            if (shouldOpenBoopReplyDialog(notification, response)) {
-                setBoopReplyRequest(notification);
-                return;
-            }
-            await sendNotificationButtonResponse({
-                currentUserId,
-                notification,
-                response
-            });
-            await refreshCenter();
-            toast.success(
-                t('view.notification.success.notification_response_sent')
-            );
-        } catch (error) {
-            await refreshCenter();
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t(
-                          'host.vrc_notification_center.toast.failed_to_send_notification_response'
-                      )
-            );
-        }
-    }
-
-    async function deleteNotification(notification: NotificationRow) {
-        try {
-            const result = await confirm({
-                title: t(
-                    'host.vrc_notification_center.modal.delete_notification_log_entry'
-                ),
-                description: t(
-                    'host.vrc_notification_center.modal.delete_the_local_value_log_entry',
-                    { value: notificationTypeLabel(notification.type) }
-                ),
-                confirmText: t('common.actions.delete'),
-                destructive: true
-            });
-            if (!result.ok) {
-                return;
-            }
-            await notificationPersistenceRepository.deleteNotification({
-                userId: currentUserId,
-                id: notification.id,
-                version: notification.version
-            });
-            await refreshCenter();
-            toast.success(
-                t('view.notification.success.notification_log_entry_deleted')
-            );
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t(
-                          'host.vrc_notification_center.toast.failed_to_delete_notification'
-                      )
-            );
-        }
     }
 
     return (
@@ -575,7 +326,7 @@ export function VrcNotificationCenterHost() {
                                 sendNotificationResponse,
                             onHideNotification: hideNotification,
                             onDeleteNotification: deleteNotification,
-                            onMarkSeen: markNotificationSeen,
+                            onMarkSeen: markSeen,
                             onJoinQueueReady: joinQueueReady
                         }}
                         onNavigateToTable={navigateToTable}

@@ -103,12 +103,14 @@ export function useImageCropDialogSession() {
     }, []);
 
     useEffect(() => {
+        const transformAnimTimer = transformAnimTimerRef;
+        const trackpadPanTimer = trackpadPanTimerRef;
         return () => {
-            if (transformAnimTimerRef.current) {
-                clearTimeout(transformAnimTimerRef.current);
+            if (transformAnimTimer.current) {
+                clearTimeout(transformAnimTimer.current);
             }
-            if (trackpadPanTimerRef.current) {
-                clearTimeout(trackpadPanTimerRef.current);
+            if (trackpadPanTimer.current) {
+                clearTimeout(trackpadPanTimer.current);
             }
         };
     }, []);
