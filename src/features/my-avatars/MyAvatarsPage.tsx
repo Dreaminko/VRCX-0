@@ -1,9 +1,11 @@
+import { PersonStandingIcon, SearchXIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { LoadingState, PageScaffold } from '@/components/layout/PageScaffold';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { IMAGE_UPLOAD_ACCEPT } from '@/shared/utils/imageUpload';
 import { Input } from '@/ui/shadcn/input';
+import { Button } from '@/ui/shadcn/button';
 
 import { MyAvatarsDialogs } from './components/MyAvatarsDialogs';
 import { MyAvatarsGridView } from './components/MyAvatarsGridView';
@@ -31,6 +33,7 @@ export function MyAvatarsPage({
     const isError =
         rowsState.loadStatus === 'error' && rowsState.avatars.length === 0;
     const hasRows = viewData.filteredAvatars.length > 0;
+    const hasAvatars = rowsState.avatars.length > 0;
 
     return (
         <PageScaffold embedded={embedded}>
@@ -128,13 +131,37 @@ export function MyAvatarsPage({
                     )
                 ) : (
                     <MyAvatarsEmptyState
+                        icon={hasAvatars ? SearchXIcon : PersonStandingIcon}
                         title={t(
-                            'view.my_avatars.empty.no_avatars_match_the_current_filters'
+                            hasAvatars
+                                ? 'view.my_avatars.empty.no_avatars_match_the_current_filters'
+                                : 'empty_state.my_avatars_title'
                         )}
                         description={t(
-                            'view.my_avatars.label.broaden_the_filters_or_search_query_to_see_more_avatars'
+                            hasAvatars
+                                ? 'view.my_avatars.label.broaden_the_filters_or_search_query_to_see_more_avatars'
+                                : 'empty_state.my_avatars_description'
                         )}
-                    />
+                    >
+                        <Button
+                            type="button"
+                            variant="link"
+                            onClick={() => {
+                                if (hasAvatars) {
+                                    filters.clearFilters();
+                                    filters.setSearchQuery('');
+                                    return;
+                                }
+                                rowsState.refresh();
+                            }}
+                        >
+                            {t(
+                                hasAvatars
+                                    ? 'view.my_avatars.action.clear_filters'
+                                    : 'common.actions.refresh'
+                            )}
+                        </Button>
+                    </MyAvatarsEmptyState>
                 )}
             </div>
             <MyAvatarsDialogs

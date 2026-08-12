@@ -1,11 +1,15 @@
 import {
     BadgeCheckIcon,
     BrushIcon,
+    CloudOffIcon,
     ExternalLinkIcon,
+    PaletteIcon,
     Trash2Icon
 } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { EmptyState } from '@/components/layout/PageScaffold';
 import type { CommunityThemeInstallMetadata } from '@/domain/themes/communityThemeTypes';
 import { openExternalLink } from '@/services/entityMediaService';
 import { Badge } from '@/ui/shadcn/badge';
@@ -53,9 +57,18 @@ export function CommunityThemesSection({
     accentControlled
 }: CommunityThemesSectionProps) {
     const { t } = useTranslation();
+    const [activeTab, setActiveTab] = useState<'browse' | 'installed'>('browse');
 
     return (
-        <Tabs defaultValue="browse" className="flex min-h-0 flex-col gap-3">
+        <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+                if (value === 'browse' || value === 'installed') {
+                    setActiveTab(value);
+                }
+            }}
+            className="flex min-h-0 flex-col gap-3"
+        >
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="shrink-0 overflow-x-auto overflow-y-hidden">
                     <TabsList>
@@ -137,9 +150,13 @@ export function CommunityThemesSection({
                         })}
                     </div>
                 ) : (
-                    <div className="border-border/70 text-muted-foreground rounded-lg border p-4 text-sm">
-                        {t('view.community_themes.browse.empty')}
-                    </div>
+                    <EmptyState
+                        variant="panel"
+                        icon={CloudOffIcon}
+                        title={t('empty_state.theme_catalog_title')}
+                        description={t('empty_state.theme_catalog_description')}
+                        className="min-h-64 rounded-lg"
+                    />
                 )}
             </TabsContent>
             <TabsContent value="installed" className="m-0">
@@ -256,9 +273,23 @@ export function CommunityThemesSection({
                             )}
                         </div>
                     ) : (
-                        <p className="text-muted-foreground text-sm">
-                            {t('view.community_themes.installed.empty')}
-                        </p>
+                        <EmptyState
+                            variant="panel"
+                            icon={PaletteIcon}
+                            title={t('empty_state.installed_themes_title')}
+                            description={t(
+                                'empty_state.installed_themes_description'
+                            )}
+                            className="min-h-56 border-0"
+                        >
+                            <Button
+                                type="button"
+                                variant="link"
+                                onClick={() => setActiveTab('browse')}
+                            >
+                                {t('empty_state.browse_themes')}
+                            </Button>
+                        </EmptyState>
                     )}
                 </div>
             </TabsContent>

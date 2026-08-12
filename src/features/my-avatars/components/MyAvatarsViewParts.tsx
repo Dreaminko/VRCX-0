@@ -3,7 +3,12 @@ import {
     MoreHorizontalIcon,
     RectangleGogglesIcon
 } from 'lucide-react';
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type {
+    ComponentProps,
+    Dispatch,
+    ReactNode,
+    SetStateAction
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
@@ -61,11 +66,6 @@ type PlatformBadgesProps = {
 type PlatformBadgeProps = {
     children: ReactNode;
     label: string;
-};
-
-type MyAvatarsEmptyStateProps = {
-    title?: string;
-    description?: string;
 };
 
 type AvatarActionsDropdownProps = {
@@ -134,9 +134,10 @@ export function PlatformBadges({ unityPackages }: PlatformBadgesProps) {
 
 export function MyAvatarsEmptyState({
     title,
-    description
-}: MyAvatarsEmptyStateProps) {
-    return <EmptyState title={title} description={description} />;
+    description,
+    ...props
+}: ComponentProps<typeof EmptyState>) {
+    return <EmptyState {...props} title={title} description={description} />;
 }
 
 export function openAvatarDetails(avatar: MyAvatarRow | null | undefined) {

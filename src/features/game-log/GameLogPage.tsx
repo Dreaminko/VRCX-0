@@ -1,3 +1,4 @@
+import { HistoryIcon, SearchXIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { PreviousInstancesTableDialog } from '@/components/dialogs/PreviousInstancesTableDialog';
@@ -33,6 +34,29 @@ export function GameLogPage({ embedded = false }: { embedded?: boolean } = {}) {
     } = useGameLogPageController();
     const hasSessions = annotations.annotatedSessions.length > 0;
     const hasRows = annotations.annotatedRows.length > 0;
+    const hasActiveFilters = Boolean(
+        filters.deferredSearchQuery.trim() ||
+            filters.favoritesOnly ||
+            filters.queryFilterTypes.length ||
+            (filters.viewMode === 'sessions' &&
+                (filters.sessionDateFrom || filters.sessionDateTo))
+    );
+    const emptyIcon = hasActiveFilters ? SearchXIcon : HistoryIcon;
+    let emptyTitleKey = 'empty_state.game_log_title';
+    let emptyDescriptionKey = 'empty_state.game_log_description';
+    if (hasActiveFilters) {
+        if (filters.viewMode === 'sessions') {
+            emptyTitleKey =
+                'view.game_log.empty.no_game_log_sessions_match_the_current_filters';
+            emptyDescriptionKey =
+                'view.game_log.description.broaden_the_filters_or_search_query_to_see_more_recent_sessions';
+        } else {
+            emptyTitleKey =
+                'view.game_log.empty.no_game_log_rows_match_the_current_filters';
+            emptyDescriptionKey =
+                'view.game_log.description.broaden_the_filters_or_search_query_to_see_more_results';
+        }
+    }
 
     return (
         <PageScaffold embedded={embedded}>
@@ -104,18 +128,15 @@ export function GameLogPage({ embedded = false }: { embedded?: boolean } = {}) {
                             />
                         ) : (
                             <GameLogEmptyState
-                                title={t(
-                                    'view.game_log.empty.no_game_log_sessions_match_the_current_filters'
-                                )}
+                                icon={emptyIcon}
+                                title={t(emptyTitleKey)}
                                 description={
                                     filters.favoritesOnly &&
                                     !rowsState.isFavoritesLoaded
                                         ? t(
                                               'view.game_log.description.favorites_are_still_hydrating'
                                           )
-                                        : t(
-                                              'view.game_log.description.broaden_the_filters_or_search_query_to_see_more_recent_sessions'
-                                          )
+                                        : t(emptyDescriptionKey)
                                 }
                             />
                         )
@@ -130,18 +151,15 @@ export function GameLogPage({ embedded = false }: { embedded?: boolean } = {}) {
                         />
                     ) : (
                         <GameLogEmptyState
-                            title={t(
-                                'view.game_log.empty.no_game_log_rows_match_the_current_filters'
-                            )}
+                            icon={emptyIcon}
+                            title={t(emptyTitleKey)}
                             description={
                                 filters.favoritesOnly &&
                                 !rowsState.isFavoritesLoaded
                                     ? t(
                                           'view.game_log.description.favorites_are_still_hydrating'
                                       )
-                                    : t(
-                                          'view.game_log.description.broaden_the_filters_or_search_query_to_see_more_results'
-                                      )
+                                    : t(emptyDescriptionKey)
                             }
                         />
                     )}

@@ -127,14 +127,21 @@ export function GalleryFileTab({
                         </div>
                     ) : (
                         <EmptyState
-                            title={t('view.tools.dynamic.no_value_loaded', {
-                                value: tab
-                            })}
+                            icon={UploadIcon}
+                            title={t('empty_state.gallery_images_title')}
                             description={t(
-                                'view.tools.dynamic.refresh_this_tab_to_load_value_files',
-                                { value: definition.tag }
+                                'empty_state.gallery_images_description'
                             )}
-                        />
+                        >
+                            <Button
+                                type="button"
+                                variant="link"
+                                disabled={Boolean(uploadingTab)}
+                                onClick={() => onBeginUpload(tab)}
+                            >
+                                {t('dialog.gallery_icons.upload')}
+                            </Button>
+                        </EmptyState>
                     )}
                 </div>
             </div>

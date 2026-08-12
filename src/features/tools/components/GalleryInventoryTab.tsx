@@ -190,13 +190,20 @@ export function GalleryInventoryTab({
                         </div>
                     ) : (
                         <EmptyState
-                            title={t(
-                                'view.tools.empty.no_inventory_items_loaded'
-                            )}
+                            icon={GiftIcon}
+                            title={t('empty_state.inventory_title')}
                             description={t(
-                                'view.tools.action.refresh_this_tab_to_load_inventory_items'
+                                'empty_state.inventory_description'
                             )}
-                        />
+                        >
+                            <Button
+                                type="button"
+                                variant="link"
+                                onClick={() => onRefresh('inventory')}
+                            >
+                                {t('dialog.gallery_icons.refresh')}
+                            </Button>
+                        </EmptyState>
                     )}
                 </CardContent>
             </Card>

@@ -22,6 +22,7 @@ export function VrcNotificationPage({
         pageRows,
         rowsState,
         runtime,
+        sourceRowsCount,
         table,
         tableState,
         unseenCount
@@ -49,10 +50,17 @@ export function VrcNotificationPage({
                     table={table}
                     detail={rowsState.detail}
                     loadStatus={rowsState.loadStatus}
+                    sourceRowsCount={sourceRowsCount}
+                    hasActiveFilters={
+                        filters.activeTypes.length > 0 ||
+                        filters.quickFilter !== 'all' ||
+                        Boolean(filters.searchQuery.trim())
+                    }
                     rowsCount={rowsState.rows.length}
                     pagination={tableState.pagination}
                     pageSizes={tableState.pageSizes}
                     onPageSizeChange={tableState.handlePageSizeChange}
+                    onClearFilters={filters.clearFilters}
                     currentUserId={runtime.currentUserId ?? undefined}
                     canInviteFromCurrentLocation={
                         runtime.canInviteFromCurrentLocation

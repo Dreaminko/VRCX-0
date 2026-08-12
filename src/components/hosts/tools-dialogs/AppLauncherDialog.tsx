@@ -1,4 +1,10 @@
-import { FolderOpenIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import {
+    AppWindowIcon,
+    FolderOpenIcon,
+    MousePointerClickIcon,
+    PlusIcon,
+    Trash2Icon
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -25,7 +31,14 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
-import { Empty, EmptyHeader, EmptyTitle } from '@/ui/shadcn/empty';
+import {
+    Empty,
+    EmptyContent,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle
+} from '@/ui/shadcn/empty';
 import {
     Field,
     FieldDescription,
@@ -400,12 +413,35 @@ export function AppLauncherDialog({
                         {entries.length === 0 ? (
                             <Empty className="min-h-[360px] border-0">
                                 <EmptyHeader>
+                                    {!loading ? (
+                                        <EmptyMedia variant="icon">
+                                            <AppWindowIcon />
+                                        </EmptyMedia>
+                                    ) : null}
                                     <EmptyTitle>
                                         {loading
                                             ? t('dialog.app_launcher.loading')
-                                            : t('dialog.app_launcher.empty')}
+                                            : t('empty_state.app_launcher_title')}
                                     </EmptyTitle>
+                                    {!loading ? (
+                                        <EmptyDescription>
+                                            {t(
+                                                'empty_state.app_launcher_description'
+                                            )}
+                                        </EmptyDescription>
+                                    ) : null}
                                 </EmptyHeader>
+                                {!loading ? (
+                                    <EmptyContent>
+                                        <Button
+                                            type="button"
+                                            variant="link"
+                                            onClick={addApp}
+                                        >
+                                            {t('dialog.app_launcher.add_app')}
+                                        </Button>
+                                    </EmptyContent>
+                                ) : null}
                             </Empty>
                         ) : (
                             <Table>
@@ -581,9 +617,17 @@ function EntryDetailsPanel({
                 <Separator />
                 <Empty className="min-h-[320px] border-0">
                     <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <MousePointerClickIcon />
+                        </EmptyMedia>
                         <EmptyTitle>
-                            {t('dialog.app_launcher.no_selection')}
+                            {t('empty_state.app_launcher_selection_title')}
                         </EmptyTitle>
+                        <EmptyDescription>
+                            {t(
+                                'empty_state.app_launcher_selection_description'
+                            )}
+                        </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             </div>

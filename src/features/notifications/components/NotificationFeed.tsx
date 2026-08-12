@@ -1,3 +1,4 @@
+import { BellIcon, SearchXIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +11,7 @@ import { EmptyState, LoadingState } from '@/components/layout/PageScaffold';
 import { formatDateFilter } from '@/lib/dateTime';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { getNotificationTs } from '@/shared/utils/notificationCategory';
+import { Button } from '@/ui/shadcn/button';
 
 import type {
     NotificationLoadStatus,
@@ -55,10 +57,13 @@ export function NotificationFeed({
     table,
     detail,
     loadStatus,
+    sourceRowsCount,
+    hasActiveFilters,
     rowsCount,
     pagination,
     pageSizes,
     onPageSizeChange,
+    onClearFilters,
     currentUserId,
     canInviteFromCurrentLocation,
     handlers
@@ -68,11 +73,14 @@ export function NotificationFeed({
     detail: string;
     handlers: NotificationFeedHandlers;
     loadStatus: NotificationLoadStatus;
+    hasActiveFilters: boolean;
+    onClearFilters: () => void;
     onPageSizeChange: (value: string) => void;
     pageSizes: number[];
     pagination: { pageIndex: number; pageSize: number };
     rows: NotificationRecord[];
     rowsCount: number;
+    sourceRowsCount: number;
     table: AppTable<NotificationRecord>;
 }) {
     const { t } = useTranslation();
@@ -132,8 +140,34 @@ export function NotificationFeed({
                     ) : (
                         <EmptyState
                             variant="table"
-                            title={t('common.no_matching_entries')}
-                        />
+                            icon={
+                                sourceRowsCount > 0
+                                    ? SearchXIcon
+                                    : BellIcon
+                            }
+                            title={t(
+                                sourceRowsCount > 0
+                                    ? 'common.no_matching_entries'
+                                    : 'empty_state.notifications_title'
+                            )}
+                            description={t(
+                                sourceRowsCount > 0
+                                    ? 'empty_state.notifications_filter_description'
+                                    : 'empty_state.notifications_description'
+                            )}
+                        >
+                            {sourceRowsCount > 0 && hasActiveFilters ? (
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    onClick={onClearFilters}
+                                >
+                                    {t(
+                                        'empty_state.clear_search_and_filters'
+                                    )}
+                                </Button>
+                            ) : null}
+                        </EmptyState>
                     )}
                 </div>
             </DataTableSurface>

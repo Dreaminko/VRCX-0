@@ -116,6 +116,7 @@ export function MutualFriendsPage() {
                     detail={graph.detail}
                     hasActiveFilters={hasActiveFilters}
                     nodeCount={graph.nodeCount}
+                    onLoadConnections={actions.fetchGraph}
                     onClearFilters={actions.clearFilters}
                     status={graph.status}
                 />

@@ -1,6 +1,7 @@
 import {
     GlobeIcon,
     PersonStandingIcon,
+    SearchXIcon,
     UserIcon,
     UsersIcon
 } from 'lucide-react';
@@ -38,10 +39,62 @@ import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-export function SearchEmptyState() {
-    const { t } = useTranslation();
+import type { SearchActiveTab } from '../searchTypes';
 
-    return <EmptyState variant="panel" title={t('common.no_data')} />;
+const SEARCH_EMPTY_ICONS: Record<SearchActiveTab, LucideIcon> = {
+    avatar: PersonStandingIcon,
+    group: UsersIcon,
+    user: UserIcon,
+    world: GlobeIcon
+};
+
+export function SearchEmptyState({
+    kind,
+    searched,
+    avatarProviderConfigured = true,
+    onClear,
+    onConfigureAvatarProvider
+}: {
+    kind: SearchActiveTab;
+    searched: boolean;
+    avatarProviderConfigured?: boolean;
+    onClear: () => void;
+    onConfigureAvatarProvider?: () => void;
+}) {
+    const { t } = useTranslation();
+    const EmptyIcon = searched ? SearchXIcon : SEARCH_EMPTY_ICONS[kind];
+    const needsAvatarProvider = kind === 'avatar' && !avatarProviderConfigured;
+    let titleKey = `empty_state.search_${kind}_title`;
+    let descriptionKey = `empty_state.search_${kind}_description`;
+    if (searched) {
+        titleKey = 'empty_state.search_no_results';
+        descriptionKey = 'empty_state.search_try_another';
+    } else if (needsAvatarProvider) {
+        descriptionKey = 'empty_state.search_avatar_provider_description';
+    }
+
+    return (
+        <EmptyState
+            variant="panel"
+            icon={EmptyIcon}
+            title={t(titleKey)}
+            description={t(descriptionKey)}
+        >
+            {searched ? (
+                <Button type="button" variant="link" onClick={onClear}>
+                    {t('empty_state.clear_search')}
+                </Button>
+            ) : needsAvatarProvider && onConfigureAvatarProvider ? (
+                <Button
+                    type="button"
+                    variant="link"
+                    onClick={onConfigureAvatarProvider}
+                >
+                    {t('empty_state.set_up_avatar_search')}
+                </Button>
+            ) : null}
+        </EmptyState>
+    );
 }
 
 export function SearchLoadingState() {

@@ -10,6 +10,7 @@ import {
     XIcon,
     type LucideIcon
 } from 'lucide-react';
+import type { ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DataTableSortButton } from '@/components/data-table/DataTableSortButton';
@@ -79,12 +80,10 @@ export { DataTableSortButton as SortButton };
 
 export function FriendLogEmptyState({
     title,
-    description
-}: {
-    title: string;
-    description: string;
-}) {
-    return <EmptyState title={title} description={description} />;
+    description,
+    ...props
+}: ComponentProps<typeof EmptyState>) {
+    return <EmptyState {...props} title={title} description={description} />;
 }
 
 function isFriendLogType(type: unknown): type is FriendLogType {

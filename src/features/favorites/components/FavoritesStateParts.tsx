@@ -1,20 +1,21 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { EmptyState, LoadingState } from '@/components/layout/PageScaffold';
+import { cn } from '@/lib/utils';
 
 function FavoritesEmptyState({
     title,
-    description
-}: {
-    title?: ReactNode;
-    description?: ReactNode;
-}) {
+    description,
+    className,
+    ...props
+}: ComponentProps<typeof EmptyState>) {
     return (
         <EmptyState
+            {...props}
             variant="panel"
             title={title}
             description={description}
-            className="h-full min-h-60 border-0 p-6"
+            className={cn('h-full min-h-60 border-0 p-6', className)}
         />
     );
 }

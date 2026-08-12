@@ -132,8 +132,8 @@ export function TimeRulesTab({
             addLabel={t(`${I18N_ROOT}.add_rule`)}
             disabled={disabled}
             isEmpty={!rules.length}
-            emptyTitle={t(`${I18N_ROOT}.no_schedule_rules`)}
-            emptyDescription={t(`${I18N_ROOT}.schedule_rules_description`)}
+            emptyTitle={t('empty_state.schedule_rules_title')}
+            emptyDescription={t('empty_state.schedule_rules_description')}
             onAdd={addRule}
         >
             {rules.map((rule) => {
@@ -196,7 +196,7 @@ export function TimeRulesTab({
             description={
                 selectedTimeWindow
                     ? `${selectedTimeWindow.start} - ${selectedTimeWindow.end}`
-                    : t(`${I18N_ROOT}.no_schedule_rules`)
+                    : t('empty_state.schedule_rules_title')
             }
         >
             {selectedRule && selectedTimeWindow ? (
@@ -435,10 +435,10 @@ export function TimeRulesTab({
                 <Empty className="min-h-[18rem] border">
                     <EmptyHeader>
                         <EmptyTitle>
-                            {t(`${I18N_ROOT}.no_schedule_rules`)}
+                            {t('empty_state.schedule_rules_title')}
                         </EmptyTitle>
                         <EmptyDescription>
-                            {t(`${I18N_ROOT}.schedule_rules_description`)}
+                            {t('empty_state.schedule_rules_description')}
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>

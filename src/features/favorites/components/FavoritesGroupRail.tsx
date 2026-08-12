@@ -12,6 +12,7 @@ import type { LucideIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { EmptyState } from '@/components/layout/PageScaffold';
 import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -294,6 +295,8 @@ function GroupMenu({
 type GroupRailSectionProps = {
     title: string;
     icon: LucideIcon;
+    emptyTitle: string;
+    emptyDescription: string;
     groups: FavoriteGroup[];
     selectedSource: FavoriteSource | '';
     selectedGroupKey: string;
@@ -323,6 +326,8 @@ type GroupRailSectionProps = {
 const GroupRailSection = memo(function GroupRailSection({
     title,
     icon: SectionIcon,
+    emptyTitle,
+    emptyDescription,
     groups,
     selectedSource,
     selectedGroupKey,
@@ -457,9 +462,14 @@ const GroupRailSection = memo(function GroupRailSection({
                         );
                     })
                 ) : (
-                    <div className="text-muted-foreground py-3 text-center text-xs">
-                        {t('common.no_data')}
-                    </div>
+                    <EmptyState
+                        variant="inline"
+                        title={emptyTitle}
+                        description={emptyDescription}
+                        className="min-h-24 border-0 px-2 py-4"
+                        contentClassName="gap-1"
+                        descriptionClassName="text-xs"
+                    />
                 )}
                 {showNewGroup && !creating ? (
                     <Button

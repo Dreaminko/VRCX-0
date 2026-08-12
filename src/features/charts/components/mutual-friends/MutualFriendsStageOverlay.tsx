@@ -1,3 +1,4 @@
+import { UsersIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -37,6 +38,7 @@ export function MutualFriendsStageOverlay({
     detail,
     hasActiveFilters,
     nodeCount,
+    onLoadConnections,
     onClearFilters,
     status
 }: {
@@ -44,6 +46,7 @@ export function MutualFriendsStageOverlay({
     detail: string;
     hasActiveFilters: boolean;
     nodeCount: number;
+    onLoadConnections: () => void;
     onClearFilters: () => void;
     status: MutualFriendsSnapshotStatus;
 }) {
@@ -80,12 +83,21 @@ export function MutualFriendsStageOverlay({
         return (
             <StageOverlay>
                 <AppEmptyState
-                    title={t('view.charts.empty.no_cached_mutual_graph_yet')}
-                    description={t(
-                        'view.charts.description.the_local_mutual_friends_snapshot_is_empty_use_start_fetch_to_build_the_graph_cache'
-                    )}
+                    icon={UsersIcon}
+                    title={t('empty_state.mutual_friends_title')}
+                    description={t('empty_state.mutual_friends_description')}
                     contentClassName="max-w-md"
-                />
+                >
+                    <Button
+                        type="button"
+                        variant="link"
+                        onClick={onLoadConnections}
+                    >
+                        {t(
+                            'empty_state.load_mutual_friends'
+                        )}
+                    </Button>
+                </AppEmptyState>
             </StageOverlay>
         );
     }

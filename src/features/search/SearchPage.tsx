@@ -55,21 +55,36 @@ export function SearchPage({ embedded = false }: { embedded?: boolean } = {}) {
                     results={results.userResults}
                     languageOptionsMap={config.languageOptionsMap}
                     pagination={results.pagination}
+                    searched={results.hasUserSearched}
+                    onClear={results.handleClearSearch}
                 />
                 <SearchWorldTabPanel
                     isLoading={results.isWorldLoading}
                     results={results.worldResults}
                     pagination={results.pagination}
+                    searched={results.hasWorldSearched}
+                    onClear={results.handleClearSearch}
                 />
                 <SearchAvatarTabPanel
                     isLoading={results.isAvatarLoading}
                     results={results.avatarPageResults}
                     pagination={results.pagination}
+                    searched={results.hasAvatarSearched}
+                    avatarProviderConfigured={
+                        config.avatarProviderEnabled &&
+                        Boolean(config.selectedAvatarProvider)
+                    }
+                    onClear={results.handleClearSearch}
+                    onConfigureAvatarProvider={() =>
+                        config.setIsAvatarProviderDialogOpen(true)
+                    }
                 />
                 <SearchGroupTabPanel
                     isLoading={results.isGroupLoading}
                     results={results.groupResults}
                     pagination={results.pagination}
+                    searched={results.hasGroupSearched}
+                    onClear={results.handleClearSearch}
                 />
             </Tabs>
             <AvatarProviderSettingsDialog

@@ -23,12 +23,16 @@ export function SearchUserTabPanel({
     isLoading,
     results,
     languageOptionsMap,
-    pagination
+    pagination,
+    searched,
+    onClear
 }: {
     isLoading: boolean;
     results: SearchUserResult[];
     languageOptionsMap: ReadonlyMap<string, LanguageOption>;
     pagination: SearchPaginationState;
+    searched: boolean;
+    onClear: () => void;
 }) {
     const randomUserColours = usePreferencesStore(
         (state) => state.randomUserColours
@@ -60,7 +64,11 @@ export function SearchUserTabPanel({
                             ))}
                         </div>
                     ) : (
-                        <SearchEmptyState />
+                        <SearchEmptyState
+                            kind="user"
+                            searched={searched}
+                            onClear={onClear}
+                        />
                     )}
                 </div>
             </div>
@@ -78,11 +86,15 @@ export function SearchUserTabPanel({
 export function SearchWorldTabPanel({
     isLoading,
     results,
-    pagination
+    pagination,
+    searched,
+    onClear
 }: {
     isLoading: boolean;
     results: SearchWorldResult[];
     pagination: SearchPaginationState;
+    searched: boolean;
+    onClear: () => void;
 }) {
     return (
         <TabsContent
@@ -101,7 +113,11 @@ export function SearchWorldTabPanel({
                             ))}
                         </div>
                     ) : (
-                        <SearchEmptyState />
+                        <SearchEmptyState
+                            kind="world"
+                            searched={searched}
+                            onClear={onClear}
+                        />
                     )}
                 </div>
             </div>
@@ -119,11 +135,19 @@ export function SearchWorldTabPanel({
 export function SearchAvatarTabPanel({
     isLoading,
     results,
-    pagination
+    pagination,
+    searched,
+    avatarProviderConfigured,
+    onClear,
+    onConfigureAvatarProvider
 }: {
     isLoading: boolean;
     results: SearchAvatarResult[];
     pagination: SearchPaginationState;
+    searched: boolean;
+    avatarProviderConfigured: boolean;
+    onClear: () => void;
+    onConfigureAvatarProvider: () => void;
 }) {
     return (
         <TabsContent
@@ -142,7 +166,17 @@ export function SearchAvatarTabPanel({
                             ))}
                         </div>
                     ) : (
-                        <SearchEmptyState />
+                        <SearchEmptyState
+                            kind="avatar"
+                            searched={searched}
+                            avatarProviderConfigured={
+                                avatarProviderConfigured
+                            }
+                            onClear={onClear}
+                            onConfigureAvatarProvider={
+                                onConfigureAvatarProvider
+                            }
+                        />
                     )}
                 </div>
             </div>
@@ -160,11 +194,15 @@ export function SearchAvatarTabPanel({
 export function SearchGroupTabPanel({
     isLoading,
     results,
-    pagination
+    pagination,
+    searched,
+    onClear
 }: {
     isLoading: boolean;
     results: SearchGroupResult[];
     pagination: SearchPaginationState;
+    searched: boolean;
+    onClear: () => void;
 }) {
     return (
         <TabsContent
@@ -182,7 +220,11 @@ export function SearchGroupTabPanel({
                         ))}
                     </div>
                 ) : (
-                    <SearchEmptyState />
+                    <SearchEmptyState
+                        kind="group"
+                        searched={searched}
+                        onClear={onClear}
+                    />
                 )}
             </div>
             <SearchPagination

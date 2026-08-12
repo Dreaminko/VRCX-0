@@ -361,6 +361,10 @@ export function useSearchResults({
     return {
         avatarPageResults,
         groupResults,
+        hasAvatarSearched: avatarRequest !== null,
+        hasGroupSearched: groupRequest !== null,
+        hasUserSearched: userRequest !== null,
+        hasWorldSearched: worldRequest !== null,
         handleClearSearch,
         handleSearch,
         handleWorldCategoryChange,

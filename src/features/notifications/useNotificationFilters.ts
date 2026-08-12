@@ -60,6 +60,7 @@ export function useNotificationFilters() {
     function clearFilters() {
         setActiveTypes([]);
         setQuickFilter('all');
+        setSearchQuery('');
     }
 
     return {

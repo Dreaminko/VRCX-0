@@ -1,4 +1,4 @@
-import { RefreshCwIcon, UserIcon, UsersIcon } from 'lucide-react';
+import { ImageIcon, RefreshCwIcon, UserIcon, UsersIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { CurrentInstanceBadge } from '@/components/instances/CurrentInstanceBadge';
@@ -15,6 +15,7 @@ import {
     Empty,
     EmptyDescription,
     EmptyHeader,
+    EmptyMedia,
     EmptyTitle
 } from '@/ui/shadcn/empty';
 import { Spinner } from '@/ui/shadcn/spinner';
@@ -75,14 +76,20 @@ function WorldScreenshotsEmptyState({
     return (
         <Empty className="min-h-32 border">
             <EmptyHeader>
-                {loading ? <Spinner /> : null}
+                {loading ? (
+                    <Spinner />
+                ) : !message ? (
+                    <EmptyMedia variant="icon">
+                        <ImageIcon />
+                    </EmptyMedia>
+                ) : null}
                 <EmptyTitle>{t('dialog.world.screenshots.header')}</EmptyTitle>
                 <EmptyDescription>
                     {message ||
                         t(
                             loading
                                 ? 'dialog.world.screenshots.loading'
-                                : 'dialog.world.screenshots.empty'
+                                : 'empty_state.world_screenshots_description'
                         )}
                 </EmptyDescription>
             </EmptyHeader>
@@ -399,9 +406,7 @@ export function WorldDialogTabPanels({
                         onOpenScreenshot={onOpenScreenshot}
                     />
                 ) : (
-                    <WorldScreenshotsEmptyState
-                        message={t('dialog.world.screenshots.empty')}
-                    />
+                    <WorldScreenshotsEmptyState />
                 )}
             </EntityDialogTabContent>
             <EntityDialogTabContent value="info" forceMount>

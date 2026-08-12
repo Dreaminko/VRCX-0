@@ -1,3 +1,4 @@
+import { HistoryIcon, SearchXIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -5,6 +6,7 @@ import {
     PageBody,
     PageScaffold
 } from '@/components/layout/PageScaffold';
+import { Button } from '@/ui/shadcn/button';
 
 import { FriendLogPageTable } from './components/FriendLogPageTable';
 import { FriendLogPageToolbar } from './components/FriendLogPageToolbar';
@@ -18,6 +20,7 @@ export function FriendLogPage({
     const { filters, isError, isLoading, rows, table, tableState } =
         useFriendLogPageController();
     const hasRows = rows.orderedRows.length > 0;
+    const hasHistory = rows.rows.length > 0;
 
     return (
         <PageScaffold embedded={embedded}>
@@ -59,13 +62,31 @@ export function FriendLogPage({
                     />
                 ) : (
                     <FriendLogEmptyState
+                        icon={hasHistory ? SearchXIcon : HistoryIcon}
                         title={t(
-                            'view.friend_log.empty.no_friend_history_rows_match_the_current_filters'
+                            hasHistory
+                                ? 'view.friend_log.empty.no_friend_history_rows_match_the_current_filters'
+                                : 'empty_state.friend_history_title'
                         )}
                         description={t(
-                            'view.friend_log.label.broaden_the_type_filters_or_search_query_to_see_more_history'
+                            hasHistory
+                                ? 'view.friend_log.label.broaden_the_type_filters_or_search_query_to_see_more_history'
+                                : 'empty_state.friend_history_description'
                         )}
-                    />
+                    >
+                        {hasHistory ? (
+                            <Button
+                                type="button"
+                                variant="link"
+                                onClick={() => {
+                                    filters.setSelectedTypes([]);
+                                    filters.setSearchQuery('');
+                                }}
+                            >
+                                {t('common.actions.clear')}
+                            </Button>
+                        ) : null}
+                    </FriendLogEmptyState>
                 )}
             </PageBody>
         </PageScaffold>

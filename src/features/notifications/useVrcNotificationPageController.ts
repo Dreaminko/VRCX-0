@@ -14,6 +14,9 @@ import { useNotificationTypeLabel } from './useNotificationTypeLabel';
 
 export function useVrcNotificationPageController() {
     const unseenCount = useVrcNotificationStore((state) => state.unseenCount);
+    const sourceRowsCount = useVrcNotificationStore(
+        (state) => state.rows.length
+    );
     const filters = useNotificationFilters();
     const runtime = useNotificationRuntime();
     const dialogs = useNotificationDialogs();
@@ -76,6 +79,7 @@ export function useVrcNotificationPageController() {
         pageRows,
         rowsState,
         runtime,
+        sourceRowsCount,
         table,
         tableState,
         unseenCount

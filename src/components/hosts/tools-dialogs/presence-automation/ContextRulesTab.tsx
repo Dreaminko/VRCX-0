@@ -116,8 +116,8 @@ export function ContextRulesTab({
             addLabel={t(`${I18N_ROOT}.add_rule`)}
             disabled={loading}
             isEmpty={!rules.length}
-            emptyTitle={t(`${I18N_ROOT}.no_custom_room_rules`)}
-            emptyDescription={t(`${I18N_ROOT}.room_social_rules_description`)}
+            emptyTitle={t('empty_state.context_rules_title')}
+            emptyDescription={t('empty_state.context_rules_description')}
             onAdd={addRule}
         >
             {rules.map((rule) => (
@@ -162,7 +162,7 @@ export function ContextRulesTab({
             description={
                 selectedRule
                     ? t(contextPresetLabelKeyFromValue(selectedRule.preset))
-                    : t(`${I18N_ROOT}.no_custom_room_rules`)
+                    : t('empty_state.context_rules_title')
             }
         >
             {selectedRule ? (
@@ -463,10 +463,10 @@ export function ContextRulesTab({
                 <Empty className="min-h-[18rem] border">
                     <EmptyHeader>
                         <EmptyTitle>
-                            {t(`${I18N_ROOT}.no_custom_room_rules`)}
+                            {t('empty_state.context_rules_title')}
                         </EmptyTitle>
                         <EmptyDescription>
-                            {t(`${I18N_ROOT}.room_social_rules_description`)}
+                            {t('empty_state.context_rules_description')}
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>

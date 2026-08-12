@@ -303,11 +303,20 @@ export function GalleryPrintsTab({ printsTab }: GalleryPrintsTabProps) {
                         </div>
                     ) : (
                         <EmptyState
-                            title={t('view.tools.empty.no_prints_loaded')}
+                            icon={ImageIcon}
+                            title={t('empty_state.prints_title')}
                             description={t(
-                                'view.tools.action.refresh_this_tab_to_load_your_vrchat_prints'
+                                'empty_state.prints_description'
                             )}
-                        />
+                        >
+                            <Button
+                                type="button"
+                                variant="link"
+                                onClick={() => onRefresh('prints')}
+                            >
+                                {t('dialog.gallery_icons.refresh')}
+                            </Button>
+                        </EmptyState>
                     )}
                 </div>
             </div>

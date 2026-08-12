@@ -8,7 +8,7 @@ import {
 import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { PageScaffold } from '@/components/layout/PageScaffold';
+import { EmptyState, PageScaffold } from '@/components/layout/PageScaffold';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -231,17 +231,20 @@ export function DashboardPage() {
                         })}
                     </ResizablePanelGroup>
                 ) : (
-                    <div className="text-muted-foreground flex flex-1 items-center justify-center rounded-md border border-dashed">
-                        <div className="flex flex-col items-center gap-3">
-                            <p>{t('dashboard.empty')}</p>
-                            <Button
-                                type="button"
-                                onClick={() => editor.setIsEditing(true)}
-                            >
-                                {t('dashboard.actions.start_editing')}
-                            </Button>
-                        </div>
-                    </div>
+                    <EmptyState
+                        icon={LayoutDashboardIcon}
+                        title={t('empty_state.dashboard_title')}
+                        description={t('empty_state.dashboard_description')}
+                        className="flex-1 rounded-md border"
+                    >
+                        <Button
+                            type="button"
+                            variant="link"
+                            onClick={() => editor.setIsEditing(true)}
+                        >
+                            {t('dashboard.actions.start_editing')}
+                        </Button>
+                    </EmptyState>
                 )}
             </div>
         </PageScaffold>
