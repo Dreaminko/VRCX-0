@@ -1,5 +1,5 @@
 import { ChevronRightIcon, FolderIcon, RefreshCwIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -11,6 +11,14 @@ import type {
 } from '@/platform/tauri/bindings';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle
+} from '@/ui/shadcn/card';
 import {
     Collapsible,
     CollapsibleContent,
@@ -101,6 +109,7 @@ function FolderTreeNode({
     const [open, setOpen] = useState(() => containsSelected);
     const selected = node.path === selectedFolder;
     const hasChildren = Boolean(node.children?.length);
+    const selectedRowRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         if (containsSelected) {
@@ -108,51 +117,60 @@ function FolderTreeNode({
         }
     }, [containsSelected]);
 
+    useEffect(() => {
+        if (selected) {
+            selectedRowRef.current?.scrollIntoView({
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        }
+    }, [selected]);
+
     const row = (
         <Button
+            ref={selected ? selectedRowRef : undefined}
             type="button"
             variant={selected ? 'secondary' : 'ghost'}
             size="sm"
-            className="h-8 min-w-0 flex-1 justify-start gap-1.5 px-2"
+            className="w-full min-w-0 justify-start transition-none"
+            aria-current={selected ? 'location' : undefined}
             onClick={() => onSelectFolder(node.path)}
         >
+            {hasChildren ? (
+                <ChevronRightIcon
+                    data-icon="inline-start"
+                    className={cn(
+                        'transition-transform motion-reduce:transition-none',
+                        open && 'rotate-90'
+                    )}
+                />
+            ) : (
+                <span aria-hidden="true" className="size-3.5 shrink-0" />
+            )}
             <FolderIcon data-icon="inline-start" />
-            <span className="truncate text-left">{node.name}</span>
-            <Badge variant="outline" className="ml-auto tabular-nums">
-                {node.imageCount}
-            </Badge>
+            <span className="truncate text-left" title={node.name}>
+                {node.name}
+            </span>
+            {node.imageCount > 0 && (
+                <span
+                    aria-hidden="true"
+                    className="text-muted-foreground ml-auto min-w-5 text-right text-xs tabular-nums"
+                >
+                    {node.imageCount}
+                </span>
+            )}
         </Button>
     );
 
     if (!hasChildren) {
-        return <div className="flex min-w-0">{row}</div>;
+        return row;
     }
 
     return (
         <Collapsible open={open} onOpenChange={setOpen}>
-            <div className="flex min-w-0 items-center gap-1">
-                <CollapsibleTrigger
-                    render={
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={node.name}
-                        >
-                            <ChevronRightIcon
-                                data-icon="inline-start"
-                                className={cn(
-                                    'transition-transform',
-                                    open && 'rotate-90'
-                                )}
-                            />
-                        </Button>
-                    }
-                />
-                {row}
-            </div>
+            <CollapsibleTrigger render={row} />
             <CollapsibleContent>
-                <div className="ml-5 flex flex-col gap-1 py-1">
+                <div className="mt-1 ml-5 flex flex-col gap-1">
                     {node.children.map((child) => (
                         <FolderTreeNode
                             key={child.path}
@@ -306,13 +324,13 @@ export function ScreenshotGalleryView({
 
     return (
         <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(160px,240px)_minmax(0,1fr)] gap-4 overflow-hidden lg:grid-cols-[minmax(200px,260px)_minmax(0,1fr)] lg:grid-rows-none xl:grid-cols-[minmax(220px,280px)_minmax(0,1fr)]">
-            <aside className="bg-card flex min-h-0 flex-col rounded-md border">
-                <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
-                    <div className="min-w-0">
-                        <div className="text-sm font-medium">
+            <aside className="min-h-0">
+                <Card size="sm" className="h-full min-h-0">
+                    <CardHeader className="border-b">
+                        <CardTitle>
                             {t('dialog.screenshot_metadata.folders')}
-                        </div>
-                        <div className="text-muted-foreground truncate text-xs">
+                        </CardTitle>
+                        <CardDescription className="truncate">
                             {error
                                 ? t(
                                       'dialog.screenshot_metadata.gallery_load_failed'
@@ -320,47 +338,49 @@ export function ScreenshotGalleryView({
                                 : scanStatus?.running
                                   ? t('dialog.screenshot_metadata.scanning')
                                   : t('dialog.screenshot_metadata.gallery')}
-                        </div>
-                    </div>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t('common.actions.refresh')}
-                        onClick={onRefresh}
-                    >
-                        <RefreshCwIcon
-                            data-icon="inline-start"
-                            className={cn(
-                                scanStatus?.running && 'animate-spin'
-                            )}
-                        />
-                    </Button>
-                </div>
-                <div className="min-h-0 flex-1 overflow-auto p-2">
-                    {isTreeLoading ? (
-                        <div className="flex flex-col gap-2">
-                            <Skeleton className="h-8 w-full" />
-                            <Skeleton className="h-8 w-10/12" />
-                            <Skeleton className="h-8 w-8/12" />
-                        </div>
-                    ) : root ? (
-                        <FolderTreeNode
-                            node={root}
-                            selectedFolder={selectedFolder}
-                            onSelectFolder={onSelectFolder}
-                        />
-                    ) : (
-                        <EmptyState
-                            title={t(
-                                'dialog.screenshot_metadata.empty_folders'
-                            )}
-                            description={t(
-                                'dialog.screenshot_metadata.empty_folders_description'
-                            )}
-                        />
-                    )}
-                </div>
+                        </CardDescription>
+                        <CardAction>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('common.actions.refresh')}
+                                onClick={onRefresh}
+                            >
+                                <RefreshCwIcon
+                                    data-icon="inline-start"
+                                    className={cn(
+                                        scanStatus?.running && 'animate-spin'
+                                    )}
+                                />
+                            </Button>
+                        </CardAction>
+                    </CardHeader>
+                    <CardContent className="min-h-0 flex-1 overflow-auto">
+                        {isTreeLoading ? (
+                            <div className="flex flex-col gap-2">
+                                <Skeleton className="h-7 w-full" />
+                                <Skeleton className="h-7 w-10/12" />
+                                <Skeleton className="h-7 w-8/12" />
+                            </div>
+                        ) : root ? (
+                            <FolderTreeNode
+                                node={root}
+                                selectedFolder={selectedFolder}
+                                onSelectFolder={onSelectFolder}
+                            />
+                        ) : (
+                            <EmptyState
+                                title={t(
+                                    'dialog.screenshot_metadata.empty_folders'
+                                )}
+                                description={t(
+                                    'dialog.screenshot_metadata.empty_folders_description'
+                                )}
+                            />
+                        )}
+                    </CardContent>
+                </Card>
             </aside>
             <section className="flex min-h-0 min-w-0 flex-col gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
