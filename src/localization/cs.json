@@ -2180,7 +2180,7 @@
             },
             "integrations": {
                 "mcp_server": {
-                    "header": "VRCX-0 MCP Server",
+                    "header": "MCP Server",
                     "description": "Umožní důvěryhodným MCP klientům přístup k datům VRCX-0. Ve výchozím nastavení pouze localhost.",
                     "enable": "Povolit MCP server",
                     "enable_description": "Spustí MCP server chráněný tokenem na localhost.",

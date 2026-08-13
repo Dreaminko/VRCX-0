@@ -2178,7 +2178,7 @@
             },
             "integrations": {
                 "mcp_server": {
-                    "header": "VRCX-0 MCP 伺服器",
+                    "header": "MCP 伺服器",
                     "description": "向受信任的 MCP 用戶端提供本機 VRCX-0 社交資料。預設僅監聽 localhost。",
                     "enable": "啟用 MCP 伺服器",
                     "enable_description": "啟動受 Bearer Token 保護的 HTTP MCP 伺服器。預設僅允許 localhost 存取。",

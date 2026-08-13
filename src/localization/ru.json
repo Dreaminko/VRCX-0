@@ -2180,7 +2180,7 @@
             },
             "integrations": {
                 "mcp_server": {
-                    "header": "VRCX-0 MCP Сервер",
+                    "header": "MCP Сервер",
                     "description": "Позволяет доверенным MCP-клиентам получать доступ к данным VRCX-0. По умолчанию только localhost.",
                     "enable": "Включить MCP-сервер",
                     "enable_description": "Запускает защищённый токеном MCP-сервер на localhost.",

@@ -2136,7 +2136,7 @@
             },
             "integrations": {
                 "mcp_server": {
-                    "header": "VRCX-0 MCP 서버",
+                    "header": "MCP 서버",
                     "description": "신뢰할 수 있는 MCP 클라이언트가 VRCX-0 데이터에 접근할 수 있도록 합니다. 기본값은 localhost 전용입니다.",
                     "enable": "MCP 서버 활성화",
                     "enable_description": "토큰으로 보호되는 MCP 서버를 localhost에서 시작합니다.",

@@ -2174,7 +2174,7 @@
             },
             "integrations": {
                 "mcp_server": {
-                    "header": "VRCX-0 MCP サーバー",
+                    "header": "MCP サーバー",
                     "description": "信頼済み MCP クライアントが VRCX-0 のデータにアクセスできるようにします。既定では localhost のみです。",
                     "enable": "MCP サーバーを有効にする",
                     "enable_description": "トークンで保護された MCP サーバーを localhost で起動します。",

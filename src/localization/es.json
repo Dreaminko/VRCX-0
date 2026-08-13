@@ -2178,7 +2178,7 @@
             },
             "integrations": {
                 "mcp_server": {
-                    "header": "Servidor MCP de VRCX-0",
+                    "header": "Servidor MCP",
                     "description": "Permite que clientes MCP de confianza accedan a tus datos de VRCX-0. Solo localhost de forma predeterminada.",
                     "enable": "Activar el servidor MCP",
                     "enable_description": "Inicia un servidor MCP protegido por token en localhost.",
