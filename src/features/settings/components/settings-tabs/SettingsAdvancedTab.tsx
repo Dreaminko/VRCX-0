@@ -40,10 +40,25 @@ type DataDirectoryPathProps = {
     value?: string | null;
 };
 
+const WINDOWS_EXTENDED_PATH_PREFIX = '\\\\?\\';
+const WINDOWS_EXTENDED_UNC_PATH_PREFIX = `${WINDOWS_EXTENDED_PATH_PREFIX}UNC\\`;
+
+function dataDirectoryPathForDisplay(value?: string | null) {
+    if (!value) {
+        return '-';
+    }
+    if (value.startsWith(WINDOWS_EXTENDED_UNC_PATH_PREFIX)) {
+        return `\\\\${value.slice(WINDOWS_EXTENDED_UNC_PATH_PREFIX.length)}`;
+    }
+    if (value.startsWith(WINDOWS_EXTENDED_PATH_PREFIX)) {
+        return value.slice(WINDOWS_EXTENDED_PATH_PREFIX.length);
+    }
+    return value;
+}
 function DataDirectoryPath({ value }: DataDirectoryPathProps) {
     return (
         <div className="bg-muted/40 text-muted-foreground w-full min-w-0 rounded-md border px-2 py-1 font-mono text-xs break-all">
-            {value || '-'}
+            {dataDirectoryPathForDisplay(value)}
         </div>
     );
 }
