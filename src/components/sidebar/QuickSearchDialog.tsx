@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import { cn } from '@/lib/utils';
+import { triggerToolByKey } from '@/services/toolActionService';
 import { setRgb } from '@/services/vrcx0CssLayerService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import {
@@ -106,6 +107,16 @@ export function QuickSearchDialog({
         onOpenChange(false);
     }
 
+    async function selectNavCommand(item: QuickSearchNavCommand) {
+        onOpenChange(false);
+        setQuery('');
+        if (item.target.type === 'path') {
+            navigate(item.target.path);
+            return;
+        }
+        await triggerToolByKey(item.target.toolKey, { navigate, t });
+    }
+
     return (
         <Dialog
             open={open}
@@ -161,10 +172,12 @@ export function QuickSearchDialog({
                                 >
                                     <CompassIcon />
                                     <span className="min-w-0 flex-1 truncate">
-                                        {t('side_panel.search_pages')}
+                                        {t('side_panel.search_pages_and_tools')}
                                     </span>
                                     <CommandShortcut className="max-w-[45%] truncate tracking-normal">
-                                        {t('side_panel.search_scope_pages')}
+                                        {t(
+                                            'side_panel.search_scope_pages_and_tools'
+                                        )}
                                     </CommandShortcut>
                                 </CommandItem>
                                 <CommandItem
@@ -223,12 +236,12 @@ export function QuickSearchDialog({
                         ) : hasResults ? (
                             <>
                                 <NavResultGroup
-                                    title={t('side_panel.search_pages')}
+                                    title={t(
+                                        'side_panel.search_pages_and_tools'
+                                    )}
                                     items={navCommands}
                                     onSelect={(item: QuickSearchNavCommand) => {
-                                        onOpenChange(false);
-                                        setQuery('');
-                                        navigate(item.path);
+                                        void selectNavCommand(item);
                                     }}
                                 />
                                 <ResultGroup

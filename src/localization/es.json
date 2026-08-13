@@ -755,6 +755,8 @@
         "search_input_placeholder": "Buscar o ir a una página…",
         "search_pages": "Páginas",
         "search_scope_pages": "Ir a una página",
+        "search_pages_and_tools": "Páginas y herramientas",
+        "search_scope_pages_and_tools": "Ir a una página o abrir una herramienta",
         "search_no_results": "No se encontraron resultados",
         "search_categories": "Buscar...",
         "search_recent": "Abiertos recientemente",
@@ -1765,6 +1767,19 @@
         },
         "tools": {
             "header": "Herramientas",
+            "recent": "Usadas recientemente",
+            "status": {
+                "rules_enabled": "Reglas activadas: {count}",
+                "rules_enabled_of_total": "{enabled} de {total} reglas activadas",
+                "rules_configured_off": "Reglas configuradas: {count} · Desactivadas",
+                "auto_reply_enabled": "Respuesta automática activada",
+                "apps_enabled": "Aplicaciones configuradas: {count} · Activadas",
+                "apps_configured_off": "Aplicaciones configuradas: {count} · Desactivadas",
+                "last_backup": "Última copia de seguridad: {date}",
+                "automatic_backup_enabled": "Copia de seguridad automática activada",
+                "automatic_backup_configured_off": "Copia de seguridad automática configurada · Desactivada",
+                "connections_configured": "Conexiones de IA configuradas: {count}"
+            },
             "quick_access": {
                 "header": "Acceso rápido",
                 "edit": "Editar acceso rápido",
@@ -1773,9 +1788,13 @@
                 "remove": "Quitar del acceso rápido",
                 "already_added": "Ya está en el acceso rápido",
                 "empty": "Arrastra herramientas aquí, o añádelas desde un menú de herramientas.",
-                "actions": "Acciones de herramienta"
+                "actions": "Acciones de herramienta",
+                "shortcut_menu": "Añadir acceso directo…",
+                "tools_page_shortcut": "Acceso rápido de la página Herramientas",
+                "sidebar_shortcut": "Navegación lateral"
             },
             "category": {
+                "automation": "Automatización",
                 "social": "Social",
                 "vrchat": "Configuración e inicio de VRChat",
                 "data": "Datos y copias de seguridad",

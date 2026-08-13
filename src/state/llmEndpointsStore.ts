@@ -7,6 +7,7 @@ import {
     type LlmEndpointDto,
     type LlmEndpointUpsertInput
 } from '@/platform/tauri/bindings';
+import { publishToolsStatusUpdated } from '@/shared/constants/tools';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 export function openLlmEndpointsManager(): void {
@@ -89,6 +90,7 @@ export const useLlmEndpointsStore = create<LlmEndpointsStoreState>((set) => {
                             : [...state.endpoints, saved]
                     };
                 });
+                publishToolsStatusUpdated();
                 return saved;
             } catch (error) {
                 set({ error: errorMessage(error) });
@@ -107,6 +109,7 @@ export const useLlmEndpointsStore = create<LlmEndpointsStoreState>((set) => {
                         (endpoint) => endpoint.id !== id
                     )
                 }));
+                publishToolsStatusUpdated();
             } catch (error) {
                 set({ error: errorMessage(error) });
                 throw error;
@@ -124,6 +127,7 @@ export const useLlmEndpointsStore = create<LlmEndpointsStoreState>((set) => {
                     if (expectedRevision === endpointRevision) {
                         endpointRevision += 1;
                         set({ endpoints });
+                        publishToolsStatusUpdated();
                     }
                 }
                 return result;

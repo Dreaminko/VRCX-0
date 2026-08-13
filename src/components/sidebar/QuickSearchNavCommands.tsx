@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getNavIconComponent } from '@/components/layout/navIconRegistry';
 import { getPathForNavEntry } from '@/components/layout/navMenuModel';
+import { isToolNavKey, toolDefinitions } from '@/shared/constants/tools';
 import { navDefinitions } from '@/shared/constants/ui';
 import { CommandGroup, CommandItem } from '@/ui/shadcn/command';
 
@@ -10,10 +11,10 @@ const NAV_RESULT_LIMIT = 6;
 
 export type QuickSearchNavCommand = {
     key: string;
-    path: string;
     label: string;
     icon: unknown;
     keywords: string;
+    target: { type: 'path'; path: string } | { type: 'tool'; toolKey: string };
 };
 
 function isNavCommand(
@@ -25,30 +26,42 @@ function isNavCommand(
 export function useNavCommands(normalizedQuery: string) {
     const { t } = useTranslation();
 
-    const allCommands = useMemo(
-        () =>
-            navDefinitions
-                .map((definition): QuickSearchNavCommand | null => {
-                    const path = getPathForNavEntry(definition);
-                    if (!path) {
-                        return null;
-                    }
-                    const label = t(definition.labelKey);
-                    // Match on the stable key + path too, so navigation is
-                    // findable regardless of the active UI language.
-                    const keywords =
-                        `${label} ${definition.key} ${path}`.toLowerCase();
-                    return {
-                        key: definition.key,
-                        path,
-                        label,
-                        icon: definition.icon,
-                        keywords
-                    };
-                })
-                .filter(isNavCommand),
-        [t]
-    );
+    const allCommands = useMemo(() => {
+        const pageCommands = navDefinitions
+            .filter((definition) => !isToolNavKey(definition.key))
+            .map((definition): QuickSearchNavCommand | null => {
+                const path = getPathForNavEntry(definition);
+                if (!path) {
+                    return null;
+                }
+                const label = t(definition.labelKey);
+                const keywords =
+                    `${label} ${definition.key} ${path}`.toLowerCase();
+                return {
+                    key: definition.key,
+                    label,
+                    icon: definition.icon,
+                    keywords,
+                    target: { type: 'path', path }
+                };
+            })
+            .filter(isNavCommand);
+        const toolCommands = toolDefinitions.map(
+            (tool): QuickSearchNavCommand => {
+                const label = t(tool.titleKey);
+                const description = t(tool.descriptionKey);
+                return {
+                    key: `tool-${tool.key}`,
+                    label,
+                    icon: tool.navIcon,
+                    keywords:
+                        `${label} ${description} ${tool.key} ${tool.category}`.toLowerCase(),
+                    target: { type: 'tool', toolKey: tool.key }
+                };
+            }
+        );
+        return [...pageCommands, ...toolCommands];
+    }, [t]);
 
     return useMemo(() => {
         if (!normalizedQuery) {

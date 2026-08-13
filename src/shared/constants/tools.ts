@@ -1,7 +1,8 @@
 type ToolCategoryKey =
     | 'image'
     | 'shortcuts'
-    | 'social'
+    | 'automation'
+    | 'group'
     | 'vrchat'
     | 'data'
     | 'debug'
@@ -75,7 +76,11 @@ interface ToolNavDefinition {
 const toolCategories: ToolCategory[] = [
     { key: 'image', labelKey: 'view.tools.pictures.header' },
     { key: 'shortcuts', labelKey: 'view.tools.shortcuts.header' },
-    { key: 'social', labelKey: 'view.tools.category.social' },
+    {
+        key: 'automation',
+        labelKey: 'view.tools.category.automation'
+    },
+    { key: 'group', labelKey: 'view.tools.group.header' },
     { key: 'vrchat', labelKey: 'view.tools.category.vrchat' },
     { key: 'data', labelKey: 'view.tools.category.data' },
     { key: 'debug', labelKey: 'view.tools.category.debug' },
@@ -259,7 +264,7 @@ const toolDefinitions: ToolDefinition[] = [
     },
     {
         key: 'app-launcher',
-        category: 'vrchat',
+        category: 'automation',
         iconKey: 'rocket',
         navIcon: 'lucide:Rocket',
         titleKey: 'view.tools.system_tools.app_launcher',
@@ -288,7 +293,7 @@ const toolDefinitions: ToolDefinition[] = [
     },
     {
         key: 'presence-schedule',
-        category: 'social',
+        category: 'automation',
         iconKey: 'calendar',
         navIcon: 'lucide:CalendarDays',
         titleKey: 'view.tools.social_automation.status_schedule',
@@ -302,7 +307,7 @@ const toolDefinitions: ToolDefinition[] = [
     },
     {
         key: 'presence-room-rules',
-        category: 'social',
+        category: 'automation',
         iconKey: 'users',
         navIcon: 'lucide:UsersRound',
         titleKey: 'view.tools.social_automation.room_status_rules',
@@ -316,7 +321,7 @@ const toolDefinitions: ToolDefinition[] = [
     },
     {
         key: 'presence-invite-requests',
-        category: 'social',
+        category: 'automation',
         iconKey: 'message',
         navIcon: 'lucide:MessageSquareText',
         titleKey: 'view.tools.social_automation.invite_request_auto_reply',
@@ -330,7 +335,7 @@ const toolDefinitions: ToolDefinition[] = [
     },
     {
         key: 'group-calendar',
-        category: 'social',
+        category: 'group',
         iconKey: 'calendar',
         navIcon: 'lucide:CalendarDays',
         titleKey: 'view.tools.group.calendar',
@@ -340,7 +345,7 @@ const toolDefinitions: ToolDefinition[] = [
     },
     {
         key: 'group-moderation',
-        category: 'social',
+        category: 'group',
         iconKey: 'shield-user',
         navIcon: 'lucide:ShieldUser',
         titleKey: 'view.tools.group.moderation',
@@ -390,7 +395,7 @@ const toolDefinitions: ToolDefinition[] = [
     },
     {
         key: 'edit-invite-message',
-        category: 'social',
+        category: 'other',
         iconKey: 'pencil',
         navIcon: 'lucide:MessageSquareText',
         titleKey: 'view.tools.other.edit_invite_message',
@@ -405,7 +410,11 @@ const toolDefinitionMap = new Map<string, ToolDefinition>(
 );
 
 const quickAccessConfigKey = 'VRCX_toolsQuickAccessList';
+const recentToolsConfigKey = 'VRCX_toolsRecentList';
 const TOOLS_QUICK_ACCESS_UPDATED_EVENT = 'vrcx:tools-quick-access-updated';
+const TOOLS_RECENT_UPDATED_EVENT = 'vrcx:tools-recent-updated';
+const TOOLS_STATUS_UPDATED_EVENT = 'vrcx:tools-status-updated';
+const RECENT_TOOLS_LIMIT = 3;
 const knownToolKeys = new Set(toolDefinitions.map((tool) => tool.key));
 const legacyToolKeyAliases: Record<string, string> = {
     'auto-change-status': 'presence-room-rules'
@@ -442,6 +451,18 @@ function parseQuickAccessToolKeys(value: unknown): string[] {
     }
 }
 
+function normalizeRecentToolKeys(value: unknown): string[] {
+    return normalizeQuickAccessToolKeys(value).slice(0, RECENT_TOOLS_LIMIT);
+}
+
+function parseRecentToolKeys(value: unknown): string[] {
+    try {
+        return normalizeRecentToolKeys(JSON.parse(String(value || '[]')));
+    } catch {
+        return [];
+    }
+}
+
 function getEquivalentToolNavKeys(toolKey: unknown): string[] {
     const normalizedToolKey = normalizePinnedToolKey(toolKey);
     const equivalentToolKeys = new Set([normalizedToolKey]);
@@ -463,6 +484,18 @@ function publishToolsQuickAccessUpdated(): void {
     }
 }
 
+function publishToolsRecentUpdated(): void {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(TOOLS_RECENT_UPDATED_EVENT));
+    }
+}
+
+function publishToolsStatusUpdated(): void {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(TOOLS_STATUS_UPDATED_EVENT));
+    }
+}
+
 const generatedToolNavDefinitions: ToolNavDefinition[] = toolDefinitions
     .filter((tool) => tool.navEligible)
     .map((tool) => ({
@@ -471,13 +504,10 @@ const generatedToolNavDefinitions: ToolNavDefinition[] = toolDefinitions
         tooltip: tool.titleKey,
         labelKey: tool.titleKey,
         routeName: tool.action.type === 'route' ? tool.action.routeName : null,
-        action:
-            tool.action.type === 'route'
-                ? null
-                : {
-                      type: 'tool',
-                      toolKey: tool.key
-                  },
+        action: {
+            type: 'tool',
+            toolKey: tool.key
+        },
         defaultHidden: true
     }));
 
@@ -508,15 +538,22 @@ function getToolsByCategory(categoryKey: ToolCategoryKey): ToolDefinition[] {
 
 export {
     TOOLS_QUICK_ACCESS_UPDATED_EVENT,
+    TOOLS_RECENT_UPDATED_EVENT,
+    TOOLS_STATUS_UPDATED_EVENT,
     defaultHiddenToolNavKeys,
     getEquivalentToolNavKeys,
     isToolNavKey,
     knownToolKeys,
     normalizePinnedToolKey,
     normalizeQuickAccessToolKeys,
+    normalizeRecentToolKeys,
     parseQuickAccessToolKeys,
+    parseRecentToolKeys,
     publishToolsQuickAccessUpdated,
+    publishToolsRecentUpdated,
+    publishToolsStatusUpdated,
     quickAccessConfigKey,
+    recentToolsConfigKey,
     toolCategories,
     toolDefinitions,
     toolDefinitionMap,

@@ -8,6 +8,7 @@ import {
 } from '@/services/hostCapabilityService';
 import i18n from '@/services/i18nService';
 import { recordToolOpen } from '@/services/telemetry/telemetryToolUsage';
+import { recordRecentToolOpen } from '@/services/toolRecentService';
 import {
     toolDefinitionMap,
     type ToolAppApiMethod,
@@ -142,6 +143,7 @@ export async function triggerToolByKey(
     }
 
     recordToolOpen(resolvedToolKey);
+    void recordRecentToolOpen(resolvedToolKey).catch(() => {});
 
     if (action.type === 'route') {
         navigate(toolRouteMap[action.routeName] ?? '/tools');

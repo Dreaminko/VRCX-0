@@ -754,6 +754,8 @@
         "search_input_placeholder": "검색하거나 페이지로 이동…",
         "search_pages": "페이지",
         "search_scope_pages": "페이지로 이동",
+        "search_pages_and_tools": "페이지 및 도구",
+        "search_scope_pages_and_tools": "페이지로 이동하거나 도구 열기",
         "search_no_results": "검색결과가 없습니다",
         "search_categories": "검색...",
         "search_recent": "최근에 연 항목",
@@ -1743,6 +1745,19 @@
         },
         "tools": {
             "header": "도구",
+            "recent": "최근 사용",
+            "status": {
+                "rules_enabled": "규칙 {count}개 활성화됨",
+                "rules_enabled_of_total": "규칙 {total}개 중 {enabled}개 활성화됨",
+                "rules_configured_off": "설정된 규칙 {count}개가 모두 꺼져 있음",
+                "auto_reply_enabled": "자동 답장 켜짐",
+                "apps_enabled": "앱 {count}개 설정됨 · 켜짐",
+                "apps_configured_off": "앱 {count}개 설정됨 · 꺼짐",
+                "last_backup": "마지막 백업: {date}",
+                "automatic_backup_enabled": "자동 백업 켜짐",
+                "automatic_backup_configured_off": "자동 백업 설정됨 · 꺼짐",
+                "connections_configured": "AI 연결 {count}개 설정됨"
+            },
             "quick_access": {
                 "header": "빠른 액세스",
                 "edit": "빠른 액세스 수정",
@@ -1751,9 +1766,13 @@
                 "remove": "빠른 액세스에서 삭제",
                 "already_added": "빠른 액세스에 이미 추가됨",
                 "empty": "도구를 여기로 드래그하거나 도구 메뉴에서 추가하세요.",
-                "actions": "도구 작업"
+                "actions": "도구 작업",
+                "shortcut_menu": "바로가기 추가…",
+                "tools_page_shortcut": "도구 페이지 빠른 액세스",
+                "sidebar_shortcut": "사이드바 탐색"
             },
             "category": {
+                "automation": "자동화",
                 "social": "소셜",
                 "vrchat": "VRChat 설정 및 실행",
                 "data": "데이터 및 백업",

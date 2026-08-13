@@ -11,15 +11,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+    BotIcon,
     BugIcon,
     ChevronDownIcon,
+    Clock3Icon,
     DatabaseBackupIcon,
     FolderOpenIcon,
     ImageIcon,
     MinusIcon,
     MoreHorizontalIcon,
-    PinIcon,
-    PinOffIcon,
+    PanelLeftIcon,
     PlusIcon,
     SettingsIcon,
     StarIcon,
@@ -37,10 +38,11 @@ import type { ToolDefinition } from '@/shared/constants/tools';
 import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 
@@ -52,6 +54,7 @@ import {
     toolCatalogDropId
 } from '../toolsPageHelpers';
 import { useToolsPageState } from '../useToolsPageState';
+import type { ToolStatusSummary } from '../useToolStatusSummaries';
 
 type EditQuickAccessAction = 'add' | 'remove';
 type DragRenderProps = {
@@ -64,7 +67,8 @@ type DragRenderProps = {
 const categoryIconByKey: Record<string, LucideIcon> = {
     image: ImageIcon,
     shortcuts: FolderOpenIcon,
-    social: UsersIcon,
+    automation: BotIcon,
+    group: UsersIcon,
     vrchat: SettingsIcon,
     data: DatabaseBackupIcon,
     debug: BugIcon,
@@ -91,9 +95,11 @@ function ToolItem({
     icon: Icon,
     title,
     description,
+    status,
     actionsLabel,
-    pinLabel,
-    unpinLabel,
+    shortcutMenuLabel,
+    toolsPageShortcutLabel,
+    sidebarShortcutLabel,
     addQuickAccessLabel,
     removeQuickAccessLabel,
     navEligible,
@@ -114,9 +120,11 @@ function ToolItem({
     icon: LucideIcon;
     title: string;
     description: string;
+    status?: ToolStatusSummary;
     actionsLabel: string;
-    pinLabel: string;
-    unpinLabel: string;
+    shortcutMenuLabel: string;
+    toolsPageShortcutLabel: string;
+    sidebarShortcutLabel: string;
     addQuickAccessLabel: string;
     removeQuickAccessLabel: string;
     navEligible: boolean;
@@ -134,8 +142,6 @@ function ToolItem({
     onAddQuickAccess: () => void;
     onRemoveQuickAccess: () => void;
 }) {
-    const PinStateIcon = isPinned ? PinOffIcon : PinIcon;
-    const QuickAccessIcon = isQuickAccess ? MinusIcon : PlusIcon;
     const isEditRemoveAction = editQuickAccessAction === 'remove';
     const EditQuickAccessIcon = isEditRemoveAction ? MinusIcon : PlusIcon;
     const editQuickAccessLabel = isEditRemoveAction
@@ -171,6 +177,27 @@ function ToolItem({
                     <div className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-snug">
                         {description}
                     </div>
+                    {status ? (
+                        <div
+                            className={cn(
+                                'mt-1.5 flex items-center gap-1.5 truncate text-xs',
+                                status.tone === 'active'
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground'
+                            )}
+                        >
+                            <span
+                                aria-hidden="true"
+                                className={cn(
+                                    'size-1.5 flex-none rounded-full',
+                                    status.tone === 'active'
+                                        ? 'bg-primary'
+                                        : 'bg-muted-foreground/70'
+                                )}
+                            />
+                            <span className="truncate">{status.label}</span>
+                        </div>
+                    ) : null}
                 </div>
             </Button>
             {editMode ? (
@@ -215,41 +242,42 @@ function ToolItem({
                         }
                     />
                     <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuGroup>
-                            <DropdownMenuItem
-                                onClick={() => {
-                                    if (isQuickAccess) {
-                                        onRemoveQuickAccess?.();
-                                    } else {
-                                        onAddQuickAccess?.();
-                                    }
-                                }}
-                            >
-                                <QuickAccessIcon data-icon="inline-start" />
-                                {isQuickAccess
-                                    ? removeQuickAccessLabel
-                                    : addQuickAccessLabel}
-                            </DropdownMenuItem>
-                        </DropdownMenuGroup>
-                        {navEligible ? (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                    <DropdownMenuItem
-                                        onClick={() => {
-                                            if (isPinned) {
-                                                onUnpin?.();
-                                            } else {
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <PlusIcon data-icon="inline-start" />
+                                {shortcutMenuLabel}
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-60">
+                                <DropdownMenuCheckboxItem
+                                    checked={isQuickAccess}
+                                    onCheckedChange={(checked) => {
+                                        if (checked) {
+                                            onAddQuickAccess?.();
+                                        } else {
+                                            onRemoveQuickAccess?.();
+                                        }
+                                    }}
+                                >
+                                    <StarIcon data-icon="inline-start" />
+                                    {toolsPageShortcutLabel}
+                                </DropdownMenuCheckboxItem>
+                                {navEligible ? (
+                                    <DropdownMenuCheckboxItem
+                                        checked={isPinned}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
                                                 onPin?.();
+                                            } else {
+                                                onUnpin?.();
                                             }
                                         }}
                                     >
-                                        <PinStateIcon data-icon="inline-start" />
-                                        {isPinned ? unpinLabel : pinLabel}
-                                    </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                            </>
-                        ) : null}
+                                        <PanelLeftIcon data-icon="inline-start" />
+                                        {sidebarShortcutLabel}
+                                    </DropdownMenuCheckboxItem>
+                                ) : null}
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
@@ -430,10 +458,12 @@ export function ToolsPageContent({ embedded = false }: { embedded?: boolean }) {
         pinnedToolKeys,
         quickAccessKeySet,
         quickAccessTools,
+        recentTools,
         removeQuickAccessToolByKey,
         sensors,
         setIsQuickAccessEditing,
         shouldShowQuickAccess,
+        statusByToolKey,
         toggleCategoryCollapsed,
         triggerTool,
         unpinToolFromNav
@@ -451,14 +481,22 @@ export function ToolsPageContent({ embedded = false }: { embedded?: boolean }) {
                 icon={getNavIconComponent(tool.navIcon, 'lucide:Wrench')}
                 title={label(tool.titleKey)}
                 description={label(tool.descriptionKey)}
+                status={statusByToolKey.get(tool.key)}
                 actionsLabel={label('view.tools.quick_access.actions')}
                 navEligible={tool.navEligible}
                 isPinned={pinnedToolKeys.has(normalizedToolKey)}
                 isQuickAccess={quickAccessKeySet.has(normalizedToolKey)}
                 editMode={isQuickAccessEditing}
                 editQuickAccessAction={editQuickAccessAction}
-                pinLabel={label('nav_menu.custom_nav.pin_to_nav')}
-                unpinLabel={label('nav_menu.custom_nav.unpin_from_nav')}
+                shortcutMenuLabel={label(
+                    'view.tools.quick_access.shortcut_menu'
+                )}
+                toolsPageShortcutLabel={label(
+                    'view.tools.quick_access.tools_page_shortcut'
+                )}
+                sidebarShortcutLabel={label(
+                    'view.tools.quick_access.sidebar_shortcut'
+                )}
                 addQuickAccessLabel={label('view.tools.quick_access.add')}
                 removeQuickAccessLabel={label('view.tools.quick_access.remove')}
                 onClick={() => {
@@ -544,6 +582,27 @@ export function ToolsPageContent({ embedded = false }: { embedded?: boolean }) {
                             </SortableContext>
                         </QuickAccessDropZone>
                     </div>
+
+                    {!isQuickAccessEditing && recentTools.length > 0 ? (
+                        <div className="mt-4 px-3">
+                            <div className="mb-2 flex items-center gap-2 px-2.5 py-1.5">
+                                <Clock3Icon
+                                    aria-hidden="true"
+                                    className="text-muted-foreground size-4"
+                                />
+                                <span className="text-sm font-semibold">
+                                    {label('view.tools.recent')}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2.5 pl-4 lg:grid-cols-2 xl:grid-cols-3">
+                                {recentTools.map((tool) => (
+                                    <div key={tool.key} className="h-full">
+                                        {renderToolItem(tool)}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
 
                     <ToolCatalogDropZone editMode={isQuickAccessEditing}>
                         {categories.map((category) => (

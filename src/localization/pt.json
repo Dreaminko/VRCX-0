@@ -755,6 +755,8 @@
         "search_input_placeholder": "Buscar ou ir para uma página…",
         "search_pages": "Páginas",
         "search_scope_pages": "Ir para uma página",
+        "search_pages_and_tools": "Páginas e ferramentas",
+        "search_scope_pages_and_tools": "Ir para uma página ou abrir uma ferramenta",
         "search_no_results": "Nenhum resultado encontrado",
         "search_categories": "Pesquisar por...",
         "search_recent": "Abertos recentemente",
@@ -1765,6 +1767,19 @@
         },
         "tools": {
             "header": "Ferramentas",
+            "recent": "Usadas recentemente",
+            "status": {
+                "rules_enabled": "Regras ativadas: {count}",
+                "rules_enabled_of_total": "{enabled} de {total} regras ativadas",
+                "rules_configured_off": "Regras configuradas: {count} · Desativadas",
+                "auto_reply_enabled": "Resposta automática ativada",
+                "apps_enabled": "Aplicativos configurados: {count} · Ativados",
+                "apps_configured_off": "Aplicativos configurados: {count} · Desativados",
+                "last_backup": "Último backup: {date}",
+                "automatic_backup_enabled": "Backup automático ativado",
+                "automatic_backup_configured_off": "Backup automático configurado · Desativado",
+                "connections_configured": "Conexões de IA configuradas: {count}"
+            },
             "quick_access": {
                 "header": "Acesso rápido",
                 "edit": "Editar acesso rápido",
@@ -1773,9 +1788,13 @@
                 "remove": "Remover do acesso rápido",
                 "already_added": "Já adicionado ao acesso rápido",
                 "empty": "Arraste ferramentas para cá ou adicione-as a partir de um menu de ferramenta.",
-                "actions": "Ações da ferramenta"
+                "actions": "Ações da ferramenta",
+                "shortcut_menu": "Adicionar atalho…",
+                "tools_page_shortcut": "Acesso rápido da página Ferramentas",
+                "sidebar_shortcut": "Navegação lateral"
             },
             "category": {
+                "automation": "Automação",
                 "social": "Social",
                 "vrchat": "Configuração e inicialização do VRChat",
                 "data": "Dados e backups",

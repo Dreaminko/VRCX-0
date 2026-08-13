@@ -755,6 +755,8 @@
         "search_input_placeholder": "Suchen oder zu einer Seite springen…",
         "search_pages": "Seiten",
         "search_scope_pages": "Zu einer Seite springen",
+        "search_pages_and_tools": "Seiten und Werkzeuge",
+        "search_scope_pages_and_tools": "Zu einer Seite springen oder ein Werkzeug öffnen",
         "search_no_results": "Keine Ergebnisse gefunden",
         "search_categories": "Suchen nach...",
         "search_recent": "Zuletzt geöffnet",
@@ -1765,6 +1767,19 @@
         },
         "tools": {
             "header": "Werkzeuge",
+            "recent": "Zuletzt verwendet",
+            "status": {
+                "rules_enabled": "Aktivierte Regeln: {count}",
+                "rules_enabled_of_total": "{enabled} von {total} Regeln aktiviert",
+                "rules_configured_off": "Konfigurierte Regeln: {count} · Deaktiviert",
+                "auto_reply_enabled": "Automatische Antwort aktiviert",
+                "apps_enabled": "Konfigurierte Apps: {count} · Aktiviert",
+                "apps_configured_off": "Konfigurierte Apps: {count} · Deaktiviert",
+                "last_backup": "Letzte Sicherung: {date}",
+                "automatic_backup_enabled": "Automatische Sicherung aktiviert",
+                "automatic_backup_configured_off": "Automatische Sicherung konfiguriert · Deaktiviert",
+                "connections_configured": "Konfigurierte KI-Verbindungen: {count}"
+            },
             "quick_access": {
                 "header": "Schnellzugriff",
                 "edit": "Schnellzugriff bearbeiten",
@@ -1773,9 +1788,13 @@
                 "remove": "Aus Schnellzugriff entfernen",
                 "already_added": "Bereits zum Schnellzugriff hinzugefügt",
                 "empty": "Ziehe Werkzeuge hierher oder füge sie über ein Werkzeugmenü hinzu.",
-                "actions": "Werkzeugaktionen"
+                "actions": "Werkzeugaktionen",
+                "shortcut_menu": "Verknüpfung hinzufügen…",
+                "tools_page_shortcut": "Schnellzugriff auf der Werkzeugseite",
+                "sidebar_shortcut": "Seitennavigation"
             },
             "category": {
+                "automation": "Automatisierung",
                 "social": "Soziales",
                 "vrchat": "VRChat-Einstellungen & Start",
                 "data": "Daten & Sicherungen",

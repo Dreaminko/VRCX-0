@@ -755,6 +755,8 @@
         "search_input_placeholder": "搜尋或跳至頁面…",
         "search_pages": "頁數",
         "search_scope_pages": "跳至某頁",
+        "search_pages_and_tools": "頁面與工具",
+        "search_scope_pages_and_tools": "前往頁面或開啟工具",
         "search_no_results": "沒有找到結果",
         "search_categories": "搜尋...",
         "search_recent": "最近開啟",
@@ -1765,6 +1767,19 @@
         },
         "tools": {
             "header": "工具",
+            "recent": "最近使用",
+            "status": {
+                "rules_enabled": "{count} 條規則已啟用",
+                "rules_enabled_of_total": "已啟用 {enabled}/{total} 條規則",
+                "rules_configured_off": "已設定 {count} 條規則，目前已關閉",
+                "auto_reply_enabled": "自動回覆已啟用",
+                "apps_enabled": "已設定 {count} 個應用程式，目前已啟用",
+                "apps_configured_off": "已設定 {count} 個應用程式，目前已關閉",
+                "last_backup": "上次備份：{date}",
+                "automatic_backup_enabled": "自動備份已啟用",
+                "automatic_backup_configured_off": "自動備份已設定，目前已關閉",
+                "connections_configured": "已設定 {count} 個 AI 連線"
+            },
             "quick_access": {
                 "header": "常用工具",
                 "edit": "編輯常用",
@@ -1773,9 +1788,13 @@
                 "remove": "從常用移除",
                 "already_added": "已新增到常用工具",
                 "empty": "把工具拖到這裡，或從工具選單新增。",
-                "actions": "工具操作"
+                "actions": "工具操作",
+                "shortcut_menu": "新增捷徑…",
+                "tools_page_shortcut": "工具頁常用工具",
+                "sidebar_shortcut": "側邊導覽列"
             },
             "category": {
+                "automation": "自動化",
                 "social": "社交",
                 "vrchat": "VRChat 設定與啟動",
                 "data": "資料與備份",

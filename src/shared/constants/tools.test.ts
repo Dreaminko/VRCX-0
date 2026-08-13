@@ -16,7 +16,8 @@ describe('tool catalog categories', () => {
         expect(toolCategories.map((category) => category.key)).toEqual([
             'image',
             'shortcuts',
-            'social',
+            'automation',
+            'group',
             'vrchat',
             'data',
             'debug',
@@ -38,15 +39,14 @@ describe('tool catalog categories', () => {
                 'vrchat-data',
                 'crash-dumps'
             ],
-            social: [
+            automation: [
+                'app-launcher',
                 'presence-schedule',
                 'presence-room-rules',
-                'presence-invite-requests',
-                'group-calendar',
-                'group-moderation',
-                'edit-invite-message'
+                'presence-invite-requests'
             ],
-            vrchat: ['vrchat-config', 'launch-options', 'app-launcher'],
+            group: ['group-calendar', 'group-moderation'],
+            vrchat: ['vrchat-config', 'launch-options'],
             data: [
                 'profile-backup',
                 'registry-backup',
@@ -56,7 +56,7 @@ describe('tool catalog categories', () => {
                 'export-own-avatars'
             ],
             debug: ['vrchat-log'],
-            other: ['llm-endpoints']
+            other: ['llm-endpoints', 'edit-invite-message']
         });
     });
 });
@@ -82,5 +82,19 @@ describe('profile backup tool', () => {
             )
         ).toBe(true);
         expect(getNavIconComponent(tool?.navIcon)).toBe(DatabaseBackupIcon);
+    });
+});
+
+describe('tool navigation definitions', () => {
+    it('dispatches every pinned tool through the shared tool owner', () => {
+        for (const tool of toolDefinitionMap.values()) {
+            expect(
+                toolNavDefinitions.find(
+                    (definition) => definition.key === `tool-${tool.key}`
+                )
+            ).toMatchObject({
+                action: { type: 'tool', toolKey: tool.key }
+            });
+        }
     });
 });

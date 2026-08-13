@@ -755,6 +755,8 @@
         "search_input_placeholder": "Hledat nebo přejít na stránku…",
         "search_pages": "Stránky",
         "search_scope_pages": "Přejít na stránku",
+        "search_pages_and_tools": "Stránky a nástroje",
+        "search_scope_pages_and_tools": "Přejít na stránku nebo otevřít nástroj",
         "search_no_results": "Nenalezeny žádné výsledky",
         "search_categories": "Hledat...",
         "search_recent": "Naposledy otevřené",
@@ -1767,6 +1769,19 @@
         },
         "tools": {
             "header": "Nástroje",
+            "recent": "Nedávno použité",
+            "status": {
+                "rules_enabled": "Počet aktivních pravidel: {count}",
+                "rules_enabled_of_total": "Aktivní pravidla: {enabled} z {total}",
+                "rules_configured_off": "Nastavená pravidla: {count} · Vypnuto",
+                "auto_reply_enabled": "Automatická odpověď je zapnutá",
+                "apps_enabled": "Nastavené aplikace: {count} · Zapnuto",
+                "apps_configured_off": "Nastavené aplikace: {count} · Vypnuto",
+                "last_backup": "Poslední záloha: {date}",
+                "automatic_backup_enabled": "Automatické zálohování je zapnuté",
+                "automatic_backup_configured_off": "Automatické zálohování je nastavené · Vypnuto",
+                "connections_configured": "Nastavená připojení AI: {count}"
+            },
             "quick_access": {
                 "header": "Rychlý přístup",
                 "edit": "Upravit rychlý přístup",
@@ -1775,9 +1790,13 @@
                 "remove": "Odebrat z rychlého přístupu",
                 "already_added": "Již přidáno do rychlého přístupu",
                 "empty": "Přetáhněte sem nástroje, nebo je přidejte z nabídky nástroje.",
-                "actions": "Akce nástroje"
+                "actions": "Akce nástroje",
+                "shortcut_menu": "Přidat zástupce…",
+                "tools_page_shortcut": "Rychlý přístup na stránce Nástroje",
+                "sidebar_shortcut": "Postranní navigace"
             },
             "category": {
+                "automation": "Automatizace",
                 "social": "Sociální funkce",
                 "vrchat": "Nastavení a spuštění VRChatu",
                 "data": "Data a zálohy",

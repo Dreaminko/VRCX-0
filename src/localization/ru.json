@@ -755,6 +755,8 @@
         "search_input_placeholder": "Поиск или переход на страницу…",
         "search_pages": "Стр.",
         "search_scope_pages": "Перейти к странице",
+        "search_pages_and_tools": "Страницы и инструменты",
+        "search_scope_pages_and_tools": "Перейти на страницу или открыть инструмент",
         "search_no_results": "Ничего не найдено",
         "search_categories": "Ищите...",
         "search_recent": "Недавно открытые",
@@ -1767,6 +1769,19 @@
         },
         "tools": {
             "header": "Инструменты",
+            "recent": "Недавно использованные",
+            "status": {
+                "rules_enabled": "Включено правил: {count}",
+                "rules_enabled_of_total": "Включено правил: {enabled} из {total}",
+                "rules_configured_off": "Настроенные правила: {count} · Выключены",
+                "auto_reply_enabled": "Автоответ включён",
+                "apps_enabled": "Настроено приложений: {count} · Включено",
+                "apps_configured_off": "Настроено приложений: {count} · Выключено",
+                "last_backup": "Последняя резервная копия: {date}",
+                "automatic_backup_enabled": "Автоматическое резервное копирование включено",
+                "automatic_backup_configured_off": "Автоматическое резервное копирование настроено · Выключено",
+                "connections_configured": "Настроено ИИ-подключений: {count}"
+            },
             "quick_access": {
                 "header": "Быстрый доступ",
                 "edit": "Редактировать быстрый доступ",
@@ -1775,9 +1790,13 @@
                 "remove": "Удалить из быстродействующего доступа",
                 "already_added": "Уже добавлено к быстрому доступу",
                 "empty": "Перетащите инструменты здесь или добавьте их из меню инструментов.",
-                "actions": "Инструменты"
+                "actions": "Инструменты",
+                "shortcut_menu": "Добавить ярлык…",
+                "tools_page_shortcut": "Быстрый доступ на странице инструментов",
+                "sidebar_shortcut": "Боковая панель навигации"
             },
             "category": {
+                "automation": "Автоматизация",
                 "social": "Социальные функции",
                 "vrchat": "Настройка и запуск VRChat",
                 "data": "Данные и резервные копии",

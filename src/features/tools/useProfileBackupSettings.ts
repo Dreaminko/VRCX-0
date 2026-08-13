@@ -14,6 +14,7 @@ import {
     openFolderSelectorDialog,
     saveFileSelectorDialog
 } from '@/services/shellIntegrationService';
+import { publishToolsStatusUpdated } from '@/shared/constants/tools';
 import { useProfileBackupStore } from '@/state/profileBackupStore';
 
 type NumericProfileBackupSetting = 'autoIntervalDays' | 'autoRetainExtra';
@@ -152,6 +153,7 @@ export function useProfileBackupSettings(enabled: boolean) {
             const saved = await setProfileBackupSettings(next);
             persistedSettingsRef.current = saved;
             setSettings(saved);
+            publishToolsStatusUpdated();
             return true;
         } catch {
             setSettings(previous);

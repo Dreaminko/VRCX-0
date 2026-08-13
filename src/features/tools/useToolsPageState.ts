@@ -21,8 +21,12 @@ import {
     isToolCapabilityAvailable,
     triggerToolByKey
 } from '@/services/toolActionService';
-import type { ToolDefinition } from '@/shared/constants/tools';
-import { publishToolsQuickAccessUpdated } from '@/shared/constants/tools';
+import { getRecentToolKeys } from '@/services/toolRecentService';
+import {
+    publishToolsQuickAccessUpdated,
+    TOOLS_RECENT_UPDATED_EVENT,
+    type ToolDefinition
+} from '@/shared/constants/tools';
 import { useDashboardStore } from '@/state/dashboardStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -43,6 +47,7 @@ import {
     toolCatalogDropId,
     toolsPageCategories
 } from './toolsPageHelpers';
+import { useToolStatusSummaries } from './useToolStatusSummaries';
 
 type CollapsedByCategory = Record<string, boolean>;
 type QuickAccessKeysUpdater =
@@ -136,6 +141,46 @@ function useToolsQuickAccessState() {
     return { quickAccessKeys, setQuickAccessKeys };
 }
 
+function useRecentTools(availableToolMap: Map<string, ToolDefinition>) {
+    const [recentToolKeys, setRecentToolKeys] = useState<string[]>([]);
+
+    useEffect(() => {
+        let active = true;
+        let requestRevision = 0;
+        const loadRecentTools = () => {
+            const expectedRevision = ++requestRevision;
+            getRecentToolKeys()
+                .then((keys) => {
+                    if (active && expectedRevision === requestRevision) {
+                        setRecentToolKeys(keys);
+                    }
+                })
+                .catch(() => {
+                    if (active && expectedRevision === requestRevision) {
+                        setRecentToolKeys([]);
+                    }
+                });
+        };
+        loadRecentTools();
+        window.addEventListener(TOOLS_RECENT_UPDATED_EVENT, loadRecentTools);
+        return () => {
+            active = false;
+            window.removeEventListener(
+                TOOLS_RECENT_UPDATED_EVENT,
+                loadRecentTools
+            );
+        };
+    }, []);
+
+    return useMemo(
+        () =>
+            recentToolKeys
+                .map((key) => availableToolMap.get(key))
+                .filter((tool): tool is ToolDefinition => Boolean(tool)),
+        [availableToolMap, recentToolKeys]
+    );
+}
+
 export function useToolsPageState() {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
@@ -207,6 +252,15 @@ export function useToolsPageState() {
     );
     const shouldShowQuickAccess =
         isQuickAccessEditing || quickAccessTools.length > 0;
+    const recentToolCandidates = useRecentTools(availableToolMap);
+    const recentTools = useMemo(
+        () =>
+            recentToolCandidates.filter(
+                (tool) => !quickAccessKeySet.has(tool.key)
+            ),
+        [quickAccessKeySet, recentToolCandidates]
+    );
+    const statusByToolKey = useToolStatusSummaries();
 
     const translateWithFallback = useCallback(
         (key: string) => {
@@ -428,10 +482,12 @@ export function useToolsPageState() {
         pinnedToolKeys,
         quickAccessKeySet,
         quickAccessTools,
+        recentTools,
         removeQuickAccessToolByKey,
         sensors,
         setIsQuickAccessEditing,
         shouldShowQuickAccess,
+        statusByToolKey,
         toggleCategoryCollapsed,
         triggerTool,
         unpinToolFromNav

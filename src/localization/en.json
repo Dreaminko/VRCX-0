@@ -755,6 +755,8 @@
         "search_input_placeholder": "Search or jump to a page…",
         "search_pages": "Pages",
         "search_scope_pages": "Jump to a page",
+        "search_pages_and_tools": "Pages & tools",
+        "search_scope_pages_and_tools": "Jump to a page or open a tool",
         "search_no_results": "No results found",
         "search_categories": "Search for...",
         "search_recent": "Recently opened",
@@ -1765,6 +1767,19 @@
         },
         "tools": {
             "header": "Tools",
+            "recent": "Recently used",
+            "status": {
+                "rules_enabled": "Enabled rules: {count}",
+                "rules_enabled_of_total": "{enabled} of {total} rules enabled",
+                "rules_configured_off": "Configured rules: {count} · Off",
+                "auto_reply_enabled": "Auto-reply enabled",
+                "apps_enabled": "Configured apps: {count} · Enabled",
+                "apps_configured_off": "Configured apps: {count} · Off",
+                "last_backup": "Last backup: {date}",
+                "automatic_backup_enabled": "Automatic backup enabled",
+                "automatic_backup_configured_off": "Automatic backup configured · Off",
+                "connections_configured": "AI connections configured: {count}"
+            },
             "quick_access": {
                 "header": "Quick access",
                 "edit": "Edit quick access",
@@ -1773,9 +1788,13 @@
                 "remove": "Remove from quick access",
                 "already_added": "Already added to quick access",
                 "empty": "Drag tools here, or add them from a tool menu.",
-                "actions": "Tool actions"
+                "actions": "Tool actions",
+                "shortcut_menu": "Add shortcut…",
+                "tools_page_shortcut": "Tools page quick access",
+                "sidebar_shortcut": "Sidebar navigation"
             },
             "category": {
+                "automation": "Automation",
                 "social": "Social",
                 "vrchat": "VRChat Settings & Launch",
                 "data": "Data & Backup",

@@ -23,6 +23,7 @@ import {
     getCurrentAppLauncherSnapshot,
     subscribeAppLauncherSnapshot
 } from '@/services/appLauncherSnapshotService';
+import { publishToolsStatusUpdated } from '@/shared/constants/tools';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -259,6 +260,7 @@ export function AppLauncherDialog({
         try {
             const next = await appLauncherRepository.setEntries(nextEntries);
             updateSnapshot(next);
+            publishToolsStatusUpdated();
             return next;
         } catch (error) {
             toast.error(
@@ -277,6 +279,7 @@ export function AppLauncherDialog({
         setSaving(true);
         try {
             updateSnapshot(await appLauncherRepository.setEnabled(enabled));
+            publishToolsStatusUpdated();
         } catch (error) {
             toast.error(
                 userFacingErrorMessage(

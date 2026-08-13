@@ -20,7 +20,8 @@ const collapsibleCategories = toolCategories.map((category) => category.key);
 export const defaultCollapsedState: Record<string, boolean> = {
     image: false,
     shortcuts: false,
-    social: false,
+    automation: false,
+    group: false,
     vrchat: false,
     data: false,
     debug: false,

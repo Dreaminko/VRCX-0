@@ -755,6 +755,8 @@
         "search_input_placeholder": "搜索或跳转到页面…",
         "search_pages": "页面",
         "search_scope_pages": "跳转到页面",
+        "search_pages_and_tools": "页面和工具",
+        "search_scope_pages_and_tools": "跳转到页面或打开工具",
         "search_no_results": "未找到结果",
         "search_categories": "搜点什么...",
         "search_recent": "最近打开",
@@ -1765,6 +1767,19 @@
         },
         "tools": {
             "header": "工具",
+            "recent": "最近使用",
+            "status": {
+                "rules_enabled": "{count} 条规则已启用",
+                "rules_enabled_of_total": "已启用 {enabled}/{total} 条规则",
+                "rules_configured_off": "已配置 {count} 条规则，当前已关闭",
+                "auto_reply_enabled": "自动回复已启用",
+                "apps_enabled": "已配置 {count} 个应用，当前已启用",
+                "apps_configured_off": "已配置 {count} 个应用，当前已关闭",
+                "last_backup": "上次备份：{date}",
+                "automatic_backup_enabled": "自动备份已启用",
+                "automatic_backup_configured_off": "自动备份已配置，当前已关闭",
+                "connections_configured": "已配置 {count} 个 AI 连接"
+            },
             "quick_access": {
                 "header": "常用工具",
                 "edit": "编辑常用工具列表",
@@ -1773,9 +1788,13 @@
                 "remove": "从常用移除",
                 "already_added": "已添加到常用工具",
                 "empty": "把工具拖到这里，或从工具菜单添加。",
-                "actions": "工具操作"
+                "actions": "工具操作",
+                "shortcut_menu": "添加快捷方式…",
+                "tools_page_shortcut": "工具页常用工具",
+                "sidebar_shortcut": "侧边导航栏"
             },
             "category": {
+                "automation": "自动化",
                 "social": "社交",
                 "vrchat": "VRChat 配置与启动",
                 "data": "数据与备份",

@@ -1,12 +1,19 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+    cleanup,
+    fireEvent,
+    render,
+    screen,
+    waitFor
+} from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    setRgb: vi.fn()
+    setRgb: vi.fn(),
+    triggerToolByKey: vi.fn(() => Promise.resolve())
 }));
 
 class ResizeObserverMock {
@@ -35,6 +42,10 @@ vi.mock('@/lib/useKnownUser', () => ({
 
 vi.mock('@/services/vrcx0CssLayerService', () => ({
     setRgb: mocks.setRgb
+}));
+
+vi.mock('@/services/toolActionService', () => ({
+    triggerToolByKey: mocks.triggerToolByKey
 }));
 
 vi.mock('./quick-search/useQuickSearchHistory', () => ({
@@ -80,6 +91,7 @@ function renderQuickSearch(
 describe('QuickSearchDialog', () => {
     beforeEach(() => {
         mocks.setRgb.mockReset();
+        mocks.triggerToolByKey.mockClear();
     });
 
     afterEach(() => {
@@ -146,4 +158,30 @@ describe('QuickSearchDialog', () => {
         expect(commandList?.className).toContain('max-h-[min(400px,50vh)]');
         expect(commandList?.className).not.toContain('max-h-none');
     });
+
+    it.each([
+        [
+            'presence-schedule',
+            'view.tools.social_automation.status_schedule',
+            'presence-schedule'
+        ],
+        ['inventory', 'view.tools.pictures.inventory', 'inventory']
+    ])(
+        'finds and opens the %s tool through the tool owner',
+        async (query, label, toolKey) => {
+            const onOpenChange = vi.fn();
+            const input = renderQuickSearch(onOpenChange);
+
+            fireEvent.change(input, { target: { value: query } });
+            fireEvent.click(screen.getByText(label));
+
+            await waitFor(() => {
+                expect(mocks.triggerToolByKey).toHaveBeenCalledWith(
+                    toolKey,
+                    expect.objectContaining({ t: expect.any(Function) })
+                );
+            });
+            expect(onOpenChange).toHaveBeenCalledWith(false);
+        }
+    );
 });

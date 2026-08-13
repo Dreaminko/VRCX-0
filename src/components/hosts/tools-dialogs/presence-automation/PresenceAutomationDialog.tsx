@@ -6,6 +6,7 @@ import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavo
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
+import { publishToolsStatusUpdated } from '@/shared/constants/tools';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import {
@@ -74,6 +75,7 @@ function enqueueConfigWrite(
     const nextWrite = previousWrite
         .catch(() => {})
         .then(write)
+        .then(() => publishToolsStatusUpdated())
         .catch(onError)
         .finally(() => {
             if (queues.get(key) === nextWrite) {
