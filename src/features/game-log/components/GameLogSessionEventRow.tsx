@@ -42,7 +42,7 @@ import type {
 
 const VIDEO_SOURCE_WITHOUT_LINK = new Set(['LSMedia', 'PopcornPalace']);
 const PLAYER_EVENT_GRID_CLASS =
-    'grid-cols-[4.75rem_1rem_minmax(0,1fr)_5.5rem_5rem]';
+    'grid-cols-[4.75rem_1rem_1rem_minmax(0,1fr)_5.5rem_5rem]';
 
 function getEventLabel(event: GameLogSessionEvent, t: TFunction) {
     if (event?.type === 'JoinGroup') {
@@ -170,16 +170,7 @@ function PlayerNameButton({ item }: { item: GameLogSessionMember }) {
 }
 
 function PlayerCell({ item }: { item: GameLogSessionMember }) {
-    return (
-        <div className="flex min-w-0 items-center gap-1.5">
-            <PlayerNameButton item={item} />
-            <AffinityBadge
-                isFriend={item?.isFriend}
-                isFavorite={item?.isFavorite}
-                className="h-auto rounded-none bg-transparent px-0 font-normal"
-            />
-        </div>
-    );
+    return <PlayerNameButton item={item} />;
 }
 
 function PlayerActivityRow({
@@ -192,8 +183,13 @@ function PlayerActivityRow({
     showDuration: boolean;
 }) {
     return (
-        <div className="hover:bg-muted/35 grid min-h-7 grid-cols-[4.75rem_minmax(0,1fr)_5rem] items-center gap-2 rounded-md px-2 py-0.5 text-sm">
+        <div className="hover:bg-muted/35 grid min-h-7 grid-cols-[4.75rem_1rem_minmax(0,1fr)_5rem] items-center gap-2 rounded-md px-2 py-0.5 text-sm">
             <EventTime value={item?.created_at} />
+            <AffinityBadge
+                isFriend={item?.isFriend}
+                isFavorite={item?.isFavorite}
+                iconOnly
+            />
             <PlayerCell item={item} />
             <DurationText
                 value={
@@ -226,6 +222,11 @@ function SinglePlayerActivityRow({
         >
             <EventTime value={event?.created_at} />
             <EventIcon event={event} />
+            <AffinityBadge
+                isFriend={item?.isFriend}
+                isFavorite={item?.isFavorite}
+                iconOnly
+            />
             <PlayerCell item={item} />
             <EventLabel event={event} />
             <DurationText
@@ -267,6 +268,7 @@ function GroupActivityRow({
                     >
                         <EventTime value={event?.created_at} />
                         <EventIcon event={event} />
+                        <span aria-hidden="true" />
                         <span className="flex min-w-0 items-center gap-2 font-normal">
                             <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 tabular-nums">
                                 <UsersIcon className="size-3.5 shrink-0" />

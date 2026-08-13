@@ -39,9 +39,18 @@ export function normalizeGameLogId(value: unknown) {
 }
 
 export function buildGameLogFavoriteIdSet(
+    remoteFavoriteIds: readonly unknown[] | null | undefined,
     localFriendFavorites: Record<string, unknown> | null | undefined
 ) {
     const ids = new Set<string>();
+
+    for (const id of remoteFavoriteIds ?? []) {
+        const normalized = normalizeGameLogId(id);
+        if (normalized) {
+            ids.add(normalized);
+        }
+    }
+
     for (const groupIds of Object.values(localFriendFavorites ?? {})) {
         if (!Array.isArray(groupIds)) {
             continue;

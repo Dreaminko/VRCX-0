@@ -19,6 +19,7 @@ import { openUserDialog } from '@/services/dialogService';
 import { openExternalLink } from '@/services/entityMediaService';
 import { normalizeString } from '@/shared/utils/string';
 import { useFavoriteStore } from '@/state/favoriteStore';
+import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -116,6 +117,21 @@ function GameLogWidgetUserName({
     );
 }
 
+function GameLogWidgetAffinity({ row }: { row: DashboardGameLogRow }) {
+    return (
+        <span
+            className="mr-1 flex w-4 shrink-0 justify-center"
+            data-dashboard-widget-affinity-slot
+        >
+            <AffinityBadge
+                isFriend={Boolean(row.isFriend)}
+                isFavorite={Boolean(row.isFavorite)}
+                iconOnly
+            />
+        </span>
+    );
+}
+
 function GameLogWidgetLocation({ row }: { row: DashboardGameLogRow }) {
     if (!row?.location) {
         return (
@@ -157,6 +173,7 @@ function GameLogEntryContent({
             return (
                 <div className="flex min-w-0 items-center">
                     <LogInIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
+                    <GameLogWidgetAffinity row={row} />
                     <GameLogWidgetUserName row={row} />
                 </div>
             );
@@ -164,6 +181,7 @@ function GameLogEntryContent({
             return (
                 <div className="flex min-w-0 items-center">
                     <LogOutIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
+                    <GameLogWidgetAffinity row={row} />
                     <GameLogWidgetUserName
                         row={row}
                         className="text-muted-foreground/70"
@@ -174,6 +192,7 @@ function GameLogEntryContent({
             return (
                 <div className="flex min-w-0 items-center">
                     <WaypointsIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
+                    <GameLogWidgetAffinity row={row} />
                     <GameLogWidgetUserName row={row} />
                     <span className="text-muted-foreground mx-1 shrink-0">
                         →
@@ -260,6 +279,7 @@ export function DashboardGameLogWidget({
     const localFriendFavorites = useFavoriteStore(
         (state) => state.localFriendFavorites
     );
+    const friendsById = useFriendRosterStore((state) => state.friendsById);
 
     const [rows, setRows] = useState<DashboardGameLogRow[]>([]);
     const [loadStatus, setLoadStatus] =
@@ -335,10 +355,13 @@ export function DashboardGameLogWidget({
                     ...row,
                     isFavorite: normalizedUserId
                         ? favoriteIdSet.has(normalizedUserId)
+                        : false,
+                    isFriend: normalizedUserId
+                        ? Boolean(friendsById[normalizedUserId])
                         : false
                 };
             }),
-        [favoriteIdSet, rows]
+        [favoriteIdSet, friendsById, rows]
     );
 
     const showDetail = Boolean(config.showDetail);
@@ -472,18 +495,6 @@ export function DashboardGameLogWidget({
                                     showDetail={showDetail}
                                 />
                             </div>
-                            <span
-                                className="flex w-4 shrink-0 justify-center"
-                                data-dashboard-widget-affinity-slot
-                            >
-                                <AffinityBadge
-                                    isFriend={Boolean(
-                                        row.isFriend || row.isFavorite
-                                    )}
-                                    isFavorite={row.isFavorite}
-                                    iconOnly
-                                />
-                            </span>
                             <span
                                 className="text-muted-foreground w-20 shrink-0 truncate text-right text-xs"
                                 data-dashboard-widget-event-type

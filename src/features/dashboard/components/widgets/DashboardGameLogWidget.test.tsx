@@ -140,10 +140,9 @@ describe('DashboardGameLogWidget', () => {
                 eventType.classList.contains('text-right')
             )
         ).toBe(true);
-        expect(
-            eventTypes[0]?.previousElementSibling?.hasAttribute(
-                'data-dashboard-widget-affinity-slot'
-            )
-        ).toBe(true);
+        const affinitySlot = view.container.querySelector(
+            '[data-dashboard-widget-affinity-slot]'
+        );
+        expect(affinitySlot?.nextElementSibling?.textContent).toBe('One');
     });
 });

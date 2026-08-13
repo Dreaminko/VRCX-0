@@ -62,9 +62,16 @@ export function useGameLogRows({
     const localFriendFavorites = useFavoriteStore(
         (state) => state.localFriendFavorites
     );
+    const remoteFavoriteFriendIds = useFavoriteStore(
+        (state) => state.favoriteFriendIds
+    );
     const favoriteIdSet = useMemo(
-        () => buildGameLogFavoriteIdSet(localFriendFavorites),
-        [localFriendFavorites]
+        () =>
+            buildGameLogFavoriteIdSet(
+                remoteFavoriteFriendIds,
+                localFriendFavorites
+            ),
+        [localFriendFavorites, remoteFavoriteFriendIds]
     );
     const requestIdRef = useRef(0);
     const [rows, setRows] = useState<GameLogRow[]>([]);

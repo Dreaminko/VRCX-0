@@ -8,6 +8,7 @@ import {
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { AffinityBadge } from '@/components/affinity/AffinityBadge';
 import type { AppRow } from '@/components/data-table/appTable';
 import { formatDateFilter } from '@/lib/dateTime';
 import { openWorldDialog } from '@/services/dialogService';
@@ -193,30 +194,32 @@ export function useGameLogColumns({
                     );
 
                     return (
-                        <div className="flex min-w-0 items-center gap-1 text-sm">
-                            {canOpenUser ? (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    className="hover:text-primary h-auto min-w-0 p-0 text-left text-sm"
-                                    onClick={() => {
-                                        openGameLogUser(row.original, t);
-                                    }}
-                                >
-                                    <span className="truncate">
+                        <div className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-2 text-sm">
+                            <AffinityBadge
+                                isFriend={Boolean(row.original?.isFriend)}
+                                isFavorite={Boolean(row.original?.isFavorite)}
+                                iconOnly
+                            />
+                            <div className="min-w-0">
+                                {canOpenUser ? (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="hover:text-primary h-auto max-w-full min-w-0 p-0 text-left text-sm"
+                                        onClick={() => {
+                                            openGameLogUser(row.original, t);
+                                        }}
+                                    >
+                                        <span className="truncate">
+                                            {displayName}
+                                        </span>
+                                    </Button>
+                                ) : (
+                                    <span className="block truncate">
                                         {displayName}
                                     </span>
-                                </Button>
-                            ) : (
-                                <span className="truncate">{displayName}</span>
-                            )}
-                            {row.original?.isFriend ? (
-                                <span className="shrink-0">
-                                    {row.original?.isFavorite
-                                        ? '\u2b50'
-                                        : '\ud83d\udc9a'}
-                                </span>
-                            ) : null}
+                                )}
+                            </div>
                         </div>
                     );
                 }

@@ -20,12 +20,19 @@ export function useGameLogAnnotations({
     const localFriendFavorites = useFavoriteStore(
         (state) => state.localFriendFavorites
     );
+    const remoteFavoriteFriendIds = useFavoriteStore(
+        (state) => state.favoriteFriendIds
+    );
     const friendIdSignature = useFriendRosterStore((state) =>
         Object.keys(state.friendsById || {}).join(',')
     );
     const favoriteIdSet = useMemo(
-        () => buildGameLogFavoriteIdSet(localFriendFavorites),
-        [localFriendFavorites]
+        () =>
+            buildGameLogFavoriteIdSet(
+                remoteFavoriteFriendIds,
+                localFriendFavorites
+            ),
+        [localFriendFavorites, remoteFavoriteFriendIds]
     );
     const friendIdSet = useMemo(
         () => new Set(friendIdSignature ? friendIdSignature.split(',') : []),

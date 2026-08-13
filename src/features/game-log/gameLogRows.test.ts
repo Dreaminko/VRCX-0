@@ -145,9 +145,12 @@ describe('gameLogRows', () => {
     });
 
     it('marks session members and normalizes the visible session duration', () => {
-        const favoriteIds = buildGameLogFavoriteIdSet({
-            favorite: ['usr_favorite', ' usr_trimmed ']
-        });
+        const favoriteIds = buildGameLogFavoriteIdSet(
+            ['usr_remote', ' usr_trimmed '],
+            {
+                favorite: ['usr_favorite', ' usr_trimmed ']
+            }
+        );
         const friendIds = new Set(['usr_friend', 'usr_member']);
 
         const annotated = annotateGameLogSessionEvent(
@@ -155,6 +158,7 @@ describe('gameLogRows', () => {
                 type: 'JoinGroup',
                 userId: 'usr_friend',
                 members: [
+                    { userId: 'usr_remote' },
                     { userId: 'usr_favorite' },
                     { userId: 'usr_member' },
                     { userId: '' }
@@ -172,6 +176,7 @@ describe('gameLogRows', () => {
                 member.isFriend
             ])
         ).toEqual([
+            [true, false],
             [true, false],
             [false, true],
             [false, false]

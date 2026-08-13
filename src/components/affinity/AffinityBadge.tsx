@@ -18,8 +18,13 @@ export function AffinityBadge({
 }: AffinityBadgeProps) {
     const { t } = useTranslation();
 
-    if (!isFriend) {
-        return null;
+    if (!isFriend && !isFavorite) {
+        return iconOnly ? (
+            <span
+                aria-hidden="true"
+                className={cn('size-4 shrink-0', className)}
+            />
+        ) : null;
     }
 
     const favorite = Boolean(isFavorite);
@@ -36,8 +41,8 @@ export function AffinityBadge({
                 'inline-flex h-[18px] shrink-0 items-center gap-1 rounded-md px-1.5 text-[0.7rem] font-medium',
                 iconOnly &&
                     'size-4 justify-center rounded-none bg-transparent p-0',
-                iconOnly && favorite && 'text-amber-400/70',
-                iconOnly && !favorite && 'text-rose-300/70',
+                iconOnly && favorite && 'text-amber-400',
+                iconOnly && !favorite && 'text-rose-300',
                 !iconOnly && favorite && 'bg-amber-500/10 text-amber-300',
                 !iconOnly && !favorite && 'bg-rose-500/10 text-rose-300',
                 className

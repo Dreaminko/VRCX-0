@@ -34,12 +34,22 @@ function truncateLabel(value: unknown, maxLength = 20) {
 
 function markerForEntry(entry: InfoChartTooltipRow) {
     if (entry?.isFavorite) {
-        return '\u2b50 ';
+        return '\u2606';
     }
     if (entry?.isFriend) {
-        return '\ud83d\udc9a ';
+        return '\u2661';
     }
     return '';
+}
+
+function richMarkerForEntry(entry: InfoChartTooltipRow) {
+    if (entry?.isFavorite) {
+        return '{favorite|\u2606}';
+    }
+    if (entry?.isFriend) {
+        return '{friend|\u2661}';
+    }
+    return '{empty| }';
 }
 
 export function buildInfoChartTooltipParts(
@@ -47,7 +57,7 @@ export function buildInfoChartTooltipParts(
     hour12: boolean
 ) {
     return {
-        title: `${detailEntry.displayName || ''} ${markerForEntry(detailEntry).trim()}`.trim(),
+        title: `${markerForEntry(detailEntry)} ${detailEntry.displayName || ''}`.trim(),
         timeRange: `${formatClock(detailEntry.joinMs, hour12, true)} - ${formatClock(detailEntry.leaveMs, hour12, true)}`,
         duration: timeToText(detailEntry.durationMs, true)
     };
@@ -200,9 +210,24 @@ export function buildInfoChartOption({
                 triggerEvent: true,
                 axisLabel: {
                     interval: 0,
+                    rich: {
+                        favorite: {
+                            color: '#fbbf24',
+                            align: 'center',
+                            width: 14
+                        },
+                        friend: {
+                            color: '#fda4af',
+                            align: 'center',
+                            width: 14
+                        },
+                        empty: {
+                            width: 14
+                        }
+                    },
                     formatter(value: unknown, index: number) {
                         const entry = firstEntries[index];
-                        return `${markerForEntry(entry)}${truncateLabel(value, 20)}`;
+                        return `${richMarkerForEntry(entry)} ${truncateLabel(value, 20)}`;
                     }
                 },
                 data: firstEntries.map((entry) => entry.displayName)

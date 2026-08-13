@@ -41,10 +41,10 @@ describe('previousInstancesChart', () => {
         ]);
         expect(
             chartPayload.option.yAxis.axisLabel.formatter('Same Name', 0)
-        ).toBe('\ud83d\udc9a Same Name');
+        ).toBe('{friend|\u2661} Same Name');
         expect(
             chartPayload.option.yAxis.axisLabel.formatter('Same Name', 1)
-        ).toBe('\u2b50 Same Name');
+        ).toBe('{favorite|\u2606} Same Name');
     });
 
     it('builds tooltip content as pure text parts for the page adapter', () => {
@@ -60,7 +60,7 @@ describe('previousInstancesChart', () => {
                 false
             )
         ).toMatchObject({
-            title: 'Ava \u2b50',
+            title: '\u2606 Ava',
             duration: '30m 0s'
         });
     });

@@ -11,7 +11,17 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@/components/affinity/AffinityBadge', () => ({
-    AffinityBadge: () => null
+    AffinityBadge: ({
+        isFavorite,
+        isFriend
+    }: {
+        isFavorite?: boolean;
+        isFriend?: boolean;
+    }) => (
+        <span
+            data-affinity={isFavorite ? 'favorite' : isFriend ? 'friend' : ''}
+        />
+    )
 }));
 
 vi.mock('@/lib/dateTime', () => ({
@@ -115,5 +125,25 @@ describe('SessionEventGroups player durations', () => {
         expect(leftRow?.textContent).toContain('duration:60000');
         expect(joinedGroupMember?.textContent).not.toContain('duration:60000');
         expect(leftGroupMember?.textContent).toContain('duration:60000');
+    });
+
+    it('keeps the affinity marker immediately before the player name', () => {
+        const view = render(
+            <SessionEventGroups
+                durationByKey={new Map()}
+                events={[
+                    {
+                        type: 'OnPlayerJoined',
+                        created_at: '2026-08-12T10:00:00.000Z',
+                        displayName: 'Alice',
+                        userId: 'usr_alice',
+                        isFriend: true
+                    }
+                ]}
+            />
+        );
+
+        const marker = view.container.querySelector('[data-affinity="friend"]');
+        expect(marker?.nextElementSibling?.textContent).toContain('Alice');
     });
 });
