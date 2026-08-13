@@ -23,7 +23,6 @@ type UseGameLogRowsOptions = {
     deferredSearchQuery: string;
     favoritesOnly: boolean;
     filters: readonly string[];
-    paginationPageSize: number;
     preferencesReady: boolean;
     refreshToken: number;
     sessionDateFrom: string;
@@ -36,7 +35,6 @@ export function useGameLogRows({
     deferredSearchQuery,
     favoritesOnly,
     filters,
-    paginationPageSize,
     preferencesReady,
     refreshToken,
     sessionDateFrom,
@@ -116,7 +114,7 @@ export function useGameLogRows({
             favoriteUserIds,
             dateFrom: viewMode === 'sessions' ? sessionDateFrom : '',
             dateTo: viewMode === 'sessions' ? sessionDateTo : '',
-            limit: viewMode === 'sessions' ? sessionLimit : paginationPageSize
+            limit: viewMode === 'sessions' ? sessionLimit : undefined
         })
             .then((nextResult: unknown) => {
                 if (requestIdRef.current !== requestId) {
@@ -162,7 +160,6 @@ export function useGameLogRows({
         favoritesOnly,
         filters,
         isFavoritesLoaded,
-        paginationPageSize,
         preferencesReady,
         refreshToken,
         sessionDateFrom,

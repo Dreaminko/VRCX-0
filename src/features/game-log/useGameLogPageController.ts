@@ -28,7 +28,6 @@ export function useGameLogPageController() {
         deferredSearchQuery: filters.deferredSearchQuery,
         favoritesOnly: filters.favoritesOnly,
         filters: filters.queryFilterTypes,
-        paginationPageSize: tableState.pagination.pageSize,
         preferencesReady:
             filters.preferencesReady && tableState.preferencesReady,
         refreshToken: filters.refreshToken,
