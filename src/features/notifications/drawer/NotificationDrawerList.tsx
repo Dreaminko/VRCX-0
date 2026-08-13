@@ -107,16 +107,14 @@ export function NotificationDrawerList({
                         )}
                     </div>
                 )}
-                {hasAny ? (
-                    <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex w-full items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors"
-                        onClick={onNavigateToTable}
-                    >
-                        {t('side_panel.notification_center.view_more')}
-                        <ChevronRightIcon className="size-3.5" />
-                    </button>
-                ) : null}
+                <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex w-full items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors"
+                    onClick={onNavigateToTable}
+                >
+                    {t('side_panel.notification_center.view_more')}
+                    <ChevronRightIcon className="size-3.5" />
+                </button>
             </div>
         </div>
     );
