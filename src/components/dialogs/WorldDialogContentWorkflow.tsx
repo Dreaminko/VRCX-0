@@ -307,9 +307,6 @@ export function WorldDialogContentWorkflow({
             <WorldDialogEmptyState
                 loading
                 title={t('dialog.world.loading.loading_world_profile')}
-                description={t(
-                    'dialog.world.loading.fetching_the_current_vrchat_world_snapshot_for_this_dialog'
-                )}
             />
         );
     }
