@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AffinityBadge } from '@/components/affinity/AffinityBadge';
 import { Location } from '@/components/Location';
+import { describeGameLogDetail } from '@/features/game-log/gameLogRows';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
@@ -247,20 +248,25 @@ function GameLogEntryContent({
                 </Tooltip>
             );
         }
-        default:
+        default: {
+            const detail = describeGameLogDetail(row).primary || '';
+            const label = row?.displayName || detail;
+            const expandedDetail =
+                showDetail && row?.displayName && detail !== row.displayName
+                    ? detail
+                    : '';
+
             return (
                 <div className="flex min-w-0 items-center">
-                    <span className="truncate">{row?.displayName || ''}</span>
-                    <span className="text-muted-foreground ml-1 shrink-0">
-                        {row?.type || ''}
-                    </span>
-                    {showDetail && (row?.data || row?.message) ? (
+                    <span className="truncate">{label}</span>
+                    {expandedDetail ? (
                         <span className="text-muted-foreground ml-1 min-w-0 truncate">
-                            — {row.data || row.message}
+                            — {expandedDetail}
                         </span>
                     ) : null}
                 </div>
             );
+        }
     }
 }
 

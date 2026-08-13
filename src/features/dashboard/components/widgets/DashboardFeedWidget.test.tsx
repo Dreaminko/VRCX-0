@@ -16,6 +16,7 @@ vi.mock('@/repositories/feedRepository', async (importOriginal) => ({
     }
 }));
 
+import { FeedEntryContent } from './DashboardFeedEntryContent';
 import { DashboardFeedWidgetView } from './DashboardFeedWidget';
 
 describe('DashboardFeedWidgetView', () => {
@@ -91,6 +92,22 @@ describe('DashboardFeedWidgetView', () => {
         ).toBeTruthy();
     });
 
+    it('matches the Feed page location color for GPS entries', () => {
+        const view = render(
+            <MemoryRouter>
+                <FeedEntryContent
+                    row={{ type: 'GPS', displayName: 'Friend' }}
+                />
+            </MemoryRouter>
+        );
+
+        expect(
+            view.container
+                .querySelector('.lucide-map-pin')
+                ?.classList.contains('text-sky-500')
+        ).toBe(true);
+    });
+
     it('groups compact feed rows by day instead of repeating the date per row', async () => {
         mocks.queryFeedLatest.mockResolvedValue({
             rows: [
@@ -144,6 +161,17 @@ describe('DashboardFeedWidgetView', () => {
         expect(
             view.container.querySelector('[aria-label="Favorite"]')
         ).toBeTruthy();
+        const statusDots = view.container.querySelectorAll(
+            '[data-dashboard-feed-status-dot]'
+        );
+        expect(statusDots).toHaveLength(2);
+        expect(
+            Array.from(statusDots).every(
+                (statusDot) =>
+                    statusDot.classList.contains('self-center') &&
+                    !statusDot.classList.contains('mt-1')
+            )
+        ).toBe(true);
         expect(screen.queryByText('Favorite')).toBeNull();
         expect(screen.queryByText('All feed types')).toBeNull();
     });

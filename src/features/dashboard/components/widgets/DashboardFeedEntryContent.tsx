@@ -164,9 +164,10 @@ function FeedStatusDot({ status = '' }: { status?: string | null }) {
     return className ? (
         <span
             className={cn(
-                'mt-1 mr-1 size-2.5 shrink-0 rounded-full',
+                'mr-1 ml-0.5 size-2.5 shrink-0 self-center rounded-full',
                 className
             )}
+            data-dashboard-feed-status-dot
         />
     ) : null;
 }
@@ -184,7 +185,7 @@ export function FeedEntryContent({
         case 'GPS':
             return (
                 <div className="flex min-w-0 items-center">
-                    <MapPinIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
+                    <MapPinIcon className="mr-1 size-3.5 shrink-0 text-sky-500" />
                     <FeedUserName row={row} friend={friend} />
                     <span className="text-muted-foreground mx-1 shrink-0">
                         →
