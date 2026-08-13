@@ -16,10 +16,90 @@ import { subscribeIntegrationApiStatusRefresh } from '@/services/integrationApiS
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from '@/ui/shadcn/dialog';
 import { Input } from '@/ui/shadcn/input';
 import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SettingsGroup } from '../SettingsField';
+
+function IntegrationApiInformationTypesDialog({
+    id,
+    'aria-invalid': ariaInvalid
+}: {
+    id?: string;
+    'aria-invalid'?: boolean;
+}) {
+    const { t } = useTranslation();
+
+    return (
+        <Dialog>
+            <DialogTrigger
+                render={
+                    <Button
+                        id={id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        aria-invalid={ariaInvalid}
+                    >
+                        {t('common.actions.configure')}
+                    </Button>
+                }
+            />
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>
+                        {t(
+                            'view.settings.integrations.integration_api.information_types'
+                        )}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t(
+                            'view.settings.integrations.integration_api.information_types_description'
+                        )}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="border-primary/20 bg-primary/[0.04] flex items-start gap-3 rounded-lg border p-3">
+                    <Checkbox
+                        checked
+                        disabled
+                        aria-label={t(
+                            'view.settings.integrations.integration_api.room_information'
+                        )}
+                        className="mt-0.5"
+                    />
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <UsersRoundIcon className="text-primary size-4" />
+                            <span className="text-sm font-medium">
+                                {t(
+                                    'view.settings.integrations.integration_api.room_information'
+                                )}
+                            </span>
+                            <Badge variant="secondary">
+                                {t(
+                                    'view.settings.integrations.integration_api.information_type_fixed'
+                                )}
+                            </Badge>
+                        </div>
+                        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                            {t(
+                                'view.settings.integrations.integration_api.room_information_description'
+                            )}
+                        </p>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export function IntegrationApiSettingsGroup() {
     const { t } = useTranslation();
@@ -191,38 +271,8 @@ export function IntegrationApiSettingsGroup() {
                 description={t(
                     'view.settings.integrations.integration_api.information_types_description'
                 )}
-                controlClassName="lg:justify-stretch"
             >
-                <div className="border-primary/20 bg-primary/[0.04] flex w-full items-start gap-3 rounded-lg border px-3 py-2.5">
-                    <Checkbox
-                        checked
-                        disabled
-                        aria-label={t(
-                            'view.settings.integrations.integration_api.room_information'
-                        )}
-                        className="mt-0.5"
-                    />
-                    <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                            <UsersRoundIcon className="text-primary size-4" />
-                            <span className="text-sm font-medium">
-                                {t(
-                                    'view.settings.integrations.integration_api.room_information'
-                                )}
-                            </span>
-                            <Badge variant="secondary">
-                                {t(
-                                    'view.settings.integrations.integration_api.information_type_fixed'
-                                )}
-                            </Badge>
-                        </div>
-                        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                            {t(
-                                'view.settings.integrations.integration_api.room_information_description'
-                            )}
-                        </p>
-                    </div>
-                </div>
+                <IntegrationApiInformationTypesDialog />
             </Field>
 
             <Field
