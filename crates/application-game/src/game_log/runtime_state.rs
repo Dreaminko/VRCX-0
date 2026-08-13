@@ -122,3 +122,6 @@ pub fn player_key(user_id: &str, display_name: &str) -> String {
         format!("id:{user_id}")
     }
 }
+
+#[cfg(test)]
+mod tests;

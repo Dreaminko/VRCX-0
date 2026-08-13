@@ -163,7 +163,14 @@ pub fn deserialize_legacy_cookie_entries(b64: &str) -> Option<Vec<CookieEntry>> 
 
 #[cfg(test)]
 mod tests {
+    use reqwest::cookie::CookieStore as ReqwestCookieStore;
+
     use super::*;
+
+    fn cookie_header(jar: &CookieJar, url: &str) -> Option<String> {
+        ReqwestCookieStore::cookies(jar, &Url::parse(url).unwrap())
+            .map(|value| value.to_str().unwrap().to_string())
+    }
 
     #[test]
     fn fresh_jar_is_clean() {
@@ -194,5 +201,83 @@ mod tests {
         jar.update(|_| {});
         jar.clear_dirty();
         assert!(jar.flush_if_dirty(|_| ()).is_none());
+    }
+
+    #[test]
+    fn response_cookies_follow_vrchat_domain_path_and_secure_scope() {
+        let jar = CookieJar::new(CookieStore::default());
+        let response_url = Url::parse("https://api.vrchat.cloud/api/1/auth/user").unwrap();
+        let headers = [
+            HeaderValue::from_static("auth=session-token; Domain=vrchat.cloud; Path=/api/; Secure"),
+            HeaderValue::from_static(
+                "twoFactorAuth=remember-token; Domain=api.vrchat.cloud; Path=/; Secure",
+            ),
+        ];
+
+        ReqwestCookieStore::set_cookies(&jar, &mut headers.iter(), &response_url);
+
+        let api_header = cookie_header(&jar, "https://api.vrchat.cloud/api/1/auth/user").unwrap();
+        assert!(api_header.contains("auth=session-token"));
+        assert!(api_header.contains("twoFactorAuth=remember-token"));
+        assert_eq!(
+            cookie_header(&jar, "https://api.vrchat.cloud/home").as_deref(),
+            Some("twoFactorAuth=remember-token")
+        );
+        assert!(cookie_header(&jar, "http://api.vrchat.cloud/api/1/auth/user").is_none());
+        assert!(cookie_header(&jar, "https://example.com/api/1/auth/user").is_none());
+    }
+
+    #[test]
+    fn malformed_set_cookie_does_not_discard_valid_neighbors() {
+        let jar = CookieJar::new(CookieStore::default());
+        let response_url = Url::parse("https://api.vrchat.cloud/api/1/auth/user").unwrap();
+        let headers = [
+            HeaderValue::from_static("auth=session-token; Path=/; Secure"),
+            HeaderValue::from_static(";"),
+            HeaderValue::from_static("twoFactorAuth=remember-token; Path=/; Secure"),
+        ];
+
+        ReqwestCookieStore::set_cookies(&jar, &mut headers.iter(), &response_url);
+
+        let header = cookie_header(&jar, response_url.as_str()).unwrap();
+        assert!(header.contains("auth=session-token"));
+        assert!(header.contains("twoFactorAuth=remember-token"));
+    }
+
+    #[test]
+    fn session_cookies_survive_store_serialization_round_trip() {
+        let jar = CookieJar::new(CookieStore::default());
+        let response_url = Url::parse("https://api.vrchat.cloud/api/1/auth/user").unwrap();
+        let headers = [
+            HeaderValue::from_static("auth=session-token; Domain=.vrchat.cloud; Path=/; Secure"),
+            HeaderValue::from_static(
+                "twoFactorAuth=remember-token; Domain=.vrchat.cloud; Path=/; Secure",
+            ),
+        ];
+        ReqwestCookieStore::set_cookies(&jar, &mut headers.iter(), &response_url);
+
+        let encoded = jar
+            .read_with(serialize_cookie_store)
+            .expect("cookie store should serialize");
+        let restored = deserialize_cookie_store(&encoded).expect("cookie store should restore");
+        let restored = CookieJar::new(restored);
+
+        let header = cookie_header(&restored, response_url.as_str()).unwrap();
+        assert!(header.contains("auth=session-token"));
+        assert!(header.contains("twoFactorAuth=remember-token"));
+    }
+
+    #[test]
+    fn legacy_cookie_payload_uses_original_pascal_case_shape() {
+        let payload =
+            B64.encode(br#"[{"Name":"auth","Value":"token","Domain":".vrchat.cloud","Path":"/"}]"#);
+
+        let entries = deserialize_legacy_cookie_entries(&payload).unwrap();
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].name, "auth");
+        assert_eq!(entries[0].value, "token");
+        assert_eq!(entries[0].domain, ".vrchat.cloud");
+        assert_eq!(entries[0].path, "/");
     }
 }

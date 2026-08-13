@@ -62,6 +62,17 @@ fn leave_time(db: &DatabaseService, user_id: &str) -> i64 {
     .unwrap()
 }
 
+fn leave_time_at(db: &DatabaseService, created_at: &str) -> i64 {
+    db.execute(
+        "SELECT time FROM gamelog_join_leave WHERE created_at = @created_at AND type = 'OnPlayerLeft'",
+        &ParamsBuilder::new().set("created_at", created_at).build(),
+    )
+    .unwrap()
+    .first()
+    .map(|row| row_i64(row, 0))
+    .unwrap()
+}
+
 fn cleanup_test_db(name: &str) -> Result<(TestDir, DatabaseService), Error> {
     let dir = TestDir::new(name);
     let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
@@ -346,6 +357,143 @@ fn repair_zero_copresence_durations_pairs_leave_with_join() -> Result<(), Error>
     assert_eq!(leave_time(&db, "usr_alice"), 2_400_000);
     assert_eq!(leave_time(&db, "usr_bob"), 0);
     assert_eq!(leave_time(&db, "usr_carol"), 0);
+    Ok(())
+}
+
+#[test]
+fn copresence_repair_uses_the_latest_matching_join_in_the_same_instance() -> Result<(), Error> {
+    let dir = TestDir::new("gamelog-repair-latest-matching-join");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    ensure_game_log_tables(&db)?;
+
+    for (created_at, location, user_id) in [
+        ("2026-08-13T10:00:00.000Z", "wrld_a:1", "usr_alice"),
+        ("2026-08-13T10:10:00.000Z", "wrld_a:1", "usr_alice"),
+        ("2026-08-13T10:20:00.000Z", "wrld_a:1", "usr_other"),
+        ("2026-08-13T10:25:00.000Z", "wrld_b:1", "usr_alice"),
+    ] {
+        insert_join_leave(
+            &db,
+            created_at,
+            "OnPlayerJoined",
+            "Alice",
+            location,
+            user_id,
+            0,
+        );
+    }
+    insert_join_leave(
+        &db,
+        "2026-08-13T10:30:00.000Z",
+        "OnPlayerLeft",
+        "Alice",
+        "wrld_a:1",
+        "usr_alice",
+        0,
+    );
+
+    database_maintenance_run(&db, DatabaseMaintenanceTask::RepairZeroCopresenceDurations)?;
+
+    assert_eq!(leave_time(&db, "usr_alice"), 20 * 60 * 1000);
+    Ok(())
+}
+
+#[test]
+fn copresence_repair_uses_latest_display_name_match_for_legacy_rows_without_user_id(
+) -> Result<(), Error> {
+    let dir = TestDir::new("gamelog-repair-legacy-name");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    ensure_game_log_tables(&db)?;
+
+    insert_join_leave(
+        &db,
+        "2026-08-13T11:00:00.000Z",
+        "OnPlayerJoined",
+        "Legacy Player",
+        "wrld_a:1",
+        "",
+        0,
+    );
+    insert_join_leave(
+        &db,
+        "2026-08-13T11:10:00.000Z",
+        "OnPlayerJoined",
+        "Legacy Player",
+        "wrld_a:1",
+        "usr_known",
+        0,
+    );
+    insert_join_leave(
+        &db,
+        "2026-08-13T11:15:00.000Z",
+        "OnPlayerLeft",
+        "Legacy Player",
+        "wrld_a:1",
+        "",
+        0,
+    );
+    insert_join_leave(
+        &db,
+        "2026-08-13T11:20:00.000Z",
+        "OnPlayerLeft",
+        "Legacy Player",
+        "wrld_a:1",
+        "usr_missing",
+        0,
+    );
+
+    database_maintenance_run(&db, DatabaseMaintenanceTask::RepairZeroCopresenceDurations)?;
+
+    assert_eq!(
+        leave_time_at(&db, "2026-08-13T11:15:00.000Z"),
+        5 * 60 * 1000
+    );
+    assert_eq!(leave_time(&db, "usr_missing"), 0);
+    Ok(())
+}
+
+#[test]
+fn copresence_repair_preserves_recorded_and_rejects_implausible_history() -> Result<(), Error> {
+    let dir = TestDir::new("gamelog-repair-history-guards");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    ensure_game_log_tables(&db)?;
+
+    for (created_at, event_type, user_id, time) in [
+        ("2026-08-12T12:00:00.000Z", "OnPlayerJoined", "usr_day", 0),
+        ("2026-08-13T12:00:00.000Z", "OnPlayerLeft", "usr_day", 0),
+        ("2026-08-12T11:59:59.999Z", "OnPlayerJoined", "usr_over", 0),
+        ("2026-08-13T12:00:00.000Z", "OnPlayerLeft", "usr_over", 0),
+        (
+            "2026-08-13T11:00:00.000Z",
+            "OnPlayerJoined",
+            "usr_recorded",
+            0,
+        ),
+        (
+            "2026-08-13T12:00:00.000Z",
+            "OnPlayerLeft",
+            "usr_recorded",
+            1234,
+        ),
+        (
+            "2026-08-13T11:00:00.000Z",
+            "OnPlayerJoined",
+            "usr_invalid",
+            0,
+        ),
+        ("not-a-timestamp", "OnPlayerLeft", "usr_invalid", 0),
+    ] {
+        insert_join_leave(
+            &db, created_at, event_type, user_id, "wrld_a:1", user_id, time,
+        );
+    }
+
+    database_maintenance_run(&db, DatabaseMaintenanceTask::RepairZeroCopresenceDurations)?;
+
+    assert_eq!(leave_time(&db, "usr_day"), 24 * 60 * 60 * 1000);
+    assert_eq!(leave_time(&db, "usr_over"), 0);
+    assert_eq!(leave_time(&db, "usr_recorded"), 1234);
+    assert_eq!(leave_time(&db, "usr_invalid"), 0);
     Ok(())
 }
 
