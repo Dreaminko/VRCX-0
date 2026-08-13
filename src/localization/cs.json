@@ -1817,7 +1817,7 @@
             "export": {
                 "header": "Export",
                 "export_notes": "Export lokálních poznámek uživatelů",
-                "export_notes_description": "Exportujte lokální poznámky VRCX-0 do poznámek VRChat",
+                "export_notes_description": "Exportujte své poznámky VRCX-0 do poznámek VRChat",
                 "discord_names": "Discord Jména",
                 "export_friend_list": "Exportovat seznam přátel",
                 "export_own_avatars": "Exportovat vlastní avatary"
@@ -1831,9 +1831,9 @@
                 },
                 "header": "Média",
                 "screenshot": "Snímek obrazovky",
-                "screenshot_description": "Zobrazit a spravovat snímky obrazovky",
+                "screenshot_description": "Procházet fotky z VRChatu a podrobnosti o snímcích",
                 "gallery": "Galerie",
-                "gallery_description": "Správa fotek, ikon a printů",
+                "gallery_description": "Správa galerie VRChatu — fotky, profilové ikony a printy",
                 "inventory": "Inventář",
                 "inventory_description": "Spravujte emoji, samolepky, předměty a kosmetiku"
             },
@@ -1849,7 +1849,7 @@
             "system_tools": {
                 "header": "VRChat a systém",
                 "vrchat_config": "Konfigurace VRChat",
-                "vrchat_config_description": "Otevřít nastavení config.json VRChat",
+                "vrchat_config_description": "Otevřít nastavení konfigurace VRChatu",
                 "vrchat_log": "Prohlížeč záznamů VRChat",
                 "vrchat_log_description": "Číst lokální výstupní záznamy VRChat",
                 "launch_options_description": "Upravit možnosti spuštění VRChat",
@@ -1857,8 +1857,8 @@
                 "app_launcher_description": "Spouštět aplikace automaticky při startu VRChatu.",
                 "registry_backup": "Záloha registru VRChat",
                 "registry_backup_description": "Vytvořte nebo obnovte zálohu registru VRChat",
-                "llm_endpoints": "LLM endpointy",
-                "llm_endpoints_description": "Spravujte připojení kompatibilní s OpenAI pro Social AI a překlad."
+                "llm_endpoints": "Připojení AI",
+                "llm_endpoints_description": "Spravujte připojení k AI službám pro Social AI a překlad."
             },
             "vrchat_log": {
                 "title": "Prohlížeč záznamů VRChat",
@@ -1899,7 +1899,7 @@
                 "room_status_rules": "Pravidla stavu podle instance a světa",
                 "room_status_rules_description": "Automatická změna stavu podle instance, světa nebo přátel.",
                 "invite_request_auto_reply": "Automatická odpověď na žádosti o pozvání",
-                "invite_request_auto_reply_description": "Automaticky pozve přátele na seznamu povolených, kteří o vstup požádají, dokud VRChat běží.",
+                "invite_request_auto_reply_description": "Automaticky pozve schválené přátele, kteří o vstup požádají, dokud VRChat běží.",
                 "schedule_rules": "Pravidla plánu",
                 "schedule_rules_description": "Časová okna mohou měnit stav, stavovou zprávu, nebo obojí.",
                 "add_rule": "Přidat pravidlo",

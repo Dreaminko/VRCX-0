@@ -1817,7 +1817,7 @@
             "export": {
                 "header": "Экпорт",
                 "export_notes": "Экспорт заметок пользователя",
-                "export_notes_description": "Экспорт заметок пользователя VRCX-0 в заметки VRChat",
+                "export_notes_description": "Экспорт ваших заметок VRCX-0 в заметки VRChat",
                 "discord_names": "Имена Discord",
                 "export_friend_list": "Экспорт списка друзей",
                 "export_own_avatars": "Экспорт собственных аватаров"
@@ -1831,9 +1831,9 @@
                 },
                 "header": "Фотографии",
                 "screenshot": "Управление скриншотами",
-                "screenshot_description": "Управление скриншотами и просмотр метаданных",
+                "screenshot_description": "Просмотр фотографий VRChat и сведений о съёмке",
                 "gallery": "Галерея",
-                "gallery_description": "Управление фото, иконками и принтами",
+                "gallery_description": "Управление галереей VRChat — фото, значки профиля и принты",
                 "inventory": "VRC+ Управление изображениями и инвентарем",
                 "inventory_description": "Управление изображениями и инвентарем VRC+"
             },
@@ -1849,7 +1849,7 @@
             "system_tools": {
                 "header": "VRChat & Система",
                 "vrchat_config": "VRChat Конфиг",
-                "vrchat_config_description": "Открыть VRChat config.json настройки",
+                "vrchat_config_description": "Открыть настройки конфигурации VRChat",
                 "vrchat_log": "VRChat Просмотр журнала",
                 "vrchat_log_description": "Читать на местном VRChat Журналы выходных данных",
                 "launch_options_description": "Изменить VRChat Варианты запуска",
@@ -1857,8 +1857,8 @@
                 "app_launcher_description": "Автозапуск приложений при старте VRChat.",
                 "registry_backup": "VRChat Резервирование регистра",
                 "registry_backup_description": "Создать или восстановить резервную копию реестра VRChat",
-                "llm_endpoints": "LLM-эндпоинты",
-                "llm_endpoints_description": "Управление OpenAI-совместимыми подключениями для Social AI и перевода."
+                "llm_endpoints": "ИИ-подключения",
+                "llm_endpoints_description": "Управление подключениями к ИИ-сервисам для Social AI и перевода."
             },
             "vrchat_log": {
                 "title": "VRChat Просмотр журнала",
@@ -1899,7 +1899,7 @@
                 "room_status_rules": "Правила статуса по инстансам и мирам",
                 "room_status_rules_description": "Автоматическая смена статуса в зависимости от инстанса, мира или друзей.",
                 "invite_request_auto_reply": "Приглашать запрос на автопроверку",
-                "invite_request_auto_reply_description": "Автоинвайт позволяет зачисленным в список друзьям, которые просят присоединиться VRChat Бежит.",
+                "invite_request_auto_reply_description": "Автоприглашение одобренных друзей, которые просят присоединиться, пока VRChat запущен.",
                 "schedule_rules": "Правила, касающиеся таблиц",
                 "schedule_rules_description": "Окна времени могут изменить статус, сообщение о состоянии или оба.",
                 "add_rule": "Добавить правило",

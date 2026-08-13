@@ -1815,7 +1815,7 @@
             "export": {
                 "header": "Exportieren",
                 "export_notes": "Lokale Nutzernotizen exportieren",
-                "export_notes_description": "Lokale VRCX-0-Notizen in VRChat-Notizen exportieren",
+                "export_notes_description": "Deine VRCX-0-Notizen in VRChat-Notizen exportieren",
                 "discord_names": "Discord-Namen",
                 "export_friend_list": "Freundesliste exportieren",
                 "export_own_avatars": "Eigene Avatare exportieren"
@@ -1829,9 +1829,9 @@
                 },
                 "header": "Medien",
                 "screenshot": "Screenshot",
-                "screenshot_description": "Screenshots ansehen und verwalten",
+                "screenshot_description": "Deine VRChat-Fotos und Aufnahmedetails durchsuchen",
                 "gallery": "Galerie",
-                "gallery_description": "Fotos, Icons und Prints verwalten",
+                "gallery_description": "Deine VRChat-Galerie verwalten — Fotos, Profilsymbole und Prints",
                 "inventory": "Inventar",
                 "inventory_description": "Emojis, Sticker, Items und Kosmetik verwalten"
             },
@@ -1847,7 +1847,7 @@
             "system_tools": {
                 "header": "VRChat & System",
                 "vrchat_config": "VRChat-Konfiguration",
-                "vrchat_config_description": "VRChat config.json-Einstellungen öffnen",
+                "vrchat_config_description": "VRChat-Konfigurationseinstellungen öffnen",
                 "vrchat_log": "VRChat-Log-Viewer",
                 "vrchat_log_description": "Lokale VRChat-Ausgabeprotokolle lesen",
                 "launch_options_description": "VRChat-Startoptionen bearbeiten",
@@ -1855,8 +1855,8 @@
                 "app_launcher_description": "Apps beim Start von VRChat automatisch starten.",
                 "registry_backup": "VRChat-Registrierungs-Backup",
                 "registry_backup_description": "Ein VRChat-Registrierungs-Backup erstellen oder wiederherstellen",
-                "llm_endpoints": "LLM-Endpoints",
-                "llm_endpoints_description": "Verwalte OpenAI-kompatible Verbindungen für Social AI und Übersetzung."
+                "llm_endpoints": "KI-Verbindungen",
+                "llm_endpoints_description": "Verwalte KI-Dienstverbindungen für Social AI und Übersetzung."
             },
             "vrchat_log": {
                 "title": "VRChat-Log-Viewer",
@@ -1897,7 +1897,7 @@
                 "room_status_rules": "Instanz- & Welt-Statusregeln",
                 "room_status_rules_description": "Status je nach Instanz, Welt oder Freunden automatisch ändern.",
                 "invite_request_auto_reply": "Automatische Antwort auf Einladungsanfragen",
-                "invite_request_auto_reply_description": "Freunde auf der Zulassungsliste automatisch einladen, wenn sie beitreten möchten, während VRChat läuft.",
+                "invite_request_auto_reply_description": "Zugelassene Freunde automatisch einladen, wenn sie beitreten möchten, während VRChat läuft.",
                 "schedule_rules": "Zeitplanregeln",
                 "schedule_rules_description": "Zeitfenster können Status, Statusnachricht oder beides ändern.",
                 "add_rule": "Regel hinzufügen",

@@ -1815,7 +1815,7 @@
             "export": {
                 "header": "导出",
                 "export_notes": "导出本地备注",
-                "export_notes_description": "将 VRCX-0 本地备注导出到 VRChat 备注",
+                "export_notes_description": "将 VRCX-0 备注导出到 VRChat 备注",
                 "discord_names": "查找好友的 Discord 名称",
                 "export_friend_list": "导出好友列表",
                 "export_own_avatars": "导出自己创建的模型 ID 列表"
@@ -1829,9 +1829,9 @@
                 },
                 "header": "媒体",
                 "screenshot": "截图",
-                "screenshot_description": "查看和管理截图",
+                "screenshot_description": "浏览 VRChat 照片及拍摄详情",
                 "gallery": "相册",
-                "gallery_description": "管理相册、个人资料图标和 VRChat 拍立得",
+                "gallery_description": "管理 VRChat 图库 — 相册、头像图标和拍立得",
                 "inventory": "库存",
                 "inventory_description": "管理表情、贴纸、物品和装饰"
             },
@@ -1847,7 +1847,7 @@
             "system_tools": {
                 "header": "调试与备份",
                 "vrchat_config": "VRChat 配置选项",
-                "vrchat_config_description": "打开 VRChat 的 config.json 设置",
+                "vrchat_config_description": "打开 VRChat 配置设置",
                 "vrchat_log": "VRChat 日志查看器",
                 "vrchat_log_description": "查看本地 VRChat 客户端日志",
                 "launch_options_description": "编辑 VRChat 的启动选项",
@@ -1855,8 +1855,8 @@
                 "app_launcher_description": "管理会在 VRChat 启动时自动启动的应用和快捷方式。",
                 "registry_backup": "VRChat 设置数据备份工具",
                 "registry_backup_description": "创建或恢复 VRChat 的设置备份",
-                "llm_endpoints": "LLM 端点",
-                "llm_endpoints_description": "管理供 Social AI 和翻译使用的 OpenAI 兼容连接。"
+                "llm_endpoints": "AI 连接",
+                "llm_endpoints_description": "管理供 Social AI 和翻译使用的 AI 服务连接。"
             },
             "vrchat_log": {
                 "title": "VRChat 日志查看器",
@@ -1897,7 +1897,7 @@
                 "room_status_rules": "实例与世界状态规则",
                 "room_status_rules_description": "VRChat 运行时，根据所在实例、世界和同行好友自动更改状态。",
                 "invite_request_auto_reply": "自动回应加入申请",
-                "invite_request_auto_reply_description": "VRChat 处于运行状态，且白名单好友申请加入时自动发送邀请。",
+                "invite_request_auto_reply_description": "VRChat 运行时，已批准的好友申请加入会自动发送邀请。",
                 "schedule_rules": "时间规则",
                 "schedule_rules_description": "根据时间切换状态、签名，或同时切换两者。",
                 "add_rule": "添加规则",

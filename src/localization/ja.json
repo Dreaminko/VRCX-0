@@ -1811,7 +1811,7 @@
             "export": {
                 "header": "エクスポート",
                 "export_notes": "ユーザーローカルノートのエクスポート",
-                "export_notes_description": "VRCX-0 のローカルノートを VRChat のノートにエクスポート",
+                "export_notes_description": "VRCX-0 のノートを VRChat のノートにエクスポート",
                 "discord_names": "Discord のユーザー名",
                 "export_friend_list": "フレンドリストをエクスポート",
                 "export_own_avatars": "自分のアバターをエクスポート"
@@ -1825,9 +1825,9 @@
                 },
                 "header": "メディア",
                 "screenshot": "スクリーンショット",
-                "screenshot_description": "スクリーンショットを表示・管理",
+                "screenshot_description": "VRChat の写真と撮影情報を閲覧",
                 "gallery": "ギャラリー",
-                "gallery_description": "写真・アイコン・プリントを管理",
+                "gallery_description": "VRChat ギャラリーの写真・プロフィールアイコン・プリントを管理",
                 "inventory": "インベントリ",
                 "inventory_description": "Emoji、ステッカー、アイテム、コスメティックを管理"
             },
@@ -1843,7 +1843,7 @@
             "system_tools": {
                 "header": "VRChat とシステム",
                 "vrchat_config": "VRChat 設定",
-                "vrchat_config_description": "VRChat の config.json を開く",
+                "vrchat_config_description": "VRChat の設定を開く",
                 "vrchat_log": "VRChat ログビューアー",
                 "vrchat_log_description": "ローカルの VRChat Output Log を表示",
                 "launch_options_description": "VRChat の起動オプションを編集する",
@@ -1851,8 +1851,8 @@
                 "app_launcher_description": "VRChat 起動時にアプリを自動起動します。",
                 "registry_backup": "VRChat レジストリバックアップ",
                 "registry_backup_description": "VRChat のレジストリバックアップを作成または復元",
-                "llm_endpoints": "LLM エンドポイント",
-                "llm_endpoints_description": "Social AI と翻訳で使う OpenAI 互換の接続を管理します。"
+                "llm_endpoints": "AI 接続",
+                "llm_endpoints_description": "Social AI と翻訳で使う AI サービスの接続を管理します。"
             },
             "vrchat_log": {
                 "title": "VRChat ログビューアー",
@@ -1893,7 +1893,7 @@
                 "room_status_rules": "インスタンス・ワールドステータスルール",
                 "room_status_rules_description": "インスタンス・ワールド・フレンドに応じてステータスを自動変更します。",
                 "invite_request_auto_reply": "招待リクエストの自動返信",
-                "invite_request_auto_reply_description": "VRChat 起動中に、許可リスト内のフレンドから招待リクエストが来たら自動で招待します。",
+                "invite_request_auto_reply_description": "VRChat 起動中に、承認済みのフレンドから参加リクエストが来たら自動で招待します。",
                 "schedule_rules": "スケジュールルール",
                 "schedule_rules_description": "時間帯ごとにステータス、ステータスメッセージ、またはその両方を変更できます。",
                 "add_rule": "ルールを追加",

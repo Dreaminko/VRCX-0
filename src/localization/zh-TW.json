@@ -1815,7 +1815,7 @@
             "export": {
                 "header": "匯出",
                 "export_notes": "匯出用戶本機備註",
-                "export_notes_description": "將 VRCX-0 本機備註匯出至 VRChat 備註",
+                "export_notes_description": "將你的 VRCX-0 備註匯出至 VRChat 備註",
                 "discord_names": "Discord 名稱",
                 "export_friend_list": "匯出好友列表",
                 "export_own_avatars": "匯出個人角色"
@@ -1829,9 +1829,9 @@
                 },
                 "header": "圖片",
                 "screenshot": "截圖管理",
-                "screenshot_description": "管理截圖並檢視後設資料",
+                "screenshot_description": "瀏覽 VRChat 照片及拍攝詳情",
                 "gallery": "圖片管理器",
-                "gallery_description": "管理相片圖庫、個人資料圖示與 VRChat 拍立得",
+                "gallery_description": "管理 VRChat 圖庫 — 相簿、個人資料圖示與拍立得",
                 "inventory": "庫存",
                 "inventory_description": "管理表情、貼紙、物品和裝飾"
             },
@@ -1847,7 +1847,7 @@
             "system_tools": {
                 "header": "系統工具",
                 "vrchat_config": "VRChat 設定檔",
-                "vrchat_config_description": "開啟 VRChat config.json 設定",
+                "vrchat_config_description": "開啟 VRChat 組態設定",
                 "vrchat_log": "VRChat 紀錄查看器",
                 "vrchat_log_description": "查看本機的 VRChat 輸出日誌",
                 "launch_options_description": "編輯 VRChat 啟動選項",
@@ -1855,8 +1855,8 @@
                 "app_launcher_description": "管理會在 VRChat 啟動時自動啟動的應用程式和捷徑",
                 "registry_backup": "VRChat 登錄檔備份",
                 "registry_backup_description": "建立或還原 VRChat 登錄檔備份",
-                "llm_endpoints": "LLM 端點",
-                "llm_endpoints_description": "管理供社交 AI 與翻譯功能使用的 OpenAI 相容連線。"
+                "llm_endpoints": "AI 連線",
+                "llm_endpoints_description": "管理供社交 AI 與翻譯功能使用的 AI 服務連線。"
             },
             "vrchat_log": {
                 "title": "VRChat 紀錄查看器",
@@ -1897,7 +1897,7 @@
                 "room_status_rules": "實例與世界狀態規則",
                 "room_status_rules_description": "VRChat 執行時，根據所在實例、世界與同行好友自動變更狀態。",
                 "invite_request_auto_reply": "自動回應加入申請",
-                "invite_request_auto_reply_description": "VRChat 執行時，白名單好友申請加入時自動邀請",
+                "invite_request_auto_reply_description": "VRChat 執行時，已核准的好友申請加入會自動邀請",
                 "schedule_rules": "時間規則",
                 "schedule_rules_description": "按時間視窗切換狀態、簽名，或同時切換兩者。",
                 "add_rule": "新增規則",

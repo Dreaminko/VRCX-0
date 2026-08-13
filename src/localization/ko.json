@@ -1791,12 +1791,12 @@
                 "discord_names": "디스코드 아이디",
                 "export_friend_list": "친구 목록 내보내기",
                 "export_own_avatars": "내 아바타 목록 내보내기",
-                "export_notes_description": "VRCX-0 로컬 메모를 VRChat 메모로 내보내기"
+                "export_notes_description": "VRCX-0 메모를 VRChat 메모로 내보내기"
             },
             "pictures": {
                 "header": "미디어",
                 "screenshot": "스크린샷",
-                "screenshot_description": "스크린샷 보기 및 관리",
+                "screenshot_description": "VRChat 사진과 촬영 정보 둘러보기",
                 "gallery": "갤러리",
                 "inventory": "인벤토리",
                 "inventory_description": "이모티콘, 스티커, 아이템, 코스메틱 관리",
@@ -1806,7 +1806,7 @@
                     "vrc_photos_description": "VRChat 사진 폴더를 엽니다.",
                     "steam_screenshots_description": "Steam 스크린샷 폴더를 엽니다."
                 },
-                "gallery_description": "사진, 아이콘, 프린트 관리"
+                "gallery_description": "VRChat 갤러리 관리 — 사진, 프로필 아이콘, 프린트"
             },
             "shortcuts": {
                 "header": "폴더",
@@ -1821,15 +1821,15 @@
                 "app_launcher": "앱 런처",
                 "header": "VRChat 및 시스템",
                 "vrchat_config": "VRChat 구성",
-                "vrchat_config_description": "VRChat config.json 설정 열기",
+                "vrchat_config_description": "VRChat 설정 열기",
                 "vrchat_log": "VRChat 로그 뷰어",
                 "vrchat_log_description": "로컬 VRChat 출력 로그 읽기",
                 "launch_options_description": "VRChat 실행 옵션 편집",
                 "app_launcher_description": "VRChat 시작 시 앱을 자동 실행합니다.",
                 "registry_backup": "VRChat 레지스트리 백업",
                 "registry_backup_description": "VRChat 레지스트리 백업 생성 또는 복원",
-                "llm_endpoints": "LLM 엔드포인트",
-                "llm_endpoints_description": "Social AI 및 번역에 사용하는 OpenAI 호환 연결을 관리합니다."
+                "llm_endpoints": "AI 연결",
+                "llm_endpoints_description": "Social AI 및 번역에 사용하는 AI 서비스 연결을 관리합니다."
             },
             "vrchat_log": {
                 "latest": "최신",
@@ -1930,7 +1930,7 @@
                 "failed_to_save_invite_settings": "초대 요청 자동 응답 설정을 저장하지 못했습니다.",
                 "status_schedule_description": "상태 변경을 예약합니다. VRChat 실행 중에만 동작하도록 제한할 수 있습니다.",
                 "room_status_rules_description": "인스턴스, 월드, 친구에 따라 상태를 자동 변경합니다.",
-                "invite_request_auto_reply_description": "VRChat이(가) 실행되는 동안 가입을 요청하는 허용 목록에 있는 친구를 자동으로 초대합니다.",
+                "invite_request_auto_reply_description": "VRChat 실행 중 참여를 요청하는 승인된 친구를 자동으로 초대합니다.",
                 "only_when_game_running_description": "VRChat이 실행되고 있지 않으면 이 규칙을 건너뜁니다.",
                 "automatic_replies_note": "VRChat 실행 중이고 현재 위치에서 초대를 보낼 수 있을 때만 동작합니다. 발신자별로 쿨다운이 있습니다."
             },

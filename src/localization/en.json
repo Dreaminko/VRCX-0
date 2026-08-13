@@ -1815,7 +1815,7 @@
             "export": {
                 "header": "Export",
                 "export_notes": "Export User Local Notes",
-                "export_notes_description": "Export VRCX-0 local notes to VRChat notes",
+                "export_notes_description": "Export your VRCX-0 notes to VRChat notes",
                 "discord_names": "Discord Names",
                 "export_friend_list": "Export Friends List",
                 "export_own_avatars": "Export Own Avatars"
@@ -1829,9 +1829,9 @@
                 },
                 "header": "Media",
                 "screenshot": "Screenshot",
-                "screenshot_description": "View and manage screenshots",
+                "screenshot_description": "Browse your VRChat photos and shot details",
                 "gallery": "Gallery",
-                "gallery_description": "Manage photos, icons, and prints",
+                "gallery_description": "Manage your VRChat Gallery — photos, profile icons, and prints",
                 "inventory": "Inventory",
                 "inventory_description": "Manage emojis, stickers, items, and cosmetics"
             },
@@ -1847,7 +1847,7 @@
             "system_tools": {
                 "header": "VRChat & System",
                 "vrchat_config": "VRChat Config",
-                "vrchat_config_description": "Open VRChat config.json settings",
+                "vrchat_config_description": "Open VRChat configuration settings",
                 "vrchat_log": "VRChat Log Viewer",
                 "vrchat_log_description": "Read local VRChat output logs",
                 "launch_options_description": "Edit VRChat launch options",
@@ -1855,8 +1855,8 @@
                 "app_launcher_description": "Launch apps automatically when VRChat starts.",
                 "registry_backup": "VRChat Registry Backup",
                 "registry_backup_description": "Create or restore a VRChat registry backup",
-                "llm_endpoints": "LLM Endpoints",
-                "llm_endpoints_description": "Manage OpenAI-compatible connections for Social AI and translation."
+                "llm_endpoints": "AI Connections",
+                "llm_endpoints_description": "Manage AI service connections for Social AI and translation."
             },
             "vrchat_log": {
                 "title": "VRChat Log Viewer",
@@ -1893,11 +1893,11 @@
             "social_automation": {
                 "header": "Social Automation",
                 "status_schedule": "Status Schedule",
-                "status_schedule_description": "Schedule status changes, optionally only while VRChat is running.",
+                "status_schedule_description": "Schedule status changes, with the option to apply only while VRChat is running.",
                 "room_status_rules": "Instance & World Status Rules",
                 "room_status_rules_description": "Auto-change status based on your current instance, world, or friends.",
                 "invite_request_auto_reply": "Invite Request Auto-Reply",
-                "invite_request_auto_reply_description": "Auto-invite allowlisted friends who ask to join while VRChat is running.",
+                "invite_request_auto_reply_description": "Auto-invite approved friends who ask to join while VRChat is running.",
                 "schedule_rules": "Schedule rules",
                 "schedule_rules_description": "Time windows can change status, status message, or both.",
                 "add_rule": "Add rule",
