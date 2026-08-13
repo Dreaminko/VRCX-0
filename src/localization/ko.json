@@ -731,10 +731,12 @@
             "instance_duration": "인스턴스 기간",
             "last_game_event": "마지막 게임 이벤트",
             "last_event_type": "마지막 이벤트 유형",
-            "minimize_window": "창 최소화"
+            "minimize_window": "최소화",
+            "maximize_window": "최대화",
+            "restore_window": "복원"
         },
         "action": {
-            "close_window": "창 닫기"
+            "close_window": "닫기"
         },
         "restart": "VRCX-0 다시 시작",
         "quit": "VRCX-0 종료",

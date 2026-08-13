@@ -735,10 +735,12 @@
             "instance_duration": "インスタンス滞在時間",
             "last_game_event": "最後のゲームイベント",
             "last_event_type": "最後のイベント種別",
-            "minimize_window": "ウィンドウを最小化"
+            "minimize_window": "最小化",
+            "maximize_window": "最大化",
+            "restore_window": "元に戻す"
         },
         "action": {
-            "close_window": "ウィンドウを閉じる"
+            "close_window": "閉じる"
         }
     },
     "shortcuts": {

@@ -735,10 +735,12 @@
             "instance_duration": "Doba trvání instance",
             "last_game_event": "Poslední herní událost",
             "last_event_type": "Typ poslední události",
-            "minimize_window": "Minimalizovat okno"
+            "minimize_window": "Minimalizovat",
+            "maximize_window": "Maximalizovat",
+            "restore_window": "Obnovit"
         },
         "action": {
-            "close_window": "Zavřít okno"
+            "close_window": "Zavřít"
         }
     },
     "shortcuts": {

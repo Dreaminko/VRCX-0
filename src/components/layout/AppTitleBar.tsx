@@ -68,7 +68,9 @@ export function AppTitleBar() {
     } = useTitleBarActions('px-1');
 
     const MaximizeIcon = isMaximized ? CopyIcon : SquareIcon;
-    const maximizeLabel = isMaximized ? 'Restore window' : 'Maximize window';
+    const maximizeLabel = isMaximized
+        ? t('app_menu.label.restore_window')
+        : t('app_menu.label.maximize_window');
 
     return (
         <>

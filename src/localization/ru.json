@@ -735,10 +735,12 @@
             "instance_duration": "Срок рассмотрения дел",
             "last_game_event": "Последнее игровое событие",
             "last_event_type": "Последний тип события",
-            "minimize_window": "Минимизировать окно"
+            "minimize_window": "Свернуть",
+            "maximize_window": "Развернуть",
+            "restore_window": "Восстановить"
         },
         "action": {
-            "close_window": "Закрыть окно"
+            "close_window": "Закрыть"
         }
     },
     "shortcuts": {

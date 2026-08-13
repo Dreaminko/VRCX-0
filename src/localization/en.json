@@ -735,10 +735,12 @@
             "instance_duration": "Instance duration",
             "last_game_event": "Last game event",
             "last_event_type": "Last event type",
-            "minimize_window": "Minimize window"
+            "minimize_window": "Minimize",
+            "maximize_window": "Maximize",
+            "restore_window": "Restore"
         },
         "action": {
-            "close_window": "Close window"
+            "close_window": "Close"
         }
     },
     "shortcuts": {

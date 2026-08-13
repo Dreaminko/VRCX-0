@@ -735,10 +735,12 @@
             "instance_duration": "房間持續時間",
             "last_game_event": "上次遊戲事件",
             "last_event_type": "上次事件類型",
-            "minimize_window": "最小化視窗"
+            "minimize_window": "最小化",
+            "maximize_window": "最大化",
+            "restore_window": "還原"
         },
         "action": {
-            "close_window": "關閉視窗"
+            "close_window": "關閉"
         }
     },
     "shortcuts": {
