@@ -1,5 +1,3 @@
-#[cfg(panic = "unwind")]
-use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use vrcx_0_application_core::RuntimeOperationStatus;
@@ -11,9 +9,9 @@ use vrcx_0_persistence::legacy_vrcx::LegacyVrcxSource;
 use vrcx_0_persistence::{DatabaseService, VRCX0_SCHEMA_VERSION};
 
 use super::database_upgrade::{
-    database_upgrade_preflight, log_database_upgrade_failure, run_database_upgrade_with_progress,
-    DatabaseUpgradePreflight, DatabaseUpgradePreflightStatus, DatabaseUpgradeProgress,
-    DatabaseUpgradeRunResult, DatabaseUpgradeRunStatus, DatabaseUpgradeStage,
+    database_upgrade_preflight, run_database_upgrade_with_progress, DatabaseUpgradePreflight,
+    DatabaseUpgradePreflightStatus, DatabaseUpgradeProgress, DatabaseUpgradeRunResult,
+    DatabaseUpgradeRunStatus, DatabaseUpgradeStage,
 };
 use crate::{Error, RuntimeBackgroundJobs, RuntimeDiagnostics};
 
@@ -201,7 +199,7 @@ impl DatabaseUpgradeRuntime {
             &mut dyn FnMut(DatabaseUpgradeProgress),
         ) -> DatabaseUpgradeRunResult,
     ) -> DatabaseUpgradeRunResult {
-        let (from_version, to_version) = loop {
+        loop {
             let mut state = self.lock_state();
             match &*state {
                 DatabaseUpgradeRuntimeState::Idle => {
@@ -215,7 +213,7 @@ impl DatabaseUpgradeRuntime {
                     self.set_progress(DatabaseUpgradeProgress::indeterminate(
                         DatabaseUpgradeStage::Preflight,
                     ));
-                    break (from_version, to_version);
+                    break;
                 }
                 DatabaseUpgradeRuntimeState::Running { .. } => {
                     state = self
@@ -229,26 +227,12 @@ impl DatabaseUpgradeRuntime {
                     return result.as_ref().clone();
                 }
             }
-        };
+        }
 
         self.record_running();
-        #[cfg(panic = "abort")]
-        let _ = (from_version, to_version);
-        #[cfg(panic = "unwind")]
-        let mut current_stage = DatabaseUpgradeStage::Preflight;
         let mut on_progress = |progress: DatabaseUpgradeProgress| {
-            #[cfg(panic = "unwind")]
-            {
-                current_stage = progress.stage;
-            }
             self.set_progress(progress);
         };
-        #[cfg(panic = "unwind")]
-        let result = match catch_unwind(AssertUnwindSafe(|| execute(&self.db, &mut on_progress))) {
-            Ok(result) => result,
-            Err(_) => self.recover_unwind(from_version, to_version, current_stage),
-        };
-        #[cfg(panic = "abort")]
         let result = execute(&self.db, &mut on_progress);
 
         let mut state = self.lock_state();
@@ -265,59 +249,6 @@ impl DatabaseUpgradeRuntime {
             .progress
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = progress;
-    }
-
-    #[cfg(panic = "unwind")]
-    fn recover_unwind(
-        &self,
-        from_version: i64,
-        to_version: i64,
-        stage: DatabaseUpgradeStage,
-    ) -> DatabaseUpgradeRunResult {
-        let panic_reason = "Database upgrade runtime panicked.";
-        let active_upgrade = self.db.get_failed_upgrade().ok().flatten();
-        let started_app_version = active_upgrade
-            .as_ref()
-            .and_then(|status| status.app_version.as_deref())
-            .filter(|version| !version.is_empty())
-            .unwrap_or(env!("CARGO_PKG_VERSION"));
-        let telemetry_from_version = active_upgrade
-            .as_ref()
-            .map(|status| status.from_version)
-            .unwrap_or(from_version);
-        let telemetry_to_version = active_upgrade
-            .as_ref()
-            .map(|status| status.to_version)
-            .unwrap_or(to_version);
-        log_database_upgrade_failure(
-            stage,
-            "database_upgrade_runtime",
-            "none",
-            telemetry_from_version,
-            telemetry_to_version,
-            started_app_version,
-            panic_reason,
-        );
-        let mut error = panic_reason.to_string();
-        if let Err(recovery_error) = self.db.fail_upgrade(error.clone()) {
-            error = format!("{error} Failed to preserve the work database: {recovery_error}");
-        }
-        let failed_upgrade = match self.db.get_failed_upgrade() {
-            Ok(status) => status,
-            Err(status_error) => {
-                error = format!("{error} Failed to read database upgrade status: {status_error}");
-                None
-            }
-        };
-        DatabaseUpgradeRunResult {
-            status: DatabaseUpgradeRunStatus::Failed,
-            from_version,
-            to_version,
-            failed_stage: Some(stage),
-            error: Some(error),
-            failed_upgrade,
-            repair_warning: None,
-        }
     }
 
     fn record_running(&self) {
