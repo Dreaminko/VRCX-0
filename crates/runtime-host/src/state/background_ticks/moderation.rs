@@ -9,7 +9,7 @@ use vrcx_0_persistence::DatabaseService;
 use crate::RuntimeHostContext;
 
 use super::super::{
-    background_capability_session, emit_background_info, emit_background_warning,
+    background_capability_session_identity, emit_background_info, emit_background_warning,
     gui_maintenance_runtime_mode, AuthenticatedSessionProjection,
     BACKGROUND_MODERATION_CADENCE_SECONDS, BACKGROUND_MODERATION_REFRESH_JOB,
 };
@@ -26,7 +26,7 @@ pub(in crate::state) async fn run_background_moderation_refresh(
         BACKGROUND_MODERATION_REFRESH_JOB,
         "Refreshing background moderation facts.",
     );
-    let Some(session) = background_capability_session(session_slot) else {
+    let Some(session) = background_capability_session_identity(session_slot) else {
         background_jobs.mark_scheduled(
             BACKGROUND_MODERATION_REFRESH_JOB,
             "Background moderation refresh is waiting for an authenticated session.",

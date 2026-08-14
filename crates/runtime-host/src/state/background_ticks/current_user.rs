@@ -9,9 +9,10 @@ use vrcx_0_persistence::DatabaseService;
 use crate::RuntimeHostContext;
 
 use super::super::{
-    background_capability_session, background_capability_session_matches, emit_background_info,
-    emit_background_warning, gui_maintenance_runtime_mode, AuthenticatedSessionProjection,
-    BACKGROUND_CURRENT_USER_CADENCE_SECONDS, BACKGROUND_CURRENT_USER_REFRESH_JOB,
+    background_capability_session_identity, background_capability_session_matches,
+    emit_background_info, emit_background_warning, gui_maintenance_runtime_mode,
+    AuthenticatedSessionProjection, BACKGROUND_CURRENT_USER_CADENCE_SECONDS,
+    BACKGROUND_CURRENT_USER_REFRESH_JOB,
 };
 
 pub(in crate::state) async fn run_background_current_user_refresh(
@@ -27,7 +28,7 @@ pub(in crate::state) async fn run_background_current_user_refresh(
         BACKGROUND_CURRENT_USER_REFRESH_JOB,
         "Refreshing background current user facts.",
     );
-    let Some(session) = background_capability_session(session_slot) else {
+    let Some(session) = background_capability_session_identity(session_slot) else {
         background_jobs.mark_scheduled(
             BACKGROUND_CURRENT_USER_REFRESH_JOB,
             "Background current user refresh is waiting for an authenticated session.",

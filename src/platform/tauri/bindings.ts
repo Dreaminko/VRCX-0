@@ -5078,7 +5078,6 @@ export type RealtimeWsStatusPayload = {
     statusCode?: number | null;
 };
 export type RegistryBackupMaintenanceResult = {
-    backups: RegistryBackupSnapshot[];
     autoBackupCreated: boolean;
     restorePromptNeeded: boolean;
     restorePromptBackupDate: string | null;

@@ -14,8 +14,9 @@ use vrcx_0_application::{
 };
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, GuiRuntimeMode,
-    RuntimeBackgroundJobs, RuntimeEventSink, RuntimeRealtimeTransportEpoch, WebClient,
+    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, BackgroundCapabilitySessionIdentity,
+    GuiRuntimeMode, RuntimeBackgroundJobs, RuntimeEventSink, RuntimeRealtimeTransportEpoch,
+    WebClient,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_persistence::DatabaseService;
@@ -37,8 +38,9 @@ mod startup;
 use auth_session::string_field;
 pub use auth_session::{CliLoginPrompt, CliTwoFactorChoice};
 use background::{
-    background_capability_session, background_capability_session_matches, emit_background_info,
-    emit_background_warning, gui_maintenance_runtime_mode,
+    background_capability_session, background_capability_session_identity,
+    background_capability_session_matches, emit_background_info, emit_background_warning,
+    gui_maintenance_runtime_mode,
 };
 pub use background_ticks::SocialBaselineRefreshOutput;
 use background_ticks::{
@@ -48,9 +50,7 @@ use background_ticks::{
     BackgroundTickContext,
 };
 pub use combined_snapshot::BackendRuntimeCombinedSnapshot;
-use frontend_session::{
-    replace_authenticated_session_user_if_session_matches, session_slot_matches,
-};
+use frontend_session::replace_authenticated_session_user_if_session_matches;
 use profile_lock::{AtomicFlagGuard, SharedAtomicFlagGuard};
 #[cfg(test)]
 use runtime_host_state::web_ua_app_version;

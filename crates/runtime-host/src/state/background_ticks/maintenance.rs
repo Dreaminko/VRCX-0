@@ -3,7 +3,7 @@ use std::sync::Arc;
 use vrcx_0_application::{PrintCleanupDeps, PrintCleanupTrigger};
 
 use super::super::{
-    background_capability_session, BACKGROUND_PRINT_CLEANUP_CADENCE_SECONDS,
+    background_capability_session_identity, BACKGROUND_PRINT_CLEANUP_CADENCE_SECONDS,
     BACKGROUND_PRINT_CLEANUP_JOB,
 };
 use super::BackgroundTickContext;
@@ -13,7 +13,7 @@ pub(in crate::state) fn run_background_print_cleanup(context: &BackgroundTickCon
         BACKGROUND_PRINT_CLEANUP_JOB,
         "Scheduling print auto cleanup.",
     );
-    let Some(session) = background_capability_session(context.session_slot) else {
+    let Some(session) = background_capability_session_identity(context.session_slot) else {
         context.background_jobs.mark_scheduled(
             BACKGROUND_PRINT_CLEANUP_JOB,
             "Print auto cleanup is waiting for an authenticated session.",

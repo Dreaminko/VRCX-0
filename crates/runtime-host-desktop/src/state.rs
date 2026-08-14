@@ -70,6 +70,7 @@ use background_ticks::{
 const USER_GENERATED_CONTENT_PATH_CONFIG_KEY: &str = "userGeneratedContentPath";
 const REGISTRY_BACKUP_MAINTENANCE_JOB: &str = "registryBackupMaintenance";
 const REGISTRY_BACKUP_MAINTENANCE_CADENCE_SECONDS: u64 = 3 * 60 * 60;
+const REGISTRY_BACKUP_FOREGROUND_REUSE_WINDOW: Duration = Duration::from_secs(60);
 const BACKGROUND_OVERLAY_ACTIVITY_CONFIG_CADENCE_SECONDS: u64 = 5;
 const DESKTOP_MAINTENANCE_STOP_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
@@ -122,8 +123,19 @@ struct DesktopRuntimeProfileExtension {
     background_image_started: AtomicBool,
     app_launcher_events_started: AtomicBool,
     discord_reconcile_generation: Arc<AtomicU64>,
-    registry_backup_lock: Arc<Mutex<()>>,
+    registry_backup_state: Arc<Mutex<RegistryBackupMaintenanceState>>,
     presence_state_path: PathBuf,
+}
+
+#[derive(Default)]
+struct RegistryBackupMaintenanceState {
+    last_completed: Option<CompletedRegistryBackupMaintenance>,
+}
+
+struct CompletedRegistryBackupMaintenance {
+    completed_at: Instant,
+    mode: RegistryBackupMaintenanceMode,
+    result: RegistryBackupMaintenanceResult,
 }
 
 struct VrOverlayProcessSink {
@@ -319,7 +331,7 @@ impl DesktopRuntimeHostState {
             background_image_started: AtomicBool::new(false),
             app_launcher_events_started: AtomicBool::new(false),
             discord_reconcile_generation: Arc::new(AtomicU64::new(0)),
-            registry_backup_lock: Arc::new(Mutex::new(())),
+            registry_backup_state: Arc::new(Mutex::new(RegistryBackupMaintenanceState::default())),
             presence_state_path: builder.paths.app_data.join("presenceAutomationState.json"),
         });
         let local_game_context = Arc::new(GameLogLocalGameContextSource::new(
@@ -532,14 +544,26 @@ impl DesktopRuntimeHostState {
         reason: &str,
         mode: RegistryBackupMaintenanceMode,
     ) -> Result<RegistryBackupMaintenanceResult> {
-        self.with_registry_backup_lock(|| {
-            vrcx_0_application_game::registry_backup_maintenance_run(
-                self.db.as_ref(),
-                &HostRegistryBackupActions,
-                mode,
-                reason,
-            )
-        })
+        let mut state = self.acquire_registry_backup_lock()?;
+        Ok(run_coordinated_registry_backup_maintenance(
+            &mut state,
+            Instant::now(),
+            mode,
+            || {
+                vrcx_0_application_game::registry_backup_maintenance_run(
+                    self.db.as_ref(),
+                    &HostRegistryBackupActions,
+                    mode,
+                    reason,
+                )
+            },
+            || {
+                vrcx_0_application_game::registry_backup_foreground_followup(
+                    self.db.as_ref(),
+                    &HostRegistryBackupActions,
+                )
+            },
+        )?)
     }
 
     fn with_registry_backup_lock<T>(
@@ -550,10 +574,17 @@ impl DesktopRuntimeHostState {
         Ok(operation()?)
     }
 
-    fn acquire_registry_backup_lock(&self) -> Result<MutexGuard<'_, ()>> {
-        self.extension.registry_backup_lock.lock().map_err(|error| {
-            vrcx_0_runtime_host::Error::Custom(format!("registry backup lock poisoned: {error}"))
-        })
+    fn acquire_registry_backup_lock(
+        &self,
+    ) -> Result<MutexGuard<'_, RegistryBackupMaintenanceState>> {
+        self.extension
+            .registry_backup_state
+            .lock()
+            .map_err(|error| {
+                vrcx_0_runtime_host::Error::Custom(format!(
+                    "registry backup lock poisoned: {error}"
+                ))
+            })
     }
 }
 
@@ -829,7 +860,7 @@ impl DesktopRuntimeProfileExtension {
         let runtime_context = Arc::clone(&state.runtime_context);
         let background_jobs = state.runtime_context.background_jobs.clone();
         let running = Arc::clone(&self.registry_backup_maintenance_running);
-        let registry_backup_lock = Arc::clone(&self.registry_backup_lock);
+        let registry_backup_state = Arc::clone(&self.registry_backup_state);
         state.runtime_context.tasks.spawn_cancellable_thread(
             "registry-backup-maintenance",
             move |stop_token| {
@@ -845,12 +876,25 @@ impl DesktopRuntimeProfileExtension {
                         REGISTRY_BACKUP_MAINTENANCE_JOB,
                         "Running background registry backup maintenance.",
                     );
-                    let result = match registry_backup_lock.lock() {
-                        Ok(_guard) => vrcx_0_application_game::registry_backup_maintenance_run(
-                            db.as_ref(),
-                            &HostRegistryBackupActions,
+                    let result = match registry_backup_state.lock() {
+                        Ok(mut state) => run_coordinated_registry_backup_maintenance(
+                            &mut state,
+                            Instant::now(),
                             RegistryBackupMaintenanceMode::Silent,
-                            "background-mode",
+                            || {
+                                vrcx_0_application_game::registry_backup_maintenance_run(
+                                    db.as_ref(),
+                                    &HostRegistryBackupActions,
+                                    RegistryBackupMaintenanceMode::Silent,
+                                    "background-mode",
+                                )
+                            },
+                            || {
+                                vrcx_0_application_game::registry_backup_foreground_followup(
+                                    db.as_ref(),
+                                    &HostRegistryBackupActions,
+                                )
+                            },
                         ),
                         Err(error) => Err(vrcx_0_application_core::Error::Custom(format!(
                             "registry backup lock poisoned: {error}"
@@ -1160,6 +1204,44 @@ fn is_background_registry_maintenance_active(
         && snapshot.phase == BackendRuntimePhase::Running
 }
 
+fn run_coordinated_registry_backup_maintenance(
+    state: &mut RegistryBackupMaintenanceState,
+    now: Instant,
+    mode: RegistryBackupMaintenanceMode,
+    run_full: impl FnOnce() -> vrcx_0_application_core::Result<RegistryBackupMaintenanceResult>,
+    run_foreground_followup: impl FnOnce() -> vrcx_0_application_core::Result<
+        RegistryBackupMaintenanceResult,
+    >,
+) -> vrcx_0_application_core::Result<RegistryBackupMaintenanceResult> {
+    if mode == RegistryBackupMaintenanceMode::Foreground {
+        if let Some(completed) = state.last_completed.as_ref().filter(|completed| {
+            completed.mode == RegistryBackupMaintenanceMode::Silent
+                && now
+                    .checked_duration_since(completed.completed_at)
+                    .is_some_and(|elapsed| elapsed <= REGISTRY_BACKUP_FOREGROUND_REUSE_WINDOW)
+        }) {
+            if !completed.result.restore_prompt_check_deferred {
+                return Ok(completed.result.clone());
+            }
+            let result = run_foreground_followup()?;
+            state.last_completed = Some(CompletedRegistryBackupMaintenance {
+                completed_at: now,
+                mode,
+                result: result.clone(),
+            });
+            return Ok(result);
+        }
+    }
+
+    let result = run_full()?;
+    state.last_completed = Some(CompletedRegistryBackupMaintenance {
+        completed_at: now,
+        mode,
+        result: result.clone(),
+    });
+    Ok(result)
+}
+
 fn is_authenticated_maintenance_active(
     state: &RuntimeHostState,
     session_slot: &Arc<Mutex<vrcx_0_runtime_host::AuthenticatedSessionProjection>>,
@@ -1172,7 +1254,7 @@ fn is_authenticated_maintenance_active(
 }
 
 fn session_matches_auth_scope(
-    session: Option<&vrcx_0_application_core::BackgroundCapabilitySession>,
+    session: Option<&vrcx_0_application_core::BackgroundCapabilitySessionIdentity>,
     auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     session
@@ -1200,7 +1282,7 @@ fn is_authenticated_maintenance_active_parts(
         return false;
     }
     session_matches_auth_scope(
-        background_ticks::background_capability_session(session_slot).as_ref(),
+        background_ticks::background_capability_session_identity(session_slot).as_ref(),
         &auth_scope,
     )
 }
@@ -1208,7 +1290,7 @@ fn is_authenticated_maintenance_active_parts(
 fn background_capability_session_scope_key(
     session_slot: &Arc<Mutex<vrcx_0_runtime_host::AuthenticatedSessionProjection>>,
 ) -> Option<String> {
-    background_ticks::background_capability_session(session_slot).map(|session| {
+    background_ticks::background_capability_session_identity(session_slot).map(|session| {
         format!(
             "{}:{}:{}",
             session.auth_scope_generation,
@@ -1269,6 +1351,106 @@ fn emit_profile_background_output(
 
 #[cfg(test)]
 mod background {
+    mod registry_backup_maintenance_tests {
+        use super::super::*;
+        use std::cell::Cell;
+
+        fn result(
+            restore_prompt_check_deferred: bool,
+            detail: &str,
+        ) -> RegistryBackupMaintenanceResult {
+            RegistryBackupMaintenanceResult {
+                auto_backup_created: false,
+                restore_prompt_needed: false,
+                restore_prompt_backup_date: None,
+                restore_prompt_check_deferred,
+                detail: detail.into(),
+            }
+        }
+
+        #[test]
+        fn foreground_reuses_a_just_completed_background_maintenance_result() {
+            let started_at = Instant::now();
+            let mut state = RegistryBackupMaintenanceState::default();
+            let full_runs = Cell::new(0);
+            let followup_runs = Cell::new(0);
+
+            run_coordinated_registry_backup_maintenance(
+                &mut state,
+                started_at,
+                RegistryBackupMaintenanceMode::Silent,
+                || {
+                    full_runs.set(full_runs.get() + 1);
+                    Ok(result(false, "background"))
+                },
+                || {
+                    followup_runs.set(followup_runs.get() + 1);
+                    Ok(result(false, "followup"))
+                },
+            )
+            .unwrap();
+            let foreground = run_coordinated_registry_backup_maintenance(
+                &mut state,
+                started_at + Duration::from_secs(1),
+                RegistryBackupMaintenanceMode::Foreground,
+                || {
+                    full_runs.set(full_runs.get() + 1);
+                    Ok(result(false, "foreground"))
+                },
+                || {
+                    followup_runs.set(followup_runs.get() + 1);
+                    Ok(result(false, "followup"))
+                },
+            )
+            .unwrap();
+
+            assert_eq!(full_runs.get(), 1);
+            assert_eq!(followup_runs.get(), 0);
+            assert_eq!(foreground.detail, "background");
+        }
+
+        #[test]
+        fn foreground_runs_only_the_deferred_restore_prompt_check() {
+            let started_at = Instant::now();
+            let mut state = RegistryBackupMaintenanceState::default();
+            let full_runs = Cell::new(0);
+            let followup_runs = Cell::new(0);
+
+            run_coordinated_registry_backup_maintenance(
+                &mut state,
+                started_at,
+                RegistryBackupMaintenanceMode::Silent,
+                || {
+                    full_runs.set(full_runs.get() + 1);
+                    Ok(result(true, "background-deferred"))
+                },
+                || {
+                    followup_runs.set(followup_runs.get() + 1);
+                    Ok(result(false, "unexpected"))
+                },
+            )
+            .unwrap();
+            let foreground = run_coordinated_registry_backup_maintenance(
+                &mut state,
+                started_at + Duration::from_secs(1),
+                RegistryBackupMaintenanceMode::Foreground,
+                || {
+                    full_runs.set(full_runs.get() + 1);
+                    Ok(result(false, "foreground-full"))
+                },
+                || {
+                    followup_runs.set(followup_runs.get() + 1);
+                    Ok(result(false, "foreground-followup"))
+                },
+            )
+            .unwrap();
+
+            assert_eq!(full_runs.get(), 1);
+            assert_eq!(followup_runs.get(), 1);
+            assert_eq!(foreground.detail, "foreground-followup");
+        }
+    }
+
     mod discord_reconcile_tests {
         use super::super::*;
 

@@ -61,14 +61,14 @@ pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind, VrchatFavoriteT
 pub use image_cache::{save_ugc_image_to_file, ImageCache};
 pub use interruptible_sleep::sleep_interruptibly;
 pub use ports::{
-    BackgroundCapabilitySession, GameProcessEvent, GameProcessEventSink,
-    HostRealtimeSessionContext, HostSessionGameProcessStatus, HostSessionProjection,
-    HostSessionRuntime, InstanceRosterMember, InstanceRosterObserver, InstanceRosterSnapshot,
-    LocalGameContextSnapshot, LocalGameContextSource, NoopPrintCleanupInputSink, NoopUpdaterPort,
-    OverlayActivityInputSink, PrintCleanupInputSink, PrintCleanupTrigger, SessionHostRuntime,
-    UnavailableLocalGameContextSource, UpdaterCheckRequest, UpdaterDownloadOutcome,
-    UpdaterDownloadProgress, UpdaterInstallHandle, UpdaterMetadata, UpdaterPort,
-    UpdaterProgressCallback,
+    BackgroundCapabilitySession, BackgroundCapabilitySessionIdentity, GameProcessEvent,
+    GameProcessEventSink, HostRealtimeSessionContext, HostSessionGameProcessStatus,
+    HostSessionProjection, HostSessionRuntime, InstanceRosterMember, InstanceRosterObserver,
+    InstanceRosterSnapshot, LocalGameContextSnapshot, LocalGameContextSource,
+    NoopPrintCleanupInputSink, NoopUpdaterPort, OverlayActivityInputSink, PrintCleanupInputSink,
+    PrintCleanupTrigger, SessionHostRuntime, UnavailableLocalGameContextSource,
+    UpdaterCheckRequest, UpdaterDownloadOutcome, UpdaterDownloadProgress, UpdaterInstallHandle,
+    UpdaterMetadata, UpdaterPort, UpdaterProgressCallback,
 };
 pub use proxy::{load_proxy_url, test_proxy_connectivity, ProxySettingsTestResult};
 pub use remote_mutation_gate::{

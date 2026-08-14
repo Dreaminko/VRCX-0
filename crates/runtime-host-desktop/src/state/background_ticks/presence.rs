@@ -32,11 +32,12 @@ pub(in crate::state) async fn run_background_presence_tick(
         );
         return;
     };
+    let session_identity = session.identity();
     let host_session = context.runtime_context.session.snapshot();
     let facts = match build_background_presence_facts(
         context.db.as_ref(),
         BackgroundPresenceFactsInput {
-            session: session.clone(),
+            session,
             is_game_running: host_session.is_game_running,
             is_steamvr_running: host_session.is_steamvr_running,
             is_game_no_vr: context
@@ -97,17 +98,17 @@ pub(in crate::state) async fn run_background_presence_tick(
             .realtime_runtime
             .sync_current_user_snapshot(
                 RealtimeSessionContext::new(
-                    session.current_user_id.clone(),
-                    session.endpoint.clone(),
-                    session.websocket.clone(),
+                    session_identity.current_user_id.clone(),
+                    session_identity.endpoint.clone(),
+                    session_identity.websocket.clone(),
                 ),
-                session.auth_scope_generation,
+                session_identity.auth_scope_generation,
                 None,
                 updated_user.clone(),
                 overlay_patch,
             )
             .unwrap_or(false);
-        if !background_capability_session_matches(context.session_slot, &session) {
+        if !background_capability_session_matches(context.session_slot, &session_identity) {
             tracing::warn!("ignored stale background presence automation user update");
         } else if !accepted {
             tracing::warn!("ignored background presence automation update rejected by realtime");

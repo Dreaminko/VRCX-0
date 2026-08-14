@@ -42,10 +42,12 @@ pub struct RegistryBackupSnapshot {
 #[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RegistryBackupMaintenanceResult {
-    pub backups: Vec<RegistryBackupSnapshot>,
     pub auto_backup_created: bool,
     pub restore_prompt_needed: bool,
     pub restore_prompt_backup_date: Option<String>,
+    #[serde(skip)]
+    #[specta(skip)]
+    pub restore_prompt_check_deferred: bool,
     pub detail: String,
 }
 
@@ -61,7 +63,7 @@ struct StoredRegistryBackup {
 
 pub fn registry_backup_list(db: &DatabaseService) -> Result<Vec<RegistryBackupSnapshot>> {
     Ok(read_backups(db)?
-        .iter()
+        .into_iter()
         .enumerate()
         .map(|(index, backup)| normalize_backup(backup, index))
         .collect())
@@ -83,9 +85,9 @@ pub fn registry_backup_restore(
 ) -> Result<RegistryBackupSnapshot> {
     let backups = read_backups(db)?;
     let Some((index, backup)) = backups
-        .iter()
+        .into_iter()
         .enumerate()
-        .find(|(index, backup)| normalize_backup(backup, *index).key == key)
+        .find(|(index, backup)| backup_key(backup, *index) == key)
     else {
         return Err(Error::Custom("Registry backup not found.".into()));
     };
@@ -111,7 +113,7 @@ pub fn registry_backup_delete(
         .into_iter()
         .enumerate()
         .filter_map(|(index, backup)| {
-            if normalize_backup(&backup, index).key == key {
+            if backup_key(&backup, index) == key {
                 removed = true;
                 None
             } else {
@@ -129,9 +131,9 @@ pub fn registry_backup_delete(
 pub fn registry_backup_export_json(db: &DatabaseService, key: &str) -> Result<String> {
     let backups = read_backups(db)?;
     let Some(backup) = backups
-        .iter()
+        .into_iter()
         .enumerate()
-        .find_map(|(index, backup)| (normalize_backup(backup, index).key == key).then_some(backup))
+        .find_map(|(index, backup)| (backup_key(&backup, index) == key).then_some(backup))
     else {
         return Err(Error::Custom("Registry backup not found.".into()));
     };
@@ -167,7 +169,13 @@ pub fn registry_backup_maintenance_run(
 ) -> Result<RegistryBackupMaintenanceResult> {
     let auto_backup_enabled = config::get_bool(db, CONFIG_AUTO_BACKUP, true)?;
     if !auto_backup_enabled {
-        return maintenance_result(db, false, false, None, "Registry auto backup is disabled.");
+        return maintenance_result(
+            false,
+            false,
+            None,
+            false,
+            "Registry auto backup is disabled.",
+        );
     }
 
     let mut backups = read_backups(db)?;
@@ -185,28 +193,43 @@ pub fn registry_backup_maintenance_run(
     if recent_auto_backup_exists(db, now)? {
         let detail =
             format!("Registry backup maintenance skipped; recent backup exists ({reason}).");
-        return maintenance_result(db, false, false, None, detail);
+        return maintenance_result(false, false, None, false, detail);
     }
 
-    match create_backup(db, host, AUTO_BACKUP_NAME.into(), now) {
+    match create_backup_with_backups(db, host, AUTO_BACKUP_NAME.into(), now, &mut backups) {
         Ok(()) => {
             config::set_string(db, CONFIG_LAST_BACKUP_DATE, &iso_millis(now))?;
             let detail = format!("Registry auto backup created ({reason}).");
-            maintenance_result(db, true, false, None, detail)
+            maintenance_result(true, false, None, false, detail)
         }
         Err(Error::Custom(message))
             if message == "No VRChat registry data was found to back up." =>
         {
             maintenance_result(
-                db,
                 false,
                 false,
                 None,
+                false,
                 "Registry auto backup skipped; no registry data was found.",
             )
         }
         Err(error) => Err(error),
     }
+}
+
+pub fn registry_backup_foreground_followup(
+    db: &DatabaseService,
+    host: &dyn RegistryBackupHostActions,
+) -> Result<RegistryBackupMaintenanceResult> {
+    if host.has_registry_folder()? {
+        return registry_backup_maintenance_run(
+            db,
+            host,
+            RegistryBackupMaintenanceMode::Foreground,
+            "foreground-followup",
+        );
+    }
+    maybe_restore_prompt(db, RegistryBackupMaintenanceMode::Foreground)
 }
 
 fn read_backups(db: &DatabaseService) -> Result<Vec<StoredRegistryBackup>> {
@@ -235,6 +258,17 @@ fn create_backup(
     name: String,
     now: chrono::DateTime<Utc>,
 ) -> Result<()> {
+    let mut backups = read_backups(db)?;
+    create_backup_with_backups(db, host, name, now, &mut backups)
+}
+
+fn create_backup_with_backups(
+    db: &DatabaseService,
+    host: &dyn RegistryBackupHostActions,
+    name: String,
+    now: chrono::DateTime<Utc>,
+    backups: &mut Vec<StoredRegistryBackup>,
+) -> Result<()> {
     let data = host.get_registry()?;
     if data.as_object().is_none_or(|object| object.is_empty()) {
         return Err(Error::Custom(
@@ -242,13 +276,12 @@ fn create_backup(
         ));
     }
 
-    let mut backups = read_backups(db)?;
     backups.push(StoredRegistryBackup {
         name,
         date: iso_millis(now),
         data,
     });
-    write_backups(db, &backups)?;
+    write_backups(db, backups)?;
     Ok(())
 }
 
@@ -281,19 +314,19 @@ fn maybe_restore_prompt(
 ) -> Result<RegistryBackupMaintenanceResult> {
     if mode != RegistryBackupMaintenanceMode::Foreground {
         return maintenance_result(
-            db,
             false,
             false,
             None,
+            true,
             "Registry folder is missing; silent maintenance does not prompt.",
         );
     }
     if !config::get_bool(db, CONFIG_ASK_RESTORE, true)? {
         return maintenance_result(
-            db,
             false,
             false,
             None,
+            false,
             "Registry folder is missing; restore prompt is disabled.",
         );
     }
@@ -301,63 +334,63 @@ fn maybe_restore_prompt(
     let last_restore_check = config::get_string(db, CONFIG_LAST_RESTORE_CHECK, "")?;
     if last_backup_date.trim().is_empty() || last_restore_check == last_backup_date {
         return maintenance_result(
-            db,
             false,
             false,
             None,
+            false,
             "Registry folder is missing; no restore prompt is due.",
         );
     }
     maintenance_result(
-        db,
         false,
         true,
         Some(last_backup_date),
+        false,
         "Registry restore prompt is needed.",
     )
 }
 
 fn maintenance_result(
-    db: &DatabaseService,
     auto_backup_created: bool,
     restore_prompt_needed: bool,
     restore_prompt_backup_date: Option<String>,
+    restore_prompt_check_deferred: bool,
     detail: impl Into<String>,
 ) -> Result<RegistryBackupMaintenanceResult> {
     Ok(RegistryBackupMaintenanceResult {
-        backups: registry_backup_list(db)?,
         auto_backup_created,
         restore_prompt_needed,
         restore_prompt_backup_date,
+        restore_prompt_check_deferred,
         detail: detail.into(),
     })
 }
 
-fn normalize_backup(backup: &StoredRegistryBackup, index: usize) -> RegistryBackupSnapshot {
+fn backup_key(backup: &StoredRegistryBackup, index: usize) -> String {
+    let name = if backup.name.trim().is_empty() {
+        "backup"
+    } else {
+        &backup.name
+    };
+    if backup.date.trim().is_empty() {
+        format!("{index}-{name}")
+    } else {
+        format!("{}-{name}", backup.date)
+    }
+}
+
+fn normalize_backup(backup: StoredRegistryBackup, index: usize) -> RegistryBackupSnapshot {
+    let key = backup_key(&backup, index);
     let name = if backup.name.trim().is_empty() {
         "Backup".into()
     } else {
-        backup.name.clone()
+        backup.name
     };
-    let date = backup.date.clone();
-    let key = format!(
-        "{}-{}",
-        if date.trim().is_empty() {
-            index.to_string()
-        } else {
-            date.clone()
-        },
-        if backup.name.trim().is_empty() {
-            "backup".into()
-        } else {
-            backup.name.clone()
-        }
-    );
     RegistryBackupSnapshot {
         key,
         name,
-        date,
-        data: backup.data.clone(),
+        date: backup.date,
+        data: backup.data,
     }
 }
 
@@ -516,6 +549,35 @@ mod tests {
     }
 
     #[test]
+    fn maintenance_result_does_not_serialize_stored_backup_data() {
+        let dir = TestDir::new("lightweight-result");
+        let db = dir.open_db();
+        config::set_bool(&db, CONFIG_AUTO_BACKUP, false).unwrap();
+        write_backups(
+            &db,
+            &[StoredRegistryBackup {
+                name: "Large Backup".into(),
+                date: "2026-08-01T00:00:00.000Z".into(),
+                data: json!({"uniqueLargePayloadMarker": [1, 2, 3]}),
+            }],
+        )
+        .unwrap();
+
+        let result = registry_backup_maintenance_run(
+            &db,
+            &StubHost::with_registry(json!({"a": 1})),
+            RegistryBackupMaintenanceMode::Foreground,
+            "test",
+        )
+        .unwrap();
+        let serialized = serde_json::to_value(result).unwrap();
+
+        assert!(serialized.get("backups").is_none());
+        assert!(!serialized.to_string().contains("uniqueLargePayloadMarker"));
+        assert_eq!(registry_backup_list(&db).unwrap().len(), 1);
+    }
+
+    #[test]
     fn maintenance_run_creates_auto_backup_when_registry_present_and_no_recent_backup() {
         let dir = TestDir::new("create");
         let db = dir.open_db();
@@ -532,8 +594,9 @@ mod tests {
         assert!(result.auto_backup_created);
         assert!(!result.restore_prompt_needed);
         assert_eq!(result.detail, "Registry auto backup created (startup).");
-        assert_eq!(result.backups.len(), 1);
-        assert_eq!(result.backups[0].name, AUTO_BACKUP_NAME);
+        let backups = registry_backup_list(&db).unwrap();
+        assert_eq!(backups.len(), 1);
+        assert_eq!(backups[0].name, AUTO_BACKUP_NAME);
         assert!(!config::get_string(&db, CONFIG_LAST_BACKUP_DATE, "")
             .unwrap()
             .is_empty());
@@ -581,8 +644,9 @@ mod tests {
         .unwrap();
 
         assert!(result.auto_backup_created);
-        assert_eq!(result.backups.len(), 1);
-        assert_ne!(result.backups[0].date, expired_date);
+        let backups = registry_backup_list(&db).unwrap();
+        assert_eq!(backups.len(), 1);
+        assert_ne!(backups[0].date, expired_date);
     }
 
     #[test]
@@ -722,6 +786,7 @@ mod tests {
         let result = maybe_restore_prompt(&db, RegistryBackupMaintenanceMode::Silent).unwrap();
 
         assert!(!result.restore_prompt_needed);
+        assert!(result.restore_prompt_check_deferred);
         assert_eq!(
             result.detail,
             "Registry folder is missing; silent maintenance does not prompt."
@@ -815,7 +880,7 @@ mod tests {
         ];
 
         for (name, date, index, expected_key, expected_name) in cases {
-            let snapshot = normalize_backup(&backup(name, date), index);
+            let snapshot = normalize_backup(backup(name, date), index);
 
             assert_eq!(snapshot.key, expected_key);
             assert_eq!(snapshot.name, expected_name);

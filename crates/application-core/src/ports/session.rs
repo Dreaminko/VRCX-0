@@ -29,6 +29,48 @@ pub struct BackgroundCapabilitySession {
     pub current_user_snapshot: Value,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct BackgroundCapabilitySessionIdentity {
+    pub auth_scope_generation: u64,
+    pub current_user_id: String,
+    pub endpoint: String,
+    pub websocket: String,
+}
+
+impl BackgroundCapabilitySession {
+    pub fn identity(&self) -> BackgroundCapabilitySessionIdentity {
+        BackgroundCapabilitySessionIdentity {
+            auth_scope_generation: self.auth_scope_generation,
+            current_user_id: self.current_user_id.clone(),
+            endpoint: self.endpoint.clone(),
+            websocket: self.websocket.clone(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod background_capability_session_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn identity_is_independent_of_the_current_user_snapshot() {
+        let first = BackgroundCapabilitySession {
+            auth_scope_generation: 7,
+            current_user_id: "usr_owner".into(),
+            endpoint: "https://api.example.test/api/1".into(),
+            websocket: "wss://pipeline.example.test".into(),
+            current_user_snapshot: json!({"large": [1, 2, 3]}),
+        };
+        let second = BackgroundCapabilitySession {
+            current_user_snapshot: json!({"different": true}),
+            ..first.clone()
+        };
+
+        assert_eq!(first.identity(), second.identity());
+    }
+}
+
 impl HostRealtimeSessionContext {
     pub fn new(current_user_id: String, endpoint: String, websocket: String) -> Self {
         Self {

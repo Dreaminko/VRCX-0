@@ -1,15 +1,15 @@
 use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 use vrcx_0_application::refresh_background_group_instances;
-use vrcx_0_application_core::BackgroundCapabilitySession;
+use vrcx_0_application_core::BackgroundCapabilitySessionIdentity;
 
 use crate::{GroupOrderSource, RuntimeGroupInstancesProjection, RuntimeHostContext};
 
 use super::super::{
-    background_capability_session, background_capability_session_matches, emit_background_info,
-    emit_background_warning, gui_maintenance_runtime_mode, AuthenticatedSessionProjection,
-    SharedAtomicFlagGuard, BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
-    BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
+    background_capability_session_identity, background_capability_session_matches,
+    emit_background_info, emit_background_warning, gui_maintenance_runtime_mode,
+    AuthenticatedSessionProjection, SharedAtomicFlagGuard,
+    BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS, BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
 };
 use super::BackgroundTickContext;
 
@@ -30,7 +30,7 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
         BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
         "Refreshing background group instance facts.",
     );
-    let Some(session) = background_capability_session(context.session_slot) else {
+    let Some(session) = background_capability_session_identity(context.session_slot) else {
         context.background_jobs.mark_scheduled(
             BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
             "Background group instance refresh is waiting for an authenticated session.",
@@ -132,9 +132,9 @@ pub(in crate::state) async fn run_background_group_instance_refresh(
 fn emit_stale_group_instance_refresh_idle(
     session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
     runtime_context: &Arc<RuntimeHostContext>,
-    session: &BackgroundCapabilitySession,
+    session: &BackgroundCapabilitySessionIdentity,
 ) {
-    let same_scope = background_capability_session(session_slot)
+    let same_scope = background_capability_session_identity(session_slot)
         .map(|current| {
             current.current_user_id == session.current_user_id
                 && current.endpoint == session.endpoint

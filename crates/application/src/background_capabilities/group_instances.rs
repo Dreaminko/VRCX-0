@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::Utc;
 use futures_util::{stream, StreamExt};
 use serde_json::{json, Map, Value};
+use vrcx_0_application_core::BackgroundCapabilitySessionIdentity;
 use vrcx_0_core::{location::parse_location, vrchat_json::GroupInstanceJson};
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::groups::current_user_group_instances_get_input;
@@ -11,7 +12,7 @@ use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
 
 use crate::{Error, Result, WebClient};
 
-use super::shared::{parse_response_json, BackgroundCapabilitySession};
+use super::shared::parse_response_json;
 
 const GROUP_PROFILE_HYDRATION_CONCURRENCY: usize = 4;
 #[derive(Clone, Debug, Default)]
@@ -23,7 +24,7 @@ pub struct BackgroundGroupInstancesRefresh {
 pub async fn refresh_background_current_user(
     web: &WebClient,
     db: &DatabaseService,
-    session: &BackgroundCapabilitySession,
+    session: &BackgroundCapabilitySessionIdentity,
 ) -> Result<Value> {
     let response = web
         .execute_api(
@@ -47,7 +48,7 @@ pub async fn refresh_background_current_user(
 pub async fn refresh_background_group_instances(
     web: &WebClient,
     db: &DatabaseService,
-    session: &BackgroundCapabilitySession,
+    session: &BackgroundCapabilitySessionIdentity,
 ) -> Result<BackgroundGroupInstancesRefresh> {
     let (_, request) = current_user_group_instances_get_input(
         normalize_vrchat_api_endpoint(Some(&session.endpoint)),

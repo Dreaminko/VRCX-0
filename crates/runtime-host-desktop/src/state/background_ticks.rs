@@ -2,7 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use vrcx_0_application_core::{
     BackendRuntime, BackendRuntimePhase, BackendRuntimeStatusPublisher,
-    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, RuntimeBackgroundJobs,
+    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, BackgroundCapabilitySessionIdentity,
+    RuntimeBackgroundJobs,
 };
 use vrcx_0_application_realtime::RealtimeHostRuntime;
 use vrcx_0_runtime_host::{AuthenticatedSessionProjection, RuntimeHostContext};
@@ -47,9 +48,25 @@ pub(in crate::state) fn background_capability_session(
         })
 }
 
+pub(in crate::state) fn background_capability_session_identity(
+    session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
+) -> Option<BackgroundCapabilitySessionIdentity> {
+    let slot = session_slot
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    slot.session
+        .as_ref()
+        .map(|session| BackgroundCapabilitySessionIdentity {
+            auth_scope_generation: session.auth_scope_generation,
+            current_user_id: session.user_id.clone(),
+            endpoint: session.endpoint.clone(),
+            websocket: session.websocket.clone(),
+        })
+}
+
 pub(in crate::state) fn background_capability_session_matches(
     session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
-    expected: &BackgroundCapabilitySession,
+    expected: &BackgroundCapabilitySessionIdentity,
 ) -> bool {
     let slot = session_slot
         .lock()

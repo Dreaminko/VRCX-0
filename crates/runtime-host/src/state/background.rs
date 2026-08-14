@@ -6,10 +6,10 @@ use vrcx_0_application_core::RuntimeOperationStatus;
 use super::{
     run_background_current_user_refresh, run_background_group_instance_refresh,
     run_background_moderation_refresh, run_background_print_cleanup,
-    run_background_social_baseline_refresh, run_social_baseline_refresh_core, session_slot_matches,
+    run_background_social_baseline_refresh, run_social_baseline_refresh_core,
     AuthenticatedSessionProjection, BackendRuntime, BackendRuntimePhase, BackendRuntimeSnapshot,
-    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, BackgroundTickContext,
-    RuntimeHostContext, RuntimeHostState, SocialBaselineRefreshOutput,
+    BackendRuntimeTelemetryKind, BackgroundCapabilitySession, BackgroundCapabilitySessionIdentity,
+    BackgroundTickContext, RuntimeHostContext, RuntimeHostState, SocialBaselineRefreshOutput,
     BACKGROUND_CURRENT_USER_CADENCE_SECONDS, BACKGROUND_CURRENT_USER_REFRESH_JOB,
     BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS, BACKGROUND_GROUP_INSTANCE_REFRESH_JOB,
     BACKGROUND_MODERATION_CADENCE_SECONDS, BACKGROUND_MODERATION_REFRESH_JOB,
@@ -295,7 +295,7 @@ pub(super) fn is_authenticated_maintenance_active(
     if !is_authenticated_maintenance_active_snapshot(&runtime.snapshot()) {
         return false;
     }
-    background_capability_session(session_slot)
+    background_capability_session_identity(session_slot)
         .map(|session| background_session_matches_auth(&session, &auth_scope))
         .unwrap_or(false)
 }
@@ -311,13 +311,13 @@ pub(super) fn background_session_scope_matches_auth(
     session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
     auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
-    background_capability_session(session_slot)
+    background_capability_session_identity(session_slot)
         .map(|session| background_session_matches_auth(&session, auth_scope))
         .unwrap_or(false)
 }
 
 pub(super) fn background_session_matches_auth(
-    session: &BackgroundCapabilitySession,
+    session: &BackgroundCapabilitySessionIdentity,
     auth_scope: &vrcx_0_application_core::RuntimeAuthScopeSnapshot,
 ) -> bool {
     auth_scope.active
@@ -399,10 +399,26 @@ pub(super) fn background_capability_session(
         })
 }
 
+pub(super) fn background_capability_session_identity(
+    session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
+) -> Option<BackgroundCapabilitySessionIdentity> {
+    let slot = session_slot
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    slot.session
+        .as_ref()
+        .map(|session| BackgroundCapabilitySessionIdentity {
+            auth_scope_generation: session.auth_scope_generation,
+            current_user_id: session.user_id.clone(),
+            endpoint: session.endpoint.clone(),
+            websocket: session.websocket.clone(),
+        })
+}
+
 fn background_capability_session_scope_key(
     session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
 ) -> Option<String> {
-    background_capability_session(session_slot).map(|session| {
+    background_capability_session_identity(session_slot).map(|session| {
         format!(
             "{}:{}:{}",
             session.auth_scope_generation,
@@ -414,10 +430,47 @@ fn background_capability_session_scope_key(
 
 pub(super) fn background_capability_session_matches(
     session_slot: &Arc<Mutex<AuthenticatedSessionProjection>>,
-    session: &BackgroundCapabilitySession,
+    session: &BackgroundCapabilitySessionIdentity,
 ) -> bool {
     let slot = session_slot
         .lock()
         .unwrap_or_else(|error| error.into_inner());
-    session_slot_matches(Some(&slot), session)
+    slot.session
+        .as_ref()
+        .map(|current| {
+            current.auth_scope_generation == session.auth_scope_generation
+                && current.user_id == session.current_user_id
+                && current.endpoint == session.endpoint
+                && current.websocket == session.websocket
+        })
+        .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod background_capability_session_identity_tests {
+    use super::*;
+    use crate::AuthenticatedSessionSnapshot;
+    use serde_json::json;
+
+    #[test]
+    fn maintenance_scope_reads_only_session_identity() {
+        let session_slot = Arc::new(Mutex::new(AuthenticatedSessionProjection {
+            revision: 1,
+            session: Some(AuthenticatedSessionSnapshot {
+                auth_scope_generation: 4,
+                user_id: "usr_owner".into(),
+                display_name: "Owner".into(),
+                endpoint: "https://api.example.test/api/1".into(),
+                websocket: "wss://pipeline.example.test".into(),
+                current_user_snapshot: json!({"large": [1, 2, 3]}),
+            }),
+        }));
+
+        let identity = background_capability_session_identity(&session_slot).unwrap();
+
+        assert_eq!(identity.auth_scope_generation, 4);
+        assert_eq!(identity.current_user_id, "usr_owner");
+        assert_eq!(identity.endpoint, "https://api.example.test/api/1");
+        assert_eq!(identity.websocket, "wss://pipeline.example.test");
+    }
 }

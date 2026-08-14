@@ -57,8 +57,9 @@ pub use overlay_activity::OverlayActivityGameIngestExt;
 pub use process_monitor::{GameProcessMonitorActions, GameProcessStatus, ProcessMonitor};
 pub use registry_backup::{
     registry_backup_create, registry_backup_delete, registry_backup_export_json,
-    registry_backup_import_json, registry_backup_list, registry_backup_maintenance_run,
-    registry_backup_restore, registry_backup_restore_prompt_acknowledge, RegistryBackupHostActions,
+    registry_backup_foreground_followup, registry_backup_import_json, registry_backup_list,
+    registry_backup_maintenance_run, registry_backup_restore,
+    registry_backup_restore_prompt_acknowledge, RegistryBackupHostActions,
     RegistryBackupMaintenanceMode, RegistryBackupMaintenanceResult, RegistryBackupSnapshot,
 };
 pub use screenshots::{
