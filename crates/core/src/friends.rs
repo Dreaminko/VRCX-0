@@ -404,10 +404,7 @@ mod tests {
 
         let serialized = serde_json::to_value(record).unwrap();
         assert_eq!(serialized["date_joined"], "2026-01-01");
-        assert_eq!(
-            serialized["last_activity"],
-            "2026-01-02T03:04:05.000Z"
-        );
+        assert_eq!(serialized["last_activity"], "2026-01-02T03:04:05.000Z");
         assert_eq!(serialized["last_login"], Value::Null);
         assert!(serialized.get("last_mobile").is_none());
         assert_eq!(serialized["futureField"], "preserved");
