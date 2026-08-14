@@ -279,6 +279,7 @@ struct PendingDownload {
 struct DownloadState {
     phase: AppUpdateDownloadPhase,
     version: Option<String>,
+    started_at: Option<String>,
     downloaded_bytes: u64,
     total_bytes: u64,
     percent: u32,
@@ -293,6 +294,7 @@ impl DownloadState {
         Self {
             phase: AppUpdateDownloadPhase::Idle,
             version: None,
+            started_at: None,
             downloaded_bytes: 0,
             total_bytes: 0,
             percent: 0,
@@ -307,6 +309,7 @@ impl DownloadState {
         AppUpdateDownloadStatusSnapshot {
             phase: self.phase,
             version: self.version.clone(),
+            started_at: self.started_at.clone(),
             downloaded_bytes: self.downloaded_bytes,
             total_bytes: self.total_bytes,
             percent: self.percent,
@@ -320,6 +323,7 @@ impl DownloadState {
 pub struct AppUpdateDownloadStatusSnapshot {
     pub phase: AppUpdateDownloadPhase,
     pub version: Option<String>,
+    pub started_at: Option<String>,
     pub downloaded_bytes: u64,
     pub total_bytes: u64,
     pub percent: u32,
@@ -331,6 +335,7 @@ pub struct AppUpdateDownloadStatusSnapshot {
 pub struct AppUpdateDownloadProgressPayload {
     pub version: String,
     pub phase: AppUpdateDownloadPhase,
+    pub started_at: Option<String>,
     pub downloaded_bytes: u64,
     pub total_bytes: u64,
     pub percent: u32,
@@ -572,6 +577,7 @@ impl AppUpdateRuntime {
                         *state = DownloadState {
                             phase: AppUpdateDownloadPhase::Downloading,
                             version: Some(version.clone()),
+                            started_at: Some(now_iso()),
                             downloaded_bytes: 0,
                             total_bytes: 0,
                             percent: 0,
@@ -736,6 +742,7 @@ impl AppUpdateRuntime {
         self.inner.event_bus.emit(AppUpdateDownloadProgressPayload {
             version,
             phase: snapshot.phase,
+            started_at: snapshot.started_at.clone(),
             downloaded_bytes: snapshot.downloaded_bytes,
             total_bytes: snapshot.total_bytes,
             percent: snapshot.percent,

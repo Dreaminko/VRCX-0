@@ -76,6 +76,7 @@ import type {
 import { handleScreenshotLibraryScanStatusEvent } from './screenshotLibraryScanService';
 import {
     handleAppUpdateDownloadProgressEvent,
+    handleAppUpdateDownloadStatusSnapshot,
     handleAppUpdateInstalledEvent
 } from './updateInstallService';
 import { applyVrcStatusSnapshot } from './vrcStatusService';
@@ -386,11 +387,9 @@ async function hydrateAncillaryRuntimeState(): Promise<void> {
         hydrateRuntimeState(
             'Failed to hydrate app update download status:',
             async () => {
-                useRuntimeStore.getState().setUpdateLoopState({
-                    autoDownloadState: snapshot.appUpdateDownloadStatus.phase,
-                    downloadedVersion: snapshot.appUpdateDownloadStatus.version,
-                    downloadProgress: snapshot.appUpdateDownloadStatus.percent
-                });
+                handleAppUpdateDownloadStatusSnapshot(
+                    snapshot.appUpdateDownloadStatus
+                );
             }
         )
     ]);

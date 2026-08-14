@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     confirmInstall: vi.fn(),
@@ -39,14 +39,20 @@ vi.mock('sonner', () => ({
     }
 }));
 
+import { MINUTE_MS } from '@/shared/constants/time';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import {
     handleAppUpdateDownloadProgressEvent,
+    handleAppUpdateDownloadStatusSnapshot,
     handleAppUpdateInstalledEvent,
     installUpdateRelease,
-    openOrInstallLatestAvailableUpdate
+    openOrInstallLatestAvailableUpdate,
+    resetAutoDownloadUiDelay,
+    shouldShowUpdateUi
 } from './updateInstallService';
+
+const AUTO_DOWNLOAD_UI_DELAY_MS = 30 * MINUTE_MS;
 
 function tauriRelease() {
     return {
@@ -65,6 +71,11 @@ function tauriRelease() {
         body: ''
     };
 }
+
+afterEach(() => {
+    resetAutoDownloadUiDelay();
+    vi.useRealTimers();
+});
 
 describe('openOrInstallLatestAvailableUpdate', () => {
     beforeEach(() => {
@@ -190,6 +201,7 @@ describe('handleAppUpdateDownloadProgressEvent', () => {
         handleAppUpdateDownloadProgressEvent({
             version: '2.7.0',
             phase: 'downloading',
+            startedAt: new Date().toISOString(),
             downloadedBytes: 50,
             totalBytes: 100,
             percent: 50
@@ -202,10 +214,113 @@ describe('handleAppUpdateDownloadProgressEvent', () => {
         expect(updateLoop.downloadedBytes).toBe(50);
     });
 
-    it('never shows a toast for the downloading phase, in or out of a direct install', async () => {
+    it('keeps a fast background download hidden until restart is ready', () => {
+        vi.useFakeTimers();
+        const startedAt = new Date().toISOString();
+        useRuntimeStore.getState().setUpdateLoopState({
+            hasAvailableUpdate: true,
+            latestUpdaterRelease: tauriRelease()
+        });
+
         handleAppUpdateDownloadProgressEvent({
             version: '2.7.0',
             phase: 'downloading',
+            startedAt,
+            downloadedBytes: 50,
+            totalBytes: 100,
+            percent: 50
+        });
+
+        let updateLoop = useRuntimeStore.getState().updateLoop;
+        expect(updateLoop.autoDownloadStartedAt).toBe(startedAt);
+        expect(shouldShowUpdateUi(updateLoop)).toBe(false);
+
+        vi.advanceTimersByTime(AUTO_DOWNLOAD_UI_DELAY_MS - 1);
+        expect(shouldShowUpdateUi(useRuntimeStore.getState().updateLoop)).toBe(
+            false
+        );
+
+        handleAppUpdateDownloadProgressEvent({
+            version: '2.7.0',
+            phase: 'downloaded',
+            startedAt,
+            downloadedBytes: 100,
+            totalBytes: 100,
+            percent: 100
+        });
+
+        updateLoop = useRuntimeStore.getState().updateLoop;
+        expect(updateLoop.autoDownloadStartedAt).toBe(null);
+        expect(shouldShowUpdateUi(updateLoop)).toBe(true);
+    });
+
+    it('reveals update UI when a background download is still running after 30 minutes', () => {
+        vi.useFakeTimers();
+        const downloadStartedAt = new Date().toISOString();
+        useRuntimeStore.getState().setUpdateLoopState({
+            hasAvailableUpdate: true,
+            latestUpdaterRelease: tauriRelease()
+        });
+
+        handleAppUpdateDownloadProgressEvent({
+            version: '2.7.0',
+            phase: 'downloading',
+            startedAt: downloadStartedAt,
+            downloadedBytes: 50,
+            totalBytes: 100,
+            percent: 50
+        });
+        const startedAt =
+            useRuntimeStore.getState().updateLoop.autoDownloadStartedAt;
+        vi.advanceTimersByTime(AUTO_DOWNLOAD_UI_DELAY_MS / 2);
+        handleAppUpdateDownloadProgressEvent({
+            version: '2.7.0',
+            phase: 'downloading',
+            startedAt: downloadStartedAt,
+            downloadedBytes: 75,
+            totalBytes: 100,
+            percent: 75
+        });
+        expect(
+            useRuntimeStore.getState().updateLoop.autoDownloadStartedAt
+        ).toBe(startedAt);
+        vi.advanceTimersByTime(AUTO_DOWNLOAD_UI_DELAY_MS / 2);
+
+        expect(shouldShowUpdateUi(useRuntimeStore.getState().updateLoop)).toBe(
+            true
+        );
+    });
+
+    it('restores an overdue background download from the backend start time', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime('2026-07-18T02:00:00.000Z');
+        useRuntimeStore.getState().setUpdateLoopState({
+            hasAvailableUpdate: true,
+            latestUpdaterRelease: tauriRelease()
+        });
+
+        handleAppUpdateDownloadStatusSnapshot({
+            version: '2.7.0',
+            phase: 'downloading',
+            startedAt: '2026-07-18T00:00:00.000Z',
+            downloadedBytes: 75,
+            totalBytes: 100,
+            percent: 75,
+            error: null
+        });
+        vi.advanceTimersByTime(0);
+
+        const updateLoop = useRuntimeStore.getState().updateLoop;
+        expect(updateLoop.downloadedBytes).toBe(75);
+        expect(shouldShowUpdateUi(updateLoop)).toBe(true);
+    });
+
+    it('never shows a toast for the downloading phase, in or out of a direct install', async () => {
+        const startedAt = new Date().toISOString();
+        handleAppUpdateDownloadProgressEvent({
+            version: '2.7.0',
+            phase: 'downloading',
+            startedAt,
             downloadedBytes: 50,
             totalBytes: 100,
             percent: 50
@@ -220,6 +335,7 @@ describe('handleAppUpdateDownloadProgressEvent', () => {
         handleAppUpdateDownloadProgressEvent({
             version: '2.7.0',
             phase: 'downloading',
+            startedAt,
             downloadedBytes: 60,
             totalBytes: 100,
             percent: 60
@@ -238,6 +354,7 @@ describe('handleAppUpdateDownloadProgressEvent', () => {
         handleAppUpdateDownloadProgressEvent({
             version: '2.7.0',
             phase: 'downloaded',
+            startedAt: null,
             downloadedBytes: 100,
             totalBytes: 100,
             percent: 100

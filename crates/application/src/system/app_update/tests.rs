@@ -249,6 +249,7 @@ fn download_progress_coalesces_chunk_bursts_and_keeps_boundaries() {
         *state = DownloadState {
             phase: AppUpdateDownloadPhase::Downloading,
             version: Some(TEST_UPDATE_VERSION.into()),
+            started_at: Some("2026-07-18T00:00:00.000Z".into()),
             downloaded_bytes: 0,
             total_bytes: 0,
             percent: 0,
@@ -511,6 +512,7 @@ async fn background_download_does_not_replace_an_installing_flight() {
         *state = DownloadState {
             phase: AppUpdateDownloadPhase::Installing,
             version: Some(TEST_UPDATE_VERSION.into()),
+            started_at: Some("2026-07-18T00:00:00.000Z".into()),
             downloaded_bytes: 10,
             total_bytes: 10,
             percent: 100,

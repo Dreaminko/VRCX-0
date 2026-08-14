@@ -151,6 +151,7 @@ type UpdateLoopRelease = Record<string, unknown> & {
     latestVersion?: string;
     publishedAt?: string;
     title?: string;
+    updaterType?: string;
 };
 
 type GroupInstancesState = Record<string, unknown> & {
@@ -188,6 +189,8 @@ type RuntimeStore = {
         downloadedVersion: string | null;
         downloadProgress: number;
         downloadedBytes: number;
+        autoDownloadStartedAt: string | null;
+        autoDownloadUiVisible: boolean;
     };
     mutualGraph: MutualGraphState;
     friendProfileLoad: FriendProfileLoadState;
@@ -488,7 +491,9 @@ const initialState: RuntimeStoreState = {
         autoDownloadState: 'idle',
         downloadedVersion: null,
         downloadProgress: 0,
-        downloadedBytes: 0
+        downloadedBytes: 0,
+        autoDownloadStartedAt: null,
+        autoDownloadUiVisible: false
     },
     mutualGraph: createMutualGraphState(),
     friendProfileLoad: createFriendProfileLoadState(),

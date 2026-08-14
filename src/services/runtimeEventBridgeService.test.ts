@@ -285,6 +285,7 @@ function createAncillaryRuntimeSnapshot(
         appUpdateDownloadStatus: {
             phase: 'idle',
             version: null,
+            startedAt: null,
             downloadedBytes: 0,
             totalBytes: 0,
             percent: 0,

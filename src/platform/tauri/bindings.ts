@@ -2864,6 +2864,7 @@ export type AppUpdateDownloadPhase =
 export type AppUpdateDownloadProgressPayload = {
     version: string;
     phase: AppUpdateDownloadPhase;
+    startedAt: string | null;
     downloadedBytes: number;
     totalBytes: number;
     percent: number;
@@ -2871,6 +2872,7 @@ export type AppUpdateDownloadProgressPayload = {
 export type AppUpdateDownloadStatusSnapshot = {
     phase: AppUpdateDownloadPhase;
     version: string | null;
+    startedAt: string | null;
     downloadedBytes: number;
     totalBytes: number;
     percent: number;

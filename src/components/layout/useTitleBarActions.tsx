@@ -28,7 +28,10 @@ import {
     setNavbarCollapsedPreference,
     setThemeModePreference
 } from '@/services/preferencesService';
-import { openOrInstallLatestAvailableUpdate } from '@/services/updateInstallService';
+import {
+    openOrInstallLatestAvailableUpdate,
+    shouldShowUpdateUi
+} from '@/services/updateInstallService';
 import { getBuildBadgeLabel } from '@/shared/buildLabel';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { useBackgroundImageStore } from '@/state/backgroundImageStore';
@@ -165,8 +168,8 @@ export function useTitleBarActions(
     const hostPlatform = useRuntimeStore(
         (state) => state.hostCapabilities.platform
     );
-    const hasAvailableUpdate = useRuntimeStore((state) =>
-        Boolean(state.updateLoop.hasAvailableUpdate)
+    const showUpdateUi = useRuntimeStore((state) =>
+        shouldShowUpdateUi(state.updateLoop)
     );
     const navbarOpen = useShellStore((state) => state.sidebarOpen);
     const themeMode = useShellStore((state) => state.themeMode);
@@ -303,9 +306,18 @@ export function useTitleBarActions(
                 actionsClassName
             )}
         >
-            {hasAvailableUpdate ? (
+            {showUpdateUi ? (
                 <TitleBarUpdateButton
                     onClick={() => {
+                        if (
+                            useRuntimeStore.getState().updateLoop
+                                .autoDownloadState === 'downloading'
+                        ) {
+                            useRuntimeStore
+                                .getState()
+                                .setSystemHostOpen('updaterOpen', true);
+                            return;
+                        }
                         void openOrInstallLatestAvailableUpdate();
                     }}
                 />

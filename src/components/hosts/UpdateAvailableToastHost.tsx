@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 
 import {
     UPDATE_AVAILABLE_TOAST_ID,
-    openOrInstallLatestAvailableUpdate
+    openOrInstallLatestAvailableUpdate,
+    shouldShowUpdateUi
 } from '@/services/updateInstallService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -116,8 +117,8 @@ export function showUpdateReadyToast({
 
 export function UpdateAvailableToastHost(): null {
     const { t } = useTranslation();
-    const hasAvailableUpdate = useRuntimeStore((state) =>
-        Boolean(state.updateLoop.hasAvailableUpdate)
+    const showUpdateUi = useRuntimeStore((state) =>
+        shouldShowUpdateUi(state.updateLoop)
     );
     const latestUpdaterRelease = useRuntimeStore(
         (state) => state.updateLoop.latestUpdaterRelease
@@ -130,7 +131,7 @@ export function UpdateAvailableToastHost(): null {
     );
 
     useEffect(() => {
-        if (!hasAvailableUpdate || !latestUpdaterRelease) {
+        if (!showUpdateUi || !latestUpdaterRelease) {
             toast.dismiss(UPDATE_AVAILABLE_TOAST_ID);
             return undefined;
         }
@@ -157,7 +158,7 @@ export function UpdateAvailableToastHost(): null {
     }, [
         autoDownloadState,
         downloadedVersion,
-        hasAvailableUpdate,
+        showUpdateUi,
         latestUpdaterRelease,
         t
     ]);

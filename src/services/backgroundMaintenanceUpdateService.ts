@@ -1,4 +1,5 @@
 import i18n from '@/services/i18nService';
+import { resetAutoDownloadUiDelay } from '@/services/updateInstallService';
 import {
     formatReleaseDisplayVersion,
     toNormalizedReleaseFromSnapshot,
@@ -39,6 +40,13 @@ function setUpdaterCheckResult(
     detail: string = '',
     release: UpdaterReleaseSnapshotSource = null
 ) {
+    const currentRelease =
+        useRuntimeStore.getState().updateLoop.latestUpdaterRelease;
+    const nextVersion = release?.canonicalVersion || '';
+    const currentVersion = String(currentRelease?.canonicalVersion || '');
+    if (!hasAvailableUpdate || nextVersion !== currentVersion) {
+        resetAutoDownloadUiDelay();
+    }
     useRuntimeStore.getState().setUpdateLoopState({
         hasAvailableUpdate: Boolean(hasAvailableUpdate),
         lastUpdaterCheckAt: new Date().toISOString(),
