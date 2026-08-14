@@ -21,8 +21,8 @@ import {
 } from '@/components/layout/PageScaffold';
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
-import { SettingsAiTab } from './components/settings-tabs/SettingsAiTab';
 import { SettingsAdvancedTab } from './components/settings-tabs/SettingsAdvancedTab';
+import { SettingsAiTab } from './components/settings-tabs/SettingsAiTab';
 import { SettingsFeedbackTab } from './components/settings-tabs/SettingsFeedbackTab';
 import { SettingsIntegrationsTab } from './components/settings-tabs/SettingsIntegrationsTab';
 import { SettingsInterfaceTab } from './components/settings-tabs/SettingsInterfaceTab';

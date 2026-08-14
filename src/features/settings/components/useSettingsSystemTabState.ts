@@ -66,109 +66,109 @@ export function useSettingsSystemTabState() {
         proxyEnabled: prefs.proxyEnabled,
         proxyServer: prefs.proxyServer,
         onStartAtWindowsStartupChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                savePreferenceValue('isStartAtWindowsStartup', enabled, () =>
-                    setStartAtWindowsStartupPreference(enabled)
-                );
-            },
+            const enabled = normalizeCheckedState(checked);
+            savePreferenceValue('isStartAtWindowsStartup', enabled, () =>
+                setStartAtWindowsStartupPreference(enabled)
+            );
+        },
         onStartAsMinimizedChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                savePreferenceValue('isStartAsMinimizedState', enabled, () =>
-                    setStartAsMinimizedPreference(enabled)
-                );
-            },
+            const enabled = normalizeCheckedState(checked);
+            savePreferenceValue('isStartAsMinimizedState', enabled, () =>
+                setStartAsMinimizedPreference(enabled)
+            );
+        },
         onSystemWindowFrameChange: async (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                const saved = await savePreferenceValue(
-                    'systemWindowFrame',
-                    enabled,
-                    () => setSystemWindowFramePreference(enabled)
-                );
-                if (saved) {
-                    toast(
-                        t(
-                            'view.settings.general.application.system_window_frame_saved'
-                        ),
-                        {
-                            action: {
-                                label: t(
-                                    'view.settings.general.application.system_window_frame_restart_now'
-                                ),
-                                onClick: () => {
-                                    void restartApplication();
-                                }
+            const enabled = normalizeCheckedState(checked);
+            const saved = await savePreferenceValue(
+                'systemWindowFrame',
+                enabled,
+                () => setSystemWindowFramePreference(enabled)
+            );
+            if (saved) {
+                toast(
+                    t(
+                        'view.settings.general.application.system_window_frame_saved'
+                    ),
+                    {
+                        action: {
+                            label: t(
+                                'view.settings.general.application.system_window_frame_restart_now'
+                            ),
+                            onClick: () => {
+                                void restartApplication();
                             }
                         }
-                    );
-                }
-            },
-        onCloseToTrayChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                savePreferenceValue('isCloseToTray', enabled, () =>
-                    setCloseToTrayPreference(enabled)
+                    }
                 );
-            },
-        onAutoLoginDelayEnabledChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'autoLoginDelayEnabled',
-                    'autoLoginDelayEnabled',
-                    enabled
-                );
-            },
-        onBackgroundModeEnabledChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'backgroundModeEnabled',
-                    'backgroundModeEnabled',
-                    enabled
-                );
-            },
-        onBackgroundModeDelayEnabledChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'backgroundModeDelayEnabled',
-                    'backgroundModeDelayEnabled',
-                    enabled
-                );
-            },
-        onAutoInstallUpdatesOnStartupChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'autoInstallUpdatesOnStartup',
-                    'autoInstallUpdatesOnStartup',
-                    enabled
-                );
-            },
-        onPostUpdateChangelogToastChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'showPostUpdateChangelogToast',
-                    POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY,
-                    enabled
-                );
-            },
-        onPromptAutoLoginDelaySeconds: () => {
-                promptAutoLoginDelaySeconds();
-            },
-        onPromptBackgroundModeDelayMinutes: () => {
-                promptBackgroundModeDelayMinutes();
-            },
-        onProxyEnabledChange: async (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                const saved = await savePreferenceValue(
-                    'proxyEnabled',
-                    enabled,
-                    () => setProxyEnabledPreference(enabled)
-                );
-                if (saved) {
-                    toast.success(
-                        t('prompt.proxy_settings.saved_restart_required')
-                    );
-                }
-            },
-        onProxySettings: () => {
-                setSystemHostOpen('proxySettingsOpen', true);
             }
+        },
+        onCloseToTrayChange: (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            savePreferenceValue('isCloseToTray', enabled, () =>
+                setCloseToTrayPreference(enabled)
+            );
+        },
+        onAutoLoginDelayEnabledChange: (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'autoLoginDelayEnabled',
+                'autoLoginDelayEnabled',
+                enabled
+            );
+        },
+        onBackgroundModeEnabledChange: (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'backgroundModeEnabled',
+                'backgroundModeEnabled',
+                enabled
+            );
+        },
+        onBackgroundModeDelayEnabledChange: (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'backgroundModeDelayEnabled',
+                'backgroundModeDelayEnabled',
+                enabled
+            );
+        },
+        onAutoInstallUpdatesOnStartupChange: (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'autoInstallUpdatesOnStartup',
+                'autoInstallUpdatesOnStartup',
+                enabled
+            );
+        },
+        onPostUpdateChangelogToastChange: (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'showPostUpdateChangelogToast',
+                POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY,
+                enabled
+            );
+        },
+        onPromptAutoLoginDelaySeconds: () => {
+            promptAutoLoginDelaySeconds();
+        },
+        onPromptBackgroundModeDelayMinutes: () => {
+            promptBackgroundModeDelayMinutes();
+        },
+        onProxyEnabledChange: async (checked: unknown) => {
+            const enabled = normalizeCheckedState(checked);
+            const saved = await savePreferenceValue(
+                'proxyEnabled',
+                enabled,
+                () => setProxyEnabledPreference(enabled)
+            );
+            if (saved) {
+                toast.success(
+                    t('prompt.proxy_settings.saved_restart_required')
+                );
+            }
+        },
+        onProxySettings: () => {
+            setSystemHostOpen('proxySettingsOpen', true);
+        }
     };
 }

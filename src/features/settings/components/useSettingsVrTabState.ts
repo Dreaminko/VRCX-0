@@ -192,52 +192,44 @@ export function useSettingsVrTabState() {
             );
         },
         onWristOverlayHandChange: (value: string) => {
-            saveStringPreference(
-                'wristOverlayHand',
-                'wristOverlayHand',
-                value
-            );
+            saveStringPreference('wristOverlayHand', 'wristOverlayHand', value);
         },
         onWristOverlaySizeChange: (value: string) => {
-            saveStringPreference(
-                'wristOverlaySize',
-                'wristOverlaySize',
-                value
-            );
+            saveStringPreference('wristOverlaySize', 'wristOverlaySize', value);
         },
         onWristOverlayDarkBackgroundChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'wristOverlayDarkBackground',
-                    'wristOverlayDarkBackground',
-                    enabled
-                );
-            },
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'wristOverlayDarkBackground',
+                'wristOverlayDarkBackground',
+                enabled
+            );
+        },
         onWristOverlayHidePrivateWorldsChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'wristOverlayHidePrivateWorlds',
-                    'wristOverlayHidePrivateWorlds',
-                    enabled
-                );
-            },
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'wristOverlayHidePrivateWorlds',
+                'wristOverlayHidePrivateWorlds',
+                enabled
+            );
+        },
         onWristOverlayShowDevicesChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'wristOverlayShowDevices',
-                    'wristOverlayShowDevices',
-                    enabled
-                );
-            },
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'wristOverlayShowDevices',
+                'wristOverlayShowDevices',
+                enabled
+            );
+        },
         onWristOverlayShowBatteryPercentChange: (checked: unknown) => {
-                const enabled = normalizeCheckedState(checked);
-                saveBoolPreference(
-                    'wristOverlayShowBatteryPercent',
-                    'wristOverlayShowBatteryPercent',
-                    enabled
-                );
-            },
+            const enabled = normalizeCheckedState(checked);
+            saveBoolPreference(
+                'wristOverlayShowBatteryPercent',
+                'wristOverlayShowBatteryPercent',
+                enabled
+            );
+        },
         onOpenWristFeedNotificationsDialog: () =>
-                setWristFeedNotificationsDialogOpen(true)
+            setWristFeedNotificationsDialogOpen(true)
     };
 }

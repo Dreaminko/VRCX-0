@@ -234,7 +234,13 @@ mod tests {
             }
         }
 
-        assert!(message_count > 0, "capture should contain websocket messages");
-        assert!(unknown.is_empty(), "unmodeled websocket event types: {unknown:?}");
+        assert!(
+            message_count > 0,
+            "capture should contain websocket messages"
+        );
+        assert!(
+            unknown.is_empty(),
+            "unmodeled websocket event types: {unknown:?}"
+        );
     }
 }

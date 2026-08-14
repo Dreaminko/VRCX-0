@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
-import { instanceTypes } from '../toolsDialogUtils';
 import {
     Empty,
     EmptyDescription,
@@ -29,6 +28,7 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 
+import { instanceTypes } from '../toolsDialogUtils';
 import {
     AutomationSplitLayout,
     CompactCheckList,

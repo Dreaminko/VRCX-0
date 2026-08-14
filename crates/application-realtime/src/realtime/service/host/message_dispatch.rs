@@ -4,9 +4,7 @@ use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 use crate::realtime::connection::RealtimeMessageSink;
 use crate::realtime::event_kind::RealtimeWsEventKind;
 use crate::realtime::instance_queue::apply_instance_queue_ws_event;
-use crate::realtime::notifications::{
-    apply_instance_closed_ws_event, apply_notification_ws_event,
-};
+use crate::realtime::notifications::{apply_instance_closed_ws_event, apply_notification_ws_event};
 use crate::realtime::print_content_refresh::is_print_created_content_refresh_event;
 use crate::realtime::{RealtimeSessionContext, RealtimeTransportLifecycleEvent, RealtimeWsStatus};
 

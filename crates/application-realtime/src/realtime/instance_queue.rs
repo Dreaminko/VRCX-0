@@ -14,8 +14,9 @@ pub(crate) fn apply_instance_queue_ws_event(
     payload: &RealtimeWsMessagePayload,
 ) -> Option<RealtimeInstanceQueueProjection> {
     let kind = match event_kind {
-        RealtimeWsEventKind::InstanceQueueJoined
-        | RealtimeWsEventKind::InstanceQueuePosition => RealtimeInstanceQueueKind::Update,
+        RealtimeWsEventKind::InstanceQueueJoined | RealtimeWsEventKind::InstanceQueuePosition => {
+            RealtimeInstanceQueueKind::Update
+        }
         RealtimeWsEventKind::InstanceQueueReady => RealtimeInstanceQueueKind::Ready,
         RealtimeWsEventKind::InstanceQueueLeft => RealtimeInstanceQueueKind::Left,
         _ => return None,
