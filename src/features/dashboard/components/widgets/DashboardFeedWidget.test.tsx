@@ -5,6 +5,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { FeedLiveEntry } from '@/domain/feed/feedLiveTypes';
+import { useFavoriteStore } from '@/state/favoriteStore';
+import { useFeedLiveStore } from '@/state/feedLiveStore';
+import { useFriendRosterStore } from '@/state/friendRosterStore';
+import { usePreferencesStore } from '@/state/preferencesStore';
+import { useRuntimeStore } from '@/state/runtimeStore';
+
 const mocks = vi.hoisted(() => ({
     queryFeedLatest: vi.fn()
 }));
@@ -17,29 +24,65 @@ vi.mock('@/repositories/feedRepository', async (importOriginal) => ({
 }));
 
 import { FeedEntryContent } from './DashboardFeedEntryContent';
-import { DashboardFeedWidgetView } from './DashboardFeedWidget';
+import { DashboardFeedWidget } from './DashboardFeedWidget';
 
-describe('DashboardFeedWidgetView', () => {
+const initialRuntimeState = useRuntimeStore.getInitialState();
+const initialFeedLiveState = useFeedLiveStore.getInitialState();
+const initialFavoriteState = useFavoriteStore.getInitialState();
+const initialFriendRosterState = useFriendRosterStore.getInitialState();
+const initialPreferencesState = usePreferencesStore.getInitialState();
+
+function setDashboardFeedStoreState({
+    currentUserId,
+    liveFeedEntries = [],
+    liveFeedVersion = 0,
+    favoriteFriendIds = [],
+    feedPersistenceDisabled = false
+}: {
+    currentUserId: string;
+    liveFeedEntries?: FeedLiveEntry[];
+    liveFeedVersion?: number;
+    favoriteFriendIds?: string[];
+    feedPersistenceDisabled?: boolean;
+}) {
+    const runtimeState = useRuntimeStore.getState();
+    useRuntimeStore.setState({
+        auth: { ...runtimeState.auth, currentUserId },
+        runtimeEvents: {
+            ...runtimeState.runtimeEvents,
+            addGameLogEvent: {
+                ...runtimeState.runtimeEvents.addGameLogEvent,
+                count: 0
+            }
+        }
+    });
+    useFeedLiveStore.setState({
+        entries: liveFeedEntries,
+        patches: [],
+        version: liveFeedVersion
+    });
+    useFavoriteStore.setState({ favoriteFriendIds });
+    useFriendRosterStore.setState({ friendsById: {} });
+    usePreferencesStore.setState({ feedPersistenceDisabled });
+}
+
+describe('DashboardFeedWidget', () => {
     afterEach(() => {
         cleanup();
         vi.clearAllMocks();
+        useRuntimeStore.setState(initialRuntimeState);
+        useFeedLiveStore.setState(initialFeedLiveState);
+        useFavoriteStore.setState(initialFavoriteState);
+        useFriendRosterStore.setState(initialFriendRosterState);
+        usePreferencesStore.setState(initialPreferencesState);
     });
 
-    it('renders from explicit props without reading dashboard stores', () => {
+    it('reads dashboard state from its owner stores', () => {
+        setDashboardFeedStoreState({ currentUserId: '' });
+
         const html = renderToStaticMarkup(
             <MemoryRouter>
-                <DashboardFeedWidgetView
-                    config={{}}
-                    configUpdater={null}
-                    currentUserId=""
-                    addGameLogEventCount={0}
-                    liveFeedEntries={[]}
-                    liveFeedVersion={0}
-                    remoteFavoriteFriendIds={[]}
-                    localFriendFavorites={{}}
-                    friendsById={{}}
-                    feedPersistenceDisabled={false}
-                />
+                <DashboardFeedWidget config={{}} configUpdater={null} />
             </MemoryRouter>
         );
 
@@ -48,32 +91,27 @@ describe('DashboardFeedWidgetView', () => {
 
     it('loads the Rust cache and overlays session deltas when persistence is disabled', async () => {
         mocks.queryFeedLatest.mockResolvedValue({ rows: [], maxSequence: 0 });
+        setDashboardFeedStoreState({
+            currentUserId: 'usr_self',
+            liveFeedEntries: [
+                {
+                    sequence: 1,
+                    ownerUserId: 'usr_self',
+                    entry: {
+                        id: 'live-only',
+                        type: 'Online',
+                        userId: 'usr_friend',
+                        displayName: 'Friend'
+                    }
+                }
+            ],
+            liveFeedVersion: 1,
+            feedPersistenceDisabled: true
+        });
 
         render(
             <MemoryRouter>
-                <DashboardFeedWidgetView
-                    config={{}}
-                    configUpdater={null}
-                    currentUserId="usr_self"
-                    addGameLogEventCount={0}
-                    liveFeedEntries={[
-                        {
-                            sequence: 1,
-                            ownerUserId: 'usr_self',
-                            entry: {
-                                id: 'live-only',
-                                type: 'Online',
-                                userId: 'usr_friend',
-                                displayName: 'Friend'
-                            }
-                        }
-                    ]}
-                    liveFeedVersion={1}
-                    remoteFavoriteFriendIds={[]}
-                    localFriendFavorites={{}}
-                    friendsById={{}}
-                    feedPersistenceDisabled
-                />
+                <DashboardFeedWidget config={{}} configUpdater={null} />
             </MemoryRouter>
         );
 
@@ -135,21 +173,14 @@ describe('DashboardFeedWidgetView', () => {
             ],
             maxSequence: 3
         });
+        setDashboardFeedStoreState({
+            currentUserId: 'usr_self',
+            favoriteFriendIds: ['usr_one']
+        });
 
         const view = render(
             <MemoryRouter>
-                <DashboardFeedWidgetView
-                    config={{}}
-                    configUpdater={null}
-                    currentUserId="usr_self"
-                    addGameLogEventCount={0}
-                    liveFeedEntries={[]}
-                    liveFeedVersion={0}
-                    remoteFavoriteFriendIds={['usr_one']}
-                    localFriendFavorites={{}}
-                    friendsById={{}}
-                    feedPersistenceDisabled={false}
-                />
+                <DashboardFeedWidget config={{}} configUpdater={null} />
             </MemoryRouter>
         );
 

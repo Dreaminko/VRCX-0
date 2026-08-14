@@ -22,7 +22,7 @@ import { Switch } from '@/ui/shadcn/switch';
 
 import { normalizeAutoAcceptMode } from '../toolsDialogUtils';
 import { CompactCheckList } from './AutomationRuleLayout';
-import type { PresenceOption } from './presenceAutomationDialogUtils';
+import { useFavoriteFriendGroupOptions } from './useFavoriteFriendGroupOptions';
 
 const I18N_ROOT = 'view.tools.social_automation';
 
@@ -34,7 +34,6 @@ export type InviteRulesTabValues = {
 type ConfigValueType = 'array' | 'bool' | 'string';
 
 type InviteRulesTabProps = {
-    groupOptions: PresenceOption[];
     loading: boolean;
     onSaveValue: (
         key: keyof InviteRulesTabValues,
@@ -47,10 +46,10 @@ type InviteRulesTabProps = {
 export function InviteRulesTab({
     values,
     loading,
-    groupOptions,
     onSaveValue
 }: InviteRulesTabProps) {
     const { t } = useTranslation();
+    const groupOptions = useFavoriteFriendGroupOptions();
     const autoAcceptEnabled = values.autoAcceptInviteRequests !== 'Off';
     const selectedFavoritesOnly =
         values.autoAcceptInviteRequests === 'Selected Favorites';

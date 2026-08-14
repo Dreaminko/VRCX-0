@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { render } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SettingsPageStateSections } from '../settingsPageStateSections';
-import { SettingsVrSection } from './SettingsVrSection';
+import { useSettingsVrTabState } from './useSettingsVrTabState';
 
 const captured = vi.hoisted(() => ({
     props: undefined as Record<string, unknown> | undefined,
@@ -13,13 +13,6 @@ const captured = vi.hoisted(() => ({
 
 vi.mock('../SettingsPageStateContext', () => ({
     useSettingsPageSection: () => captured.vr
-}));
-
-vi.mock('./settings-tabs/SettingsVrTab', () => ({
-    SettingsVrTab: (props: Record<string, unknown>) => {
-        captured.props = props;
-        return null;
-    }
 }));
 
 type VrSectionState = SettingsPageStateSections['vr'];
@@ -43,7 +36,12 @@ function createVrSectionState(): VrSectionState {
     };
 }
 
-describe('SettingsVrSection', () => {
+function renderVrTabState() {
+    const { result } = renderHook(() => useSettingsVrTabState());
+    captured.props = result.current as Record<string, unknown>;
+}
+
+describe('useSettingsVrTabState', () => {
     beforeEach(() => {
         captured.props = undefined;
         captured.vr = undefined;
@@ -52,7 +50,7 @@ describe('SettingsVrSection', () => {
     it('persists notification number inputs with their config bounds', () => {
         const vr = createVrSectionState();
         captured.vr = vr;
-        render(<SettingsVrSection />);
+        renderVrTabState();
 
         callback('onNotificationTimeoutSecondsChange')('900');
         expect(vr.savePreferenceValue).toHaveBeenLastCalledWith(
@@ -126,7 +124,7 @@ describe('SettingsVrSection', () => {
     ])('maps %s to the %s boolean preference', (propName, key) => {
         const vr = createVrSectionState();
         captured.vr = vr;
-        render(<SettingsVrSection />);
+        renderVrTabState();
 
         callback(propName)(true);
 
@@ -143,7 +141,7 @@ describe('SettingsVrSection', () => {
     ])('maps %s to the %s string preference', (propName, key) => {
         const vr = createVrSectionState();
         captured.vr = vr;
-        render(<SettingsVrSection />);
+        renderVrTabState();
 
         callback(propName)('selected-value');
 
@@ -157,7 +155,7 @@ describe('SettingsVrSection', () => {
     it('routes wrist enablement and filter-dialog actions to their owners', () => {
         const vr = createVrSectionState();
         captured.vr = vr;
-        render(<SettingsVrSection />);
+        renderVrTabState();
 
         callback('onWristOverlayEnabledChange')(true);
         callback('onOpenVrNotificationFiltersDialog')();

@@ -29,10 +29,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 import { BrowseHistoryRetentionField } from '../BrowseHistoryRetentionField';
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
+import { useSettingsAdvancedTabState } from '../useSettingsAdvancedTabState';
 import { AdvancedTroubleshootingGroup } from './AdvancedTroubleshootingGroup';
 import type { SettingsAdvancedModel } from './settingsAdvancedTypes';
 
-type SettingsAdvancedTabProps = {
+type SettingsAdvancedTabContentProps = {
     advanced: SettingsAdvancedModel;
 };
 
@@ -144,7 +145,14 @@ function DeepLinkRegistrationField() {
     );
 }
 
-export function SettingsAdvancedTab({ advanced }: SettingsAdvancedTabProps) {
+export function SettingsAdvancedTab() {
+    const state = useSettingsAdvancedTabState();
+    return <SettingsAdvancedTabContent advanced={state} />;
+}
+
+export function SettingsAdvancedTabContent({
+    advanced
+}: SettingsAdvancedTabContentProps) {
     const gameLogPersistenceSupported = useRuntimeStore(
         (state) => state.hostCapabilities.runtimeGameLogIngest.supported
     );

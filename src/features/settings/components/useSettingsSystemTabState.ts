@@ -10,9 +10,8 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { useSettingsPageSection } from '../SettingsPageStateContext';
 import { normalizeCheckedState } from '../settingsValues';
-import { SettingsSystemTab } from './settings-tabs/SettingsSystemTab';
 
-export function SettingsSystemSection() {
+export function useSettingsSystemTabState() {
     const { t } = useTranslation();
     const system = useSettingsPageSection('system');
     const hostPlatform = useRuntimeStore(
@@ -50,36 +49,35 @@ export function SettingsSystemSection() {
         promptBackgroundModeDelayMinutes
     } = system;
 
-    return (
-        <SettingsSystemTab
-            hostPlatform={hostPlatform}
-            isStartAtWindowsStartup={prefs.isStartAtWindowsStartup}
-            isStartAsMinimizedState={prefs.isStartAsMinimizedState}
-            isCloseToTray={prefs.isCloseToTray}
-            systemWindowFrame={prefs.systemWindowFrame}
-            autoLoginDelayEnabled={prefs.autoLoginDelayEnabled}
-            autoLoginDelaySeconds={prefs.autoLoginDelaySeconds}
-            autoInstallUpdatesOnStartup={prefs.autoInstallUpdatesOnStartup}
-            updateCheckDisabled={isUpdateCheckDisabledBuild()}
-            showPostUpdateChangelogToast={prefs.showPostUpdateChangelogToast}
-            backgroundModeEnabled={prefs.backgroundModeEnabled}
-            backgroundModeDelayEnabled={prefs.backgroundModeDelayEnabled}
-            backgroundModeDelayMinutes={prefs.backgroundModeDelayMinutes}
-            proxyEnabled={prefs.proxyEnabled}
-            proxyServer={prefs.proxyServer}
-            onStartAtWindowsStartupChange={(checked: unknown) => {
+    return {
+        hostPlatform,
+        isStartAtWindowsStartup: prefs.isStartAtWindowsStartup,
+        isStartAsMinimizedState: prefs.isStartAsMinimizedState,
+        isCloseToTray: prefs.isCloseToTray,
+        systemWindowFrame: prefs.systemWindowFrame,
+        autoLoginDelayEnabled: prefs.autoLoginDelayEnabled,
+        autoLoginDelaySeconds: prefs.autoLoginDelaySeconds,
+        autoInstallUpdatesOnStartup: prefs.autoInstallUpdatesOnStartup,
+        updateCheckDisabled: isUpdateCheckDisabledBuild(),
+        showPostUpdateChangelogToast: prefs.showPostUpdateChangelogToast,
+        backgroundModeEnabled: prefs.backgroundModeEnabled,
+        backgroundModeDelayEnabled: prefs.backgroundModeDelayEnabled,
+        backgroundModeDelayMinutes: prefs.backgroundModeDelayMinutes,
+        proxyEnabled: prefs.proxyEnabled,
+        proxyServer: prefs.proxyServer,
+        onStartAtWindowsStartupChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('isStartAtWindowsStartup', enabled, () =>
                     setStartAtWindowsStartupPreference(enabled)
                 );
-            }}
-            onStartAsMinimizedChange={(checked: unknown) => {
+            },
+        onStartAsMinimizedChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('isStartAsMinimizedState', enabled, () =>
                     setStartAsMinimizedPreference(enabled)
                 );
-            }}
-            onSystemWindowFrameChange={async (checked: unknown) => {
+            },
+        onSystemWindowFrameChange: async (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 const saved = await savePreferenceValue(
                     'systemWindowFrame',
@@ -103,60 +101,60 @@ export function SettingsSystemSection() {
                         }
                     );
                 }
-            }}
-            onCloseToTrayChange={(checked: unknown) => {
+            },
+        onCloseToTrayChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 savePreferenceValue('isCloseToTray', enabled, () =>
                     setCloseToTrayPreference(enabled)
                 );
-            }}
-            onAutoLoginDelayEnabledChange={(checked: unknown) => {
+            },
+        onAutoLoginDelayEnabledChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'autoLoginDelayEnabled',
                     'autoLoginDelayEnabled',
                     enabled
                 );
-            }}
-            onBackgroundModeEnabledChange={(checked: unknown) => {
+            },
+        onBackgroundModeEnabledChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'backgroundModeEnabled',
                     'backgroundModeEnabled',
                     enabled
                 );
-            }}
-            onBackgroundModeDelayEnabledChange={(checked: unknown) => {
+            },
+        onBackgroundModeDelayEnabledChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'backgroundModeDelayEnabled',
                     'backgroundModeDelayEnabled',
                     enabled
                 );
-            }}
-            onAutoInstallUpdatesOnStartupChange={(checked: unknown) => {
+            },
+        onAutoInstallUpdatesOnStartupChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'autoInstallUpdatesOnStartup',
                     'autoInstallUpdatesOnStartup',
                     enabled
                 );
-            }}
-            onPostUpdateChangelogToastChange={(checked: unknown) => {
+            },
+        onPostUpdateChangelogToastChange: (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 saveBoolPreference(
                     'showPostUpdateChangelogToast',
                     POST_UPDATE_CHANGELOG_TOAST_CONFIG_KEY,
                     enabled
                 );
-            }}
-            onPromptAutoLoginDelaySeconds={() => {
+            },
+        onPromptAutoLoginDelaySeconds: () => {
                 promptAutoLoginDelaySeconds();
-            }}
-            onPromptBackgroundModeDelayMinutes={() => {
+            },
+        onPromptBackgroundModeDelayMinutes: () => {
                 promptBackgroundModeDelayMinutes();
-            }}
-            onProxyEnabledChange={async (checked: unknown) => {
+            },
+        onProxyEnabledChange: async (checked: unknown) => {
                 const enabled = normalizeCheckedState(checked);
                 const saved = await savePreferenceValue(
                     'proxyEnabled',
@@ -168,10 +166,9 @@ export function SettingsSystemSection() {
                         t('prompt.proxy_settings.saved_restart_required')
                     );
                 }
-            }}
-            onProxySettings={() => {
+            },
+        onProxySettings: () => {
                 setSystemHostOpen('proxySettingsOpen', true);
-            }}
-        />
-    );
+            }
+    };
 }

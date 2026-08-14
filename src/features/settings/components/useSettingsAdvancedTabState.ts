@@ -6,9 +6,8 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { useSettingsPageSection } from '../SettingsPageStateContext';
 import { normalizeCheckedState } from '../settingsValues';
-import { SettingsAdvancedTab } from './settings-tabs/SettingsAdvancedTab';
 
-export function SettingsAdvancedSection() {
+export function useSettingsAdvancedTabState() {
     const advanced = useSettingsPageSection('advanced');
     const prefs = usePreferencesStore(
         useShallow((state) => ({
@@ -144,5 +143,5 @@ export function SettingsAdvancedSection() {
         onClearConfigTreeData: () => setConfigTreeData({})
     };
 
-    return <SettingsAdvancedTab advanced={advancedTab} />;
+    return advancedTab;
 }

@@ -10,7 +10,6 @@ import {
     ToolbarSegmented,
     type ToolbarSegmentOption
 } from '@/components/layout/ToolbarControls';
-import { usePreferencesStore } from '@/state/preferencesStore';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 import { FeedColumnsMode } from './columns/FeedColumnsMode';
@@ -93,9 +92,6 @@ export function FeedPage({ embedded = false }: FeedPageProps = {}) {
             onValueChange={setEffectiveViewMode}
         />
     );
-    const feedPersistenceDisabled = usePreferencesStore(
-        (state) => state.feedPersistenceDisabled
-    );
     const setRouteScopedUserIds = useCallback(
         (userIds: readonly string[]) => {
             if (embedded) {
@@ -131,13 +127,11 @@ export function FeedPage({ embedded = false }: FeedPageProps = {}) {
                         modeToggle={modeToggle}
                         onColumnsChange={setColumns}
                         onDensityChange={setDensity}
-                        feedPersistenceDisabled={feedPersistenceDisabled}
                     />
                 </PageBody>
             ) : (
                 <FeedTableMode
                     modeToggle={modeToggle}
-                    feedPersistenceDisabled={feedPersistenceDisabled}
                     routeScopedUserIds={routeScopedUserIds}
                     setRouteScopedUserIds={setRouteScopedUserIds}
                 />
@@ -148,12 +142,10 @@ export function FeedPage({ embedded = false }: FeedPageProps = {}) {
 
 function FeedTableMode({
     modeToggle,
-    feedPersistenceDisabled,
     routeScopedUserIds,
     setRouteScopedUserIds
 }: {
     modeToggle: ReactNode;
-    feedPersistenceDisabled: boolean;
     routeScopedUserIds: readonly string[];
     setRouteScopedUserIds(userIds: readonly string[]): void;
 }) {
@@ -273,7 +265,6 @@ function FeedTableMode({
                 filterModel={filterModel}
                 filterCommands={filterCommands}
                 modeToggle={modeToggle}
-                feedPersistenceDisabled={feedPersistenceDisabled}
                 isSearching={isSearching}
             />
             <PageBody>

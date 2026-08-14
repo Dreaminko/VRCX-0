@@ -1,14 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useLocalWorldFavorites } from '@/components/favorites/useLocalWorldFavorites';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { commands } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import { publishToolsStatusUpdated } from '@/shared/constants/tools';
-import { useFavoriteStore } from '@/state/favoriteStore';
-import { useFriendRosterStore } from '@/state/friendRosterStore';
 import {
     Dialog,
     DialogContent,
@@ -18,16 +15,10 @@ import {
 } from '@/ui/shadcn/dialog';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 
-import {
-    instanceTypes,
-    normalizeAutoAcceptValue,
-    parseJsonArray
-} from '../toolsDialogUtils';
+import { normalizeAutoAcceptValue, parseJsonArray } from '../toolsDialogUtils';
 import { ContextRulesTab } from './ContextRulesTab';
 import { InviteRulesTab, type InviteRulesTabValues } from './InviteRulesTab';
 import {
-    createGroupOptions,
-    createInstanceOptions,
     normalizeContextRule,
     type ContextAutomationRule,
     type TimeAutomationRule
@@ -84,43 +75,6 @@ function enqueueConfigWrite(
         });
     queues.set(key, nextWrite);
     return nextWrite;
-}
-
-function usePresenceOptions() {
-    const { t } = useTranslation();
-    const favoriteFriendGroups = useFavoriteStore(
-        (state) => state.favoriteFriendGroups
-    );
-    const localFriendFavoriteGroups = useFavoriteStore(
-        (state) => state.localFriendFavoriteGroups
-    );
-    const favoriteWorldGroups = useFavoriteStore(
-        (state) => state.favoriteWorldGroups
-    );
-    const localWorldFavorites = useLocalWorldFavorites();
-
-    const groupOptions = useMemo(
-        () =>
-            createGroupOptions({
-                remoteGroups: favoriteFriendGroups,
-                localGroups: localFriendFavoriteGroups
-            }),
-        [favoriteFriendGroups, localFriendFavoriteGroups]
-    );
-    const worldGroupOptions = useMemo(
-        () =>
-            createGroupOptions({
-                remoteGroups: favoriteWorldGroups,
-                localGroups: localWorldFavorites.groupNames
-            }),
-        [favoriteWorldGroups, localWorldFavorites.groupNames]
-    );
-    const instanceOptions = useMemo(
-        () => createInstanceOptions(instanceTypes, t),
-        [t]
-    );
-
-    return { groupOptions, worldGroupOptions, instanceOptions };
 }
 
 export function PresenceScheduleDialog({
@@ -224,12 +178,6 @@ export function PresenceRoomRulesDialog({
 }: DialogOpenProps) {
     const { t } = useTranslation();
     const writeQueuesRef = useRef(new Map());
-    const { groupOptions, worldGroupOptions, instanceOptions } =
-        usePresenceOptions();
-    const friendsById = useFriendRosterStore((state) => state.friendsById);
-    const orderedFriendIds = useFriendRosterStore(
-        (state) => state.orderedFriendIds
-    );
     const [contextRules, setContextRules] = useState<ContextAutomationRule[]>(
         []
     );
@@ -310,11 +258,6 @@ export function PresenceRoomRulesDialog({
                     <div className="px-4 pb-4">
                         <ContextRulesTab
                             loading={loading}
-                            friendsById={friendsById}
-                            orderedFriendIds={orderedFriendIds}
-                            groupOptions={groupOptions}
-                            worldGroupOptions={worldGroupOptions}
-                            instanceOptions={instanceOptions}
                             contextRules={contextRules}
                             onRulesChange={(nextRules) => {
                                 saveContextRules(nextRules);
@@ -333,7 +276,6 @@ export function PresenceInviteRequestsDialog({
 }: DialogOpenProps) {
     const { t } = useTranslation();
     const writeQueuesRef = useRef(new Map());
-    const { groupOptions } = usePresenceOptions();
     const [values, setValues] = useState<InviteRulesTabValues>(
         DEFAULT_INVITE_VALUES
     );
@@ -424,7 +366,6 @@ export function PresenceInviteRequestsDialog({
                         <InviteRulesTab
                             values={values}
                             loading={loading}
-                            groupOptions={groupOptions}
                             onSaveValue={saveValue}
                         />
                     </div>

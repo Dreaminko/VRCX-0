@@ -84,7 +84,7 @@ vi.mock('../SettingsViewParts', () => ({
     )
 }));
 
-import { SettingsNotificationsTab } from './SettingsNotificationsTab';
+import { SettingsNotificationsTabContent as SettingsNotificationsTab } from './SettingsNotificationsTab';
 
 type TabProps = ComponentProps<typeof SettingsNotificationsTab>;
 

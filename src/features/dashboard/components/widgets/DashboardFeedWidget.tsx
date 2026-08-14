@@ -11,9 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 import { AffinityBadge } from '@/components/affinity/AffinityBadge';
-import type { FeedLiveEntry, FeedLivePatch } from '@/domain/feed/feedLiveTypes';
 import type { FeedReadModelResult } from '@/domain/feed/feedReadModelTypes';
-import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
 import { FeedPersistenceDisabledIndicator } from '@/features/feed/components/FeedPersistenceDisabledIndicator';
 import { mergeFeedRowsWithSnapshot } from '@/features/feed/feedLiveMerge';
 import type { FeedRow } from '@/features/feed/feedTypes';
@@ -53,39 +51,40 @@ type DashboardFeedWidgetRow = FeedRow & {
     isFavorite: boolean;
 };
 
-type DashboardFeedWidgetViewProps = {
+type DashboardFeedWidgetProps = {
     config?: Record<string, unknown>;
     configUpdater?: ((nextConfig: Record<string, unknown>) => void) | null;
-    currentUserId: string | null;
-    addGameLogEventCount: number;
-    liveFeedEntries: FeedLiveEntry[];
-    liveFeedPatches?: FeedLivePatch[];
-    liveFeedVersion: number;
-    remoteFavoriteFriendIds: unknown[];
-    localFriendFavorites: unknown;
-    friendsById: FriendRosterById;
-    feedPersistenceDisabled: boolean;
 };
 
-type DashboardFeedWidgetProps = Pick<
-    DashboardFeedWidgetViewProps,
-    'config' | 'configUpdater'
->;
-
-export function DashboardFeedWidgetView({
+export function DashboardFeedWidget({
     config = {},
-    configUpdater = null,
-    currentUserId,
-    addGameLogEventCount,
-    liveFeedEntries,
-    liveFeedPatches = [],
-    liveFeedVersion,
-    remoteFavoriteFriendIds,
-    localFriendFavorites,
-    friendsById,
-    feedPersistenceDisabled
-}: DashboardFeedWidgetViewProps) {
+    configUpdater = null
+}: DashboardFeedWidgetProps) {
     const { t } = useTranslation();
+    const { currentUserId, addGameLogEventCount } = useRuntimeStore(
+        useShallow((state) => ({
+            currentUserId: state.auth.currentUserId,
+            addGameLogEventCount: state.runtimeEvents.addGameLogEvent.count
+        }))
+    );
+    const { liveFeedEntries, liveFeedPatches, liveFeedVersion } =
+        useFeedLiveStore(
+            useShallow((state) => ({
+                liveFeedEntries: state.entries,
+                liveFeedPatches: state.patches,
+                liveFeedVersion: state.version
+            }))
+        );
+    const { remoteFavoriteFriendIds, localFriendFavorites } = useFavoriteStore(
+        useShallow((state) => ({
+            remoteFavoriteFriendIds: state.favoriteFriendIds,
+            localFriendFavorites: state.localFriendFavorites
+        }))
+    );
+    const friendsById = useFriendRosterStore((state) => state.friendsById);
+    const feedPersistenceDisabled = usePreferencesStore(
+        (state) => state.feedPersistenceDisabled
+    );
     const lastLiveFeedSequenceRef = useRef(0);
     const liveFeedSnapshotRef = useRef({
         entries: liveFeedEntries,
@@ -511,51 +510,5 @@ export function DashboardFeedWidgetView({
                 );
             })}
         </div>
-    );
-}
-
-export function DashboardFeedWidget({
-    config = {},
-    configUpdater = null
-}: DashboardFeedWidgetProps) {
-    const { currentUserId, addGameLogEventCount } = useRuntimeStore(
-        useShallow((state) => ({
-            currentUserId: state.auth.currentUserId,
-            addGameLogEventCount: state.runtimeEvents.addGameLogEvent.count
-        }))
-    );
-    const { liveFeedEntries, liveFeedPatches, liveFeedVersion } =
-        useFeedLiveStore(
-            useShallow((state) => ({
-                liveFeedEntries: state.entries,
-                liveFeedPatches: state.patches,
-                liveFeedVersion: state.version
-            }))
-        );
-    const { remoteFavoriteFriendIds, localFriendFavorites } = useFavoriteStore(
-        useShallow((state) => ({
-            remoteFavoriteFriendIds: state.favoriteFriendIds,
-            localFriendFavorites: state.localFriendFavorites
-        }))
-    );
-    const friendsById = useFriendRosterStore((state) => state.friendsById);
-    const feedPersistenceDisabled = usePreferencesStore(
-        (state) => state.feedPersistenceDisabled
-    );
-
-    return (
-        <DashboardFeedWidgetView
-            config={config}
-            configUpdater={configUpdater}
-            currentUserId={currentUserId}
-            addGameLogEventCount={addGameLogEventCount}
-            liveFeedEntries={liveFeedEntries}
-            liveFeedPatches={liveFeedPatches}
-            liveFeedVersion={liveFeedVersion}
-            remoteFavoriteFriendIds={remoteFavoriteFriendIds}
-            localFriendFavorites={localFriendFavorites}
-            friendsById={friendsById}
-            feedPersistenceDisabled={feedPersistenceDisabled}
-        />
     );
 }

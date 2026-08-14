@@ -26,6 +26,7 @@ import {
     ToolbarViews
 } from '@/components/layout/ToolbarControls';
 import { cn } from '@/lib/utils';
+import { usePreferencesStore } from '@/state/preferencesStore';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -62,7 +63,6 @@ type FeedColumnsModeProps = {
     modeToggle: ReactNode;
     onColumnsChange(columns: FeedColumnConfig[]): void;
     onDensityChange(value: FeedColumnDensity): void;
-    feedPersistenceDisabled: boolean;
 };
 
 type SortableFeedColumnProps = {
@@ -174,10 +174,12 @@ export function FeedColumnsMode({
     density,
     modeToggle,
     onColumnsChange,
-    onDensityChange,
-    feedPersistenceDisabled
+    onDensityChange
 }: FeedColumnsModeProps) {
     const { t } = useTranslation();
+    const feedPersistenceDisabled = usePreferencesStore(
+        (state) => state.feedPersistenceDisabled
+    );
     const friendActions = useFeedFriendActions();
     const previousInstancesDialog = useFeedPreviousInstancesDialog();
     const timeDisplayMode = useFeedTimeDisplayMode();

@@ -22,16 +22,16 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import { SettingsAiTab } from './components/settings-tabs/SettingsAiTab';
+import { SettingsAdvancedTab } from './components/settings-tabs/SettingsAdvancedTab';
 import { SettingsFeedbackTab } from './components/settings-tabs/SettingsFeedbackTab';
 import { SettingsIntegrationsTab } from './components/settings-tabs/SettingsIntegrationsTab';
 import { SettingsInterfaceTab } from './components/settings-tabs/SettingsInterfaceTab';
 import { SettingsMediaTab } from './components/settings-tabs/SettingsMediaTab';
+import { SettingsNotificationsTab } from './components/settings-tabs/SettingsNotificationsTab';
 import { SettingsSocialTab } from './components/settings-tabs/SettingsSocialTab';
-import { SettingsAdvancedSection } from './components/SettingsAdvancedSection';
+import { SettingsSystemTab } from './components/settings-tabs/SettingsSystemTab';
+import { SettingsVrTab } from './components/settings-tabs/SettingsVrTab';
 import { SettingsDialogs } from './components/SettingsDialogs';
-import { SettingsNotificationsSection } from './components/SettingsNotificationsSection';
-import { SettingsSystemSection } from './components/SettingsSystemSection';
-import { SettingsVrSection } from './components/SettingsVrSection';
 import {
     SettingsPageStateProvider,
     useSettingsPageSection
@@ -90,15 +90,15 @@ function SettingsPageContent() {
                     })}
                 </TabsList>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <SettingsSystemSection />
+                    <SettingsSystemTab />
                     <SettingsInterfaceTab />
                     <SettingsSocialTab />
-                    <SettingsNotificationsSection />
-                    <SettingsVrSection />
+                    <SettingsNotificationsTab />
+                    <SettingsVrTab />
                     <SettingsMediaTab />
                     <SettingsAiTab active={shell.activeSettingsTab === 'ai'} />
                     <SettingsIntegrationsTab />
-                    <SettingsAdvancedSection />
+                    <SettingsAdvancedTab />
                     <SettingsFeedbackTab />
                 </div>
             </Tabs>

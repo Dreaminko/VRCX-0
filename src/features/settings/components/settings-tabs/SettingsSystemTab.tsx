@@ -7,8 +7,9 @@ import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
+import { useSettingsSystemTabState } from '../useSettingsSystemTabState';
 
-type SettingsSystemTabProps = {
+type SettingsSystemTabContentProps = {
     autoInstallUpdatesOnStartup?: boolean;
     autoLoginDelayEnabled?: boolean;
     autoLoginDelaySeconds?: ReactNode;
@@ -39,7 +40,12 @@ type SettingsSystemTabProps = {
     onSystemWindowFrameChange: (checked: boolean) => unknown;
 };
 
-export function SettingsSystemTab({
+export function SettingsSystemTab() {
+    const state = useSettingsSystemTabState();
+    return <SettingsSystemTabContent {...state} />;
+}
+
+export function SettingsSystemTabContent({
     hostPlatform = 'unknown',
     isStartAtWindowsStartup,
     isStartAsMinimizedState,
@@ -68,7 +74,7 @@ export function SettingsSystemTab({
     onPostUpdateChangelogToastChange,
     onProxyEnabledChange,
     onProxySettings
-}: SettingsSystemTabProps) {
+}: SettingsSystemTabContentProps) {
     const { t } = useTranslation();
     const isWindows = hostPlatform === 'windows';
     const startupLabel = isWindows

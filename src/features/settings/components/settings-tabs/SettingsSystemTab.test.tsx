@@ -45,7 +45,7 @@ vi.mock('../SettingsViewParts', () => ({
     SettingsTabContent: ({ children }: ChildrenProps) => <div>{children}</div>
 }));
 
-import { SettingsSystemTab } from './SettingsSystemTab';
+import { SettingsSystemTabContent as SettingsSystemTab } from './SettingsSystemTab';
 
 function noop() {}
 

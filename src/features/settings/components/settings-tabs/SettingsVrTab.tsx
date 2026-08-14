@@ -15,6 +15,7 @@ import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
+import { useSettingsVrTabState } from '../useSettingsVrTabState';
 
 type SettingsVrPrefs = Record<string, unknown> & {
     hmdNotificationOpacity?: number;
@@ -39,7 +40,7 @@ type SettingsVrPrefs = Record<string, unknown> & {
     xsNotifications?: boolean;
 };
 
-type SettingsVrTabProps = {
+type SettingsVrTabContentProps = {
     prefs: SettingsVrPrefs;
     onImageNotificationsChange: (checked: boolean) => unknown;
     onHmdNotificationOpacityChange: (value: unknown) => unknown;
@@ -103,7 +104,12 @@ const wristSizeOptions = [
     ['large', 'view.settings.vr.wrist_overlay.size_large']
 ] as const;
 
-export function SettingsVrTab({
+export function SettingsVrTab() {
+    const state = useSettingsVrTabState();
+    return <SettingsVrTabContent {...state} />;
+}
+
+export function SettingsVrTabContent({
     prefs,
     onXsNotificationsChange,
     onOvrtHudNotificationsChange,
@@ -128,7 +134,7 @@ export function SettingsVrTab({
     onWristOverlayShowDevicesChange,
     onWristOverlayShowBatteryPercentChange,
     onOpenWristFeedNotificationsDialog
-}: SettingsVrTabProps) {
+}: SettingsVrTabContentProps) {
     const { t } = useTranslation();
     const hmdNotificationsEnabled = Boolean(prefs.hmdNotificationsEnabled);
     const wristOverlayEnabled = Boolean(prefs.wristOverlayEnabled);

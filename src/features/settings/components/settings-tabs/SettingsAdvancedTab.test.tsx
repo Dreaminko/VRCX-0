@@ -7,7 +7,7 @@ import type { AppDataDirState } from '@/platform/tauri/bindings';
 import { Tabs } from '@/ui/shadcn/tabs';
 import { TooltipProvider } from '@/ui/shadcn/tooltip';
 
-import { SettingsAdvancedTab } from './SettingsAdvancedTab';
+import { SettingsAdvancedTabContent as SettingsAdvancedTab } from './SettingsAdvancedTab';
 import type { SettingsAdvancedModel } from './settingsAdvancedTypes';
 
 const labels: Record<string, string> = {

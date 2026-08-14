@@ -16,6 +16,7 @@ import { Switch } from '@/ui/shadcn/switch';
 
 import { Field, SettingsGroup } from '../SettingsField';
 import { SettingsTabContent } from '../SettingsViewParts';
+import { useSettingsNotificationsTabState } from '../useSettingsNotificationsTabState';
 
 type SettingsOptionList = ReadonlyArray<readonly [string, string]>;
 
@@ -29,7 +30,7 @@ type SettingsNotificationsPrefs = Record<string, unknown> & {
     notificationTTSVoiceNative?: string;
 };
 
-type SettingsNotificationsTabProps = {
+type SettingsNotificationsTabContentProps = {
     desktopToastOptions: SettingsOptionList;
     notificationTtsOptions: SettingsOptionList;
     notificationTtsNameModeOptions: SettingsOptionList;
@@ -50,7 +51,12 @@ type SettingsNotificationsTabProps = {
     ttsVoices: TtsVoice[];
 };
 
-export function SettingsNotificationsTab({
+export function SettingsNotificationsTab() {
+    const state = useSettingsNotificationsTabState();
+    return <SettingsNotificationsTabContent {...state} />;
+}
+
+export function SettingsNotificationsTabContent({
     prefs,
     desktopToastOptions,
     notificationTtsOptions,
@@ -69,7 +75,7 @@ export function SettingsNotificationsTab({
     onNotificationTtsTestVisibleChange,
     onNotificationTtsTestChange,
     onSpeakNotificationTts
-}: SettingsNotificationsTabProps) {
+}: SettingsNotificationsTabContentProps) {
     const { t } = useTranslation();
     const ttsNameMode = normalizeNotificationTtsNameMode(
         prefs.notificationTTSNameMode,
