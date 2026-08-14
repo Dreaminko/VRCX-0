@@ -260,9 +260,7 @@ pub(super) fn create_main_window(
             .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidInput, error))?;
         builder = builder.proxy_url(proxy_url);
     }
-    builder = builder
-        .zoom_hotkeys_enabled(false)
-        .browser_extensions_enabled(false);
+    builder = builder.browser_extensions_enabled(false);
 
     let main_window = builder.build()?;
     #[cfg(target_os = "windows")]
