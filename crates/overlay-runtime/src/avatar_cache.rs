@@ -3,62 +3,42 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc, Mutex,
 };
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
+use moka::policy::EvictionPolicy;
+use moka::sync::Cache;
 use vrcx_0_application_core::WebClient;
 use vrcx_0_vr_overlay::AvatarBitmap;
 
 const HMD_AVATAR_SIZE: u32 = 128;
 const HMD_AVATAR_MASK_FEATHER_PX: f32 = 2.0;
 const HMD_AVATAR_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
-const HMD_AVATAR_FAILURE_TTL: Duration = Duration::from_secs(60);
-const HMD_AVATAR_CACHE_CAPACITY: usize = 128;
-
-#[derive(Default)]
-struct AvatarBitmapCacheState {
-    entries: HashMap<String, AvatarBitmapCacheEntry>,
-    next_seq: u64,
-}
+const HMD_AVATAR_CACHE_CAPACITY: u64 = 128;
 
 #[derive(Clone)]
 struct AvatarBitmapCacheEntry {
     bitmap: AvatarBitmap,
     user_id: String,
-    last_used_seq: u64,
 }
 
-impl AvatarBitmapCacheState {
-    fn next_lru_seq(&mut self) -> u64 {
-        self.next_seq = self.next_seq.saturating_add(1);
-        self.next_seq
-    }
-
-    fn evict_oldest_if_over_capacity(&mut self) {
-        while self.entries.len() > HMD_AVATAR_CACHE_CAPACITY {
-            let Some(oldest_url) = self
-                .entries
-                .iter()
-                .min_by_key(|(_, entry)| entry.last_used_seq)
-                .map(|(url, _)| url.clone())
-            else {
-                break;
-            };
-            self.entries.remove(&oldest_url);
-        }
-    }
-}
-
-#[derive(Default)]
 pub(super) struct AvatarBitmapCache {
-    success: Mutex<AvatarBitmapCacheState>,
-    failures: Mutex<HashMap<String, Instant>>,
+    success: Cache<String, AvatarBitmapCacheEntry>,
+    success_access: Mutex<()>,
     inflight: Mutex<HashMap<String, std::sync::Weak<tokio::sync::Mutex<()>>>>,
     generation: AtomicU64,
 }
 
 impl AvatarBitmapCache {
     pub(super) fn new() -> Self {
-        Self::default()
+        Self {
+            success: Cache::builder()
+                .max_capacity(HMD_AVATAR_CACHE_CAPACITY)
+                .eviction_policy(EvictionPolicy::tiny_lfu())
+                .build(),
+            success_access: Mutex::new(()),
+            inflight: Mutex::new(HashMap::new()),
+            generation: AtomicU64::new(0),
+        }
     }
 
     pub(super) async fn resolve(
@@ -76,30 +56,16 @@ impl AvatarBitmapCache {
         if let Some(bitmap) = self.cached(url, user_id) {
             return Some(bitmap);
         }
-        if self.recently_failed(url) {
-            return None;
-        }
         let inflight = self.inflight_lock(url);
         let _guard = inflight.lock().await;
         if let Some(bitmap) = self.cached(url, user_id) {
             return Some(bitmap);
         }
-        if self.recently_failed(url) {
-            return None;
-        }
-        let bitmap = self.fetch_and_decode(web, url).await;
-        match bitmap {
-            Some(bitmap) => {
-                if self.store_success_if_generation(url, user_id, bitmap.clone(), generation) {
-                    Some(bitmap)
-                } else {
-                    None
-                }
-            }
-            None => {
-                self.store_failure_if_generation(url, generation);
-                None
-            }
+        let bitmap = self.fetch_and_decode(web, url).await?;
+        if self.store_success_if_generation(url, user_id, bitmap.clone(), generation) {
+            Some(bitmap)
+        } else {
+            None
         }
     }
 
@@ -118,29 +84,15 @@ impl AvatarBitmapCache {
         if url.is_empty() || user_id.is_empty() {
             return None;
         }
-        let mut success = self
-            .success
+        let _success_access = self
+            .success_access
             .lock()
             .unwrap_or_else(|error| error.into_inner());
-        if success
-            .entries
-            .get(url)
-            .is_none_or(|entry| entry.user_id != user_id)
-        {
+        let entry = self.success.get(url)?;
+        if entry.user_id != user_id {
             return None;
         }
-        let last_used_seq = success.next_lru_seq();
-        let entry = success.entries.get_mut(url)?;
-        entry.last_used_seq = last_used_seq;
-        Some(entry.bitmap.clone())
-    }
-
-    fn recently_failed(&self, url: &str) -> bool {
-        self.failures
-            .lock()
-            .unwrap_or_else(|error| error.into_inner())
-            .get(url)
-            .is_some_and(|at| at.elapsed() < HMD_AVATAR_FAILURE_TTL)
+        Some(entry.bitmap)
     }
 
     #[cfg(test)]
@@ -162,45 +114,20 @@ impl AvatarBitmapCache {
         {
             return false;
         }
-        let mut success = self
-            .success
+        let _success_access = self
+            .success_access
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         if !self.is_generation_current(generation) {
             return false;
         }
-        let last_used_seq = success.next_lru_seq();
-        success.entries.insert(
+        self.success.insert(
             url.to_string(),
             AvatarBitmapCacheEntry {
                 bitmap,
                 user_id: user_id.to_string(),
-                last_used_seq,
             },
         );
-        success.evict_oldest_if_over_capacity();
-        true
-    }
-
-    #[cfg(test)]
-    fn store_failure(&self, url: &str) {
-        let generation = self.generation();
-        let _ = self.store_failure_if_generation(url, generation);
-    }
-
-    fn store_failure_if_generation(&self, url: &str, generation: u64) -> bool {
-        if !self.is_generation_current(generation) {
-            return false;
-        }
-        let mut failures = self
-            .failures
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        if !self.is_generation_current(generation) {
-            return false;
-        }
-        failures.retain(|_, at| at.elapsed() < HMD_AVATAR_FAILURE_TTL);
-        failures.insert(url.to_string(), Instant::now());
         true
     }
 
@@ -219,12 +146,8 @@ impl AvatarBitmapCache {
     }
 
     pub(super) fn clear(&self) {
-        let mut success = self
-            .success
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        let mut failures = self
-            .failures
+        let _success_access = self
+            .success_access
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         let mut inflight = self
@@ -232,8 +155,7 @@ impl AvatarBitmapCache {
             .lock()
             .unwrap_or_else(|error| error.into_inner());
         self.generation.fetch_add(1, Ordering::AcqRel);
-        *success = AvatarBitmapCacheState::default();
-        failures.clear();
+        self.success.invalidate_all();
         inflight.clear();
     }
 
@@ -293,6 +215,7 @@ pub(crate) mod tests {
     use super::*;
     use std::io::Cursor;
     use std::sync::{Barrier, TryLockError};
+    use std::time::Instant;
 
     #[test]
     fn circular_avatar_mask_makes_corners_transparent() {
@@ -361,50 +284,21 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn avatar_bitmap_cache_evicts_least_recently_used_entry_after_capacity() {
+    fn avatar_bitmap_cache_uses_bounded_moka_storage() {
         assert_eq!(HMD_AVATAR_CACHE_CAPACITY, 128);
         let cache = AvatarBitmapCache::new();
-        for index in 0..HMD_AVATAR_CACHE_CAPACITY {
+        assert_eq!(
+            cache.success.policy().max_capacity(),
+            Some(HMD_AVATAR_CACHE_CAPACITY)
+        );
+        for index in 0..HMD_AVATAR_CACHE_CAPACITY * 2 {
             let url = format!("https://images.example/avatar/{index}");
             let user_id = format!("usr_friend_{index}");
             cache.store_success(&url, &user_id, test_avatar_bitmap());
         }
+        cache.success.run_pending_tasks();
 
-        assert!(cache
-            .cached("https://images.example/avatar/0", "usr_friend_0")
-            .is_some());
-        cache.store_success(
-            "https://images.example/avatar/new",
-            "usr_friend_new",
-            test_avatar_bitmap(),
-        );
-
-        assert!(cache
-            .cached("https://images.example/avatar/0", "usr_friend_0")
-            .is_some());
-        assert!(cache
-            .cached("https://images.example/avatar/1", "usr_friend_1")
-            .is_none());
-        assert!(cache
-            .cached("https://images.example/avatar/new", "usr_friend_new")
-            .is_some());
-    }
-
-    #[test]
-    fn avatar_bitmap_cache_failure_ttl_still_suppresses_short_term_retries() {
-        let cache = AvatarBitmapCache::new();
-        cache.store_failure("https://images.example/avatar");
-
-        assert!(cache.recently_failed("https://images.example/avatar"));
-
-        *cache
-            .failures
-            .lock()
-            .unwrap()
-            .get_mut("https://images.example/avatar")
-            .unwrap() = Instant::now() - HMD_AVATAR_FAILURE_TTL - Duration::from_secs(1);
-
-        assert!(!cache.recently_failed("https://images.example/avatar"));
+        assert!(cache.success.entry_count() <= HMD_AVATAR_CACHE_CAPACITY);
     }
 
     #[test]
@@ -423,15 +317,13 @@ pub(crate) mod tests {
         assert!(cache
             .cached("https://images.example/avatar", "usr_friend")
             .is_none());
-        assert!(!cache.store_failure_if_generation("https://images.example/avatar", generation));
-        assert!(!cache.recently_failed("https://images.example/avatar"));
     }
 
     #[test]
     fn avatar_bitmap_cache_clear_publishes_generation_after_locking_all_state() {
         let cache = Arc::new(AvatarBitmapCache::new());
         let generation = cache.generation();
-        let failures = cache.failures.lock().unwrap();
+        let inflight = cache.inflight.lock().unwrap();
         let started = Arc::new(Barrier::new(2));
         let clear_cache = Arc::clone(&cache);
         let clear_started = Arc::clone(&started);
@@ -443,10 +335,10 @@ pub(crate) mod tests {
 
         let deadline = Instant::now() + Duration::from_secs(5);
         loop {
-            match cache.success.try_lock() {
+            match cache.success_access.try_lock() {
                 Err(TryLockError::WouldBlock) => break,
                 Err(TryLockError::Poisoned(error)) => panic!("success cache poisoned: {error}"),
-                Ok(success) => drop(success),
+                Ok(success_access) => drop(success_access),
             }
             assert!(
                 Instant::now() < deadline,
@@ -456,7 +348,7 @@ pub(crate) mod tests {
         }
 
         assert_eq!(cache.generation(), generation);
-        drop(failures);
+        drop(inflight);
         clear.join().unwrap();
         assert_ne!(cache.generation(), generation);
     }

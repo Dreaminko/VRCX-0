@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 
 use serde_json::{Map, Value};
@@ -6,16 +6,8 @@ use vrcx_0_core::user_facts::{
     merge_user_fact_owned, normalize_user_id, user_fact_key, UserFact, UserFactMergeOptions,
 };
 
-const NON_FRIEND_CAPACITY: usize = 128;
-
 pub(crate) struct UserCacheRuntime {
-    state: Mutex<UserCacheState>,
-}
-
-struct UserCacheState {
-    users: HashMap<String, UserFact>,
-    non_friend_lru: VecDeque<String>,
-    capacity: usize,
+    users: Mutex<HashMap<String, UserFact>>,
 }
 
 pub(crate) struct UserCacheOutput {
@@ -24,29 +16,28 @@ pub(crate) struct UserCacheOutput {
 
 impl UserCacheRuntime {
     pub(crate) fn new() -> Self {
-        Self::with_capacity(NON_FRIEND_CAPACITY)
-    }
-
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
         Self {
-            state: Mutex::new(UserCacheState {
-                users: HashMap::new(),
-                non_friend_lru: VecDeque::new(),
-                capacity: capacity.max(1),
-            }),
+            users: Mutex::new(HashMap::new()),
         }
     }
 
-    fn lock(&self) -> MutexGuard<'_, UserCacheState> {
-        self.state
+    fn lock_users(&self) -> MutexGuard<'_, HashMap<String, UserFact>> {
+        self.users
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub(crate) fn clear(&self) {
-        let mut state = self.lock();
-        state.users.clear();
-        state.non_friend_lru.clear();
+        self.lock_users().clear();
+    }
+
+    pub(crate) fn remove_users(&self, endpoint: &str, user_ids: &[String]) {
+        let endpoint = Value::String(endpoint.to_string());
+        let mut users = self.lock_users();
+        for user_id in user_ids {
+            let key = user_fact_key(&endpoint, &Value::String(user_id.clone()));
+            users.remove(&key);
+        }
     }
 
     fn extract_user_id(value: &Value) -> String {
@@ -76,14 +67,15 @@ impl UserCacheRuntime {
             return None;
         }
 
-        let mut state = self.lock();
-        let result = merge_user_fact_owned(state.users.remove(&key), value, options);
+        let mut users = self.lock_users();
+        let result = merge_user_fact_owned(users.remove(&key), value, options);
         let pinned = is_pinned(&result.fact);
         let output = result.changed.then(|| UserCacheOutput {
             user: result.fact.to_object(),
         });
-        state.users.insert(key.clone(), result.fact);
-        touch_lru(&mut state, &key, pinned);
+        if pinned {
+            users.insert(key, result.fact);
+        }
         output
     }
 
@@ -95,12 +87,7 @@ impl UserCacheRuntime {
         if key.is_empty() {
             return None;
         }
-        let mut state = self.lock();
-        let fact = state.users.get(&key)?.clone();
-        let pinned = is_pinned(&fact);
-        let object = fact.to_object();
-        touch_lru(&mut state, &key, pinned);
-        Some(object)
+        self.lock_users().get(&key).map(UserFact::to_object)
     }
 
     pub(crate) fn get_users(
@@ -108,7 +95,7 @@ impl UserCacheRuntime {
         endpoint: &str,
         user_ids: &[String],
     ) -> Vec<(String, Map<String, Value>)> {
-        let mut state = self.lock();
+        let users_by_key = self.lock_users();
         let mut users = Vec::new();
         for user_id in user_ids {
             let key = user_fact_key(
@@ -118,12 +105,10 @@ impl UserCacheRuntime {
             if key.is_empty() {
                 continue;
             }
-            let Some(fact) = state.users.get(&key).cloned() else {
+            let Some(fact) = users_by_key.get(&key) else {
                 continue;
             };
-            let pinned = is_pinned(&fact);
             let object = fact.to_object();
-            touch_lru(&mut state, &key, pinned);
             users.push((user_id.clone(), object));
         }
         users
@@ -133,19 +118,6 @@ impl UserCacheRuntime {
 fn is_pinned(fact: &UserFact) -> bool {
     fact.fields.get("isFriend").and_then(Value::as_bool) == Some(true)
         || fact.fields.get("isCurrentUser").and_then(Value::as_bool) == Some(true)
-}
-
-fn touch_lru(state: &mut UserCacheState, key: &str, pinned: bool) {
-    state.non_friend_lru.retain(|existing| existing != key);
-    if pinned {
-        return;
-    }
-    state.non_friend_lru.push_back(key.to_string());
-    while state.non_friend_lru.len() > state.capacity {
-        if let Some(evicted) = state.non_friend_lru.pop_front() {
-            state.users.remove(&evicted);
-        }
-    }
 }
 
 #[cfg(test)]
@@ -168,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn record_returns_output_on_change_and_caches_it() {
+    fn non_friend_record_returns_output_without_being_retained() {
         let cache = UserCacheRuntime::new();
         let out = cache.record_user(
             &json!({ "id": "usr_1", "displayName": "Alice" }),
@@ -179,65 +151,22 @@ mod tests {
             out.unwrap().user.get("displayName").and_then(Value::as_str),
             Some("Alice")
         );
-        let cached = cache.get_user("https://api.example.test", "usr_1").unwrap();
-        assert_eq!(
-            cached.get("displayName").and_then(Value::as_str),
-            Some("Alice")
-        );
+        assert!(cache
+            .get_user("https://api.example.test", "usr_1")
+            .is_none());
     }
 
     #[test]
-    fn unchanged_record_returns_none() {
+    fn unchanged_friend_record_returns_none() {
         let cache = UserCacheRuntime::new();
-        cache.record_user(&json!({ "id": "usr_1", "state": "online" }), &opts(false));
-        let again = cache.record_user(&json!({ "id": "usr_1", "state": "online" }), &opts(false));
+        cache.record_user(&json!({ "id": "usr_1", "state": "online" }), &opts(true));
+        let again = cache.record_user(&json!({ "id": "usr_1", "state": "online" }), &opts(true));
         assert!(again.is_none());
     }
 
     #[test]
-    fn non_friend_lru_evicts_oldest() {
-        let cache = UserCacheRuntime::with_capacity(2);
-        cache.record_user(&json!({ "id": "usr_a", "displayName": "A" }), &opts(false));
-        cache.record_user(&json!({ "id": "usr_b", "displayName": "B" }), &opts(false));
-        cache.record_user(&json!({ "id": "usr_c", "displayName": "C" }), &opts(false));
-        assert!(cache
-            .get_user("https://api.example.test", "usr_a")
-            .is_none());
-        assert!(cache
-            .get_user("https://api.example.test", "usr_b")
-            .is_some());
-        assert!(cache
-            .get_user("https://api.example.test", "usr_c")
-            .is_some());
-    }
-
-    #[test]
-    fn default_non_friend_capacity_is_128() {
+    fn friends_are_retained_while_non_friends_are_not() {
         let cache = UserCacheRuntime::new();
-        for index in 0..=128 {
-            cache.record_user(
-                &json!({
-                    "id": format!("usr_{index}"),
-                    "displayName": format!("User {index}")
-                }),
-                &opts(false),
-            );
-        }
-
-        assert!(cache
-            .get_user("https://api.example.test", "usr_0")
-            .is_none());
-        assert!(cache
-            .get_user("https://api.example.test", "usr_1")
-            .is_some());
-        assert!(cache
-            .get_user("https://api.example.test", "usr_128")
-            .is_some());
-    }
-
-    #[test]
-    fn friends_are_pinned_and_never_evicted() {
-        let cache = UserCacheRuntime::with_capacity(1);
         cache.record_user(
             &json!({ "id": "usr_friend", "displayName": "F" }),
             &opts(true),
@@ -250,8 +179,8 @@ mod tests {
     }
 
     #[test]
-    fn current_user_stays_pinned_after_a_cache_hit() {
-        let cache = UserCacheRuntime::with_capacity(1);
+    fn current_user_is_retained() {
+        let cache = UserCacheRuntime::new();
         cache.record_user(
             &json!({ "id": "usr_self", "displayName": "Self" }),
             &UserFactMergeOptions {
@@ -271,19 +200,15 @@ mod tests {
     }
 
     #[test]
-    fn clear_drops_pinned_and_unpinned() {
+    fn clear_drops_retained_users() {
         let cache = UserCacheRuntime::new();
         cache.record_user(
             &json!({ "id": "usr_friend", "displayName": "F" }),
             &opts(true),
         );
-        cache.record_user(&json!({ "id": "usr_x", "displayName": "X" }), &opts(false));
         cache.clear();
         assert!(cache
             .get_user("https://api.example.test", "usr_friend")
-            .is_none());
-        assert!(cache
-            .get_user("https://api.example.test", "usr_x")
             .is_none());
     }
 }

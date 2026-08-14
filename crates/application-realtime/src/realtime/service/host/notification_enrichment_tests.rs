@@ -19,7 +19,7 @@ fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
             "displayName": "Cached Sender"
         },
         "source": "test",
-        "isFriend": false
+        "isFriend": true
     })]);
     runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
@@ -99,7 +99,7 @@ fn notification_cache_hit_enriches_avatar_image_for_runtime_delivery() -> Result
             "currentAvatarThumbnailImageUrl": "https://images.example/avatar-thumb.png"
         },
         "source": "test",
-        "isFriend": false
+        "isFriend": true
     })]);
     runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
@@ -167,7 +167,7 @@ fn notification_avatar_resolves_from_user_id_when_sender_field_absent() -> Resul
             "currentAvatarThumbnailImageUrl": "https://images.example/avatar-thumb.png"
         },
         "source": "test",
-        "isFriend": false
+        "isFriend": true
     })]);
     runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
@@ -357,7 +357,7 @@ fn notification_avatar_fallback_respects_vrc_plus_icon_preference() -> Result<()
             "currentAvatarThumbnailImageUrl": "https://images.example/avatar-thumb.png"
         },
         "source": "test",
-        "isFriend": false
+        "isFriend": true
     })]);
     runtime.runtime().deps.event_bus.take_events_for_test();
     let notification = json!({
@@ -639,7 +639,7 @@ fn cached_user_notification_image_url_reads_realtime_cache_hit() -> Result<()> {
             "profilePicOverride": "https://images.example/profile.png"
         },
         "source": "test",
-        "isFriend": false
+        "isFriend": true
     })]);
     let endpoint = runtime.runtime().active_endpoint();
 

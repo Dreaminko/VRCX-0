@@ -9314,6 +9314,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "image",
+ "moka",
  "serde",
  "serde_json",
  "specta",
@@ -9360,6 +9361,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "iana-time-zone",
+ "moka",
  "serde",
  "serde_json",
  "specta",

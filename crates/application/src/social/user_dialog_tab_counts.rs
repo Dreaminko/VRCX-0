@@ -27,7 +27,7 @@ use vrcx_0_vrchat_client::http_api::{ApiJsonResponse, ApiScope, HttpApiRequestIn
 use crate::{Error, Result};
 
 const MAX_PROFILE_PAGES: usize = 50;
-const TAB_COUNTS_CACHE_CAPACITY: u64 = 128;
+const TAB_COUNTS_CACHE_CAPACITY: u64 = 32;
 const TAB_COUNTS_CACHE_TTL: Duration = Duration::from_secs(10 * 60);
 const WORLD_PAGE_SIZE: usize = 100;
 const WORLD_MAX_OFFSET: i64 = ((MAX_PROFILE_PAGES - 1) * WORLD_PAGE_SIZE) as i64;

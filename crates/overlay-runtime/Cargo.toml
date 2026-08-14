@@ -14,6 +14,7 @@ openxr-overlay = ["vrcx-0-host-desktop/openxr-overlay"]
 [dependencies]
 chrono = { workspace = true }
 image.workspace = true
+moka = { version = "0.12", features = ["sync"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 specta.workspace = true

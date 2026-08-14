@@ -1523,6 +1523,11 @@ fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
         runtime.activity_sink_for_test().friend_user_ids(),
         vec!["usr_removed".to_string()]
     );
+    assert!(runtime
+        .runtime()
+        .user_cache
+        .get_user(&active_session.endpoint, "usr_removed")
+        .is_some());
     runtime.runtime().deps.event_bus.take_events_for_test();
 
     let result =
@@ -1548,6 +1553,11 @@ fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
         .unwrap()
         .friends_by_id
         .is_empty());
+    assert!(runtime
+        .runtime()
+        .user_cache
+        .get_user(&active_session.endpoint, "usr_removed")
+        .is_none());
     assert!(runtime
         .activity_sink_for_test()
         .friend_user_ids()

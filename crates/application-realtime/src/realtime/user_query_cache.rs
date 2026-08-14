@@ -11,6 +11,7 @@ use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 use vrcx_0_application_core::Error;
 
 const QUERY_CAPACITY: u64 = 128;
+const NEGATIVE_ENTRY_WEIGHT: u32 = 4;
 
 const TTL_DIALOG_SECS: u64 = 60;
 const TTL_LIVE_FRIEND_SECS: u64 = 300;
@@ -85,6 +86,14 @@ fn negative_ttl(status: i32) -> Option<Duration> {
     }
 }
 
+fn cache_entry_weight(_key: &String, value: &Arc<VrchatApiResponse>) -> u32 {
+    if negative_ttl(value.status).is_some() {
+        NEGATIVE_ENTRY_WEIGHT
+    } else {
+        1
+    }
+}
+
 pub(crate) fn is_negative_cacheable_status(status: i32) -> bool {
     negative_ttl(status).is_some()
 }
@@ -120,6 +129,7 @@ impl UserQueryCache {
         Self {
             cache: Cache::builder()
                 .max_capacity(QUERY_CAPACITY)
+                .weigher(cache_entry_weight)
                 .expire_after(UserQueryExpiry)
                 .build(),
         }
@@ -156,5 +166,56 @@ impl UserQueryCache {
 
     pub(crate) fn clear(&self) {
         self.cache.invalidate_all();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn negative_query_results_use_quarter_capacity_weight() {
+        let key = cache_key(
+            UserQueryKind::Dialog,
+            "https://api.vrchat.cloud/api/1",
+            "usr_test",
+        );
+        let success = Arc::new(VrchatApiResponse {
+            status: 200,
+            data: "{}".into(),
+        });
+        let failure = Arc::new(VrchatApiResponse {
+            status: 404,
+            data: "{}".into(),
+        });
+
+        assert_eq!(cache_entry_weight(&key, &success), 1);
+        assert_eq!(cache_entry_weight(&key, &failure), NEGATIVE_ENTRY_WEIGHT);
+        assert_eq!(QUERY_CAPACITY / u64::from(NEGATIVE_ENTRY_WEIGHT), 32);
+    }
+
+    #[tokio::test]
+    async fn negative_query_results_are_bounded_to_quarter_capacity() {
+        let cache = UserQueryCache::new();
+        for index in 0..QUERY_CAPACITY {
+            cache
+                .cache
+                .insert(
+                    cache_key(
+                        UserQueryKind::Dialog,
+                        "https://api.vrchat.cloud/api/1",
+                        &format!("usr_{index}"),
+                    ),
+                    Arc::new(VrchatApiResponse {
+                        status: 404,
+                        data: "{}".into(),
+                    }),
+                )
+                .await;
+        }
+        cache.cache.run_pending_tasks().await;
+
+        assert!(cache.cache.entry_count() <= 32);
+        assert!(cache.cache.weighted_size() <= QUERY_CAPACITY);
     }
 }

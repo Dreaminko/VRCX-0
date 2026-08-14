@@ -15,13 +15,11 @@ use vrcx_0_vrchat_client::http_api::{normalize_vrchat_api_endpoint, ApiScope};
 use crate::web_client::WebClient;
 
 const AVATAR_RESOLVE_FETCH_TIMEOUT_MS: u64 = 5_000;
-const AVATAR_RESOLVE_FAILURE_TTL: Duration = Duration::from_secs(60);
 
 pub struct AvatarCache {
     working: Cache<AvatarCacheKey, Arc<AvatarCacheEntry>>,
     db: Arc<DatabaseService>,
     inflight: Mutex<HashMap<AvatarCacheKey, Weak<tokio::sync::Mutex<()>>>>,
-    failures: Cache<AvatarCacheKey, ()>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -46,10 +44,6 @@ impl AvatarCache {
                 .build(),
             db,
             inflight: Mutex::new(HashMap::new()),
-            failures: Cache::builder()
-                .max_capacity(capacity)
-                .time_to_live(AVATAR_RESOLVE_FAILURE_TTL)
-                .build(),
         }
     }
 
@@ -153,9 +147,6 @@ impl AvatarCache {
                 }
             }
         }
-        if self.recently_failed(&key) && !fresh {
-            return Ok(None);
-        }
         let inflight = self.inflight_lock(&key);
         let _guard = inflight.lock().await;
         if !fresh {
@@ -167,20 +158,8 @@ impl AvatarCache {
                     return Ok(Some(Arc::new(summary_value(&summary)?)));
                 }
             }
-            if self.recently_failed(&key) {
-                return Ok(None);
-            }
         }
-        match self.fetch_avatar(web, &key).await {
-            Ok(value) => {
-                self.clear_failure(&key);
-                Ok(Some(value))
-            }
-            Err(error) => {
-                self.record_failure(&key);
-                Err(error)
-            }
-        }
+        self.fetch_avatar(web, &key).await.map(Some)
     }
 
     async fn fetch_avatar(
@@ -241,18 +220,6 @@ impl AvatarCache {
         full: bool,
     ) -> Option<Arc<Value>> {
         self.working_value_for_key(&cache_key(user_id, endpoint, avatar_id), full)
-    }
-
-    fn recently_failed(&self, key: &AvatarCacheKey) -> bool {
-        self.failures.contains_key(key)
-    }
-
-    fn record_failure(&self, key: &AvatarCacheKey) {
-        self.failures.insert(key.clone(), ());
-    }
-
-    fn clear_failure(&self, key: &AvatarCacheKey) {
-        self.failures.invalidate(key);
     }
 
     fn inflight_lock(&self, key: &AvatarCacheKey) -> Arc<tokio::sync::Mutex<()>> {

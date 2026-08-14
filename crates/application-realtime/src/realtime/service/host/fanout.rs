@@ -168,18 +168,25 @@ impl RealtimeHostRuntime {
                 sink();
             }
         }
-        if !projection.patches.is_empty() {
-            let changed = self.collect_friend_record_cache_changes(
-                projection.patches.iter().map(|patch| &patch.patch),
-                &UserFactMergeOptions {
-                    endpoint: self.active_endpoint(),
-                    source: "realtime".into(),
-                    received_at: chrono::Utc::now().to_rfc3339(),
-                    is_friend: true,
-                    ..Default::default()
-                },
-            );
-            self.emit_user_cache_changes(changed);
+        if !projection.patches.is_empty() || !projection.removals.is_empty() {
+            let endpoint = self.active_endpoint();
+            if !projection.removals.is_empty() {
+                self.user_cache
+                    .remove_users(&endpoint, &projection.removals);
+            }
+            if !projection.patches.is_empty() {
+                let changed = self.collect_friend_record_cache_changes(
+                    projection.patches.iter().map(|patch| &patch.patch),
+                    &UserFactMergeOptions {
+                        endpoint,
+                        source: "realtime".into(),
+                        received_at: chrono::Utc::now().to_rfc3339(),
+                        is_friend: true,
+                        ..Default::default()
+                    },
+                );
+                self.emit_user_cache_changes(changed);
+            }
         }
         self.emit_friend_projection(projection);
         self.emit_feed_entries(projection_generation, &output.owner_user_id, feed_entries);

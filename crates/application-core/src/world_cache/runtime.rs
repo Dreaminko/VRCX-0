@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::{Arc, Mutex, Weak};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
+use moka::policy::EvictionPolicy;
 use moka::sync::Cache;
 use serde_json::Value;
 use vrcx_0_core::WorldReleaseStatus;
@@ -20,13 +21,14 @@ use crate::web_client::WebClient;
 use vrcx_0_core::location::is_meaningful_world_name;
 
 const WORLD_RESOLVE_FETCH_TIMEOUT_MS: u64 = 5_000;
-const WORLD_RESOLVE_FAILURE_TTL_MS: u64 = 60_000;
+const WORLD_RESOLVE_FAILURE_TTL: Duration = Duration::from_secs(60);
+const WORLD_RESOLVE_FAILURE_CAPACITY: u64 = 32;
 
 pub struct WorldCache {
     working: Cache<String, Arc<WorldSummaryOutput>>,
     db: Arc<DatabaseService>,
     inflight: Mutex<HashMap<WorldResolveKey, Weak<tokio::sync::Mutex<()>>>>,
-    failures: Mutex<HashMap<WorldResolveKey, Instant>>,
+    failures: Cache<WorldResolveKey, ()>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -45,7 +47,11 @@ impl WorldCache {
                 .build(),
             db,
             inflight: Mutex::new(HashMap::new()),
-            failures: Mutex::new(HashMap::new()),
+            failures: Cache::builder()
+                .max_capacity(WORLD_RESOLVE_FAILURE_CAPACITY)
+                .time_to_live(WORLD_RESOLVE_FAILURE_TTL)
+                .eviction_policy(EvictionPolicy::lru())
+                .build(),
         }
     }
 
@@ -320,11 +326,7 @@ impl WorldCache {
     }
 
     fn recently_failed(&self, key: &WorldResolveKey) -> bool {
-        self.failures
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .get(key)
-            .is_some_and(|at| at.elapsed() < Duration::from_millis(WORLD_RESOLVE_FAILURE_TTL_MS))
+        self.failures.get(key).is_some()
     }
 
     fn cached_image_url(&self, world_id: &str) -> Option<String> {
@@ -352,19 +354,11 @@ impl WorldCache {
     }
 
     fn record_failure(&self, key: &WorldResolveKey) {
-        let mut map = self
-            .failures
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        map.retain(|_, at| at.elapsed() < Duration::from_millis(WORLD_RESOLVE_FAILURE_TTL_MS));
-        map.insert(key.clone(), Instant::now());
+        self.failures.insert(key.clone(), ());
     }
 
     fn clear_failure(&self, key: &WorldResolveKey) {
-        self.failures
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .remove(key);
+        self.failures.invalidate(key);
     }
 
     fn inflight_lock(&self, key: &WorldResolveKey) -> Arc<tokio::sync::Mutex<()>> {
@@ -933,6 +927,30 @@ mod tests {
         let other_lock = cache.inflight_lock(&other);
         assert!(Arc::ptr_eq(&first_lock, &same_lock));
         assert!(!Arc::ptr_eq(&first_lock, &other_lock));
+    }
+
+    #[test]
+    fn failure_cache_is_bounded() {
+        let (_dir, db) = test_db("bounded-failures");
+        let cache = WorldCache::new(db, 8, Duration::from_secs(60));
+        assert_eq!(
+            cache.failures.policy().max_capacity(),
+            Some(WORLD_RESOLVE_FAILURE_CAPACITY)
+        );
+        assert_eq!(
+            cache.failures.policy().time_to_live(),
+            Some(WORLD_RESOLVE_FAILURE_TTL)
+        );
+
+        for index in 0..WORLD_RESOLVE_FAILURE_CAPACITY * 2 {
+            cache.record_failure(&resolve_key(
+                "https://api.example/api/1",
+                &format!("wrld_{index}"),
+            ));
+        }
+        cache.failures.run_pending_tasks();
+
+        assert!(cache.failures.entry_count() <= WORLD_RESOLVE_FAILURE_CAPACITY);
     }
 
     #[test]

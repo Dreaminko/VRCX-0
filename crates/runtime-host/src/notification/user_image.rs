@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
+use moka::policy::EvictionPolicy;
+use moka::sync::Cache;
 use serde_json::Value;
 use vrcx_0_application_core::WebClient;
 use vrcx_0_persistence::DatabaseService;
@@ -11,17 +13,36 @@ use vrcx_0_vrchat_client::users::user_get_input;
 const FETCH_TIMEOUT_MS: u64 = 5_000;
 const SUCCESS_TTL: Duration = Duration::from_secs(15 * 60);
 const FAILURE_TTL: Duration = Duration::from_secs(60);
+const SUCCESS_CAPACITY: u64 = 128;
+const FAILURE_CAPACITY: u64 = 32;
 
-#[derive(Default)]
 pub struct UserImageCache {
-    success: Mutex<HashMap<String, (String, Instant)>>,
-    failures: Mutex<HashMap<String, Instant>>,
+    success: Cache<String, String>,
+    failures: Cache<String, ()>,
     inflight: Mutex<HashMap<String, Weak<tokio::sync::Mutex<()>>>>,
+}
+
+impl Default for UserImageCache {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl UserImageCache {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            success: Cache::builder()
+                .max_capacity(SUCCESS_CAPACITY)
+                .time_to_live(SUCCESS_TTL)
+                .eviction_policy(EvictionPolicy::lru())
+                .build(),
+            failures: Cache::builder()
+                .max_capacity(FAILURE_CAPACITY)
+                .time_to_live(FAILURE_TTL)
+                .eviction_policy(EvictionPolicy::lru())
+                .build(),
+            inflight: Mutex::new(HashMap::new()),
+        }
     }
 
     pub async fn resolve(
@@ -76,31 +97,19 @@ impl UserImageCache {
     }
 
     fn cached(&self, key: &str) -> Option<String> {
-        let mut map = lock(&self.success);
-        let (url, at) = map.get(key)?;
-        if at.elapsed() >= SUCCESS_TTL {
-            map.remove(key);
-            return None;
-        }
-        Some(url.clone())
+        self.success.get(key)
     }
 
     fn store(&self, key: &str, url: &str) {
-        let mut map = lock(&self.success);
-        map.retain(|_, (_, at)| at.elapsed() < SUCCESS_TTL);
-        map.insert(key.to_string(), (url.to_string(), Instant::now()));
+        self.success.insert(key.to_string(), url.to_string());
     }
 
     fn recently_failed(&self, key: &str) -> bool {
-        lock(&self.failures)
-            .get(key)
-            .is_some_and(|at| at.elapsed() < FAILURE_TTL)
+        self.failures.get(key).is_some()
     }
 
     fn record_failure(&self, key: &str) {
-        let mut map = lock(&self.failures);
-        map.retain(|_, at| at.elapsed() < FAILURE_TTL);
-        map.insert(key.to_string(), Instant::now());
+        self.failures.insert(key.to_string(), ());
     }
 
     fn inflight_lock(&self, key: &str) -> Arc<tokio::sync::Mutex<()>> {
@@ -248,6 +257,32 @@ fn json_string_field<'a>(object: &'a serde_json::Map<String, Value>, key: &str) 
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn user_image_cache_uses_bounded_moka_storage() {
+        let cache = UserImageCache::new();
+        assert_eq!(
+            cache.success.policy().max_capacity(),
+            Some(SUCCESS_CAPACITY)
+        );
+        assert_eq!(cache.success.policy().time_to_live(), Some(SUCCESS_TTL));
+        assert_eq!(
+            cache.failures.policy().max_capacity(),
+            Some(FAILURE_CAPACITY)
+        );
+        assert_eq!(cache.failures.policy().time_to_live(), Some(FAILURE_TTL));
+
+        for index in 0..SUCCESS_CAPACITY * 2 {
+            let key = format!("usr_{index}|1");
+            cache.store(&key, &format!("https://img.example/{index}"));
+            cache.record_failure(&key);
+        }
+        cache.success.run_pending_tasks();
+        cache.failures.run_pending_tasks();
+
+        assert!(cache.success.entry_count() <= SUCCESS_CAPACITY);
+        assert!(cache.failures.entry_count() <= FAILURE_CAPACITY);
+    }
 
     #[test]
     fn prefers_user_icon_when_allowed() {

@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
+use moka::policy::EvictionPolicy;
+use moka::sync::Cache;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use vrcx_0_media::image_cache::ImageCache as LocalImageCache;
 use vrcx_0_media::ugc_image_files::UgcCategory;
 use vrcx_0_media::Error as MediaError;
@@ -12,33 +15,71 @@ use crate::{Error, Result};
 
 const FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 const FAILURE_TTL: Duration = Duration::from_secs(60);
+const FAILURE_CAPACITY: u64 = 32;
+const INFLIGHT_CAPACITY: usize = 128;
 
-#[derive(Default)]
 struct FetchGuardTable {
-    failures: Mutex<HashMap<String, Instant>>,
-    inflight: Mutex<HashMap<String, Weak<tokio::sync::Mutex<()>>>>,
+    failures: Cache<String, ()>,
+    inflight: Mutex<HashMap<String, Weak<InflightLock>>>,
+    inflight_permits: Arc<Semaphore>,
+}
+
+struct InflightLock {
+    lock: tokio::sync::Mutex<()>,
+    _permit: OwnedSemaphorePermit,
+}
+
+impl InflightLock {
+    async fn lock(&self) -> tokio::sync::MutexGuard<'_, ()> {
+        self.lock.lock().await
+    }
+}
+
+impl Default for FetchGuardTable {
+    fn default() -> Self {
+        Self {
+            failures: Cache::builder()
+                .max_capacity(FAILURE_CAPACITY)
+                .time_to_live(FAILURE_TTL)
+                .eviction_policy(EvictionPolicy::lru())
+                .build(),
+            inflight: Mutex::new(HashMap::new()),
+            inflight_permits: Arc::new(Semaphore::new(INFLIGHT_CAPACITY)),
+        }
+    }
 }
 
 impl FetchGuardTable {
     fn recently_failed(&self, key: &str) -> bool {
-        lock(&self.failures)
-            .get(key)
-            .is_some_and(|at| at.elapsed() < FAILURE_TTL)
+        self.failures.get(key).is_some()
     }
 
     fn record_failure(&self, key: &str) {
-        let mut map = lock(&self.failures);
-        map.retain(|_, at| at.elapsed() < FAILURE_TTL);
-        map.insert(key.to_string(), Instant::now());
+        self.failures.insert(key.to_string(), ());
     }
 
-    async fn inflight_lock(&self, key: &str) -> Arc<tokio::sync::Mutex<()>> {
+    async fn inflight_lock(&self, key: &str) -> Arc<InflightLock> {
+        {
+            let map = lock(&self.inflight);
+            if let Some(existing) = map.get(key).and_then(Weak::upgrade) {
+                return existing;
+            }
+        }
+
+        let permit = Arc::clone(&self.inflight_permits)
+            .acquire_owned()
+            .await
+            .expect("image fetch in-flight semaphore is never closed");
+
         let mut map = lock(&self.inflight);
         if let Some(existing) = map.get(key).and_then(Weak::upgrade) {
             return existing;
         }
         map.retain(|_, weak| weak.strong_count() > 0);
-        let guard = Arc::new(tokio::sync::Mutex::new(()));
+        let guard = Arc::new(InflightLock {
+            lock: tokio::sync::Mutex::new(()),
+            _permit: permit,
+        });
         map.insert(key.to_string(), Arc::downgrade(&guard));
         guard
     }
@@ -132,12 +173,28 @@ mod tests {
     #[test]
     fn fetch_guard_table_short_circuits_within_failure_ttl() {
         let table = FetchGuardTable::default();
+        assert_eq!(
+            table.failures.policy().max_capacity(),
+            Some(FAILURE_CAPACITY)
+        );
+        assert_eq!(table.failures.policy().time_to_live(), Some(FAILURE_TTL));
         assert!(!table.recently_failed("file_a/1"));
 
         table.record_failure("file_a/1");
 
         assert!(table.recently_failed("file_a/1"));
         assert!(!table.recently_failed("file_b/1"));
+    }
+
+    #[test]
+    fn fetch_guard_table_bounds_failure_entries() {
+        let table = FetchGuardTable::default();
+        for index in 0..FAILURE_CAPACITY * 2 {
+            table.record_failure(&format!("file_{index}/1"));
+        }
+        table.failures.run_pending_tasks();
+
+        assert!(table.failures.entry_count() <= FAILURE_CAPACITY);
     }
 
     #[tokio::test]
@@ -162,5 +219,23 @@ mod tests {
         }
         let second = table.inflight_lock("file_a/1").await;
         assert_eq!(Arc::strong_count(&second), 1);
+    }
+
+    #[tokio::test]
+    async fn fetch_guard_table_bounds_distinct_inflight_entries() {
+        let table = FetchGuardTable::default();
+        let mut guards = Vec::with_capacity(INFLIGHT_CAPACITY);
+        for index in 0..INFLIGHT_CAPACITY {
+            guards.push(table.inflight_lock(&format!("file_{index}/1")).await);
+        }
+
+        assert_eq!(lock(&table.inflight).len(), INFLIGHT_CAPACITY);
+        assert_eq!(table.inflight_permits.available_permits(), 0);
+
+        guards.pop();
+        guards.push(table.inflight_lock("file_replacement/1").await);
+
+        assert_eq!(lock(&table.inflight).len(), INFLIGHT_CAPACITY);
+        assert_eq!(table.inflight_permits.available_permits(), 0);
     }
 }
