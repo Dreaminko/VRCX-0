@@ -176,18 +176,24 @@ fn test_realtime_runtime(
 
 #[test]
 fn realtime_image_resolver_reads_the_realtime_cache() {
-    let (_dir, runtime, _db, _web) = test_realtime_runtime("actor-image-cache-hit");
+    let (_dir, runtime, _active_session) =
+        vrcx_0_application_realtime::test_support::runtime_with_active_session(
+            "actor-image-cache-hit",
+        )
+        .unwrap();
+    let runtime = runtime.runtime();
     let endpoint = "https://api.vrchat.cloud/api/1";
-    runtime.record_user_profile(
-        endpoint,
-        &json!({
+    runtime.ingest_user_facts(vec![json!({
+        "user": {
             "id": "usr_traveler",
             "displayName": "Traveler",
             "userIcon": "https://api.vrchat.cloud/api/1/file/file_1234abcd-0000-1111-2222-abcdefabcdef/2/file",
-        }),
-    );
+        },
+        "source": "test",
+        "isFriend": true,
+    })]);
     let resolver = RealtimeUserImageResolverSlot::default();
-    resolver.set(&runtime);
+    resolver.set(runtime);
     let image_url = resolver
         .cached_url(endpoint, "usr_traveler", true)
         .map(|url| normalize_avatar_image_url_128(&url, endpoint));
