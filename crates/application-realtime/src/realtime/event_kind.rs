@@ -1,8 +1,9 @@
+use compact_str::CompactString;
 use serde::Deserialize;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
-#[serde(from = "String")]
+#[serde(from = "CompactString")]
 pub(crate) enum RealtimeWsEventKind {
     FriendAdd,
     FriendDelete,
@@ -26,7 +27,7 @@ pub(crate) enum RealtimeWsEventKind {
     UserLocation,
     InstanceClosed,
     ContentRefresh,
-    Unknown(String),
+    Unknown(CompactString),
 }
 
 impl RealtimeWsEventKind {
@@ -35,7 +36,7 @@ impl RealtimeWsEventKind {
     }
 
     pub(crate) fn from_name(name: &str) -> Self {
-        Self::known(name).unwrap_or_else(|| Self::Unknown(name.to_string()))
+        Self::known(name).unwrap_or_else(|| Self::Unknown(name.into()))
     }
 
     fn known(name: &str) -> Option<Self> {
@@ -93,8 +94,8 @@ impl RealtimeWsEventKind {
     }
 }
 
-impl From<String> for RealtimeWsEventKind {
-    fn from(name: String) -> Self {
+impl From<CompactString> for RealtimeWsEventKind {
+    fn from(name: CompactString) -> Self {
         Self::known(&name).unwrap_or(Self::Unknown(name))
     }
 }
@@ -174,7 +175,7 @@ mod tests {
 
         assert_eq!(
             RealtimeWsEventKind::from_payload(&payload),
-            Some(RealtimeWsEventKind::Unknown("future-event".to_string()))
+            Some(RealtimeWsEventKind::Unknown("future-event".into()))
         );
         assert_eq!(payload.raw, raw);
         assert_eq!(payload.json["content"], json!({ "value": 1 }));

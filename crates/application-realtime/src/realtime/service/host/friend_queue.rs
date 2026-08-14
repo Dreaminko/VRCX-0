@@ -47,7 +47,7 @@ impl RealtimeHostRuntime {
             .unwrap_or(false)
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub(super) fn handle_friend_ws_message(
         self: &Arc<Self>,
         generation: u64,

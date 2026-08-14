@@ -10,6 +10,7 @@ test-utils = ["vrcx-0-application-core/test-utils"]
 
 [dependencies]
 chrono = { workspace = true }
+compact_str = { workspace = true }
 futures-util = "0.3"
 moka = { version = "0.12", features = ["future"] }
 serde = { workspace = true, features = ["derive"] }

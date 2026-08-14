@@ -11,7 +11,7 @@ use super::{
     RealtimeNotificationProjection, RealtimeNotificationUpsert,
 };
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 pub fn apply_notification_ws_message(
     owner_user_id: &str,
     endpoint: &str,
