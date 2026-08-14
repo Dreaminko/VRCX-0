@@ -4,6 +4,10 @@ pub struct VrcIpcSendResult {
     pub server_process_id: Option<u32>,
 }
 
+#[cfg(any(target_os = "linux", test))]
+const LINUX_LAUNCH_FORWARD_SCRIPT: &str =
+    "while IFS= read -r -d '' kv; do export \"$kv\"; done < \"/proc/$1/environ\"; exec wine \"$2\" \"$3\"";
+
 pub fn vrcipc_send(message: &str) -> bool {
     vrcipc_send_with_result(message).accepted
 }
@@ -109,127 +113,84 @@ pub fn vrcipc_send_with_result(message: &str) -> VrcIpcSendResult {
 
 #[cfg(target_os = "linux")]
 fn linux_vrcipc_send(message: &str) -> Result<bool, String> {
-    use std::fs::{self, OpenOptions};
-    use std::io::Write;
-    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
-    use std::path::{Path, PathBuf};
     use std::process::{Child, Command, Stdio};
-    use std::time::{Duration, Instant};
+    use std::sync::mpsc;
 
-    struct TempLaunchPipeDir {
-        path: PathBuf,
+    let process_id = crate::process_status::linux_vrchat_process_id()
+        .ok_or_else(|| "VRChat process not found".to_string())?;
+    let paths = crate::vrchat_paths::discover_linux_vrchat_paths()?;
+    let launch_exe = paths.install_path.join("launch.exe");
+    if !launch_exe.is_file() {
+        return Err(format!(
+            "VRChat launch.exe not found at {}",
+            launch_exe.display()
+        ));
     }
 
-    impl TempLaunchPipeDir {
-        fn new() -> Result<Self, String> {
-            let base = std::env::temp_dir();
-            for attempt in 0..16 {
-                let path = base.join(format!(
-                    "vrcx-launch-pipe-{}-{}-{attempt}",
-                    std::process::id(),
-                    std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .map(|duration| duration.as_nanos())
-                        .unwrap_or_default()
-                ));
-                match fs::create_dir(&path) {
-                    Ok(()) => {
-                        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
-                            .map_err(|e| format!("secure VRChat launch temp dir: {e}"))?;
-                        return Ok(Self { path });
-                    }
-                    Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                    Err(error) => {
-                        return Err(format!("create VRChat launch temp dir: {error}"));
-                    }
+    let (child_sender, child_receiver) = mpsc::sync_channel::<Child>(1);
+    std::thread::Builder::new()
+        .name("vrchat-launch-forward".into())
+        .spawn(move || {
+            let Ok(mut child) = child_receiver.recv() else {
+                return;
+            };
+            match child.wait() {
+                Ok(status) if !status.success() => {
+                    tracing::warn!(%status, "Linux VRChat launch forwarder exited unsuccessfully");
                 }
-            }
-            Err("create VRChat launch temp dir: exhausted unique path attempts".into())
-        }
-
-        fn path(&self) -> &Path {
-            &self.path
-        }
-    }
-
-    impl Drop for TempLaunchPipeDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.path);
-        }
-    }
-
-    fn write_private_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(path)
-            .map_err(|e| format!("create private VRChat launch temp file: {e}"))?;
-        file.write_all(bytes)
-            .map_err(|e| format!("write private VRChat launch temp file: {e}"))
-    }
-
-    fn wait_for_child(child: &mut Child, timeout: Duration) -> Result<bool, String> {
-        let deadline = Instant::now() + timeout;
-        loop {
-            match child
-                .try_wait()
-                .map_err(|e| format!("wait for Wine launch pipe bridge: {e}"))?
-            {
-                Some(status) => return Ok(status.success()),
-                None if Instant::now() >= deadline => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Ok(false);
+                Err(error) => {
+                    tracing::warn!(%error, "Failed to wait for Linux VRChat launch forwarder");
                 }
-                None => std::thread::sleep(Duration::from_millis(25)),
+                _ => {}
             }
-        }
-    }
+        })
+        .map_err(|error| format!("start VRChat launch forwarder reaper: {error}"))?;
 
-    let context = crate::linux_registry::discover_linux_registry_context()
-        .map_err(|reason| format!("VRChat launch pipe bridge unavailable: {reason}"))?;
-
-    let temp_dir = TempLaunchPipeDir::new()?;
-    let payload_path = temp_dir.path().join("payload.txt");
-    let script_path = temp_dir.path().join("launch.cmd");
-
-    write_private_file(&payload_path, message.as_bytes())?;
-    let payload_wine_path = linux_path_to_wine_z_path(&payload_path);
-    write_private_file(
-        &script_path,
-        linux_launch_pipe_script(&payload_wine_path).as_bytes(),
-    )?;
-    let script_wine_path = linux_path_to_wine_z_path(&script_path);
-
-    let mut child = Command::new(&context.wine_path)
-        .env("WINEPREFIX", &context.wine_prefix)
-        .env("WINEFSYNC", "1")
-        .env("WINEDEBUG", "-all")
-        .arg("cmd.exe")
-        .arg("/C")
-        .arg(script_wine_path)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+    let mut command = Command::new("nsenter");
+    command
+        .args(linux_launch_forward_arguments(
+            process_id,
+            &launch_exe,
+            message,
+        ))
+        .stdin(Stdio::null());
+    let child = command
         .spawn()
-        .map_err(|e| format!("start Wine launch pipe bridge: {e}"))?;
-
-    wait_for_child(&mut child, Duration::from_secs(6))
+        .map_err(|error| format!("start VRChat launch forwarder: {error}"))?;
+    child_sender
+        .send(child)
+        .map_err(|_| "VRChat launch forwarder reaper stopped unexpectedly".to_string())?;
+    Ok(true)
 }
 
-#[cfg(target_os = "linux")]
-fn linux_path_to_wine_z_path(path: &std::path::Path) -> String {
-    let linux_path = path.as_os_str().to_string_lossy().replace('/', "\\");
-    format!("Z:{linux_path}")
-}
-
-#[cfg(target_os = "linux")]
-fn linux_launch_pipe_script(payload_path: &str) -> String {
-    format!(
-        "@echo off\r\ncopy /B \"{}\" \"\\\\.\\pipe\\VRChatURLLaunchPipe\" >NUL\r\nexit /B %ERRORLEVEL%\r\n",
-        payload_path.replace('"', "\"\"")
-    )
+#[cfg(any(target_os = "linux", test))]
+fn linux_launch_forward_arguments(
+    process_id: u32,
+    launch_exe: &std::path::Path,
+    launch_url: &str,
+) -> Vec<std::ffi::OsString> {
+    let process_id = process_id.to_string();
+    let launch_url = if launch_url.contains("attach=1") {
+        launch_url.to_string()
+    } else {
+        format!("{launch_url}&attach=1")
+    };
+    [
+        std::ffi::OsString::from("-t"),
+        std::ffi::OsString::from(&process_id),
+        std::ffi::OsString::from("-U"),
+        std::ffi::OsString::from("-m"),
+        std::ffi::OsString::from("--preserve-credentials"),
+        std::ffi::OsString::from("--"),
+        std::ffi::OsString::from("/bin/bash"),
+        std::ffi::OsString::from("-c"),
+        std::ffi::OsString::from(LINUX_LAUNCH_FORWARD_SCRIPT),
+        std::ffi::OsString::from("_"),
+        std::ffi::OsString::from(process_id),
+        launch_exe.as_os_str().to_owned(),
+        std::ffi::OsString::from(launch_url),
+    ]
+    .into()
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "linux")))]
@@ -238,23 +199,49 @@ pub fn vrcipc_send_with_result(_message: &str) -> VrcIpcSendResult {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "linux")]
 mod linux_tests {
-    use super::{linux_launch_pipe_script, linux_path_to_wine_z_path};
+    use std::ffi::OsString;
+    use std::path::Path;
+
+    use super::{linux_launch_forward_arguments, LINUX_LAUNCH_FORWARD_SCRIPT};
 
     #[test]
-    fn converts_linux_path_to_wine_z_path() {
+    fn builds_namespace_launch_arguments_with_attach_mode() {
         assert_eq!(
-            linux_path_to_wine_z_path(std::path::Path::new("/tmp/vrcx payload.txt")),
-            r"Z:\tmp\vrcx payload.txt"
+            linux_launch_forward_arguments(
+                42,
+                Path::new("/games/Steam Library/VRChat/launch.exe"),
+                "vrchat://launch?id=wrld_1:2"
+            ),
+            vec![
+                OsString::from("-t"),
+                OsString::from("42"),
+                OsString::from("-U"),
+                OsString::from("-m"),
+                OsString::from("--preserve-credentials"),
+                OsString::from("--"),
+                OsString::from("/bin/bash"),
+                OsString::from("-c"),
+                OsString::from(LINUX_LAUNCH_FORWARD_SCRIPT),
+                OsString::from("_"),
+                OsString::from("42"),
+                OsString::from("/games/Steam Library/VRChat/launch.exe"),
+                OsString::from("vrchat://launch?id=wrld_1:2&attach=1"),
+            ]
         );
     }
 
     #[test]
-    fn builds_launch_pipe_script_with_quoted_payload_path() {
+    fn preserves_existing_attach_mode() {
+        let arguments = linux_launch_forward_arguments(
+            42,
+            Path::new("/games/VRChat/launch.exe"),
+            "vrchat://launch?id=wrld_1:2&attach=1",
+        );
+
         assert_eq!(
-            linux_launch_pipe_script(r#"Z:\tmp\vrcx payload.txt"#),
-            "@echo off\r\ncopy /B \"Z:\\tmp\\vrcx payload.txt\" \"\\\\.\\pipe\\VRChatURLLaunchPipe\" >NUL\r\nexit /B %ERRORLEVEL%\r\n"
+            arguments.last(),
+            Some(&OsString::from("vrchat://launch?id=wrld_1:2&attach=1"))
         );
     }
 }

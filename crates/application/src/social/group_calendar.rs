@@ -386,7 +386,10 @@ fn group_id(row: &Value) -> Option<String> {
     row.get("ownerId")
         .and_then(Value::as_str)
         .or_else(|| row.get("groupId").and_then(Value::as_str))
-        .or_else(|| row.get("group").and_then(|group| GroupJson::new(group).id()))
+        .or_else(|| {
+            row.get("group")
+                .and_then(|group| GroupJson::new(group).id())
+        })
         .map(str::trim)
         .filter(|group_id| !group_id.is_empty())
         .map(str::to_string)

@@ -101,10 +101,7 @@ mod tests {
         let visibility: GroupUserVisibility =
             serde_json::from_value(json!("future-visibility")).unwrap();
 
-        assert_eq!(
-            join_state,
-            GroupJoinState::Unknown("future-join".into())
-        );
+        assert_eq!(join_state, GroupJoinState::Unknown("future-join".into()));
         assert_eq!(privacy, GroupPrivacy::Unknown("future-privacy".into()));
         assert_eq!(
             member_status,

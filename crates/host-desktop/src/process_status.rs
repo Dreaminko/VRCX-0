@@ -189,6 +189,33 @@ pub fn vrchat_process_ids() -> Vec<u32> {
         .collect()
 }
 
+#[cfg(target_os = "linux")]
+pub fn linux_vrchat_process_id() -> Option<u32> {
+    select_linux_vrchat_process_id(vrchat_process_ids(), |process_id| {
+        std::fs::read(format!("/proc/{process_id}/environ")).ok()
+    })
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn select_linux_vrchat_process_id(
+    process_ids: Vec<u32>,
+    mut read_environment: impl FnMut(u32) -> Option<Vec<u8>>,
+) -> Option<u32> {
+    const VRCHAT_COMPATDATA_MARKER: &[u8] = b"compatdata/438100";
+
+    process_ids
+        .iter()
+        .copied()
+        .find(|process_id| {
+            read_environment(*process_id).is_some_and(|environment| {
+                environment
+                    .windows(VRCHAT_COMPATDATA_MARKER.len())
+                    .any(|window| window == VRCHAT_COMPATDATA_MARKER)
+            })
+        })
+        .or_else(|| process_ids.first().copied())
+}
+
 pub fn detect_legacy_vrcx_running() -> bool {
     let mut sys = System::new();
     sys.refresh_processes(ProcessesToUpdate::All, true);
@@ -257,7 +284,7 @@ fn is_steamvr_process_name(name: &str) -> bool {
 mod tests {
     use super::{
         detect_process_status_from_names, is_legacy_vrcx_process_name, is_steamvr_process_name,
-        is_vrchat_process_name, ProcessHandleCache,
+        is_vrchat_process_name, select_linux_vrchat_process_id, ProcessHandleCache,
     };
     use sysinfo::Pid;
 
@@ -426,5 +453,24 @@ mod tests {
         assert!(is_legacy_vrcx_process_name("VRCX.exe"));
         assert!(is_legacy_vrcx_process_name("vrcx"));
         assert!(!is_legacy_vrcx_process_name("VRCX-0.exe"));
+    }
+
+    #[test]
+    fn linux_launch_prefers_the_vrchat_proton_process() {
+        let selected =
+            select_linux_vrchat_process_id(vec![10, 20], |process_id| match process_id {
+                10 => Some(b"WINEPREFIX=/games/compatdata/123/pfx\0".to_vec()),
+                20 => Some(b"WINEPREFIX=/games/compatdata/438100/pfx\0".to_vec()),
+                _ => None,
+            });
+
+        assert_eq!(selected, Some(20));
+    }
+
+    #[test]
+    fn linux_launch_falls_back_to_the_first_vrchat_process() {
+        let selected = select_linux_vrchat_process_id(vec![10, 20], |_| None);
+
+        assert_eq!(selected, Some(10));
     }
 }

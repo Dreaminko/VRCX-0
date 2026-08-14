@@ -23,12 +23,12 @@ pub mod trust;
 pub mod user_facts;
 pub mod vrchat_endpoints;
 pub mod vrchat_ids;
-pub mod vrchat_log_reader;
 pub mod vrchat_json;
+pub mod vrchat_log_reader;
 pub mod vrchat_registry_policy;
 
-pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind};
 pub use avatar::PerformanceRating;
+pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind};
 pub use group::{
     GroupJoinRequestAction, GroupJoinState, GroupMemberStatus, GroupPrivacy, GroupUserVisibility,
 };

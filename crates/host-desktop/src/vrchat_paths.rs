@@ -23,6 +23,7 @@ pub struct LinuxSteamLibraries {
 #[derive(Clone, Debug)]
 pub struct LinuxVrchatPaths {
     pub proton_prefix: PathBuf,
+    pub install_path: PathBuf,
     pub app_data: PathBuf,
     pub latest_log: Option<PathBuf>,
 }
@@ -323,11 +324,13 @@ pub fn discover_linux_vrchat_paths() -> Result<LinuxVrchatPaths, String> {
             .join("LocalLow")
             .join("VRChat")
             .join("VRChat");
+        let install_path = library.join("steamapps").join("common").join("VRChat");
 
         let Some((modified, latest_log)) = newest_output_log(&app_data) else {
             if fallback.is_none() {
                 fallback = Some(LinuxVrchatPaths {
                     proton_prefix: prefix.clone(),
+                    install_path: install_path.clone(),
                     app_data: app_data.clone(),
                     latest_log: None,
                 });
@@ -343,6 +346,7 @@ pub fn discover_linux_vrchat_paths() -> Result<LinuxVrchatPaths, String> {
                 modified,
                 LinuxVrchatPaths {
                     proton_prefix: prefix.clone(),
+                    install_path,
                     app_data: app_data.clone(),
                     latest_log: Some(latest_log),
                 },
@@ -386,6 +390,25 @@ pub fn discover_linux_game_launch() -> Result<(), String> {
     }
 
     Err("Steam launcher not found".into())
+}
+
+#[cfg(target_os = "linux")]
+pub fn discover_linux_instance_launch() -> Result<(), String> {
+    if !linux_command_in_path("nsenter") {
+        return Err("nsenter not found".into());
+    }
+
+    let launch_exe = discover_linux_vrchat_paths()?
+        .install_path
+        .join("launch.exe");
+    if launch_exe.is_file() {
+        Ok(())
+    } else {
+        Err(format!(
+            "VRChat launch.exe not found at {}",
+            launch_exe.display()
+        ))
+    }
 }
 
 #[cfg(target_os = "linux")]

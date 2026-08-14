@@ -214,10 +214,7 @@ mod tests {
         assert_eq!(group.name(), Some("Test Group"));
         assert_eq!(group.join_state(), Some(GroupJoinState::Open));
         assert_eq!(group.privacy(), Some(GroupPrivacy::Default));
-        assert_eq!(
-            group.membership_status(),
-            Some(GroupMemberStatus::Member)
-        );
+        assert_eq!(group.membership_status(), Some(GroupMemberStatus::Member));
         assert_eq!(
             member.membership_status(),
             Some(GroupMemberStatus::Unknown("future-member".into()))
@@ -248,10 +245,7 @@ mod tests {
         let direct = GroupInstanceJson::new(&direct);
         let nested = GroupInstanceJson::new(&nested);
 
-        assert_eq!(
-            direct.location(),
-            Some("wrld_test:1~group(grp_test)")
-        );
+        assert_eq!(direct.location(), Some("wrld_test:1~group(grp_test)"));
         assert_eq!(direct.instance_type(), Some(InstanceType::Group));
         assert_eq!(direct.group_access_type(), Some(GroupAccessType::Plus));
         assert_eq!(direct.region(), Some(InstanceRegion::Jp));
@@ -291,7 +285,10 @@ mod tests {
         assert_eq!(avatar.release_status(), None);
         assert_eq!(avatar.performance_rating("standalonewindows"), None);
         assert_eq!(group.join_state(), None);
-        assert_eq!(group.my_member().and_then(|member| member.visibility()), None);
+        assert_eq!(
+            group.my_member().and_then(|member| member.visibility()),
+            None
+        );
         assert_eq!(instance.instance_type(), None);
         assert_eq!(instance.region(), None);
     }

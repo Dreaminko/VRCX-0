@@ -113,8 +113,8 @@ fn avatar_cache_preserves_unknown_release_status() -> Result<(), Error> {
 
     avatar_cache_upsert(&db, entry)?;
 
-    let cached = avatar_cache_get(&db, "avtr_future".into())?
-        .expect("cached avatar should be readable");
+    let cached =
+        avatar_cache_get(&db, "avtr_future".into())?.expect("cached avatar should be readable");
     assert_eq!(
         cached.release_status,
         ReleaseStatus::Unknown("future".into())

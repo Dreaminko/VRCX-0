@@ -253,7 +253,9 @@ fn has_complete_group_instance_group(instance: &Value) -> bool {
 }
 
 fn normalize_group_instance_group_id(instance: &Value) -> String {
-    let location = GroupInstanceJson::new(instance).location().unwrap_or_default();
+    let location = GroupInstanceJson::new(instance)
+        .location()
+        .unwrap_or_default();
     let parsed_location = parse_location(location);
     first_group_id([
         nested_string(instance, &["group", "groupId"]),
