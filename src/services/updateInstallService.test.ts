@@ -254,6 +254,42 @@ describe('handleAppUpdateDownloadProgressEvent', () => {
         expect(shouldShowUpdateUi(updateLoop)).toBe(true);
     });
 
+    it('reveals update UI immediately when a silent background download fails', () => {
+        vi.useFakeTimers();
+        const startedAt = new Date().toISOString();
+        useRuntimeStore.getState().setUpdateLoopState({
+            hasAvailableUpdate: true,
+            latestUpdaterRelease: tauriRelease()
+        });
+
+        handleAppUpdateDownloadProgressEvent({
+            version: '2.7.0',
+            phase: 'downloading',
+            startedAt,
+            downloadedBytes: 50,
+            totalBytes: 100,
+            percent: 50
+        });
+        vi.advanceTimersByTime(AUTO_DOWNLOAD_UI_DELAY_MS - 1);
+        expect(shouldShowUpdateUi(useRuntimeStore.getState().updateLoop)).toBe(
+            false
+        );
+
+        handleAppUpdateDownloadProgressEvent({
+            version: '2.7.0',
+            phase: 'error',
+            startedAt,
+            downloadedBytes: 50,
+            totalBytes: 100,
+            percent: 50
+        });
+
+        const updateLoop = useRuntimeStore.getState().updateLoop;
+        expect(updateLoop.autoDownloadState).toBe('error');
+        expect(updateLoop.autoDownloadStartedAt).toBe(null);
+        expect(shouldShowUpdateUi(updateLoop)).toBe(true);
+    });
+
     it('reveals update UI when a background download is still running after 30 minutes', () => {
         vi.useFakeTimers();
         const downloadStartedAt = new Date().toISOString();
