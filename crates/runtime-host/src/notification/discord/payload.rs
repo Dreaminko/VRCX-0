@@ -123,7 +123,7 @@ fn build_discord_payload_with_enrichment(
         if !access.is_empty() {
             footer.push_str(&format!(" - {access}"));
         }
-        let region = region_label(&parsed.region);
+        let region = region_label(parsed.region.as_str());
         if !region.is_empty() {
             footer.push_str(&format!(" \u{00b7} {region}"));
         }

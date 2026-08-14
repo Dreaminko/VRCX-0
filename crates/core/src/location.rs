@@ -6,65 +6,39 @@
 //! source of truth for turning that string into structured data; every realtime,
 //! presence, and Discord path consumes it instead of re-implementing parsing.
 
-use compact_str::CompactString;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::Serialize;
 use serde_json::{json, Value};
 
+use crate::open_string_enum::open_string_enum;
 use crate::vrchat_endpoints::VRCHAT_SITE_ORIGIN;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
-#[serde(from = "CompactString")]
-pub enum GroupAccessType {
-    Members,
-    Plus,
-    Public,
-    Unknown(CompactString),
-}
-
-impl GroupAccessType {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Members => "members",
-            Self::Plus => "plus",
-            Self::Public => "public",
-            Self::Unknown(value) => value,
-        }
-    }
-
-    fn known(value: &str) -> Option<Self> {
-        match value {
-            "members" => Some(Self::Members),
-            "plus" => Some(Self::Plus),
-            "public" => Some(Self::Public),
-            _ => None,
-        }
+open_string_enum! {
+    pub enum GroupAccessType {
+        Members => "members",
+        Plus => "plus",
+        Public => "public",
     }
 }
 
-impl Serialize for GroupAccessType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(self.as_str())
+open_string_enum! {
+    pub enum InstanceType {
+        Friends => "friends",
+        Group => "group",
+        Hidden => "hidden",
+        Private => "private",
+        Public => "public",
     }
 }
 
-impl From<&str> for GroupAccessType {
-    fn from(value: &str) -> Self {
-        Self::known(value).unwrap_or_else(|| Self::Unknown(value.into()))
-    }
-}
-
-impl From<String> for GroupAccessType {
-    fn from(value: String) -> Self {
-        Self::known(&value).unwrap_or_else(|| Self::Unknown(value.into()))
-    }
-}
-
-impl From<CompactString> for GroupAccessType {
-    fn from(value: CompactString) -> Self {
-        Self::known(&value).unwrap_or(Self::Unknown(value))
+open_string_enum! {
+    pub enum InstanceRegion {
+        Eu => "eu",
+        Jp => "jp",
+        ApiUnknown => "unknown",
+        Us => "us",
+        Use => "use",
+        Usw => "usw",
+        Usx => "usx",
     }
 }
 
@@ -81,7 +55,8 @@ pub struct ParsedLocation {
     pub instance_name: String,
     pub access_type: String,
     pub access_type_name: String,
-    pub region: String,
+    #[specta(type = String)]
+    pub region: InstanceRegion,
     pub short_name: String,
     pub user_id: Option<String>,
     pub hidden_id: Option<String>,
@@ -170,7 +145,7 @@ pub fn parse_location(tag: &str) -> ParsedLocation {
                 "private" => parsed.private_id = Some(qualifier_value),
                 "friends" => parsed.friends_id = Some(qualifier_value),
                 "canRequestInvite" => parsed.can_request_invite = true,
-                "region" => parsed.region = qualifier_value,
+                "region" => parsed.region = qualifier_value.into(),
                 "group" => parsed.group_id = Some(qualifier_value),
                 "groupAccessType" => parsed.group_access_type = Some(qualifier_value.into()),
                 "strict" => parsed.strict = true,

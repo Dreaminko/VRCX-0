@@ -1,7 +1,7 @@
 use compact_str::CompactString;
 use serde::Serialize;
 use serde_json::Value;
-use vrcx_0_core::WorldReleaseStatus;
+use vrcx_0_core::ReleaseStatus;
 
 use crate::cache_entities::{upsert_cache_entity, CacheEntityInput};
 use crate::common::{normalize_text, row_i64, row_string, ParamsBuilder};
@@ -22,7 +22,7 @@ pub struct WorldSummaryOutput {
     pub image_url: String,
     pub name: String,
     #[specta(type = String)]
-    pub release_status: WorldReleaseStatus,
+    pub release_status: ReleaseStatus,
     pub thumbnail_image_url: String,
     #[serde(rename = "updated_at")]
     #[specta(type = String)]
@@ -249,7 +249,7 @@ mod tests {
 
         assert_eq!(
             summary.release_status,
-            WorldReleaseStatus::Unknown("future".into())
+            ReleaseStatus::Unknown("future".into())
         );
         assert_eq!(
             serde_json::to_value(summary).unwrap()["releaseStatus"],

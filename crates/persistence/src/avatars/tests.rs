@@ -103,3 +103,25 @@ fn cache_lookup_by_file_id_returns_only_the_matching_avatar() -> Result<(), Erro
     assert!(avatar_cache_find_by_file_id(&db, "file_missing")?.is_none());
     Ok(())
 }
+
+#[test]
+fn avatar_cache_preserves_unknown_release_status() -> Result<(), Error> {
+    let dir = TestDir::new("unknown-release-status");
+    let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+    let mut entry = avatar_entry("avtr_future");
+    entry.release_status = json!("future");
+
+    avatar_cache_upsert(&db, entry)?;
+
+    let cached = avatar_cache_get(&db, "avtr_future".into())?
+        .expect("cached avatar should be readable");
+    assert_eq!(
+        cached.release_status,
+        ReleaseStatus::Unknown("future".into())
+    );
+    assert_eq!(
+        serde_json::to_value(cached)?.get("releaseStatus"),
+        Some(&json!("future"))
+    );
+    Ok(())
+}

@@ -11,6 +11,7 @@ pub mod group;
 pub mod image_sniff;
 pub mod json;
 pub mod location;
+mod open_string_enum;
 pub mod proxy;
 pub mod realtime;
 pub mod release_status;
@@ -26,5 +27,9 @@ pub mod vrchat_log_reader;
 pub mod vrchat_registry_policy;
 
 pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind};
-pub use group::GroupJoinRequestAction;
-pub use release_status::WorldReleaseStatus;
+pub use avatar::PerformanceRating;
+pub use group::{
+    GroupJoinRequestAction, GroupJoinState, GroupMemberStatus, GroupPrivacy, GroupUserVisibility,
+};
+pub use location::{GroupAccessType, InstanceRegion, InstanceType};
+pub use release_status::ReleaseStatus;

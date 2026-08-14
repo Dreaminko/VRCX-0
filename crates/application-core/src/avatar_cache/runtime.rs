@@ -269,7 +269,7 @@ fn avatar_summary(value: &Value) -> Option<AvatarCacheOutput> {
         description: text_field(value, "description"),
         image_url: text_field(value, "imageUrl"),
         name,
-        release_status: text_field(value, "releaseStatus"),
+        release_status: text_field(value, "releaseStatus").into(),
         thumbnail_image_url: text_field(value, "thumbnailImageUrl"),
         updated_at: text_field_with_fallback(value, "updated_at", "updatedAt"),
         version: value
