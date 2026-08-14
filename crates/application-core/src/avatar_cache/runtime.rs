@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use moka::sync::Cache;
 use serde_json::Value;
+use vrcx_0_core::vrchat_json::AvatarJson;
 use vrcx_0_persistence::avatars::{
     avatar_cache_find_by_file_id, avatar_cache_get, avatar_cache_upsert, AvatarCacheOutput,
 };
@@ -269,7 +270,7 @@ fn avatar_summary(value: &Value) -> Option<AvatarCacheOutput> {
         description: text_field(value, "description"),
         image_url: text_field(value, "imageUrl"),
         name,
-        release_status: text_field(value, "releaseStatus").into(),
+        release_status: AvatarJson::new(value).release_status().unwrap_or_default(),
         thumbnail_image_url: text_field(value, "thumbnailImageUrl"),
         updated_at: text_field_with_fallback(value, "updated_at", "updatedAt"),
         version: value

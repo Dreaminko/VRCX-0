@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::Utc;
 use futures_util::{stream, StreamExt};
 use serde_json::{json, Map, Value};
-use vrcx_0_core::location::parse_location;
+use vrcx_0_core::{location::parse_location, vrchat_json::GroupInstanceJson};
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::groups::current_user_group_instances_get_input;
 use vrcx_0_vrchat_client::groups::profile_get_input as group_profile_get_input;
@@ -253,14 +253,8 @@ fn has_complete_group_instance_group(instance: &Value) -> bool {
 }
 
 fn normalize_group_instance_group_id(instance: &Value) -> String {
-    let location = string_field_value(instance.get("location"))
-        .or_else(|| {
-            instance
-                .get("instance")
-                .and_then(|value| string_field_value(value.get("location")))
-        })
-        .unwrap_or_default();
-    let parsed_location = parse_location(&location);
+    let location = GroupInstanceJson::new(instance).location().unwrap_or_default();
+    let parsed_location = parse_location(location);
     first_group_id([
         nested_string(instance, &["group", "groupId"]),
         nested_string(instance, &["group", "id"]),

@@ -16,6 +16,7 @@ use vrcx_0_application_core::vrchat_api::tools::{
 use vrcx_0_application_core::{
     RuntimeAuthScope, RuntimeAuthScopeSnapshot, RuntimeDiagnostics, RuntimeSyncEngine, WebClient,
 };
+use vrcx_0_core::vrchat_json::GroupJson;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_vrchat_client::http_api::{ApiJsonResponse, ApiScope, HttpApiRequestInput};
 
@@ -144,10 +145,7 @@ async fn load_group_calendar_inner(
         .map(|group_id| {
             let name = group_profiles
                 .get(&group_id)
-                .and_then(|group| group.get("name"))
-                .and_then(Value::as_str)
-                .map(str::trim)
-                .filter(|name| !name.is_empty())
+                .and_then(|group| GroupJson::new(group).name())
                 .unwrap_or(&group_id)
                 .to_string();
             (group_id, name)
@@ -377,13 +375,9 @@ fn collect_group_ids(rows: &[&Value]) -> Vec<String> {
 fn embedded_group_profiles(rows: &[&Value]) -> HashMap<String, Value> {
     rows.iter()
         .filter_map(|row| {
-            let group = row.get("group")?.as_object()?;
-            let group_id = group
-                .get("id")
-                .and_then(Value::as_str)
-                .map(str::trim)
-                .filter(|group_id| !group_id.is_empty())?;
-            Some((group_id.to_string(), Value::Object(group.clone())))
+            let group = row.get("group")?;
+            let group_id = GroupJson::new(group).id()?;
+            Some((group_id.to_string(), group.clone()))
         })
         .collect()
 }
@@ -392,11 +386,7 @@ fn group_id(row: &Value) -> Option<String> {
     row.get("ownerId")
         .and_then(Value::as_str)
         .or_else(|| row.get("groupId").and_then(Value::as_str))
-        .or_else(|| {
-            row.get("group")
-                .and_then(|group| group.get("id"))
-                .and_then(Value::as_str)
-        })
+        .or_else(|| row.get("group").and_then(|group| GroupJson::new(group).id()))
         .map(str::trim)
         .filter(|group_id| !group_id.is_empty())
         .map(str::to_string)
