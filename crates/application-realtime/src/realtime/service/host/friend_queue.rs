@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
+use crate::realtime::event_kind::RealtimeWsEventKind;
 use crate::realtime::{FriendProjection, RealtimeFriendApplyResult, RealtimeSessionContext};
 
 use super::state::RealtimeHostRuntimeState;
@@ -46,11 +47,32 @@ impl RealtimeHostRuntime {
             .unwrap_or(false)
     }
 
+    #[cfg(test)]
     pub(super) fn handle_friend_ws_message(
         self: &Arc<Self>,
         generation: u64,
         session_generation: u64,
         session: &RealtimeSessionContext,
+        payload: &RealtimeWsMessagePayload,
+    ) {
+        let Some(event_kind) = RealtimeWsEventKind::from_payload(payload) else {
+            return;
+        };
+        self.handle_friend_ws_event(
+            generation,
+            session_generation,
+            session,
+            &event_kind,
+            payload,
+        );
+    }
+
+    pub(super) fn handle_friend_ws_event(
+        self: &Arc<Self>,
+        generation: u64,
+        session_generation: u64,
+        session: &RealtimeSessionContext,
+        event_kind: &RealtimeWsEventKind,
         payload: &RealtimeWsMessagePayload,
     ) {
         let owner = self.lock_friend_owner();
@@ -66,7 +88,7 @@ impl RealtimeHostRuntime {
         }
         drop(state);
 
-        match self.friends.apply_ws_message(payload) {
+        match self.friends.apply_ws_event(event_kind, payload) {
             RealtimeFriendApplyResult::Output(output) => {
                 self.apply_friend_output_owned(&owner, *output);
             }

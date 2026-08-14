@@ -2,11 +2,12 @@ use vrcx_0_application_core::PrintCleanupTrigger;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
 use crate::realtime::connection::RealtimeMessageSink;
-use crate::realtime::friends::is_friend_event_type;
-use crate::realtime::instance_queue::apply_instance_queue_ws_message;
+use crate::realtime::event_kind::RealtimeWsEventKind;
+use crate::realtime::instance_queue::apply_instance_queue_ws_event;
 use crate::realtime::notifications::{
-    apply_instance_closed_ws_message, apply_notification_ws_message,
+    apply_instance_closed_ws_event, apply_notification_ws_event,
 };
+use crate::realtime::print_content_refresh::is_print_created_content_refresh_event;
 use crate::realtime::{RealtimeSessionContext, RealtimeTransportLifecycleEvent, RealtimeWsStatus};
 
 use super::state::RealtimeHostRuntimeMessageSink;
@@ -58,18 +59,31 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             return;
         }
 
-        let message_type = payload.json.get("type").and_then(serde_json::Value::as_str);
-        if message_type.map(is_friend_event_type).unwrap_or(false) {
+        let Some(event_kind) = RealtimeWsEventKind::from_payload(payload) else {
             drop(state);
-            self.runtime
-                .handle_friend_ws_message(generation, session_generation, session, payload);
+            return;
+        };
+        if event_kind.is_friend() {
+            drop(state);
+            self.runtime.handle_friend_ws_event(
+                generation,
+                session_generation,
+                session,
+                &event_kind,
+                payload,
+            );
+            return;
         } else {
             drop(state);
         }
 
-        if let Some(output) =
-            apply_notification_ws_message(&session.user_id, &session.endpoint, generation, payload)
-        {
+        if let Some(output) = apply_notification_ws_event(
+            &session.user_id,
+            &session.endpoint,
+            generation,
+            &event_kind,
+            payload,
+        ) {
             self.runtime.schedule_notification_output(
                 generation,
                 session_generation,
@@ -79,7 +93,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             return;
         }
 
-        if crate::is_print_created_content_refresh(payload) {
+        if is_print_created_content_refresh_event(&event_kind, payload) {
             self.runtime
                 .deps
                 .print_cleanup
@@ -88,9 +102,12 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
                     endpoint: session.endpoint.clone(),
                     reason: "content-refresh".to_string(),
                 });
+            return;
         }
 
-        if let Some(mut projection) = apply_instance_queue_ws_message(generation, payload) {
+        if let Some(mut projection) =
+            apply_instance_queue_ws_event(generation, &event_kind, payload)
+        {
             self.runtime
                 .enrich_instance_queue_projection(&mut projection);
             if let Some(activity_sink) = &self.runtime.deps.activity_sink {
@@ -103,9 +120,10 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             return;
         }
 
-        let is_user_update = message_type == Some("user-update");
-        if let Some(output) = self.runtime.current_user.apply_ws_message(
+        let is_user_update = event_kind == RealtimeWsEventKind::UserUpdate;
+        if let Some(output) = self.runtime.current_user.apply_ws_event(
             generation,
+            &event_kind,
             payload,
             self.runtime.current_user_authority(),
         ) {
@@ -124,7 +142,7 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             return;
         }
 
-        if let Some(output) = apply_instance_closed_ws_message(generation, payload) {
+        if let Some(output) = apply_instance_closed_ws_event(generation, &event_kind, payload) {
             self.runtime
                 .apply_instance_closed_output(&session.user_id, output);
         }

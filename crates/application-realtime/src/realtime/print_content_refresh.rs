@@ -1,8 +1,20 @@
 use serde_json::Value;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
+use super::event_kind::RealtimeWsEventKind;
+
 pub fn is_print_created_content_refresh(payload: &RealtimeWsMessagePayload) -> bool {
-    if trimmed_text_field(&payload.json, "type") != "content-refresh" {
+    let Some(event_kind) = RealtimeWsEventKind::from_payload(payload) else {
+        return false;
+    };
+    is_print_created_content_refresh_event(&event_kind, payload)
+}
+
+pub(crate) fn is_print_created_content_refresh_event(
+    event_kind: &RealtimeWsEventKind,
+    payload: &RealtimeWsMessagePayload,
+) -> bool {
+    if event_kind != &RealtimeWsEventKind::ContentRefresh {
         return false;
     }
     let content = payload.json.get("content").unwrap_or(&Value::Null);

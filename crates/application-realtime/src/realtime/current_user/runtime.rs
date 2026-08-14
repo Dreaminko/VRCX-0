@@ -4,6 +4,7 @@ use serde_json::{json, Map, Value};
 use vrcx_0_core::json::text_of;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
+use crate::realtime::event_kind::RealtimeWsEventKind;
 use crate::realtime::{
     PendingOfflineTimerAction, RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput,
     RealtimeCurrentUserProjection,
@@ -78,16 +79,24 @@ impl RealtimeCurrentUserRuntime {
         Some(serde_json::Value::Object(state.snapshot.to_map()))
     }
 
+    #[cfg(test)]
     pub fn apply_ws_message(
         &self,
         generation: u64,
         payload: &RealtimeWsMessagePayload,
         authority: RealtimeCurrentUserAuthority,
     ) -> Option<RealtimeCurrentUserOutput> {
-        let message_type = payload.json.get("type").and_then(Value::as_str)?;
-        if !matches!(message_type, "user-update" | "user-location") {
-            return None;
-        }
+        let event_kind = RealtimeWsEventKind::from_payload(payload)?;
+        self.apply_ws_event(generation, &event_kind, payload, authority)
+    }
+
+    pub(crate) fn apply_ws_event(
+        &self,
+        generation: u64,
+        event_kind: &RealtimeWsEventKind,
+        payload: &RealtimeWsMessagePayload,
+        authority: RealtimeCurrentUserAuthority,
+    ) -> Option<RealtimeCurrentUserOutput> {
         let content = payload.json.get("content").unwrap_or(&Value::Null);
         let now = EventTime::from_received_at(&payload.received_at);
         let mut state = self.lock_state();
@@ -95,9 +104,13 @@ impl RealtimeCurrentUserRuntime {
             return None;
         }
 
-        match message_type {
-            "user-update" => apply_user_update(&mut state, content, &now, &authority),
-            "user-location" => apply_user_location(&mut state, content, &now, &authority),
+        match event_kind {
+            RealtimeWsEventKind::UserUpdate => {
+                apply_user_update(&mut state, content, &now, &authority)
+            }
+            RealtimeWsEventKind::UserLocation => {
+                apply_user_location(&mut state, content, &now, &authority)
+            }
             _ => None,
         }
     }

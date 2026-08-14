@@ -3,6 +3,7 @@ use vrcx_0_core::friends::{FriendRecord, StateBucket};
 use vrcx_0_core::trust::{trust_level_changed, trust_level_differs};
 use vrcx_0_persistence::realtime::FriendLogDelete;
 
+use crate::realtime::event_kind::RealtimeWsEventKind;
 use crate::realtime::{
     FriendStateBucketAuthority, PendingOfflineTimerAction, RealtimeFriendOutput,
 };
@@ -45,22 +46,22 @@ pub(super) enum FriendEventKind {
 }
 
 impl FriendEventKind {
-    pub(super) fn from_message_type(message_type: &str) -> Option<Self> {
-        match message_type {
-            "friend-add" => Some(Self::Add),
-            "friend-delete" => Some(Self::Delete),
-            "friend-update" => Some(Self::Update),
-            "friend-online" => Some(Self::Online),
-            "friend-active" => Some(Self::Active),
-            "friend-offline" => Some(Self::Offline),
-            "friend-location" => Some(Self::Location),
+    pub(super) fn from_ws_event_kind(event_kind: &RealtimeWsEventKind) -> Option<Self> {
+        match event_kind {
+            RealtimeWsEventKind::FriendAdd => Some(Self::Add),
+            RealtimeWsEventKind::FriendDelete => Some(Self::Delete),
+            RealtimeWsEventKind::FriendUpdate => Some(Self::Update),
+            RealtimeWsEventKind::FriendOnline => Some(Self::Online),
+            RealtimeWsEventKind::FriendActive => Some(Self::Active),
+            RealtimeWsEventKind::FriendOffline => Some(Self::Offline),
+            RealtimeWsEventKind::FriendLocation => Some(Self::Location),
             _ => None,
         }
     }
 }
 
 pub fn is_friend_event_type(message_type: &str) -> bool {
-    FriendEventKind::from_message_type(message_type).is_some()
+    RealtimeWsEventKind::from_name(message_type).is_friend()
 }
 
 pub(super) fn apply_friend_event(
