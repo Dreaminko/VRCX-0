@@ -6,7 +6,7 @@ use vrcx_0_core::user_facts::{
     merge_user_fact_owned, normalize_user_id, user_fact_key, UserFact, UserFactMergeOptions,
 };
 
-const NON_FRIEND_CAPACITY: usize = 256;
+const NON_FRIEND_CAPACITY: usize = 128;
 
 pub(crate) struct UserCacheRuntime {
     state: Mutex<UserCacheState>,
@@ -212,9 +212,9 @@ mod tests {
     }
 
     #[test]
-    fn default_non_friend_capacity_is_256() {
+    fn default_non_friend_capacity_is_128() {
         let cache = UserCacheRuntime::new();
-        for index in 0..=256 {
+        for index in 0..=128 {
             cache.record_user(
                 &json!({
                     "id": format!("usr_{index}"),
@@ -231,7 +231,7 @@ mod tests {
             .get_user("https://api.example.test", "usr_1")
             .is_some());
         assert!(cache
-            .get_user("https://api.example.test", "usr_256")
+            .get_user("https://api.example.test", "usr_128")
             .is_some());
     }
 

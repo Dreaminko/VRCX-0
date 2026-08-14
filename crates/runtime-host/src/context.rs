@@ -24,9 +24,9 @@ use crate::notification::{
     WebhookDeliveryMonitor, WebhookDeliverySnapshot,
 };
 
-const AVATAR_CACHE_WORKING_CAPACITY: u64 = 256;
+const AVATAR_CACHE_WORKING_CAPACITY: u64 = 64;
 const AVATAR_CACHE_WORKING_TTL: Duration = Duration::from_secs(2 * 60);
-const WORLD_CACHE_WORKING_CAPACITY: u64 = 256;
+const WORLD_CACHE_WORKING_CAPACITY: u64 = 64;
 const WORLD_CACHE_WORKING_TTL: Duration = Duration::from_secs(30 * 60);
 
 #[derive(Clone, Default)]

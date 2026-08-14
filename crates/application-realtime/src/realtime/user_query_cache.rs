@@ -10,7 +10,7 @@ use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 use vrcx_0_application_core::vrchat_api::VrchatApiResponse;
 use vrcx_0_application_core::Error;
 
-const QUERY_CAPACITY: u64 = 256;
+const QUERY_CAPACITY: u64 = 128;
 
 const TTL_DIALOG_SECS: u64 = 60;
 const TTL_LIVE_FRIEND_SECS: u64 = 300;

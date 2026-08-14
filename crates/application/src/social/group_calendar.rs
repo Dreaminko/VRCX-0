@@ -24,7 +24,7 @@ use crate::{Error, Result};
 const CALENDAR_PAGE_SIZE: i64 = 100;
 const CALENDAR_MAX_PAGES: usize = 50;
 const GROUP_PROFILE_CONCURRENCY: usize = 4;
-const GROUP_PROFILE_CACHE_CAPACITY: u64 = 128;
+const GROUP_PROFILE_CACHE_CAPACITY: u64 = 32;
 const GROUP_PROFILE_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 
 #[derive(Clone)]
