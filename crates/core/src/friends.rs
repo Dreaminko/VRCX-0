@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -45,13 +46,16 @@ pub struct FriendRecord {
     #[serde(default)]
     pub id: String,
     #[serde(default)]
-    pub display_name: String,
+    #[specta(type = String)]
+    pub display_name: CompactString,
     #[serde(default)]
     pub username: String,
     #[serde(default)]
-    pub state: String,
+    #[specta(type = String)]
+    pub state: CompactString,
     #[serde(default)]
-    pub state_bucket: String,
+    #[specta(type = String)]
+    pub state_bucket: CompactString,
     #[serde(default)]
     pub location: String,
     #[serde(default)]
@@ -59,13 +63,17 @@ pub struct FriendRecord {
     #[serde(default)]
     pub world_id: String,
     #[serde(default)]
-    pub platform: String,
+    #[specta(type = String)]
+    pub platform: CompactString,
     #[serde(default, alias = "last_platform")]
-    pub last_platform: String,
+    #[specta(type = String)]
+    pub last_platform: CompactString,
     #[serde(default)]
-    pub status: String,
+    #[specta(type = String)]
+    pub status: CompactString,
     #[serde(default)]
-    pub status_description: String,
+    #[specta(type = String)]
+    pub status_description: CompactString,
     #[serde(default)]
     pub bio: String,
     #[serde(default)]
@@ -93,7 +101,7 @@ impl FriendRecord {
         ]))
         .unwrap_or(StateBucket::Offline)
         .as_str()
-        .to_string();
+        .into();
         self.state = self.state_bucket.clone();
         Some(self)
     }
@@ -259,6 +267,41 @@ mod tests {
         assert_eq!(friend.id, "usr_friend");
         assert_eq!(friend.state_bucket, "online");
         assert_eq!(friend.display_name_or_id(), "Friend");
+    }
+
+    #[test]
+    fn compact_friend_fields_keep_string_serialization_and_unknown_fields() {
+        let status_description = "a status description longer than twenty-four bytes";
+        let record: FriendRecord = serde_json::from_value(json!({
+            "id": "usr_friend",
+            "displayName": "Friend",
+            "state": "online",
+            "stateBucket": "online",
+            "platform": "standalonewindows",
+            "last_platform": "android",
+            "status": "join me",
+            "statusDescription": status_description,
+            "futureField": "preserved"
+        }))
+        .unwrap();
+
+        assert!(!record.display_name.is_heap_allocated());
+        assert!(!record.state.is_heap_allocated());
+        assert!(!record.state_bucket.is_heap_allocated());
+        assert!(!record.platform.is_heap_allocated());
+        assert!(!record.last_platform.is_heap_allocated());
+        assert!(!record.status.is_heap_allocated());
+        assert!(record.status_description.is_heap_allocated());
+
+        let serialized = serde_json::to_value(record).unwrap();
+        assert_eq!(serialized["displayName"], "Friend");
+        assert_eq!(serialized["state"], "online");
+        assert_eq!(serialized["stateBucket"], "online");
+        assert_eq!(serialized["platform"], "standalonewindows");
+        assert_eq!(serialized["lastPlatform"], "android");
+        assert_eq!(serialized["status"], "join me");
+        assert_eq!(serialized["statusDescription"], status_description);
+        assert_eq!(serialized["futureField"], "preserved");
     }
 
     #[test]

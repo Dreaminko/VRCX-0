@@ -9,6 +9,7 @@ description = "Local MCP server"
 axum = "0.8"
 base64 = { workspace = true }
 chrono = { workspace = true }
+compact_str = { workspace = true }
 constant_time_eq = "0.5"
 getrandom = "0.4"
 http = "1"

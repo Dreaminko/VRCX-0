@@ -463,7 +463,7 @@ fn friend_snapshot_diff_projection(
             .push(crate::realtime::FriendProjectionPatch {
                 user_id,
                 patch: record.clone(),
-                state_bucket,
+                state_bucket: state_bucket.into(),
                 state_bucket_authority: FriendStateBucketAuthority::Explicit,
             });
         if let Some(entry) = joining_entry {

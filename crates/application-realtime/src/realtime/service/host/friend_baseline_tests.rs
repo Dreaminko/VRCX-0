@@ -15,9 +15,9 @@ fn sync_friend_snapshot_debounces_online_to_offline() -> Result<()> {
         "usr_friend".to_string(),
         FriendRecord {
             id: "usr_friend".to_string(),
-            display_name: "Friend".to_string(),
-            state: "online".to_string(),
-            state_bucket: "online".to_string(),
+            display_name: "Friend".into(),
+            state: "online".into(),
+            state_bucket: "online".into(),
             location: "wrld_old:123".to_string(),
             ..FriendRecord::default()
         },
@@ -32,9 +32,9 @@ fn sync_friend_snapshot_debounces_online_to_offline() -> Result<()> {
         "usr_friend".to_string(),
         FriendRecord {
             id: "usr_friend".to_string(),
-            display_name: "Friend".to_string(),
-            state: "offline".to_string(),
-            state_bucket: "offline".to_string(),
+            display_name: "Friend".into(),
+            state: "offline".into(),
+            state_bucket: "offline".into(),
             location: "offline".to_string(),
             ..FriendRecord::default()
         },
@@ -81,9 +81,9 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         "usr_friend".to_string(),
         FriendRecord {
             id: "usr_friend".to_string(),
-            display_name: "Friend".to_string(),
-            state: "online".to_string(),
-            state_bucket: "online".to_string(),
+            display_name: "Friend".into(),
+            state: "online".into(),
+            state_bucket: "online".into(),
             location: "wrld_old:123".to_string(),
             ..FriendRecord::default()
         },
@@ -115,9 +115,9 @@ fn sync_friend_snapshot_persists_feed_when_refresh_confirms_pending_offline() ->
         "usr_friend".to_string(),
         FriendRecord {
             id: "usr_friend".to_string(),
-            display_name: "Friend Fresh Name".to_string(),
-            state: "offline".to_string(),
-            state_bucket: "offline".to_string(),
+            display_name: "Friend Fresh Name".into(),
+            state: "offline".into(),
+            state_bucket: "offline".into(),
             location: "offline".to_string(),
             ..FriendRecord::default()
         },
@@ -225,9 +225,9 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
                 "usr_friend".to_string(),
                 FriendRecord {
                     id: "usr_friend".to_string(),
-                    display_name: "Friend".to_string(),
-                    state: "online".to_string(),
-                    state_bucket: "online".to_string(),
+                    display_name: "Friend".into(),
+                    state: "online".into(),
+                    state_bucket: "online".into(),
                     location: "wrld_old:123".to_string(),
                     ..FriendRecord::default()
                 },
@@ -263,9 +263,9 @@ fn host_watermark_preserves_pending_created_after_capture() -> Result<()> {
                 "usr_friend".to_string(),
                 FriendRecord {
                     id: "usr_friend".to_string(),
-                    display_name: "Friend".to_string(),
-                    state: state_bucket.to_string(),
-                    state_bucket: state_bucket.to_string(),
+                    display_name: "Friend".into(),
+                    state: state_bucket.into(),
+                    state_bucket: state_bucket.into(),
                     location: location.to_string(),
                     ..FriendRecord::default()
                 },
@@ -307,9 +307,9 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
             "usr_friend".to_string(),
             FriendRecord {
                 id: "usr_friend".to_string(),
-                display_name: "Friend".to_string(),
-                state: "online".to_string(),
-                state_bucket: "online".to_string(),
+                display_name: "Friend".into(),
+                state: "online".into(),
+                state_bucket: "online".into(),
                 location: "wrld_old:123".to_string(),
                 ..FriendRecord::default()
             },
@@ -375,9 +375,9 @@ fn host_watermark_preserves_online_cancellation_after_capture() -> Result<()> {
             "usr_friend".to_string(),
             FriendRecord {
                 id: "usr_friend".to_string(),
-                display_name: "Friend".to_string(),
-                state: "offline".to_string(),
-                state_bucket: "offline".to_string(),
+                display_name: "Friend".into(),
+                state: "offline".into(),
+                state_bucket: "offline".into(),
                 location: "offline".to_string(),
                 ..FriendRecord::default()
             },
@@ -414,9 +414,9 @@ fn causal_sync_returns_canonical_snapshot_after_newer_friend_delete() -> Result<
         runtime_with_active_session("canonical-after-friend-delete")?;
     let stale_friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         location: "wrld_old:123".to_string(),
         ..FriendRecord::default()
     };
@@ -509,9 +509,9 @@ fn causal_watermark_rejects_baseline_after_local_friend_log_mutation() -> Result
         runtime_with_active_session("local-friend-log-watermark")?;
     let friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     runtime.runtime().sync_friend_snapshot(
@@ -1399,9 +1399,9 @@ fn causal_watermark_rejects_superseded_baseline() -> Result<()> {
             "usr_friend".to_string(),
             FriendRecord {
                 id: "usr_friend".to_string(),
-                display_name: display_name.to_string(),
-                state: "online".to_string(),
-                state_bucket: "online".to_string(),
+                display_name: display_name.into(),
+                state: "online".into(),
+                state_bucket: "online".into(),
                 location: "wrld_1:123".to_string(),
                 ..FriendRecord::default()
             },
@@ -1510,9 +1510,9 @@ fn sync_friend_snapshot_emits_projection_for_active_removals() -> Result<()> {
         "usr_removed".to_string(),
         FriendRecord {
             id: "usr_removed".to_string(),
-            display_name: "Removed Friend".to_string(),
-            state: "offline".to_string(),
-            state_bucket: "offline".to_string(),
+            display_name: "Removed Friend".into(),
+            state: "offline".into(),
+            state_bucket: "offline".into(),
             ..FriendRecord::default()
         },
     );
@@ -1563,9 +1563,9 @@ fn apply_friend_profile_refresh_updates_existing_friend_only() -> Result<()> {
         "usr_friend".to_string(),
         FriendRecord {
             id: "usr_friend".to_string(),
-            display_name: "Friend".to_string(),
-            state: "online".to_string(),
-            state_bucket: "online".to_string(),
+            display_name: "Friend".into(),
+            state: "online".into(),
+            state_bucket: "online".into(),
             location: "wrld_old:123".to_string(),
             ..FriendRecord::default()
         },
@@ -2006,9 +2006,9 @@ fn friend_note_change_notifies_note_cache_sink() -> Result<()> {
     }
     let mut friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     friend.extra.insert("note".into(), json!("old note"));

@@ -38,11 +38,11 @@ mod tests {
         let uid = entry.get("uid").and_then(Value::as_str)?.to_string();
         let record = FriendRecord {
             id: uid.clone(),
-            display_name: field_str(entry.get("dn")),
-            state: field_str(entry.get("state")),
-            state_bucket: field_str(entry.get("state")),
+            display_name: field_str(entry.get("dn")).into(),
+            state: field_str(entry.get("state")).into(),
+            state_bucket: field_str(entry.get("state")).into(),
             location: field_str(entry.get("loc")),
-            status: field_str(entry.get("status")),
+            status: field_str(entry.get("status")).into(),
             ..FriendRecord::default()
         };
         Some((uid, record))
@@ -619,7 +619,7 @@ mod tests {
             after_location,
             after_traveling,
             after_pending,
-            record_state: record.state.clone(),
+            record_state: record.state.to_string(),
             record_location: record.location.clone(),
             record_traveling: record.traveling_to_location.clone(),
             record_pending,

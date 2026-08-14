@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use compact_str::CompactString;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
@@ -49,7 +50,7 @@ fn build_online_friends_output(
 
     let mut rows = friends
         .into_iter()
-        .filter(|friend| normalized_states.contains(&friend.state_bucket))
+        .filter(|friend| normalized_states.contains(friend.state_bucket.as_str()))
         .map(|friend| {
             let parsed = parse_location(&friend.location);
             let display_name = friend.display_name_or_id();
@@ -118,13 +119,13 @@ struct OnlineFriendsOutput {
 struct OnlineFriendRow {
     user_id: String,
     display_name: String,
-    state: String,
+    state: CompactString,
     location: Option<String>,
     world_id: Option<String>,
     world_name: Option<String>,
     instance_access_type: Option<String>,
-    status: String,
-    platform: String,
+    status: CompactString,
+    platform: CompactString,
 }
 
 fn online_friends_summary(rows: &[OnlineFriendRow]) -> String {

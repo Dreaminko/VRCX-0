@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, MutexGuard};
 
 use chrono::Utc;
+use compact_str::CompactString;
 use serde_json::{json, Value};
 use vrcx_0_core::friends::{FriendRecord, FriendRosterBaseline, StateBucket};
 use vrcx_0_core::realtime::{RealtimeSessionContext, RealtimeWsMessagePayload};
@@ -32,7 +33,7 @@ pub(super) struct RecentGps {
 pub(super) struct PendingOffline {
     pub(super) token: u64,
     pub(super) patch: FriendRecordPatch,
-    pub(super) state_bucket: String,
+    pub(super) state_bucket: CompactString,
     pub(super) previous: OfflineFeedPrevious,
 }
 

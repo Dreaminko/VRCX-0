@@ -127,9 +127,9 @@ fn pending_unfriend_updates_start_baseline_and_emits_projection() -> Result<()> 
     let (_dir, runtime, session) = runtime_with_active_session("mutation-sink-pending-unfriend")?;
     let friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     let stale_friends: HashMap<String, FriendRecord> =
@@ -236,9 +236,9 @@ fn unfriend_locally_applies_via_synthetic_event_when_baseline_present() -> Resul
         runtime_with_active_session("mutation-sink-unfriend-baseline")?;
     let friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     runtime.runtime().sync_friend_snapshot(
@@ -279,9 +279,9 @@ fn unfriend_locally_with_stale_owner_falls_back_without_touching_active_roster()
         runtime_with_active_session("mutation-sink-unfriend-stale-owner")?;
     let friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     runtime.runtime().sync_friend_snapshot(
@@ -330,9 +330,9 @@ fn synthetic_event_with_stale_endpoint_reports_missing_baseline() -> Result<()> 
         runtime_with_active_session("mutation-sink-unfriend-stale-endpoint")?;
     let friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     runtime.runtime().sync_friend_snapshot(
@@ -406,9 +406,9 @@ fn unfriend_then_later_ws_friend_delete_records_exactly_one_unfriend_history() -
         runtime_with_active_session("mutation-sink-unfriend-race-local-first")?;
     let friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     runtime.runtime().sync_friend_snapshot(
@@ -442,9 +442,9 @@ fn ws_friend_delete_then_later_unfriend_records_exactly_one_unfriend_history() -
         runtime_with_active_session("mutation-sink-unfriend-race-ws-first")?;
     let friend = FriendRecord {
         id: "usr_friend".to_string(),
-        display_name: "Friend".to_string(),
-        state: "online".to_string(),
-        state_bucket: "online".to_string(),
+        display_name: "Friend".into(),
+        state: "online".into(),
+        state_bucket: "online".into(),
         ..FriendRecord::default()
     };
     runtime.runtime().sync_friend_snapshot(

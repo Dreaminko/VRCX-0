@@ -406,7 +406,7 @@ fn apply_active_offline(
             PendingOffline {
                 token,
                 patch: FriendRecordPatch::from_value(&patch),
-                state_bucket: next_state.to_string(),
+                state_bucket: next_state.into(),
                 previous: OfflineFeedPrevious::from_record(previous),
             },
         );
@@ -494,7 +494,7 @@ fn apply_location(
                     &user_id,
                     StateBucket::Offline.as_str(),
                 )),
-                state_bucket: StateBucket::Offline.as_str().to_string(),
+                state_bucket: StateBucket::Offline.as_str().into(),
                 previous: OfflineFeedPrevious::from_record(
                     previous_record.as_ref().expect("checked previous record"),
                 ),

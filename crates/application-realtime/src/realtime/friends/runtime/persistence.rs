@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::iter::once_with;
 
 use chrono::Utc;
+use compact_str::CompactString;
 use serde_json::{json, Map, Value};
 use vrcx_0_core::friends::{FriendRecord, StateBucket};
 use vrcx_0_persistence::realtime::FriendLogUpsert;
@@ -26,7 +27,7 @@ struct ResolvedLocationNames {
 
 #[derive(Clone, Debug)]
 pub(super) struct OfflineFeedPrevious {
-    display_name: String,
+    display_name: CompactString,
     username: String,
     location: String,
     world_name: String,
@@ -203,10 +204,9 @@ pub(super) fn add_profile_diff_feed_entries(
     let status_changed = changes.has("status");
     let status_description_changed = changes.has("statusDescription");
     let next_status = string_or_previous(patch, previous, "status");
-    let previous_status = previous.status.clone();
     if (status_changed || status_description_changed)
         && next_status != "offline"
-        && previous_status != "offline"
+        && previous.status != "offline"
     {
         output
             .persistence
@@ -218,7 +218,7 @@ pub(super) fn add_profile_diff_feed_entries(
                 display_name: display_name(user_id, patch, Some(previous)),
                 status: next_status,
                 status_description: string_or_previous(patch, previous, "statusDescription"),
-                previous_status,
+                previous_status: &previous.status,
                 previous_status_description: &previous.status_description,
             }));
     }

@@ -329,16 +329,16 @@ fn fallback_accept(
     let mut record = serde_json::from_value::<vrcx_0_core::friends::FriendRecord>(profile.clone())
         .unwrap_or_default();
     if record.display_name.trim().is_empty() {
-        record.display_name = display_name.clone();
+        record.display_name = display_name.clone().into();
     }
     let record =
         record
             .normalized(target_user_id)
             .unwrap_or_else(|| vrcx_0_core::friends::FriendRecord {
                 id: target_user_id.to_string(),
-                display_name: display_name.clone(),
-                state: "offline".to_string(),
-                state_bucket: "offline".to_string(),
+                display_name: display_name.clone().into(),
+                state: "offline".into(),
+                state_bucket: "offline".into(),
                 ..vrcx_0_core::friends::FriendRecord::default()
             });
     let history_entry = history_entry("Friend", target_user_id, target_display_name);

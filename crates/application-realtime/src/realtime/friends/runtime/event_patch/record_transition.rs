@@ -61,15 +61,15 @@ pub(super) fn apply_friend_patch(
     let was_traveling = parse_location(&next.location).is_traveling;
     patch.apply_to(&mut next);
     next.id = user_id.to_string();
-    next.state = state_bucket.to_string();
-    next.state_bucket = state_bucket.to_string();
+    next.state = state_bucket.into();
+    next.state_bucket = state_bucket.into();
     sanitize_extra(&mut next);
 
     FriendRecordTransition {
         projection: FriendProjectionPatch {
             user_id: user_id.to_string(),
             patch: next.clone(),
-            state_bucket: state_bucket.to_string(),
+            state_bucket: state_bucket.into(),
             state_bucket_authority,
         },
         next,
@@ -98,10 +98,10 @@ const FRIEND_NAMED_FIELD_KEYS: &[&str] = &[
     "currentAvatarName",
 ];
 
-fn patch_str(patch: &Map<String, Value>, keys: &[&str]) -> Option<String> {
+fn patch_str<'a>(patch: &'a Map<String, Value>, keys: &[&str]) -> Option<&'a str> {
     for key in keys {
         match patch.get(*key) {
-            Some(Value::String(value)) => return Some(value.clone()),
+            Some(Value::String(value)) => return Some(value),
             Some(Value::Null) | None => {}
             Some(other) => tracing::warn!(
                 "friend patch field `{}` has non-string value: {}",
@@ -114,12 +114,8 @@ fn patch_str(patch: &Map<String, Value>, keys: &[&str]) -> Option<String> {
 }
 
 fn apply_fields(record: &mut FriendRecord, patch: &Map<String, Value>) {
-    let fields = [
+    let compact_fields = [
         (&mut record.display_name, &["displayName"][..]),
-        (&mut record.username, &["username"]),
-        (&mut record.location, &["location"]),
-        (&mut record.traveling_to_location, &["travelingToLocation"]),
-        (&mut record.world_id, &["worldId"]),
         (&mut record.platform, &["platform"]),
         (
             &mut record.last_platform,
@@ -127,6 +123,17 @@ fn apply_fields(record: &mut FriendRecord, patch: &Map<String, Value>) {
         ),
         (&mut record.status, &["status"]),
         (&mut record.status_description, &["statusDescription"]),
+    ];
+    for (target, keys) in compact_fields {
+        if let Some(value) = patch_str(patch, keys) {
+            *target = value.into();
+        }
+    }
+    let string_fields = [
+        (&mut record.username, &["username"][..]),
+        (&mut record.location, &["location"]),
+        (&mut record.traveling_to_location, &["travelingToLocation"]),
+        (&mut record.world_id, &["worldId"]),
         (&mut record.bio, &["bio"]),
         (
             &mut record.current_avatar_image_url,
@@ -142,9 +149,9 @@ fn apply_fields(record: &mut FriendRecord, patch: &Map<String, Value>) {
         ),
         (&mut record.current_avatar_name, &["currentAvatarName"]),
     ];
-    for (target, keys) in fields {
+    for (target, keys) in string_fields {
         if let Some(value) = patch_str(patch, keys) {
-            *target = value;
+            *target = value.to_string();
         }
     }
     record.extra.extend(
@@ -167,17 +174,17 @@ pub(in crate::realtime::friends::runtime) fn record_string(
 ) -> String {
     match key {
         "id" => record.id.clone(),
-        "displayName" => record.display_name.clone(),
+        "displayName" => record.display_name.to_string(),
         "username" => record.username.clone(),
-        "state" => record.state.clone(),
-        "stateBucket" => record.state_bucket.clone(),
+        "state" => record.state.to_string(),
+        "stateBucket" => record.state_bucket.to_string(),
         "location" => record.location.clone(),
         "travelingToLocation" => record.traveling_to_location.clone(),
         "worldId" => record.world_id.clone(),
-        "platform" => record.platform.clone(),
-        "lastPlatform" | "last_platform" => record.last_platform.clone(),
-        "status" => record.status.clone(),
-        "statusDescription" => record.status_description.clone(),
+        "platform" => record.platform.to_string(),
+        "lastPlatform" | "last_platform" => record.last_platform.to_string(),
+        "status" => record.status.to_string(),
+        "statusDescription" => record.status_description.to_string(),
         "bio" => record.bio.clone(),
         "currentAvatarImageUrl" => record.current_avatar_image_url.clone(),
         "currentAvatarThumbnailImageUrl" => record.current_avatar_thumbnail_image_url.clone(),

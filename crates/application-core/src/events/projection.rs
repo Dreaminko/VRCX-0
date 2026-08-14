@@ -1,3 +1,4 @@
+use compact_str::CompactString;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use vrcx_0_core::friends::FriendRecord;
@@ -20,7 +21,8 @@ pub enum FriendStateBucketAuthority {
 pub struct FriendProjectionPatch {
     pub user_id: String,
     pub patch: FriendRecord,
-    pub state_bucket: String,
+    #[specta(type = String)]
+    pub state_bucket: CompactString,
     pub state_bucket_authority: FriendStateBucketAuthority,
 }
 

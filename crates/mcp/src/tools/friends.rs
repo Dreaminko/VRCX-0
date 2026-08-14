@@ -1,3 +1,4 @@
+use compact_str::CompactString;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
@@ -691,13 +692,13 @@ struct FriendProfileOutput {
 struct FriendProfileCurrent {
     user_id: String,
     display_name: String,
-    state: String,
+    state: CompactString,
     location: String,
     world_id: String,
-    status: String,
-    status_description: String,
+    status: CompactString,
+    status_description: CompactString,
     bio: String,
-    platform: String,
+    platform: CompactString,
     current_avatar_name: String,
 }
 
@@ -802,13 +803,13 @@ fn fallback_friend_profile_current(
     Some(FriendProfileCurrent {
         user_id: user_id.to_string(),
         display_name: relationship.display_name.clone(),
-        state: String::new(),
+        state: CompactString::new(""),
         location: String::new(),
         world_id: String::new(),
-        status: String::new(),
-        status_description: String::new(),
+        status: CompactString::new(""),
+        status_description: CompactString::new(""),
         bio,
-        platform: String::new(),
+        platform: CompactString::new(""),
         current_avatar_name: String::new(),
     })
 }

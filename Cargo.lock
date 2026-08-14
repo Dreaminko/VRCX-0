@@ -9043,6 +9043,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "compact_str",
  "moka",
  "serde",
  "serde_json",
@@ -9129,6 +9130,7 @@ name = "vrcx-0-core"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "compact_str",
  "proptest",
  "quick-xml",
  "serde",
@@ -9255,6 +9257,7 @@ dependencies = [
  "axum",
  "base64 0.23.1",
  "chrono",
+ "compact_str",
  "constant_time_eq",
  "getrandom 0.4.3",
  "http",

@@ -58,7 +58,7 @@ pub(super) struct StatusFeedEntry<'a> {
     #[serde(rename = "statusDescription")]
     pub(super) status_description: String,
     #[serde(rename = "previousStatus")]
-    pub(super) previous_status: String,
+    pub(super) previous_status: &'a str,
     #[serde(rename = "previousStatusDescription")]
     pub(super) previous_status_description: &'a str,
 }
