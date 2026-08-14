@@ -6,10 +6,67 @@
 //! source of truth for turning that string into structured data; every realtime,
 //! presence, and Discord path consumes it instead of re-implementing parsing.
 
-use serde::Serialize;
+use compact_str::CompactString;
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Value};
 
 use crate::vrchat_endpoints::VRCHAT_SITE_ORIGIN;
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[serde(from = "CompactString")]
+pub enum GroupAccessType {
+    Members,
+    Plus,
+    Public,
+    Unknown(CompactString),
+}
+
+impl GroupAccessType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Members => "members",
+            Self::Plus => "plus",
+            Self::Public => "public",
+            Self::Unknown(value) => value,
+        }
+    }
+
+    fn known(value: &str) -> Option<Self> {
+        match value {
+            "members" => Some(Self::Members),
+            "plus" => Some(Self::Plus),
+            "public" => Some(Self::Public),
+            _ => None,
+        }
+    }
+}
+
+impl Serialize for GroupAccessType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl From<&str> for GroupAccessType {
+    fn from(value: &str) -> Self {
+        Self::known(value).unwrap_or_else(|| Self::Unknown(value.into()))
+    }
+}
+
+impl From<String> for GroupAccessType {
+    fn from(value: String) -> Self {
+        Self::known(&value).unwrap_or_else(|| Self::Unknown(value.into()))
+    }
+}
+
+impl From<CompactString> for GroupAccessType {
+    fn from(value: CompactString) -> Self {
+        Self::known(&value).unwrap_or(Self::Unknown(value))
+    }
+}
 
 #[derive(Clone, Debug, Default, Serialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +88,8 @@ pub struct ParsedLocation {
     pub private_id: Option<String>,
     pub friends_id: Option<String>,
     pub group_id: Option<String>,
-    pub group_access_type: Option<String>,
+    #[specta(type = Option<String>)]
+    pub group_access_type: Option<GroupAccessType>,
     pub can_request_invite: bool,
     pub strict: bool,
     pub age_gate: bool,
@@ -114,7 +172,7 @@ pub fn parse_location(tag: &str) -> ParsedLocation {
                 "canRequestInvite" => parsed.can_request_invite = true,
                 "region" => parsed.region = qualifier_value,
                 "group" => parsed.group_id = Some(qualifier_value),
-                "groupAccessType" => parsed.group_access_type = Some(qualifier_value),
+                "groupAccessType" => parsed.group_access_type = Some(qualifier_value.into()),
                 "strict" => parsed.strict = true,
                 "ageGate" => parsed.age_gate = true,
                 _ => {}
@@ -138,12 +196,10 @@ pub fn parse_location(tag: &str) -> ParsedLocation {
             parsed.access_type = "group".into();
         }
         parsed.access_type_name = parsed.access_type.clone();
-        if let Some(group_access_type) = parsed.group_access_type.as_deref() {
-            if group_access_type == "public" {
-                parsed.access_type_name = "groupPublic".into();
-            } else if group_access_type == "plus" {
-                parsed.access_type_name = "groupPlus".into();
-            }
+        match parsed.group_access_type.as_ref() {
+            Some(GroupAccessType::Public) => parsed.access_type_name = "groupPublic".into(),
+            Some(GroupAccessType::Plus) => parsed.access_type_name = "groupPlus".into(),
+            _ => {}
         }
     } else {
         parsed.world_id = raw;
@@ -197,9 +253,9 @@ pub fn normalize_instance_type(parsed: &ParsedLocation) -> String {
     if parsed.access_type != "group" {
         return parsed.access_type.clone();
     }
-    match parsed.group_access_type.as_deref() {
-        Some("members") => "groupOnly".into(),
-        Some("plus") => "groupPlus".into(),
+    match parsed.group_access_type.as_ref() {
+        Some(GroupAccessType::Members) => "groupOnly".into(),
+        Some(GroupAccessType::Plus) => "groupPlus".into(),
         _ => "groupPublic".into(),
     }
 }

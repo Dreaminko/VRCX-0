@@ -1,5 +1,5 @@
 use serde_json::{json, Map, Value};
-use vrcx_0_core::location::{launch_url, ParsedLocation};
+use vrcx_0_core::location::{launch_url, GroupAccessType, ParsedLocation};
 
 use super::super::presence_facts::BackgroundPresenceFacts;
 use super::super::shared::{non_empty, string_field};
@@ -89,7 +89,10 @@ pub(super) fn build_discord_activity(
     let mut hide_private = config.discord_hide_invite
         && (parsed.access_type == "invite"
             || parsed.access_type == "invite+"
-            || parsed.group_access_type.as_deref() == Some("members"));
+            || matches!(
+                parsed.group_access_type.as_ref(),
+                Some(GroupAccessType::Members)
+            ));
     if status_info.hide_private {
         hide_private = true;
     }
@@ -302,10 +305,10 @@ pub(super) fn build_access_name(
         "friends" => format!("{} {suffix}", labels.access_friends),
         "friends+" => format!("{} {suffix}", labels.access_friends_plus),
         "group" => {
-            let group_access = match parsed.group_access_type.as_deref() {
-                Some("public") => labels.group_access_public.as_str(),
-                Some("plus") => labels.group_access_plus.as_str(),
-                Some("members") => labels.group_access_members.as_str(),
+            let group_access = match parsed.group_access_type.as_ref() {
+                Some(GroupAccessType::Public) => labels.group_access_public.as_str(),
+                Some(GroupAccessType::Plus) => labels.group_access_plus.as_str(),
+                Some(GroupAccessType::Members) => labels.group_access_members.as_str(),
                 _ => "",
             };
             let group_suffix = if !group_name.is_empty() && !group_access.is_empty() {

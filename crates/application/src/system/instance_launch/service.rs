@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use serde_json::Value;
 use vrcx_0_core::text::first_non_empty_owned;
 use vrcx_0_core::{
-    location::{parse_location, ParsedLocation},
+    location::{parse_location, GroupAccessType, ParsedLocation},
     vrchat_endpoints::VRCHAT_API_DEFAULT_ENDPOINT,
 };
 
@@ -194,7 +194,10 @@ fn build_vrc_launch_url(location: &str, short_name: &str) -> String {
 fn should_use_provided_launch_token(parsed: &ParsedLocation, short_name: &str) -> bool {
     !short_name.is_empty()
         && parsed.access_type != "public"
-        && parsed.group_access_type.as_deref() != Some("public")
+        && !matches!(
+            parsed.group_access_type.as_ref(),
+            Some(GroupAccessType::Public)
+        )
 }
 
 fn require_api_success(response: VrchatApiResponse, fallback_message: &str) -> Result<Value> {

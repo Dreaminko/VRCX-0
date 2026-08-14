@@ -144,7 +144,7 @@ pub fn prepare_share_collection_payload(
             });
             continue;
         };
-        if !row.release_status.eq_ignore_ascii_case("public") {
+        if !row.release_status.as_str().eq_ignore_ascii_case("public") {
             continue;
         }
         if row.id.trim().is_empty()
@@ -244,7 +244,7 @@ pub(crate) fn payload_world_from_row(
         created_at: row.created_at.clone(),
         image_url: row.image_url.clone(),
         description: row.description.clone(),
-        release_status: row.release_status.clone(),
+        release_status: row.release_status.as_str().to_string(),
         thumbnail_image_url,
         comment,
         updated_at: row.updated_at.clone(),

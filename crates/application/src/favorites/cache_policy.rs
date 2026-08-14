@@ -267,7 +267,7 @@ mod tests {
 
         let cached = world_cache_get(&db, "wrld_test".into()).unwrap().unwrap();
         assert_eq!(cached.name, "Public name");
-        assert_eq!(cached.release_status, "public");
+        assert_eq!(cached.release_status.as_str(), "public");
         assert_eq!(cached.image_url, "https://example.test/public.png");
     }
 }

@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use moka::sync::Cache;
 use serde_json::Value;
+use vrcx_0_core::WorldReleaseStatus;
 use vrcx_0_persistence::cache_entities::CacheEntityInput;
 use vrcx_0_persistence::worlds::{
     world_cache_get, world_cache_search, world_cache_upsert, WorldSummaryOutput,
@@ -390,7 +391,7 @@ fn world_summary(value: &Value, id: String, name: String) -> WorldSummaryOutput 
         description: text_field(value, "description"),
         image_url: text_field(value, "imageUrl"),
         name,
-        release_status: text_field(value, "releaseStatus"),
+        release_status: text_field(value, "releaseStatus").into(),
         thumbnail_image_url: text_field(value, "thumbnailImageUrl"),
         updated_at: text_field_with_fallback(value, "updated_at", "updatedAt"),
         version: value
@@ -475,11 +476,13 @@ fn summary_response(summary: &WorldSummaryOutput) -> crate::Result<HttpApiExecut
 }
 
 fn is_persistable_world(value: &Value, name: &str) -> bool {
-    let release_status = value
-        .get("releaseStatus")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .unwrap_or_default();
+    let release_status = WorldReleaseStatus::from(
+        value
+            .get("releaseStatus")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .unwrap_or_default(),
+    );
     let image_url = value
         .get("imageUrl")
         .and_then(Value::as_str)
@@ -490,7 +493,7 @@ fn is_persistable_world(value: &Value, name: &str) -> bool {
         .and_then(Value::as_str)
         .map(str::trim)
         .unwrap_or_default();
-    release_status == "public"
+    matches!(release_status, WorldReleaseStatus::Public)
         && is_meaningful_world_name(name)
         && (!image_url.is_empty() || !thumbnail_image_url.is_empty())
 }

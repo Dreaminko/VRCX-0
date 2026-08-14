@@ -187,7 +187,7 @@ fn empty_world_summary(id: String, name: String) -> WorldSummaryOutput {
         description: String::new(),
         image_url: String::new(),
         name,
-        release_status: String::new(),
+        release_status: Default::default(),
         thumbnail_image_url: String::new(),
         updated_at: String::new(),
         version: 0,

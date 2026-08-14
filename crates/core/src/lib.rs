@@ -13,6 +13,7 @@ pub mod json;
 pub mod location;
 pub mod proxy;
 pub mod realtime;
+pub mod release_status;
 pub mod screenshots;
 pub mod social_circles;
 pub mod text;
@@ -26,3 +27,4 @@ pub mod vrchat_registry_policy;
 
 pub use favorite_kind::{FavoriteChangeScope, FavoriteEntityKind};
 pub use group::GroupJoinRequestAction;
+pub use release_status::WorldReleaseStatus;

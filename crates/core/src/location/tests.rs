@@ -105,17 +105,50 @@ fn access_types_are_derived_from_segments() {
 fn group_access_type_drives_name_and_normalization() {
     let plus = parse_location("wrld_a:1~group(grp_a)~groupAccessType(plus)");
     assert_eq!(plus.group_id.as_deref(), Some("grp_a"));
+    assert_eq!(plus.group_access_type, Some(GroupAccessType::Plus));
     assert_eq!(plus.access_type, "group");
     assert_eq!(plus.access_type_name, "groupPlus");
     assert_eq!(normalize_instance_type(&plus), "groupPlus");
 
     let public = parse_location("wrld_a:1~group(grp_a)~groupAccessType(public)");
+    assert_eq!(public.group_access_type, Some(GroupAccessType::Public));
     assert_eq!(public.access_type_name, "groupPublic");
     assert_eq!(normalize_instance_type(&public), "groupPublic");
 
     let members = parse_location("wrld_a:1~group(grp_a)~groupAccessType(members)");
+    assert_eq!(members.group_access_type, Some(GroupAccessType::Members));
     assert_eq!(members.access_type_name, "group");
     assert_eq!(normalize_instance_type(&members), "groupOnly");
+}
+
+#[test]
+fn unknown_group_access_type_round_trips_without_changing_behavior() {
+    let parsed = parse_location("wrld_a:1~group(grp_a)~groupAccessType(future)");
+
+    assert_eq!(
+        parsed.group_access_type,
+        Some(GroupAccessType::Unknown("future".into()))
+    );
+    assert_eq!(parsed.access_type_name, "group");
+    assert_eq!(normalize_instance_type(&parsed), "groupPublic");
+    assert_eq!(
+        serde_json::to_value(parsed.group_access_type).unwrap(),
+        json!("future")
+    );
+}
+
+#[test]
+fn serde_maps_known_group_access_types() {
+    for (value, expected) in [
+        ("members", GroupAccessType::Members),
+        ("plus", GroupAccessType::Plus),
+        ("public", GroupAccessType::Public),
+    ] {
+        let access_type: GroupAccessType = serde_json::from_value(json!(value)).unwrap();
+
+        assert_eq!(access_type, expected, "{value}");
+        assert_eq!(serde_json::to_value(access_type).unwrap(), json!(value));
+    }
 }
 
 #[test]
