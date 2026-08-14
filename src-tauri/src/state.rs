@@ -79,6 +79,7 @@ impl AppState {
             runtime.db.clone(),
             runtime.web.clone(),
             runtime.runtime_context.auth_scope.clone(),
+            runtime.runtime_context.world_cache.clone(),
         );
         let mcp_controller =
             McpServerController::new(McpRuntime::from_host(&runtime, McpCaller::ExternalServer));

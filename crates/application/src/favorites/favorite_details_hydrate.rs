@@ -9,7 +9,6 @@ use tokio::sync::Mutex as AsyncMutex;
 use vrcx_0_core::json::RawJson;
 use vrcx_0_persistence::{
     avatars::{avatar_cache_existing_ids, avatar_cache_upsert},
-    worlds::{world_cache_get_many, world_cache_upsert},
     DatabaseService,
 };
 use vrcx_0_vrchat_client::{
@@ -18,7 +17,7 @@ use vrcx_0_vrchat_client::{
     worlds::world_get_input,
 };
 
-use crate::{Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient};
+use crate::{Error, Result, RuntimeAuthScope, RuntimeAuthScopeSnapshot, WebClient, WorldCache};
 
 use super::cache_policy::{
     cache_entry_from_entity, cache_write_decision, entity_id, release_status, CacheWriteDecision,
@@ -67,19 +66,15 @@ struct FavoriteDetailsHydrateDeps<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-struct FavoriteWorldDetailsSnapshotKey {
-    current_user_id: String,
+struct FavoriteWorldCacheKey {
     endpoint: String,
     generation: u64,
-    favorite_ids: Vec<String>,
     refresh_key: String,
 }
 
 #[derive(Clone, Debug)]
-struct FavoriteWorldDetailsSnapshot {
-    key: FavoriteWorldDetailsSnapshotKey,
-    details_by_id: HashMap<String, Value>,
-    availability_by_id: HashMap<String, String>,
+struct FavoriteWorldCacheState {
+    key: FavoriteWorldCacheKey,
     fetched_at: String,
 }
 
@@ -87,7 +82,8 @@ struct FavoriteDetailsRuntimeInner {
     db: Arc<DatabaseService>,
     web: Arc<WebClient>,
     auth_scope: RuntimeAuthScope,
-    world_snapshot: Mutex<Option<Arc<FavoriteWorldDetailsSnapshot>>>,
+    world_cache: Arc<WorldCache>,
+    world_cache_state: Mutex<Option<FavoriteWorldCacheState>>,
     world_sync_gate: AsyncMutex<()>,
 }
 
@@ -101,13 +97,15 @@ impl FavoriteDetailsRuntime {
         db: Arc<DatabaseService>,
         web: Arc<WebClient>,
         auth_scope: RuntimeAuthScope,
+        world_cache: Arc<WorldCache>,
     ) -> Self {
         Self {
             inner: Arc::new(FavoriteDetailsRuntimeInner {
                 db,
                 web,
                 auth_scope,
-                world_snapshot: Mutex::new(None),
+                world_cache,
+                world_cache_state: Mutex::new(None),
                 world_sync_gate: AsyncMutex::new(()),
             }),
         }
@@ -120,15 +118,7 @@ impl FavoriteDetailsRuntime {
     ) -> Result<FavoriteDetailsHydrateOutput> {
         match input.kind {
             FavoriteDetailsHydrateKind::Avatar => self.hydrate_avatar(input, expected_scope).await,
-            FavoriteDetailsHydrateKind::World => {
-                let requested_ids = input.requested_ids.clone();
-                let (snapshot, cached_count) = self.world_snapshot(input, expected_scope).await?;
-                Ok(project_world_snapshot(
-                    &snapshot,
-                    &requested_ids,
-                    cached_count,
-                ))
-            }
+            FavoriteDetailsHydrateKind::World => self.hydrate_world(input, expected_scope).await,
         }
     }
 
@@ -147,27 +137,34 @@ impl FavoriteDetailsRuntime {
         let details_by_id = filter_details_by_id(entities, &input.favorite_ids);
         let cached_count = persist_avatar_details(deps.db, &details_by_id);
         Ok(project_details(
-            &details_by_id,
-            &HashMap::new(),
+            details_by_id,
+            HashMap::new(),
             &input.requested_ids,
             cached_count,
             Utc::now().to_rfc3339(),
         ))
     }
 
-    async fn world_snapshot(
+    async fn hydrate_world(
         &self,
         input: FavoriteDetailsHydrateInput,
         expected_scope: RuntimeAuthScopeSnapshot,
-    ) -> Result<(Arc<FavoriteWorldDetailsSnapshot>, u32)> {
-        let key = world_snapshot_key(&expected_scope, &input.favorite_ids, &input.refresh_key);
-        if let Some(snapshot) = self.cached_world_snapshot(&key) {
-            return Ok((snapshot, 0));
+    ) -> Result<FavoriteDetailsHydrateOutput> {
+        let requested_ids = requested_favorite_ids(&input.favorite_ids, &input.requested_ids);
+        let cache_key = FavoriteWorldCacheKey {
+            endpoint: expected_scope.endpoint.clone(),
+            generation: expected_scope.generation,
+            refresh_key: input.refresh_key.trim().to_string(),
+        };
+        ensure_scope_matches(&self.inner.auth_scope.snapshot(), &expected_scope)?;
+        if let Some(output) = self.cached_world_output(&cache_key, &requested_ids) {
+            return Ok(output);
         }
 
         let _guard = self.inner.world_sync_gate.lock().await;
-        if let Some(snapshot) = self.cached_world_snapshot(&key) {
-            return Ok((snapshot, 0));
+        ensure_scope_matches(&self.inner.auth_scope.snapshot(), &expected_scope)?;
+        if let Some(output) = self.cached_world_output(&cache_key, &requested_ids) {
+            return Ok(output);
         }
 
         let deps = FavoriteDetailsHydrateDeps {
@@ -177,72 +174,68 @@ impl FavoriteDetailsRuntime {
             expected_scope,
         };
         let entities = fetch_favorite_world_entities(&deps).await?;
-        let mut details_by_id = filter_details_by_id(entities, &key.favorite_ids);
+        let mut details_by_id = filter_details_by_id(entities, &input.favorite_ids);
         let availability_by_id =
-            probe_missing_world_details(&deps, &key.favorite_ids, &mut details_by_id).await?;
-        let cached_count = persist_world_details(deps.db, &details_by_id);
-        ensure_scope_matches(&deps.auth_scope.snapshot(), &deps.expected_scope)?;
-        let snapshot = Arc::new(FavoriteWorldDetailsSnapshot {
-            key,
+            probe_missing_world_details(&deps, &requested_ids, &mut details_by_id).await?;
+        let (details_by_id, cached_count) = hydrate_world_details(
+            self.inner.world_cache.as_ref(),
             details_by_id,
-            availability_by_id,
-            fetched_at: Utc::now().to_rfc3339(),
-        });
+            &requested_ids,
+        );
+        ensure_scope_matches(&deps.auth_scope.snapshot(), &deps.expected_scope)?;
+        let fetched_at = Utc::now().to_rfc3339();
         *self
             .inner
-            .world_snapshot
+            .world_cache_state
             .lock()
-            .unwrap_or_else(|error| error.into_inner()) = Some(snapshot.clone());
-        Ok((snapshot, cached_count))
+            .unwrap_or_else(|error| error.into_inner()) = Some(FavoriteWorldCacheState {
+            key: cache_key,
+            fetched_at: fetched_at.clone(),
+        });
+        Ok(project_details(
+            details_by_id,
+            availability_by_id,
+            &requested_ids,
+            cached_count,
+            fetched_at,
+        ))
     }
 
-    fn cached_world_snapshot(
+    fn cached_world_output(
         &self,
-        key: &FavoriteWorldDetailsSnapshotKey,
-    ) -> Option<Arc<FavoriteWorldDetailsSnapshot>> {
-        self.inner
-            .world_snapshot
+        key: &FavoriteWorldCacheKey,
+        requested_ids: &[String],
+    ) -> Option<FavoriteDetailsHydrateOutput> {
+        let fetched_at = self
+            .inner
+            .world_cache_state
             .lock()
             .unwrap_or_else(|error| error.into_inner())
             .as_ref()
-            .filter(|snapshot| snapshot.key == *key)
-            .cloned()
+            .filter(|state| state.key == *key)
+            .map(|state| state.fetched_at.clone())?;
+        let details_by_id = requested_ids
+            .iter()
+            .map(|id| {
+                self.inner
+                    .world_cache
+                    .get_cached_card_payload(id)
+                    .map(|detail| (id.clone(), detail))
+            })
+            .collect::<Option<HashMap<_, _>>>()?;
+        Some(project_details(
+            details_by_id,
+            HashMap::new(),
+            requested_ids,
+            0,
+            fetched_at,
+        ))
     }
-}
-
-fn world_snapshot_key(
-    expected_scope: &RuntimeAuthScopeSnapshot,
-    favorite_ids: &[String],
-    refresh_key: &str,
-) -> FavoriteWorldDetailsSnapshotKey {
-    let mut favorite_ids = normalize_ids(favorite_ids);
-    favorite_ids.sort_unstable();
-    FavoriteWorldDetailsSnapshotKey {
-        current_user_id: expected_scope.current_user_id.clone(),
-        endpoint: expected_scope.endpoint.clone(),
-        generation: expected_scope.generation,
-        favorite_ids,
-        refresh_key: refresh_key.trim().to_string(),
-    }
-}
-
-fn project_world_snapshot(
-    snapshot: &FavoriteWorldDetailsSnapshot,
-    requested_ids: &[String],
-    cached_count: u32,
-) -> FavoriteDetailsHydrateOutput {
-    project_details(
-        &snapshot.details_by_id,
-        &snapshot.availability_by_id,
-        requested_ids,
-        cached_count,
-        snapshot.fetched_at.clone(),
-    )
 }
 
 fn project_details(
-    details_by_id: &HashMap<String, Value>,
-    availability_by_id: &HashMap<String, String>,
+    details_by_id: HashMap<String, Value>,
+    availability_by_id: HashMap<String, String>,
     requested_ids: &[String],
     cached_count: u32,
     fetched_at: String,
@@ -252,14 +245,13 @@ fn project_details(
         .collect::<HashSet<_>>();
     FavoriteDetailsHydrateOutput {
         details_by_id: details_by_id
-            .iter()
-            .filter(|(id, _)| requested.contains(*id))
-            .map(|(id, entity)| (id.clone(), RawJson::from(entity.clone())))
+            .into_iter()
+            .filter(|(id, _)| requested.contains(id))
+            .map(|(id, entity)| (id, RawJson::from(entity)))
             .collect(),
         availability_by_id: availability_by_id
-            .iter()
-            .filter(|(id, _)| requested.contains(*id))
-            .map(|(id, availability)| (id.clone(), availability.clone()))
+            .into_iter()
+            .filter(|(id, _)| requested.contains(id))
             .collect(),
         cached_count,
         fetched_at,
@@ -272,6 +264,16 @@ fn normalize_ids(ids: &[String]) -> Vec<String> {
         .map(normalize_text)
         .filter(|id| !id.is_empty())
         .filter(|id| seen.insert(id.clone()))
+        .collect()
+}
+
+fn requested_favorite_ids(favorite_ids: &[String], requested_ids: &[String]) -> Vec<String> {
+    let favorite_ids = normalize_ids(favorite_ids)
+        .into_iter()
+        .collect::<HashSet<_>>();
+    normalize_ids(requested_ids)
+        .into_iter()
+        .filter(|id| favorite_ids.contains(id))
         .collect()
 }
 
@@ -507,6 +509,39 @@ fn filter_details_by_id(entities: Vec<Value>, favorite_ids: &[String]) -> HashMa
     details_by_id
 }
 
+fn hydrate_world_details(
+    world_cache: &WorldCache,
+    details_by_id: HashMap<String, Value>,
+    requested_ids: &[String],
+) -> (HashMap<String, Value>, u32) {
+    let requested = normalize_ids(requested_ids)
+        .into_iter()
+        .collect::<HashSet<_>>();
+    let mut projected = HashMap::new();
+    let mut ordered_entities = Vec::with_capacity(details_by_id.len());
+    let mut requested_entities = Vec::new();
+    for (id, entity) in details_by_id {
+        if requested.contains(&id) {
+            requested_entities.push((id, entity));
+        } else {
+            ordered_entities.push((id, entity));
+        }
+    }
+    ordered_entities.extend(requested_entities);
+    let payloads = world_cache
+        .hydrate_favorite_payloads(ordered_entities.iter().map(|(_, entity)| entity));
+    let cached_count = payloads.iter().filter(|payload| payload.is_some()).count() as u32;
+    for ((id, _), detail) in ordered_entities.into_iter().zip(payloads) {
+        if requested.contains(&id) {
+            let Some(detail) = detail else {
+                continue;
+            };
+            projected.insert(id, detail);
+        }
+    }
+    (projected, cached_count)
+}
+
 fn persist_avatar_details(db: &DatabaseService, details_by_id: &HashMap<String, Value>) -> u32 {
     let insert_candidates = details_by_id
         .iter()
@@ -547,44 +582,6 @@ fn persist_avatar_details(db: &DatabaseService, details_by_id: &HashMap<String, 
     cached_count
 }
 
-fn persist_world_details(db: &DatabaseService, details_by_id: &HashMap<String, Value>) -> u32 {
-    let insert_candidates = details_by_id
-        .iter()
-        .filter(|(_, entity)| {
-            cache_write_decision(FavoriteCacheKind::World, entity)
-                == CacheWriteDecision::InsertIfMissing
-        })
-        .map(|(id, _)| id.clone())
-        .collect::<Vec<_>>();
-    let existing_ids = if insert_candidates.is_empty() {
-        HashSet::new()
-    } else {
-        match world_cache_get_many(db, &insert_candidates) {
-            Ok(rows) => rows.into_iter().map(|row| row.id).collect(),
-            Err(error) => {
-                tracing::warn!("failed to read favorite world cache: {error}");
-                return 0;
-            }
-        }
-    };
-
-    let mut cached_count = 0;
-    for (id, entity) in details_by_id {
-        match cache_write_decision(FavoriteCacheKind::World, entity) {
-            CacheWriteDecision::Skip => continue,
-            CacheWriteDecision::InsertIfMissing if existing_ids.contains(id) => continue,
-            CacheWriteDecision::InsertIfMissing | CacheWriteDecision::Upsert => {}
-        }
-        match world_cache_upsert(db, cache_entry_from_entity(entity, id)) {
-            Ok(_) => cached_count += 1,
-            Err(error) => {
-                tracing::warn!("failed to cache favorite world details for {id}: {error}");
-            }
-        }
-    }
-    cached_count
-}
-
 fn ensure_scope_matches(
     current: &RuntimeAuthScopeSnapshot,
     expected: &RuntimeAuthScopeSnapshot,
@@ -615,8 +612,34 @@ fn response_error_message(payload: &Value, status: i32, action: &str) -> String 
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+    use std::time::Duration;
+
     use super::*;
     use serde_json::json;
+
+    struct TestDir(PathBuf);
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "vrcx-0-favorite-details-{name}-{}-{nonce}",
+                std::process::id()
+            ));
+            std::fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
 
     fn complete(release_status: &str) -> Value {
         json!({
@@ -853,61 +876,61 @@ mod tests {
     }
 
     #[test]
-    fn world_snapshot_key_normalizes_membership_order_and_refresh_scope() {
-        let scope = RuntimeAuthScopeSnapshot {
-            current_user_id: "usr_current".into(),
-            endpoint: "https://api.example.test/api/1".into(),
-            generation: 7,
-            active: true,
-        };
+    fn world_details_hydrate_uses_cache_and_projects_only_requested_card_fields() {
+        let dir = TestDir::new("world-cache-owner");
+        let db = Arc::new(DatabaseService::new(&dir.0.join("VRCX-0.sqlite3")).unwrap());
+        let world_cache = WorldCache::new(db, 8, Duration::from_secs(60));
+        let details_by_id = HashMap::from([
+            (
+                "wrld_requested".to_string(),
+                json!({
+                    "id": "wrld_requested",
+                    "name": "Requested World",
+                    "authorId": "usr_author",
+                    "authorName": "Author",
+                    "description": "Description",
+                    "imageUrl": "https://example.test/world.png",
+                    "releaseStatus": "public",
+                    "thumbnailImageUrl": "https://example.test/thumb.png",
+                    "tags": ["author_tag_example"],
+                    "occupants": 7,
+                    "unityPackages": [{ "assetUrl": "https://example.test/large.bundle" }],
+                    "instances": [["123", 4]]
+                }),
+            ),
+            (
+                "wrld_unrequested".to_string(),
+                json!({
+                    "id": "wrld_unrequested",
+                    "name": "Unrequested World",
+                    "imageUrl": "https://example.test/other.png",
+                    "releaseStatus": "public"
+                }),
+            ),
+        ]);
 
-        let left = world_snapshot_key(
-            &scope,
-            &[" wrld_2 ".into(), "wrld_1".into(), "wrld_2".into()],
-            " baseline:1 ",
+        let (details, cached_count) = hydrate_world_details(
+            &world_cache,
+            details_by_id,
+            &[" wrld_requested ".to_string()],
         );
-        let right = world_snapshot_key(&scope, &["wrld_1".into(), "wrld_2".into()], "baseline:1");
 
-        assert_eq!(left, right);
-        assert_eq!(left.favorite_ids, vec!["wrld_1", "wrld_2"]);
-    }
-
-    #[test]
-    fn world_snapshot_projects_only_requested_details_and_availability() {
-        let snapshot = FavoriteWorldDetailsSnapshot {
-            key: FavoriteWorldDetailsSnapshotKey {
-                current_user_id: "usr_current".into(),
-                endpoint: "endpoint".into(),
-                generation: 1,
-                favorite_ids: vec!["wrld_1".into(), "wrld_2".into()],
-                refresh_key: "refresh".into(),
-            },
-            details_by_id: HashMap::from([
-                ("wrld_1".into(), json!({ "id": "wrld_1", "name": "One" })),
-                ("wrld_2".into(), json!({ "id": "wrld_2", "name": "Two" })),
-            ]),
-            availability_by_id: HashMap::from([
-                ("wrld_1".into(), "public".into()),
-                ("wrld_2".into(), "private".into()),
-                ("wrld_deleted".into(), "deleted".into()),
-            ]),
-            fetched_at: "2026-08-11T00:00:00Z".into(),
-        };
-
-        let output =
-            project_world_snapshot(&snapshot, &[" wrld_2 ".into(), "wrld_deleted".into()], 2);
-
-        assert_eq!(output.details_by_id.len(), 1);
-        assert!(output.details_by_id.contains_key("wrld_2"));
+        assert_eq!(cached_count, 2);
+        assert_eq!(details.len(), 1);
+        let requested = details.get("wrld_requested").unwrap();
+        assert_eq!(requested["name"], "Requested World");
+        assert_eq!(requested["tags"], json!(["author_tag_example"]));
+        assert_eq!(requested["occupants"], 7);
+        assert!(requested.get("unityPackages").is_none());
+        assert!(requested.get("instances").is_none());
         assert_eq!(
-            output.availability_by_id,
-            HashMap::from([
-                ("wrld_2".into(), "private".into()),
-                ("wrld_deleted".into(), "deleted".into()),
-            ])
+            world_cache
+                .get_summary("wrld_unrequested")
+                .unwrap()
+                .unwrap()
+                .name,
+            "Unrequested World"
         );
-        assert_eq!(output.cached_count, 2);
-        assert_eq!(output.fetched_at, "2026-08-11T00:00:00Z");
     }
 
     #[test]
