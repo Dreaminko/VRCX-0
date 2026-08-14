@@ -28,7 +28,7 @@ import {
 import type { UserDialogProfileRecord } from '../userDialogProfileTypes';
 import {
     UNEQUIP_PENDING_KEY,
-    useUserDialogProfileDecorations
+    type UserDialogProfileDecorationsController
 } from '../useUserDialogProfileDecorations';
 import { UserDialogProfileBackgroundPicker } from './UserDialogProfileBackgroundPicker';
 
@@ -47,12 +47,12 @@ export function UserDialogProfileDecorationsPanel({
     profile,
     isVrcPlus,
     onBack,
-    onProfileUpdated
+    controller
 }: {
     profile: UserDialogProfileRecord;
     isVrcPlus: boolean;
     onBack: () => void;
-    onProfileUpdated: () => void;
+    controller: UserDialogProfileDecorationsController;
 }) {
     const { t } = useTranslation();
     const [activeSlot, setActiveSlot] =
@@ -64,10 +64,7 @@ export function UserDialogProfileDecorationsPanel({
         equipItem,
         unequipSlot,
         updateBackground
-    } = useUserDialogProfileDecorations({
-        enabled: true,
-        onProfileUpdated
-    });
+    } = controller;
 
     const pending = Boolean(pendingKey);
     const isBackground = activeSlot === 'background';

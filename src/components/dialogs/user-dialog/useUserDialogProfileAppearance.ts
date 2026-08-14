@@ -11,6 +11,8 @@ import {
 import type { UserDialogProfileRecord } from './userDialogProfileTypes';
 
 const EMPTY_APPEARANCE: UserDialogProfileAppearance = Object.freeze({});
+const EMPTY_TEMPLATE_ITEMS: ReadonlyMap<string, InventoryItemRecord | null> =
+    new Map();
 
 export function useUserDialogProfileAppearance({
     enabled = true,
@@ -30,18 +32,12 @@ export function useUserDialogProfileAppearance({
         typeof profile?.nameplateEffect === 'string'
             ? profile.nameplateEffect.trim()
             : '';
-    const resourceKey = [
-        userId,
-        iconFrameId,
-        profileEffectId,
-        nameplateEffectId
-    ].join('\u0000');
     const [resource, setResource] = useState<{
-        key: string;
-        value: UserDialogProfileAppearance;
+        itemsByTemplateId: ReadonlyMap<string, InventoryItemRecord | null>;
+        userId: string;
     }>({
-        key: '',
-        value: EMPTY_APPEARANCE
+        itemsByTemplateId: EMPTY_TEMPLATE_ITEMS,
+        userId: ''
     });
 
     const templateIdsBySlot = useMemo(
@@ -54,9 +50,13 @@ export function useUserDialogProfileAppearance({
     );
 
     useEffect(() => {
+        const itemsByTemplateId =
+            resource.userId === userId
+                ? resource.itemsByTemplateId
+                : EMPTY_TEMPLATE_ITEMS;
         const templateIds = [
             ...new Set(Object.values(templateIdsBySlot).filter(Boolean))
-        ];
+        ].filter((templateId) => !itemsByTemplateId.has(templateId));
         if (!enabled || !userId || templateIds.length === 0) {
             return;
         }
@@ -84,35 +84,47 @@ export function useUserDialogProfileAppearance({
             if (!active) {
                 return;
             }
-            const itemsByTemplateId = new Map<
-                string,
-                InventoryItemRecord | null
-            >(
-                results.map(({ inventoryTemplateId, item }) => [
-                    inventoryTemplateId,
-                    item
-                ])
-            );
-            const value: UserDialogProfileAppearance = {};
-            for (const slot of PROFILE_DECORATION_SLOTS) {
-                const templateId = templateIdsBySlot[slot];
-                const item = itemsByTemplateId.get(templateId);
-                if (item) {
-                    value[slot] = item;
+            setResource((currentResource) => {
+                const nextItemsByTemplateId = new Map(
+                    currentResource.userId === userId
+                        ? currentResource.itemsByTemplateId
+                        : EMPTY_TEMPLATE_ITEMS
+                );
+                let changed = currentResource.userId !== userId;
+                for (const { inventoryTemplateId, item } of results) {
+                    if (!nextItemsByTemplateId.has(inventoryTemplateId)) {
+                        nextItemsByTemplateId.set(inventoryTemplateId, item);
+                        changed = true;
+                    }
                 }
-            }
-            setResource({
-                key: resourceKey,
-                value
+                if (!changed) {
+                    return currentResource;
+                }
+                return {
+                    itemsByTemplateId: nextItemsByTemplateId,
+                    userId
+                };
             });
         });
 
         return () => {
             active = false;
         };
-    }, [enabled, resourceKey, templateIdsBySlot, userId]);
+    }, [enabled, resource, templateIdsBySlot, userId]);
 
-    return enabled && resource.key === resourceKey
-        ? resource.value
-        : EMPTY_APPEARANCE;
+    return useMemo(() => {
+        if (!enabled || resource.userId !== userId) {
+            return EMPTY_APPEARANCE;
+        }
+        const value: UserDialogProfileAppearance = {};
+        for (const slot of PROFILE_DECORATION_SLOTS) {
+            const item = resource.itemsByTemplateId.get(
+                templateIdsBySlot[slot]
+            );
+            if (item) {
+                value[slot] = item;
+            }
+        }
+        return value;
+    }, [enabled, resource, templateIdsBySlot, userId]);
 }

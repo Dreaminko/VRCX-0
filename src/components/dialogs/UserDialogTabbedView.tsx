@@ -28,7 +28,10 @@ import type {
     resolvePlatformMeta
 } from './user-dialog/userDialogContentHelpers';
 import { buildUserDialogLocationUsers } from './user-dialog/userDialogLocationUsers';
-import { resolveUserDialogBannerUrl } from './user-dialog/userDialogProfileAppearance';
+import {
+    applyUserDialogProfileAppearanceOverrides,
+    resolveUserDialogBannerUrl
+} from './user-dialog/userDialogProfileAppearance';
 import {
     isOfflineLikeValue,
     normalizedText
@@ -43,6 +46,7 @@ import type {
     ModerationState
 } from './user-dialog/useUserDialogModerationState';
 import { useUserDialogProfileAppearance } from './user-dialog/useUserDialogProfileAppearance';
+import { useUserDialogProfileDecorations } from './user-dialog/useUserDialogProfileDecorations';
 import type { UserDialogProfileRecord } from './user-dialog/useUserDialogProfileResource';
 import { useUserDialogTabbedRuntimeState } from './user-dialog/useUserDialogRuntimeState';
 import type { useUserDialogSelfActions } from './user-dialog/useUserDialogSelfActions';
@@ -185,10 +189,25 @@ export function UserDialogTabbedView({
     const showUserDialogProfileDecorations = usePreferencesStore(
         (state) => state.showUserDialogProfileDecorations
     );
-    const profileAppearance = useUserDialogProfileAppearance({
+    const [selfPanel, setSelfPanel] = useState<SelfPanel>('');
+    const activeSelfPanel: SelfPanel = relationship.isCurrentUser
+        ? selfPanel
+        : '';
+    const canonicalProfileAppearance = useUserDialogProfileAppearance({
         enabled: showUserDialogProfileDecorations,
         profile
     });
+    const profileDecorations = useUserDialogProfileDecorations({
+        enabled: activeSelfPanel === 'profile-decorations',
+        onProfileUpdated: profileControls.onRefresh
+    });
+    const profileAppearance =
+        showUserDialogProfileDecorations && relationship.isCurrentUser
+            ? applyUserDialogProfileAppearanceOverrides(
+                  canonicalProfileAppearance,
+                  profileDecorations.appearanceOverrides
+              )
+            : canonicalProfileAppearance;
     const {
         moderationState,
         extendedModerationState = { interactOff: false, muteChat: false },
@@ -266,7 +285,6 @@ export function UserDialogTabbedView({
         openImagePreview,
         previousAvatarSwapTime
     } = useUserDialogTabbedRuntimeState();
-    const [selfPanel, setSelfPanel] = useState<SelfPanel>('');
     const { copyUserText, openDiscordProfile } =
         useUserDialogClipboardActions();
     const currentUserSnapshot = useRuntimeStore(
@@ -732,8 +750,6 @@ export function UserDialogTabbedView({
         setSearch
     };
 
-    const activeSelfPanel: SelfPanel = isCurrentUser ? selfPanel : '';
-
     return (
         <EntityDialogScaffold className="gap-3">
             <EntityDialogTwoColumnLayout
@@ -756,7 +772,7 @@ export function UserDialogTabbedView({
                         profile={profile}
                         isVrcPlus={isLocalUserVrcPlusSupporter}
                         onBack={() => setSelfPanel('')}
-                        onProfileUpdated={onRefresh}
+                        controller={profileDecorations}
                     />
                 ) : (
                     <UserDialogTabsSection

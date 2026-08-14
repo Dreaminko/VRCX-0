@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    applyUserDialogProfileAppearanceOverrides,
     mergeUserDialogProfileAppearance,
     normalizeProfileAppearanceColor,
     preserveUserDialogProfileAppearance,
@@ -8,6 +9,53 @@ import {
     resolveProfileGradientScrimAlpha,
     resolveUserDialogBannerUrl
 } from './userDialogProfileAppearance';
+
+describe('applyUserDialogProfileAppearanceOverrides', () => {
+    it('keeps an optimistic decoration over a stale canonical appearance', () => {
+        const oldItem = { id: 'invt_old' };
+        const newItem = { id: 'inv_new', templateId: 'invt_new' };
+
+        expect(
+            applyUserDialogProfileAppearanceOverrides(
+                { iconFrame: oldItem },
+                {
+                    iconFrame: {
+                        action: 'equip',
+                        item: newItem,
+                        templateId: 'invt_new'
+                    }
+                }
+            ).iconFrame
+        ).toBe(newItem);
+    });
+
+    it('uses the canonical template after it confirms the optimistic item', () => {
+        const optimisticItem = { id: 'inv_new', templateId: 'invt_new' };
+        const canonicalItem = { id: 'invt_new' };
+
+        expect(
+            applyUserDialogProfileAppearanceOverrides(
+                { iconFrame: canonicalItem },
+                {
+                    iconFrame: {
+                        action: 'equip',
+                        item: optimisticItem,
+                        templateId: 'invt_new'
+                    }
+                }
+            ).iconFrame
+        ).toBe(canonicalItem);
+    });
+
+    it('hides a stale canonical decoration during optimistic unequip', () => {
+        expect(
+            applyUserDialogProfileAppearanceOverrides(
+                { profileEffect: { id: 'invt_old' } },
+                { profileEffect: { action: 'unequip' } }
+            ).profileEffect
+        ).toBeUndefined();
+    });
+});
 
 describe('mergeUserDialogProfileAppearance', () => {
     it('merges only appearance fields and preserves explicit empty values', () => {

@@ -54,6 +54,19 @@ vi.mock('sonner', () => ({
 
 import { useUserDialogProfileDecorations } from './useUserDialogProfileDecorations';
 
+function useProfileDecorations({
+    enabled = true,
+    onProfileUpdated
+}: {
+    enabled?: boolean;
+    onProfileUpdated?: () => void;
+} = {}) {
+    return useUserDialogProfileDecorations({
+        enabled,
+        onProfileUpdated
+    });
+}
+
 function equippableItem(overrides: Record<string, unknown> = {}) {
     return {
         id: 'inv_frame',
@@ -69,6 +82,10 @@ function equippableItem(overrides: Record<string, unknown> = {}) {
 describe('useUserDialogProfileDecorations', () => {
     beforeEach(() => {
         vi.resetAllMocks();
+        runtimeState.auth.currentUserEndpoint =
+            'https://api.vrchat.cloud/api/1';
+        runtimeState.auth.currentUserId = 'usr_self';
+        runtimeState.auth.currentUserWebsocket = 'wss://pipeline.vrchat.cloud';
         mediaMocks.collectInventoryItems.mockResolvedValue({
             items: [],
             truncated: false
@@ -100,9 +117,7 @@ describe('useUserDialogProfileDecorations', () => {
             })
             .mockResolvedValue({ items: [], truncated: false });
 
-        const { result } = renderHook(() =>
-            useUserDialogProfileDecorations({ enabled: true })
-        );
+        const { result } = renderHook(() => useProfileDecorations());
 
         await waitFor(() => expect(result.current.isReady).toBe(true));
 
@@ -118,14 +133,12 @@ describe('useUserDialogProfileDecorations', () => {
     });
 
     it('does not load while disabled', () => {
-        renderHook(() => useUserDialogProfileDecorations({ enabled: false }));
+        renderHook(() => useProfileDecorations({ enabled: false }));
         expect(mediaMocks.collectInventoryItems).not.toHaveBeenCalled();
     });
 
     it('equips an unequipped item and refreshes the self profile', async () => {
-        const { result } = renderHook(() =>
-            useUserDialogProfileDecorations({ enabled: true })
-        );
+        const { result } = renderHook(() => useProfileDecorations());
         await waitFor(() => expect(result.current.isReady).toBe(true));
 
         await act(async () => {
@@ -150,9 +163,7 @@ describe('useUserDialogProfileDecorations', () => {
     });
 
     it('unequips a slot directly', async () => {
-        const { result } = renderHook(() =>
-            useUserDialogProfileDecorations({ enabled: true })
-        );
+        const { result } = renderHook(() => useProfileDecorations());
         await waitFor(() => expect(result.current.isReady).toBe(true));
 
         await act(async () => {
@@ -169,9 +180,7 @@ describe('useUserDialogProfileDecorations', () => {
     });
 
     it('ignores equipItem for an already-equipped item', async () => {
-        const { result } = renderHook(() =>
-            useUserDialogProfileDecorations({ enabled: true })
-        );
+        const { result } = renderHook(() => useProfileDecorations());
         await waitFor(() => expect(result.current.isReady).toBe(true));
 
         await act(async () => {
@@ -192,10 +201,7 @@ describe('useUserDialogProfileDecorations', () => {
     it('updates the profile background and requests an appearance refresh', async () => {
         const onProfileUpdated = vi.fn();
         const { result } = renderHook(() =>
-            useUserDialogProfileDecorations({
-                enabled: true,
-                onProfileUpdated
-            })
+            useProfileDecorations({ onProfileUpdated })
         );
         await waitFor(() => expect(result.current.isReady).toBe(true));
 
@@ -219,5 +225,186 @@ describe('useUserDialogProfileDecorations', () => {
         expect(toastMocks.success).toHaveBeenCalledWith(
             'dialog.inventory.profile_background_updated'
         );
+    });
+
+    it('optimistically updates the selected tile and profile appearance', async () => {
+        let resolveEquip: (() => void) | undefined;
+        const onProfileUpdated = vi.fn();
+        mediaMocks.collectInventoryItems.mockResolvedValueOnce({
+            items: [
+                equippableItem({
+                    id: 'inv_old',
+                    equipSlot: 'iconFrame',
+                    templateId: 'invt_old'
+                }),
+                equippableItem({
+                    id: 'inv_new',
+                    templateId: 'invt_new'
+                })
+            ],
+            truncated: false
+        });
+        mediaMocks.equipProfileDecoration.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveEquip = () => resolve({ json: { ok: true } });
+            })
+        );
+        const { result, rerender } = renderHook(
+            ({ enabled }: { enabled: boolean }) =>
+                useProfileDecorations({ enabled, onProfileUpdated }),
+            { initialProps: { enabled: true } }
+        );
+        await waitFor(() => expect(result.current.isReady).toBe(true));
+
+        act(() => {
+            result.current.equipItem(result.current.itemsBySlot.iconFrame[1]);
+        });
+
+        expect(result.current.itemsBySlot.iconFrame[0]?.equipSlot).toBe('');
+        expect(result.current.itemsBySlot.iconFrame[1]?.equipSlot).toBe(
+            'iconFrame'
+        );
+        expect(result.current.appearanceOverrides.iconFrame).toMatchObject({
+            action: 'equip',
+            item: { id: 'inv_new' },
+            templateId: 'invt_new'
+        });
+
+        resolveEquip?.();
+        await waitFor(() => expect(result.current.pendingKey).toBe(''));
+        expect(mediaMocks.collectInventoryItems).toHaveBeenCalledTimes(1);
+        expect(onProfileUpdated).toHaveBeenCalledOnce();
+
+        mediaMocks.collectInventoryItems.mockResolvedValueOnce({
+            items: [
+                equippableItem({
+                    id: 'inv_old',
+                    equipSlot: 'iconFrame',
+                    templateId: 'invt_old'
+                }),
+                equippableItem({
+                    id: 'inv_new',
+                    templateId: 'invt_new'
+                })
+            ],
+            truncated: false
+        });
+        rerender({ enabled: false });
+        rerender({ enabled: true });
+        await waitFor(() =>
+            expect(mediaMocks.collectInventoryItems).toHaveBeenCalledTimes(2)
+        );
+
+        expect(result.current.itemsBySlot.iconFrame[0]?.equipSlot).toBe('');
+        expect(result.current.itemsBySlot.iconFrame[1]?.equipSlot).toBe(
+            'iconFrame'
+        );
+    });
+
+    it('rolls back the optimistic selection when the mutation fails', async () => {
+        let rejectEquip: (() => void) | undefined;
+        mediaMocks.collectInventoryItems.mockResolvedValueOnce({
+            items: [
+                equippableItem({
+                    id: 'inv_old',
+                    equipSlot: 'iconFrame',
+                    templateId: 'invt_old'
+                }),
+                equippableItem({
+                    id: 'inv_new',
+                    templateId: 'invt_new'
+                })
+            ],
+            truncated: false
+        });
+        mediaMocks.equipProfileDecoration.mockReturnValueOnce(
+            new Promise((_, reject) => {
+                rejectEquip = () => reject(new Error('equip failed'));
+            })
+        );
+        const { result } = renderHook(() => useProfileDecorations());
+        await waitFor(() => expect(result.current.isReady).toBe(true));
+
+        act(() => {
+            result.current.equipItem(result.current.itemsBySlot.iconFrame[1]);
+        });
+        expect(result.current.itemsBySlot.iconFrame[1]?.equipSlot).toBe(
+            'iconFrame'
+        );
+
+        rejectEquip?.();
+        await waitFor(() => expect(result.current.pendingKey).toBe(''));
+
+        expect(result.current.itemsBySlot.iconFrame[0]?.equipSlot).toBe(
+            'iconFrame'
+        );
+        expect(result.current.itemsBySlot.iconFrame[1]?.equipSlot).toBe('');
+        expect(result.current.appearanceOverrides.iconFrame).toBeUndefined();
+        expect(toastMocks.error).toHaveBeenCalledWith('equip failed');
+    });
+
+    it('optimistically unequips the current decoration', async () => {
+        let resolveUnequip: (() => void) | undefined;
+        mediaMocks.collectInventoryItems.mockResolvedValueOnce({
+            items: [
+                equippableItem({
+                    equipSlot: 'iconFrame',
+                    templateId: 'invt_frame'
+                })
+            ],
+            truncated: false
+        });
+        mediaMocks.unequipProfileDecoration.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveUnequip = () => resolve({ json: 'OK' });
+            })
+        );
+        const { result } = renderHook(() => useProfileDecorations());
+        await waitFor(() => expect(result.current.isReady).toBe(true));
+
+        act(() => {
+            result.current.unequipSlot('iconFrame');
+        });
+
+        expect(result.current.itemsBySlot.iconFrame[0]?.equipSlot).toBe('');
+        expect(result.current.appearanceOverrides.iconFrame).toEqual({
+            action: 'unequip'
+        });
+
+        resolveUnequip?.();
+        await waitFor(() => expect(result.current.pendingKey).toBe(''));
+    });
+
+    it('does not commit a late mutation after the auth target changes', async () => {
+        let resolveEquip: (() => void) | undefined;
+        mediaMocks.collectInventoryItems.mockResolvedValueOnce({
+            items: [
+                equippableItem({
+                    id: 'inv_new',
+                    templateId: 'invt_new'
+                })
+            ],
+            truncated: false
+        });
+        mediaMocks.equipProfileDecoration.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveEquip = () => resolve({ json: { ok: true } });
+            })
+        );
+        const { result, rerender } = renderHook(() => useProfileDecorations());
+        await waitFor(() => expect(result.current.isReady).toBe(true));
+
+        act(() => {
+            result.current.equipItem(result.current.itemsBySlot.iconFrame[0]);
+        });
+        runtimeState.auth.currentUserId = 'usr_next';
+        rerender();
+        await waitFor(() => expect(result.current.isReady).toBe(true));
+
+        resolveEquip?.();
+        await waitFor(() => expect(result.current.pendingKey).toBe(''));
+
+        expect(result.current.itemsBySlot.iconFrame).toEqual([]);
+        expect(result.current.appearanceOverrides).toEqual({});
     });
 });

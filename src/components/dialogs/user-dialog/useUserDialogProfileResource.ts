@@ -16,7 +16,10 @@ import {
     normalizedAvatarName,
     shouldHydrateCurrentAvatar
 } from './userDialogCurrentAvatar';
-import { mergeUserDialogProfileAppearance } from './userDialogProfileAppearance';
+import {
+    mergeUserDialogProfileAppearance,
+    preserveUserDialogProfileAppearance
+} from './userDialogProfileAppearance';
 import {
     mergeActivityTimestampsIntoProfile,
     mergeLocalSnapshotIntoProfile,
@@ -249,7 +252,7 @@ export function useUserDialogProfileResource({
                                     currentProfile,
                                     normalizedUserId
                                 );
-                                return isTargetCurrentUser
+                                const refreshedProfile = isTargetCurrentUser
                                     ? mergeCurrentUserAvatarFields(
                                           mergeCurrentUserPresenceFields(
                                               remoteProfile,
@@ -261,6 +264,10 @@ export function useUserDialogProfileResource({
                                           localSnapshotRef.current,
                                           remoteProfile
                                       );
+                                return preserveUserDialogProfileAppearance(
+                                    refreshedProfile,
+                                    previousProfile
+                                );
                             })(),
                             activitySnapshotRef.current
                         ),

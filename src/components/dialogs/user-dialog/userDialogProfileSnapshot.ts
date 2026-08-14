@@ -1,6 +1,7 @@
 import userProfileRepository from '@/repositories/userProfileRepository';
 import { mergeCurrentUserPresenceFields } from '@/shared/utils/currentUserPresence';
 
+import { preserveUserDialogProfileAppearance } from './userDialogProfileAppearance';
 import type {
     UserDialogProfileRecord,
     UserDialogProfileSnapshot
@@ -251,10 +252,14 @@ export function mergeSnapshotIntoCurrentProfile({
     targetUserId
 }: MergeSnapshotIntoCurrentProfileInput) {
     const previousProfile = previousTargetProfile(currentProfile, targetUserId);
-    const nextProfile =
+    const mergedProfile =
         isTargetCurrentUser && snapshot
             ? mergeCurrentUserPresenceFields(snapshot, previousProfile)
             : mergeLocalSnapshotIntoProfile(snapshot, previousProfile);
+    const nextProfile = preserveUserDialogProfileAppearance(
+        mergedProfile,
+        previousProfile
+    );
     return preserveProfileIdentity(currentProfile, nextProfile, targetUserId);
 }
 

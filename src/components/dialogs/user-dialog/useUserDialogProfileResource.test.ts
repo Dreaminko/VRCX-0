@@ -272,6 +272,96 @@ describe('useUserDialogProfileResource', () => {
             expect(result.current.profile?.displayName).toBe('Target');
         });
     });
+
+    it('keeps the current background until an appearance response changes it', async () => {
+        let resolveAppearance:
+            | ((value: {
+                  id: string;
+                  backgroundType: string;
+                  backgroundTextureId: string;
+              }) => void)
+            | undefined;
+        mocks.getUserAppearanceProfile.mockReturnValue(
+            new Promise((resolve) => {
+                resolveAppearance = resolve;
+            })
+        );
+        mocks.getUserProfile.mockResolvedValue({
+            id: 'usr_target',
+            displayName: 'Remote Target',
+            state: 'online',
+            location: 'wrld_remote:instance'
+        });
+        const initialSnapshot: Record<string, unknown> = {
+            id: 'usr_target',
+            displayName: 'Target',
+            state: 'online',
+            location: 'wrld_local:instance',
+            backgroundType: 'texture',
+            backgroundTextureId: 'grid'
+        };
+
+        const { result, rerender } = renderHook(
+            ({ snapshot }: { snapshot: Record<string, unknown> }) =>
+                useUserDialogProfileResource({
+                    currentEndpoint: 'https://api.vrchat.cloud/api/1',
+                    currentUserSnapshot: snapshot,
+                    isTargetCurrentUser: true,
+                    localSnapshot: snapshot,
+                    normalizedUserId: 'usr_target',
+                    updateEntityDialogMetadata: vi.fn()
+                }),
+            {
+                initialProps: {
+                    snapshot: initialSnapshot
+                }
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+            expect(result.current.profile?.displayName).toBe('Remote Target');
+        });
+        expect(result.current.profile).toEqual(
+            expect.objectContaining({
+                backgroundType: 'texture',
+                backgroundTextureId: 'grid'
+            })
+        );
+
+        rerender({
+            snapshot: {
+                id: 'usr_target',
+                displayName: 'Target',
+                state: 'online',
+                location: 'wrld_next:instance'
+            }
+        });
+
+        await waitFor(() => {
+            expect(result.current.profile?.location).toBe('wrld_next:instance');
+        });
+        expect(result.current.profile).toEqual(
+            expect.objectContaining({
+                backgroundType: 'texture',
+                backgroundTextureId: 'grid'
+            })
+        );
+
+        resolveAppearance?.({
+            id: 'usr_target',
+            backgroundType: 'default',
+            backgroundTextureId: ''
+        });
+        await waitFor(() => {
+            expect(result.current.profile).toEqual(
+                expect.objectContaining({
+                    backgroundType: 'default',
+                    backgroundTextureId: ''
+                })
+            );
+        });
+    });
 });
 
 describe('mergeLocalSnapshotIntoProfile', () => {

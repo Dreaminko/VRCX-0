@@ -43,6 +43,18 @@ export type UserDialogProfileAppearance = Partial<
     Record<ProfileDecorationSlot, InventoryItemRecord>
 >;
 
+export type UserDialogProfileAppearanceOverride =
+    | {
+          action: 'equip';
+          item: InventoryItemRecord;
+          templateId: string;
+      }
+    | { action: 'unequip' };
+
+export type UserDialogProfileAppearanceOverrides = Partial<
+    Record<ProfileDecorationSlot, UserDialogProfileAppearanceOverride>
+>;
+
 type ProfileDecorationAssetUrls = {
     animatedUrl: string;
     staticUrl: string;
@@ -105,6 +117,35 @@ export function preserveUserDialogProfileAppearance(
         nextUser[field] = previousUser[field];
     }
     return nextUser;
+}
+
+export function applyUserDialogProfileAppearanceOverrides(
+    appearance: UserDialogProfileAppearance,
+    overrides: UserDialogProfileAppearanceOverrides
+): UserDialogProfileAppearance {
+    let nextAppearance = appearance;
+    for (const slot of PROFILE_DECORATION_SLOTS) {
+        const override = overrides[slot];
+        if (!override) {
+            continue;
+        }
+        if (
+            override.action === 'equip' &&
+            override.templateId &&
+            appearance[slot]?.id === override.templateId
+        ) {
+            continue;
+        }
+        if (nextAppearance === appearance) {
+            nextAppearance = { ...appearance };
+        }
+        if (override.action === 'equip') {
+            nextAppearance[slot] = override.item;
+        } else {
+            delete nextAppearance[slot];
+        }
+    }
+    return nextAppearance;
 }
 
 export function normalizeProfileAppearanceColor(value: unknown): string {

@@ -63,6 +63,76 @@ describe('useUserDialogProfileAppearance', () => {
         expect(mocks.getInventoryTemplate).toHaveBeenCalledTimes(3);
     });
 
+    it('keeps unchanged slots while requesting only the changed template', async () => {
+        let resolveNextFrame:
+            | ((value: { json: { id: string } }) => void)
+            | undefined;
+        mocks.getInventoryTemplate.mockImplementation(
+            (inventoryTemplateId: string) => {
+                if (inventoryTemplateId === 'invt_frame_next') {
+                    return new Promise<{ json: { id: string } }>((resolve) => {
+                        resolveNextFrame = resolve;
+                    });
+                }
+                return Promise.resolve({
+                    json: {
+                        id: inventoryTemplateId
+                    }
+                });
+            }
+        );
+
+        const { result, rerender } = renderHook(
+            ({ iconFrame }: { iconFrame: string }) =>
+                useUserDialogProfileAppearance({
+                    profile: {
+                        id: 'usr_target',
+                        iconFrame,
+                        profileEffect: 'invt_profile',
+                        nameplateEffect: 'invt_nameplate'
+                    }
+                }),
+            {
+                initialProps: {
+                    iconFrame: 'invt_frame'
+                }
+            }
+        );
+
+        await waitFor(() => {
+            expect(result.current.iconFrame?.id).toBe('invt_frame');
+            expect(result.current.profileEffect?.id).toBe('invt_profile');
+            expect(result.current.nameplateEffect?.id).toBe('invt_nameplate');
+        });
+        const profileEffect = result.current.profileEffect;
+        const nameplateEffect = result.current.nameplateEffect;
+        mocks.getInventoryTemplate.mockClear();
+
+        rerender({ iconFrame: 'invt_frame_next' });
+
+        expect(result.current.iconFrame).toBeUndefined();
+        expect(result.current.profileEffect).toBe(profileEffect);
+        expect(result.current.nameplateEffect).toBe(nameplateEffect);
+        await waitFor(() => {
+            expect(mocks.getInventoryTemplate).toHaveBeenCalledOnce();
+        });
+        expect(mocks.getInventoryTemplate).toHaveBeenCalledWith(
+            'invt_frame_next'
+        );
+
+        resolveNextFrame?.({
+            json: {
+                id: 'invt_frame_next'
+            }
+        });
+        await waitFor(() => {
+            expect(result.current.iconFrame?.id).toBe('invt_frame_next');
+        });
+        expect(result.current.profileEffect).toBe(profileEffect);
+        expect(result.current.nameplateEffect).toBe(nameplateEffect);
+        expect(mocks.getInventoryTemplate).toHaveBeenCalledOnce();
+    });
+
     it('deduplicates template requests and tolerates one failed decoration', async () => {
         mocks.getInventoryTemplate.mockImplementation(
             async (inventoryTemplateId: string) => {
