@@ -19,16 +19,37 @@ pub(crate) fn arm_background_delay(app: &tauri::AppHandle, state: &AppState) -> 
         .background_delay_generation
         .fetch_add(1, Ordering::AcqRel)
         + 1;
+    let (cancel, mut cancelled) = tokio::sync::oneshot::channel();
+    let Ok(mut cancel_slot) = state.background_delay_cancel.lock() else {
+        tracing::warn!("failed to lock background delay cancellation state");
+        return false;
+    };
+    if let Some((_, previous)) = cancel_slot.replace((generation, cancel)) {
+        let _ = previous.send(());
+    }
+    drop(cancel_slot);
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(Duration::from_secs(minutes * 60)).await;
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(minutes * 60)) => {}
+            _ = &mut cancelled => return,
+        }
         let Some(state) = app.try_state::<AppState>() else {
             return;
         };
         if !background_delay_ready(&app, &state) {
+            let _ = claim_background_delay_generation(
+                &state.background_delay_generation,
+                &state.background_delay_cancel,
+                generation,
+            );
             return;
         }
-        if !claim_background_delay_generation(&state.background_delay_generation, generation) {
+        if !claim_background_delay_generation(
+            &state.background_delay_generation,
+            &state.background_delay_cancel,
+            generation,
+        ) {
             return;
         }
         if !background_delay_ready(&app, &state) {
@@ -48,20 +69,41 @@ pub(crate) fn cancel_background_delay(state: &AppState) {
     state
         .background_delay_generation
         .fetch_add(1, Ordering::AcqRel);
+    let Ok(mut cancel_slot) = state.background_delay_cancel.lock() else {
+        tracing::warn!("failed to lock background delay cancellation state");
+        return;
+    };
+    if let Some((_, cancel)) = cancel_slot.take() {
+        let _ = cancel.send(());
+    }
 }
 
 fn claim_background_delay_generation(
     generation_counter: &std::sync::atomic::AtomicU64,
+    cancel_slot: &std::sync::Mutex<Option<(u64, tokio::sync::oneshot::Sender<()>)>>,
     generation: u64,
 ) -> bool {
-    generation_counter
+    let Ok(mut cancel_slot) = cancel_slot.lock() else {
+        return false;
+    };
+    if !cancel_slot
+        .as_ref()
+        .is_some_and(|(current, _)| *current == generation)
+    {
+        return false;
+    }
+    let claimed = generation_counter
         .compare_exchange(
             generation,
             generation + 1,
             Ordering::AcqRel,
             Ordering::Acquire,
         )
-        .is_ok()
+        .is_ok();
+    if claimed {
+        cancel_slot.take();
+    }
+    claimed
 }
 
 fn background_delay_ready(app: &tauri::AppHandle, state: &AppState) -> bool {
@@ -162,6 +204,7 @@ fn main_window_hidden(app: &tauri::AppHandle) -> bool {
 #[cfg(test)]
 mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Mutex;
 
     use super::{claim_background_delay_generation, resolve_delay_minutes};
 
@@ -178,12 +221,30 @@ mod tests {
     #[test]
     fn claim_background_delay_generation_only_claims_current_timer() {
         let generation = AtomicU64::new(7);
+        let cancel_slot = Mutex::new(None);
+        let (cancel, _cancelled) = tokio::sync::oneshot::channel();
+        *cancel_slot.lock().unwrap() = Some((7, cancel));
 
-        assert!(claim_background_delay_generation(&generation, 7));
+        assert!(claim_background_delay_generation(
+            &generation,
+            &cancel_slot,
+            7
+        ));
         assert_eq!(generation.load(Ordering::Acquire), 8);
-        assert!(!claim_background_delay_generation(&generation, 7));
+        assert!(cancel_slot.lock().unwrap().is_none());
+        assert!(!claim_background_delay_generation(
+            &generation,
+            &cancel_slot,
+            7
+        ));
 
         generation.fetch_add(1, Ordering::AcqRel);
-        assert!(!claim_background_delay_generation(&generation, 8));
+        let (cancel, _cancelled) = tokio::sync::oneshot::channel();
+        *cancel_slot.lock().unwrap() = Some((8, cancel));
+        assert!(!claim_background_delay_generation(
+            &generation,
+            &cancel_slot,
+            8
+        ));
     }
 }

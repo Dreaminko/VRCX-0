@@ -71,12 +71,14 @@ pub async fn app__registry_backup_export_to_file(
     } else {
         backup.name.trim()
     };
-    let file_path = app_handle
-        .dialog()
-        .file()
-        .set_file_name(format!("{backup_name}.json"))
-        .add_filter("JSON Files", &["json"])
-        .blocking_save_file();
+    let file_path = crate::commands::host::dialog::save_file(
+        app_handle
+            .dialog()
+            .file()
+            .set_file_name(format!("{backup_name}.json"))
+            .add_filter("JSON Files", &["json"]),
+    )
+    .await;
     let Some(file_path) = file_path else {
         return Ok(String::new());
     };
@@ -96,11 +98,13 @@ pub async fn app__registry_backup_import_from_file(
     app_handle: AppHandle,
 ) -> Result<bool, AppError> {
     require_host_capability(HostCapability::RegistryPrefs)?;
-    let file_path = app_handle
-        .dialog()
-        .file()
-        .add_filter("JSON Files", &["json"])
-        .blocking_pick_file();
+    let file_path = crate::commands::host::dialog::pick_file(
+        app_handle
+            .dialog()
+            .file()
+            .add_filter("JSON Files", &["json"]),
+    )
+    .await;
     let Some(file_path) = file_path else {
         return Ok(false);
     };

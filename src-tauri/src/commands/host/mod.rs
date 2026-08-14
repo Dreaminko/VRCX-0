@@ -2,6 +2,7 @@ pub mod app_launcher;
 pub mod calendar;
 pub mod clipboard;
 pub mod devkit;
+pub(crate) mod dialog;
 pub mod error_log;
 pub mod fonts;
 pub mod game;

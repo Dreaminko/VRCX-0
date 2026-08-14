@@ -29,12 +29,14 @@ pub async fn app__save_calendar_file(
     } else {
         default_name.trim()
     };
-    let result = app_handle
-        .dialog()
-        .file()
-        .set_file_name(file_name)
-        .add_filter("iCalendar Files", &["ics"])
-        .blocking_save_file();
+    let result = super::dialog::save_file(
+        app_handle
+            .dialog()
+            .file()
+            .set_file_name(file_name)
+            .add_filter("iCalendar Files", &["ics"]),
+    )
+    .await;
 
     match result {
         Some(file_path) => {

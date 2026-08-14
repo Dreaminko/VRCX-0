@@ -83,7 +83,7 @@ pub async fn app__app_launcher_target_pick(
     #[cfg(target_os = "windows")]
     let builder = builder.add_filter("Applications and shortcuts", &["exe", "lnk", "url"]);
 
-    let result = builder.blocking_pick_file();
+    let result = super::dialog::pick_file(builder).await;
     let Some(file_path) = result else {
         return Ok(None);
     };

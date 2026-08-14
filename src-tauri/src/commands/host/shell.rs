@@ -199,7 +199,7 @@ pub async fn app__open_file_selector_dialog(
         builder = builder.add_filter(ext_clean, &[ext_clean]);
     }
 
-    let result = builder.blocking_pick_file();
+    let result = super::dialog::pick_file(builder).await;
 
     match result {
         Some(file_path) => {
@@ -261,7 +261,7 @@ pub async fn app__save_file_selector_dialog(
         builder = builder.add_filter(ext_clean, &[ext_clean]);
     }
 
-    let result = builder.blocking_save_file();
+    let result = super::dialog::save_file(builder).await;
 
     match result {
         Some(file_path) => {
@@ -303,7 +303,7 @@ pub async fn app__open_background_image_files_selector_dialog(
         }
     }
 
-    let result = builder.blocking_pick_files();
+    let result = super::dialog::pick_files(builder).await;
     let Some(file_paths) = result else {
         return Ok(Vec::new());
     };
@@ -345,7 +345,7 @@ pub async fn app__open_folder_selector_dialog(
         }
     }
 
-    let result = builder.blocking_pick_folder();
+    let result = super::dialog::pick_folder(builder).await;
 
     match result {
         Some(folder_path) => {
@@ -390,7 +390,7 @@ pub async fn app__save_vrc_reg_json_file(
 
     builder = builder.add_filter("JSON Files", &["json"]);
 
-    let result = builder.blocking_save_file();
+    let result = super::dialog::save_file(builder).await;
 
     match result {
         Some(file_path) => {

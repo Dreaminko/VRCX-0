@@ -9,18 +9,20 @@ use vrcx_0_host_desktop::host_capabilities::{require_host_capability, HostCapabi
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__delete_vrchat_registry_folder(app_handle: AppHandle) -> Result<(), AppError> {
+pub async fn app__delete_vrchat_registry_folder(app_handle: AppHandle) -> Result<(), AppError> {
     require_host_capability(HostCapability::RegistryPrefs)?;
-    let confirmed = app_handle
-        .dialog()
-        .message("Delete the VRChat registry preferences folder? This cannot be undone.")
-        .title("Delete VRChat registry preferences")
-        .kind(MessageDialogKind::Warning)
-        .buttons(MessageDialogButtons::OkCancelCustom(
-            "Delete".into(),
-            "Cancel".into(),
-        ))
-        .blocking_show();
+    let confirmed = super::dialog::show_message(
+        app_handle
+            .dialog()
+            .message("Delete the VRChat registry preferences folder? This cannot be undone.")
+            .title("Delete VRChat registry preferences")
+            .kind(MessageDialogKind::Warning)
+            .buttons(MessageDialogButtons::OkCancelCustom(
+                "Delete".into(),
+                "Cancel".into(),
+            )),
+    )
+    .await;
     if !confirmed {
         return Err(AppError::Custom(
             "VRChat registry folder delete was cancelled.".into(),

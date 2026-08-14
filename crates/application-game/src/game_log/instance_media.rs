@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use url::Url;
 
-use crate::{Error, ImageCache, Result, WebClient};
+use crate::{ImageCache, Result, WebClient};
 use vrcx_0_application_core::save_ugc_image_to_file;
 use vrcx_0_core::text::first_owned;
 use vrcx_0_media::image_processing;
@@ -62,9 +62,7 @@ impl InstanceMediaQueue {
         }
 
         let _guard = self.inner.gate.lock().await;
-        tokio::task::spawn_blocking(|| std::thread::sleep(INSTANCE_MEDIA_SAVE_INTERVAL))
-            .await
-            .map_err(|error| Error::Custom(format!("instance media delay task: {error}")))?;
+        tokio::time::sleep(INSTANCE_MEDIA_SAVE_INTERVAL).await;
         task().await
     }
 

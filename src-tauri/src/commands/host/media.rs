@@ -20,12 +20,14 @@ pub async fn app__save_image_file(
 
     let (file_name, bytes) = media_files::decode_image_file(&default_name, &base64_data)?;
 
-    let result = app_handle
-        .dialog()
-        .file()
-        .set_file_name(&file_name)
-        .add_filter("Image Files", &["png", "jpg", "jpeg", "gif", "webp", "bmp"])
-        .blocking_save_file();
+    let result = super::dialog::save_file(
+        app_handle
+            .dialog()
+            .file()
+            .set_file_name(&file_name)
+            .add_filter("Image Files", &["png", "jpg", "jpeg", "gif", "webp", "bmp"]),
+    )
+    .await;
 
     match result {
         Some(file_path) => {

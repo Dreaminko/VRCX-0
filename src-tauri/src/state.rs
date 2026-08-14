@@ -33,6 +33,7 @@ pub struct AppState {
     assistant: tokio::sync::OnceCell<AssistantController>,
     background_resume_route: Mutex<Option<String>>,
     pub(crate) background_delay_generation: AtomicU64,
+    pub(crate) background_delay_cancel: Mutex<Option<(u64, tokio::sync::oneshot::Sender<()>)>>,
     main_window_rebuild_in_progress: AtomicBool,
     auth_failure_notification: Mutex<Option<AuthFailureNotificationRecord>>,
 }
@@ -98,6 +99,7 @@ impl AppState {
             assistant: tokio::sync::OnceCell::new(),
             background_resume_route: Mutex::new(None),
             background_delay_generation: AtomicU64::new(0),
+            background_delay_cancel: Mutex::new(None),
             main_window_rebuild_in_progress: AtomicBool::new(false),
             auth_failure_notification: Mutex::new(None),
         })

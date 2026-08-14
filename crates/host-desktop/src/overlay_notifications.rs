@@ -24,6 +24,11 @@ struct OvrWorker {
 type WsSender =
     futures_util::stream::SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
 
+struct OvrConnection {
+    sender: WsSender,
+    reader: tokio::task::JoinHandle<()>,
+}
+
 const MAX_UDP_PAYLOAD_BYTES: usize = 65_507;
 const XSOVERLAY_UDP_ADDR: &str = "127.0.0.1:42069";
 const OVRTOOLKIT_WS_URL: &str = "ws://127.0.0.1:11450/api";
@@ -260,54 +265,79 @@ fn ovr_notification_messages(
     messages
 }
 
-async fn connect_ws() -> Result<WsSender, String> {
-    let (ws_stream, _) = tokio::time::timeout(
-        OVR_CONNECT_TIMEOUT,
-        tokio_tungstenite::connect_async(OVRTOOLKIT_WS_URL),
-    )
-    .await
-    .map_err(|_| {
-        format!(
-            "connect timed out after {} ms",
-            OVR_CONNECT_TIMEOUT.as_millis()
-        )
-    })?
-    .map_err(|error| format!("connect: {error}"))?;
+impl OvrConnection {
+    async fn shutdown(self) {
+        let Self { sender, reader } = self;
+        reader.abort();
+        drop(sender);
+        let _ = reader.await;
+    }
+}
+
+async fn connect_ws() -> Result<OvrConnection, String> {
+    connect_ws_to(OVRTOOLKIT_WS_URL).await
+}
+
+async fn connect_ws_to(url: &str) -> Result<OvrConnection, String> {
+    let (ws_stream, _) =
+        tokio::time::timeout(OVR_CONNECT_TIMEOUT, tokio_tungstenite::connect_async(url))
+            .await
+            .map_err(|_| {
+                format!(
+                    "connect timed out after {} ms",
+                    OVR_CONNECT_TIMEOUT.as_millis()
+                )
+            })?
+            .map_err(|error| format!("connect: {error}"))?;
     let (write, read) = ws_stream.split();
 
-    tokio::spawn(async move {
+    let reader = tokio::spawn(async move {
         let mut read = read;
         while read.next().await.is_some() {}
     });
 
-    Ok(write)
+    Ok(OvrConnection {
+        sender: write,
+        reader,
+    })
 }
 
-async fn send_all(ws: &mut WsSender, messages: &[serde_json::Value]) -> Result<(), String> {
+async fn send_all(
+    connection: &mut OvrConnection,
+    messages: &[serde_json::Value],
+) -> Result<(), String> {
     for message in messages {
         let text = serde_json::to_string(message).unwrap_or_default();
-        tokio::time::timeout(OVR_SEND_TIMEOUT, ws.send(Message::Text(text.into())))
-            .await
-            .map_err(|_| format!("send timed out after {} ms", OVR_SEND_TIMEOUT.as_millis()))?
-            .map_err(|error| format!("send: {error}"))?;
+        tokio::time::timeout(
+            OVR_SEND_TIMEOUT,
+            connection.sender.send(Message::Text(text.into())),
+        )
+        .await
+        .map_err(|_| format!("send timed out after {} ms", OVR_SEND_TIMEOUT.as_millis()))?
+        .map_err(|error| format!("send: {error}"))?;
     }
     Ok(())
 }
 
 async fn send_with_persistent_conn(
-    sender: &mut Option<WsSender>,
+    connection: &mut Option<OvrConnection>,
     messages: &[serde_json::Value],
 ) -> Result<(), String> {
-    if let Some(ws) = sender.as_mut() {
-        if send_all(ws, messages).await.is_ok() {
+    if let Some(current) = connection.as_mut() {
+        if send_all(current, messages).await.is_ok() {
             return Ok(());
         }
-        *sender = None;
+        if let Some(failed) = connection.take() {
+            failed.shutdown().await;
+        }
     }
 
-    let mut ws = connect_ws().await?;
-    send_all(&mut ws, messages).await?;
-    *sender = Some(ws);
+    let mut replacement = connect_ws().await?;
+    if let Err(error) = send_all(&mut replacement, messages).await {
+        replacement.shutdown().await;
+        return Err(error);
+    }
+    *connection = Some(replacement);
     Ok(())
 }
 
@@ -315,7 +345,7 @@ async fn run_ovr_worker(
     mut receiver: mpsc::Receiver<Vec<serde_json::Value>>,
     mut shutdown: oneshot::Receiver<()>,
 ) {
-    let mut sender = None;
+    let mut connection = None;
     loop {
         let messages = tokio::select! {
             biased;
@@ -325,15 +355,37 @@ async fn run_ovr_worker(
         let Some(messages) = messages else {
             break;
         };
-        if let Err(error) = send_with_persistent_conn(&mut sender, &messages).await {
+        if let Err(error) = send_with_persistent_conn(&mut connection, &messages).await {
             tracing::warn!("[OVR Toolkit] notification send failed: {error}");
         }
+    }
+    if let Some(connection) = connection {
+        connection.shutdown().await;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn ovr_connection_shutdown_releases_the_websocket() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut websocket = tokio_tungstenite::accept_async(socket).await.unwrap();
+            let _ = websocket.next().await;
+        });
+
+        let connection = connect_ws_to(&format!("ws://{address}")).await.unwrap();
+        connection.shutdown().await;
+
+        tokio::time::timeout(Duration::from_secs(1), server)
+            .await
+            .expect("server should observe the released connection")
+            .unwrap();
+    }
 
     #[test]
     fn xs_payload_without_image_uses_builtin_default_icon() {
