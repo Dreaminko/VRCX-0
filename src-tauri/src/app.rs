@@ -113,6 +113,8 @@ fn install_adaptive_tauri_async_runtime() -> tokio::runtime::Runtime {
 }
 
 pub fn run() {
+    bootstrap::configure_webview2_environment();
+
     let Some(_single_instance_guard) =
         crate::single_instance_gate::try_acquire_or_notify_existing()
     else {

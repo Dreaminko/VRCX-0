@@ -20,9 +20,11 @@ use super::adapters::{
 };
 use super::autostart::{apply_autostart_window_state_if_needed, sync_autostart_from_db};
 use super::shared::app_language;
-use super::window::{configure_tray, create_main_window, disable_windows_default_context_menu};
+use super::window::{configure_tray, configure_windows_webview_settings, create_main_window};
 
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+#[cfg(target_os = "windows")]
+const WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: &str = "--disable-back-forward-cache --disable-domain-reliability --disable-features=AutofillServerCommunication,BackgroundFetch,MediaRouter --disable-file-system --disable-notifications --disable-presentation-api --disable-remote-playback-api --disable-shared-workers --disable-speech-api";
 
 fn should_capture_gui_error(level: &Level, target: &str) -> bool {
     level == &Level::ERROR
@@ -110,6 +112,31 @@ pub fn apply_linux_webkit_workaround() {
 
         apply_workaround_with_options(ApplyWorkaroundOptions::default());
     }
+}
+
+pub fn configure_webview2_environment() {
+    #[cfg(target_os = "windows")]
+    {
+        const KEY: &str = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
+        let arguments = append_browser_arguments(
+            std::env::var_os(KEY).as_deref(),
+            WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS,
+        );
+        std::env::set_var(KEY, arguments);
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn append_browser_arguments(
+    existing: Option<&std::ffi::OsStr>,
+    additional: &str,
+) -> std::ffi::OsString {
+    let mut arguments = existing.unwrap_or_default().to_os_string();
+    if !arguments.is_empty() {
+        arguments.push(" ");
+    }
+    arguments.push(additional);
+    arguments
 }
 
 fn initialize_app_state(
@@ -242,7 +269,7 @@ pub fn setup_app_with_data_dir(
         "Main webview window created.",
     );
 
-    disable_windows_default_context_menu(app.handle());
+    configure_windows_webview_settings(app.handle());
 
     let state = app.state::<AppState>();
     configure_tray(app, &state)?;
@@ -340,6 +367,8 @@ fn emit_deep_link_arrived(app: &tauri::AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::should_capture_gui_error;
+    #[cfg(target_os = "windows")]
+    use super::{append_browser_arguments, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS};
     use tracing::Level;
 
     #[test]
@@ -369,5 +398,30 @@ mod tests {
                 "vrcx_0::bootstrap::adapters"
             ));
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn webview2_browser_arguments_preserve_existing_overrides() {
+        let arguments = append_browser_arguments(
+            Some(std::ffi::OsStr::new("--remote-debugging-port=9222")),
+            WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS,
+        );
+
+        assert_eq!(
+            arguments,
+            std::ffi::OsString::from(format!(
+                "--remote-debugging-port=9222 {WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS}"
+            ))
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn webview2_browser_arguments_do_not_add_a_leading_separator() {
+        assert_eq!(
+            append_browser_arguments(None, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS),
+            std::ffi::OsString::from(WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS)
+        );
     }
 }

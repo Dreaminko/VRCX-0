@@ -39,7 +39,7 @@ pub fn ensure_main_window(app: &tauri::AppHandle) -> Result<(), Box<dyn std::err
     if app.get_webview_window("main").is_none() {
         let state = app.state::<AppState>();
         create_main_window(app, state.web.proxy_url())?;
-        disable_windows_default_context_menu(app);
+        configure_windows_webview_settings(app);
     }
     let state = app.state::<AppState>();
     start_host_services(app, &state);
@@ -66,7 +66,7 @@ pub(crate) async fn rebuild_main_window(
     }
 
     create_main_window(app, state.web.proxy_url())?;
-    disable_windows_default_context_menu(app);
+    configure_windows_webview_settings(app);
     start_host_services(app, &state);
     present_main_window(app);
     let _ = refresh_tray_menu(app, &state);
@@ -260,6 +260,9 @@ pub(super) fn create_main_window(
             .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidInput, error))?;
         builder = builder.proxy_url(proxy_url);
     }
+    builder = builder
+        .zoom_hotkeys_enabled(false)
+        .browser_extensions_enabled(false);
 
     let main_window = builder.build()?;
     #[cfg(target_os = "windows")]
@@ -321,7 +324,7 @@ fn is_window_docked(window: &tauri::WebviewWindow) -> bool {
     edges.iter().filter(|edge| **edge).count() >= WINDOW_DOCKED_EDGE_COUNT
 }
 
-pub(super) fn disable_windows_default_context_menu(app: &tauri::AppHandle) {
+pub(super) fn configure_windows_webview_settings(app: &tauri::AppHandle) {
     #[cfg(target_os = "windows")]
     if let Some(webview) = app.get_webview_window("main") {
         if let Err(error) = webview.with_webview(|platform_webview| {
@@ -330,11 +333,15 @@ pub(super) fn disable_windows_default_context_menu(app: &tauri::AppHandle) {
                     .controller()
                     .CoreWebView2()
                     .and_then(|webview| webview.Settings())
-                    .and_then(|settings| settings.SetAreDefaultContextMenusEnabled(false))
+                    .and_then(|settings| {
+                        settings.SetAreDefaultContextMenusEnabled(false)?;
+                        settings.SetAreDefaultScriptDialogsEnabled(false)?;
+                        settings.SetAreHostObjectsAllowed(false)
+                    })
             };
 
             if let Err(error) = result {
-                tracing::warn!(?error, "failed to disable WebView2 default context menu");
+                tracing::warn!(?error, "failed to configure WebView2 settings");
             }
         }) {
             tracing::warn!(?error, "failed to access WebView2 instance");
