@@ -658,8 +658,7 @@ export function GroupDialogTabbedView({
             setActiveTab('posts');
         },
         setRemoteData,
-        setRemoteStatus,
-        t
+        setRemoteStatus
     });
 
     const headerModel = {

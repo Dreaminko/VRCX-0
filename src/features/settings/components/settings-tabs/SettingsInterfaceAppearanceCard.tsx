@@ -165,18 +165,17 @@ function getFontDropdownDisplayText(
 }
 
 function FontFamilyPreferenceField({
-    t,
     locale,
     prefs,
     onFontFamilyChange,
     onCjkFontPackChange
 }: {
-    t: TFunction;
     locale: string;
     prefs: FontPreferencePrefs;
     onFontFamilyChange: (value: string) => void;
     onCjkFontPackChange: (value: string) => void;
 }) {
+    const { t } = useTranslation();
     const showCjkFontPack = supportsConfigurableCjkFontPack(locale);
     const customActive = prefs.appFontFamily === 'custom';
 
@@ -319,7 +318,6 @@ export function SettingsInterfaceAppearanceCard({
 
             {!hideFontControls ? (
                 <FontFamilyPreferenceField
-                    t={t}
                     locale={locale}
                     prefs={prefs}
                     onFontFamilyChange={onFontFamilyChange}

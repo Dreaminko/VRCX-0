@@ -136,7 +136,6 @@ export function CommunityThemesSection({
                                         themeStatsById[theme.id]?.downloads ?? 0
                                     }
                                     loading={loading}
-                                    t={t}
                                     onInstall={() => {
                                         if (
                                             installedEntry &&

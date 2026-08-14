@@ -1,5 +1,5 @@
-import type { TFunction } from 'i18next';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import configRepository from '@/repositories/configRepository';
@@ -16,12 +16,11 @@ export type SocialStatusDraft = {
 };
 
 export function useSelfStatusPresets({
-    socialStatusDraft,
-    t
+    socialStatusDraft
 }: {
     socialStatusDraft: SocialStatusDraft;
-    t: TFunction;
 }) {
+    const { t } = useTranslation();
     const [statusPresets, setStatusPresets] = useState<unknown[]>([]);
 
     useEffect(() => {

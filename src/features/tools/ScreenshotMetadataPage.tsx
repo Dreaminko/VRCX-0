@@ -130,8 +130,7 @@ export function ScreenshotMetadataPage() {
         isGalleryMode,
         routeFolder,
         screenshotCacheStatus,
-        setSearchParams,
-        t
+        setSearchParams
     });
 
     const updateRoutePath = useCallback(

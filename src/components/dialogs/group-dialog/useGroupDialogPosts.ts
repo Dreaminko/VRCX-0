@@ -1,5 +1,5 @@
-import type { TFunction } from 'i18next';
 import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import type {
@@ -38,7 +38,6 @@ interface UseGroupDialogPostsInput {
     onPostsSaved: () => void;
     setRemoteData: Dispatch<SetStateAction<GroupRemoteData>>;
     setRemoteStatus: Dispatch<SetStateAction<GroupRemoteStatus>>;
-    t: TFunction;
 }
 
 export function useGroupDialogPosts({
@@ -47,9 +46,9 @@ export function useGroupDialogPosts({
     loadTab,
     onPostsSaved,
     setRemoteData,
-    setRemoteStatus,
-    t
+    setRemoteStatus
 }: UseGroupDialogPostsInput) {
+    const { t } = useTranslation();
     const [postEditor, setPostEditor] = useState<GroupPostForm | null>(null);
     const [postEditorSubmitting, setPostEditorSubmitting] = useState(false);
 

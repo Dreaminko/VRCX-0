@@ -202,7 +202,7 @@ export const SidePanel = forwardRef<HTMLElement, SidePanelProps>(
             tabLayout,
             visibleFavoriteCollectionSourceGroupKeys,
             visibleTabLayout
-        } = useSidePanelTabData({ activeTab, prefs, setActiveTab, t });
+        } = useSidePanelTabData({ activeTab, prefs, setActiveTab });
         const { showTabText, tabListRef, tabViewportRef } =
             useResponsiveSidePanelTabText(
                 tabDisplayMode,

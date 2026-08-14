@@ -101,7 +101,6 @@ export function useResolvedLocation({
             : globalShowInstanceIdInLocation;
 
     return {
-        t,
         currentLocation,
         currentEndpoint,
         parsedLocation,

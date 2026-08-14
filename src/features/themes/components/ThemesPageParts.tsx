@@ -1,6 +1,6 @@
-import type { TFunction } from 'i18next';
 import { BadgeCheckIcon, DownloadIcon, ExternalLinkIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { CommunityThemeManifest } from '@/domain/themes/communityThemeTypes';
 import { openExternalLink } from '@/services/entityMediaService';
@@ -53,8 +53,7 @@ export function ThemeCatalogCard({
     updateAvailable,
     downloads,
     loading,
-    onInstall,
-    t
+    onInstall
 }: {
     theme: CommunityThemeManifest;
     active: boolean;
@@ -63,8 +62,8 @@ export function ThemeCatalogCard({
     downloads: number;
     loading: boolean;
     onInstall: () => void;
-    t: TFunction;
 }) {
+    const { t } = useTranslation();
     const authorUrl = resolveThemeAuthorUrl(theme);
 
     return (

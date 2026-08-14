@@ -323,8 +323,7 @@ export function UserDialogContent({
         currentEndpoint,
         normalizedUserId,
         profile,
-        setBaseProfile,
-        t
+        setBaseProfile
     });
 
     const {

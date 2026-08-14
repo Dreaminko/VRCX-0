@@ -1,5 +1,5 @@
-import type { TFunction } from 'i18next';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
@@ -43,15 +43,14 @@ export function useScreenshotGalleryController({
     isGalleryMode,
     routeFolder,
     screenshotCacheStatus,
-    setSearchParams,
-    t
+    setSearchParams
 }: {
     isGalleryMode: boolean;
     routeFolder: string;
     screenshotCacheStatus: CapabilityStatus;
     setSearchParams: SetSearchParams;
-    t: TFunction;
 }) {
+    const { t } = useTranslation();
     const galleryRequestRef = useRef(0);
     const selectedGalleryFolderRef = useRef('');
     const galleryScrollPositionsRef = useRef<Map<string, number>>(new Map());

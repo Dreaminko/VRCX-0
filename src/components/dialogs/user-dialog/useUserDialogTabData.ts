@@ -1,4 +1,3 @@
-import type { TFunction } from 'i18next';
 import {
     useEffect,
     useEffectEvent,
@@ -7,6 +6,7 @@ import {
     useRef,
     useState
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { EntityRecord } from '@/domain/entities/profileEntities';
 import type { FriendRosterById } from '@/domain/friends/friendRosterTypes';
@@ -104,7 +104,6 @@ interface UseUserDialogTabDataInput {
     currentUserHasSharedConnectionsOptOut: boolean;
     friendsById: FriendRosterById;
     inGameGroupOrder: readonly unknown[];
-    t: TFunction;
 }
 
 function normalizeUserDialogAvatarSort(value: unknown) {
@@ -141,9 +140,9 @@ export function useUserDialogTabData({
     previousAvatarSwapTime = 0,
     currentUserHasSharedConnectionsOptOut,
     friendsById,
-    inGameGroupOrder,
-    t
+    inGameGroupOrder
 }: UseUserDialogTabDataInput) {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('info');
     const [remoteData, setRemoteData] = useState<UserDialogRemoteData>(
         emptyUserDialogRemoteData

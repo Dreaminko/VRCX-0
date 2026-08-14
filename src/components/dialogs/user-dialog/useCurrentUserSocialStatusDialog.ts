@@ -66,7 +66,7 @@ export function useCurrentUserSocialStatusDialog({
         [statusOptions]
     );
     const { onRemovePreset, onSavePreset, statusPresets } =
-        useSelfStatusPresets({ socialStatusDraft: draft, t });
+        useSelfStatusPresets({ socialStatusDraft: draft });
 
     function openDialog() {
         if (busy || !profile) {

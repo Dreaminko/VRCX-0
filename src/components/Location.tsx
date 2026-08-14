@@ -1,4 +1,5 @@
 import type { KeyboardEvent, SyntheticEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { LocationContextMenu } from '@/components/location/LocationContextMenu';
@@ -74,12 +75,12 @@ export function Location({
     className = '',
     worldNameClassName = ''
 }: LocationProps) {
+    const { t } = useTranslation();
     const showLaunchDialog = useLaunchStore((state) => state.showLaunchDialog);
     const isGameRunning = useRuntimeStore((state) =>
         Boolean(state.gameState.isGameRunning)
     );
     const {
-        t,
         currentLocation,
         parsedLocation,
         region,
@@ -132,7 +133,6 @@ export function Location({
         groupName,
         onShowPreviousInstances,
         parsedLocation,
-        t,
         worldName,
         worldNameHint
     });

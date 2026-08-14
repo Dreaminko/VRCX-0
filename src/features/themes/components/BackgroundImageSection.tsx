@@ -1,4 +1,3 @@
-import type { TFunction } from 'i18next';
 import {
     FolderOpenIcon,
     ImageIcon,
@@ -73,8 +72,7 @@ function CurrentBackgroundImageSummary({
     providerId,
     customSource,
     snapshot,
-    onRefresh,
-    t
+    onRefresh
 }: {
     enabled: boolean;
     loading: boolean;
@@ -83,8 +81,8 @@ function CurrentBackgroundImageSummary({
     customSource: BackgroundImageCustomSource | null;
     snapshot: BackgroundImageSnapshot | null;
     onRefresh: () => void;
-    t: TFunction;
 }) {
+    const { t } = useTranslation();
     const [imageFailed, setImageFailed] = useState(false);
 
     useEffect(() => {
@@ -543,7 +541,6 @@ export function BackgroundImageSection() {
                     customSource={customSource}
                     snapshot={enabled ? snapshot : null}
                     onRefresh={refreshBackground}
-                    t={t}
                 />
             </CardContent>
         </Card>

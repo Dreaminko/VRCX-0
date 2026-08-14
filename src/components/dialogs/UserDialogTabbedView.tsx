@@ -313,8 +313,7 @@ export function UserDialogTabbedView({
         previousAvatarSwapTime,
         currentUserHasSharedConnectionsOptOut,
         friendsById,
-        inGameGroupOrder,
-        t
+        inGameGroupOrder
     });
 
     useEffect(() => {

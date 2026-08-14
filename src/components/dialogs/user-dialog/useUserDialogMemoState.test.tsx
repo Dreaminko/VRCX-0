@@ -18,6 +18,10 @@ vi.mock('sonner', () => ({
     }
 }));
 
+vi.mock('react-i18next', () => ({
+    useTranslation: () => ({ t: (key: string) => key })
+}));
+
 vi.mock('@/repositories/memoPersistenceRepository', () => ({
     default: {
         getUserMemo: mocks.getUserMemo,
@@ -67,8 +71,7 @@ describe('useUserDialogMemoState', () => {
                 displayName: 'Current User',
                 note: 'Existing VRChat note'
             },
-            setBaseProfile: vi.fn(),
-            t: ((key: string) => key) as HookProps['t']
+            setBaseProfile: vi.fn()
         };
     }
 

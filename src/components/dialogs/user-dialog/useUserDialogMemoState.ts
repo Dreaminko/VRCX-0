@@ -1,4 +1,3 @@
-import type { TFunction } from 'i18next';
 import {
     useEffect,
     useRef,
@@ -7,6 +6,7 @@ import {
     type RefObject,
     type SetStateAction
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
@@ -37,7 +37,6 @@ type UseUserDialogMemoStateProps = {
     normalizedUserId: string;
     profile: UserDialogProfileRecord | null;
     setBaseProfile: Dispatch<SetStateAction<UserDialogProfileRecord | null>>;
-    t: TFunction;
 };
 
 export function useUserDialogMemoState({
@@ -45,9 +44,9 @@ export function useUserDialogMemoState({
     currentEndpoint,
     normalizedUserId,
     profile,
-    setBaseProfile,
-    t
+    setBaseProfile
 }: UseUserDialogMemoStateProps) {
+    const { t } = useTranslation();
     const [memo, setMemo] = useState('');
     const [memoDialog, setMemoDialog] = useState(createMemoDialogState);
     const memoRevisionRef = useRef(0);

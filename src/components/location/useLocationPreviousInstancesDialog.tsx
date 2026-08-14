@@ -1,5 +1,5 @@
-import type { TFunction } from 'i18next';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { PreviousInstancesTableDialog } from '@/components/dialogs/PreviousInstancesTableDialog';
@@ -18,7 +18,6 @@ type UseLocationPreviousInstancesDialogInput = {
     groupName: string;
     onShowPreviousInstances?: (row: PreviousInstanceDialogRow) => void;
     parsedLocation: ParsedLocation;
-    t: TFunction;
     worldName: string;
     worldNameHint: string;
 };
@@ -28,10 +27,10 @@ export function useLocationPreviousInstancesDialog({
     groupName,
     onShowPreviousInstances,
     parsedLocation,
-    t,
     worldName,
     worldNameHint
 }: UseLocationPreviousInstancesDialogInput) {
+    const { t } = useTranslation();
     const [previousInstancesOpen, setPreviousInstancesOpen] = useState(false);
     const [previousInstancesRows, setPreviousInstancesRows] = useState<
         PreviousInstanceDialogRow[]

@@ -1,5 +1,5 @@
-import type { TFunction } from 'i18next';
 import { useEffect, useMemo, type Dispatch, type SetStateAction } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { buildFavoriteCollectionFriendIdSet } from '@/components/sidebar/friends-sidebar/favoriteCollectionSidebarRows';
 import { useFavoriteStore } from '@/state/favoriteStore';
@@ -22,15 +22,14 @@ type SidePanelTabDataInput = {
     activeTab: string;
     prefs: SidePanelPreferences;
     setActiveTab: Dispatch<SetStateAction<string>>;
-    t: TFunction;
 };
 
 export function useSidePanelTabData({
     activeTab,
     prefs,
-    setActiveTab,
-    t
+    setActiveTab
 }: SidePanelTabDataInput) {
+    const { t } = useTranslation();
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const onlineIds = useFriendRosterStore((state) => state.onlineIds);
     const favoriteLoadStatus = useFavoriteStore((state) => state.loadStatus);
