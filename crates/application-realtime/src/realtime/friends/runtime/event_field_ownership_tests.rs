@@ -192,6 +192,75 @@ mod tests {
     }
 
     #[test]
+    fn friend_location_top_level_traveling_overrides_stale_embedded_location() {
+        let runtime = runtime_with_friend(friend_record("online", "wrld_old:1~region(jp)"));
+
+        let RealtimeFriendApplyResult::Output(output) = runtime.apply_ws_message(&ws(json!({
+            "type": "friend-location",
+            "content": {
+                "userId": "usr_friend",
+                "location": "traveling",
+                "travelingToLocation": "wrld_dest:7~region(us)",
+                "worldId": "wrld_dest",
+                "user": {
+                    "id": "usr_friend",
+                    "displayName": "Friend",
+                    "state": "offline",
+                    "location": "wrld_old:1~region(jp)",
+                    "travelingToLocation": "wrld_old:1~region(jp)",
+                    "worldId": "wrld_old"
+                }
+            }
+        }))) else {
+            panic!("friend-location should produce an output");
+        };
+
+        let patch = &output.projection.patches[0];
+        assert_eq!(patch.patch.location, "traveling");
+        assert_eq!(patch.patch.traveling_to_location, "wrld_dest:7~region(us)");
+        assert_eq!(patch.patch.world_id, "wrld_dest");
+
+        let friend = snapshot_friend(&runtime);
+        assert_eq!(friend.location, "traveling");
+        assert_eq!(friend.traveling_to_location, "wrld_dest:7~region(us)");
+        assert_eq!(friend.world_id, "wrld_dest");
+    }
+
+    #[test]
+    fn friend_location_top_level_presence_ignores_stale_embedded_presence_fields() {
+        let runtime = runtime_with_friend(friend_record("online", "traveling"));
+
+        let RealtimeFriendApplyResult::Output(output) = runtime.apply_ws_message(&ws(json!({
+            "type": "friend-location",
+            "content": {
+                "userId": "usr_friend",
+                "location": "wrld_new:2~region(jp)",
+                "travelingToLocation": "",
+                "user": {
+                    "id": "usr_friend",
+                    "displayName": "Friend",
+                    "state": "offline",
+                    "location": "traveling",
+                    "travelingToLocation": "wrld_old:1~region(jp)",
+                    "worldId": "wrld_old"
+                }
+            }
+        }))) else {
+            panic!("friend-location should produce an output");
+        };
+
+        let patch = &output.projection.patches[0].patch;
+        assert_eq!(patch.location, "wrld_new:2~region(jp)");
+        assert!(patch.traveling_to_location.is_empty());
+        assert_eq!(patch.world_id, "wrld_new");
+
+        let friend = snapshot_friend(&runtime);
+        assert_eq!(friend.location, "wrld_new:2~region(jp)");
+        assert!(friend.traveling_to_location.is_empty());
+        assert_eq!(friend.world_id, "wrld_new");
+    }
+
+    #[test]
     fn friend_location_without_user_updates_location_from_content_top_level() {
         let runtime = runtime_with_friend(friend_record("online", "wrld_old:1~region(jp)"));
 

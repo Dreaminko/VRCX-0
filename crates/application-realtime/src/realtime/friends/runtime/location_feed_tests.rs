@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn friend_location_embedded_user_location_matches_vue_spread_order() {
+    fn friend_location_top_level_offline_overrides_stale_embedded_location() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {
@@ -282,18 +282,28 @@ mod tests {
         };
 
         assert_eq!(output.projection.patches[0].state_bucket, "online");
-        assert_eq!(output.persistence.feed_entries[0]["type"], "GPS");
-        assert_eq!(output.profile_refetch_user_ids, vec!["usr_friend"]);
+        assert_eq!(output.projection.patches[0].patch.location, "offline");
         assert_eq!(
-            runtime
-                .snapshot()
-                .unwrap()
-                .friends_by_id
-                .get("usr_friend")
-                .unwrap()
-                .state_bucket,
-            "online"
+            output.projection.patches[0].patch.extra["pendingOffline"],
+            true
         );
+        assert!(output.persistence.feed_entries.is_empty());
+        assert!(matches!(
+            output.timer_action,
+            PendingOfflineTimerAction::Schedule { .. }
+        ));
+        assert_eq!(output.profile_refetch_user_ids, vec!["usr_friend"]);
+
+        let friend = runtime
+            .snapshot()
+            .unwrap()
+            .friends_by_id
+            .get("usr_friend")
+            .cloned()
+            .unwrap();
+        assert_eq!(friend.state_bucket, "online");
+        assert_eq!(friend.location, "offline");
+        assert_eq!(friend.extra["pendingOffline"], true);
     }
 
     #[test]
