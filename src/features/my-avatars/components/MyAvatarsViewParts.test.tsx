@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import {
+    cleanup,
+    fireEvent,
+    render,
+    screen,
+    within
+} from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key })
@@ -17,6 +23,8 @@ import { AvatarActionMenuItems, MyAvatarGridCard } from './MyAvatarGridCard';
 import { PlatformBadges } from './MyAvatarsViewParts';
 
 describe('My Avatars view parts', () => {
+    afterEach(cleanup);
+
     it('labels icon-only platform badges', () => {
         render(
             <PlatformBadges
