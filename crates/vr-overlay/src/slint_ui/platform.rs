@@ -179,15 +179,18 @@ pub(super) fn pixel_count(size: OverlaySize) -> Result<usize, String> {
         .ok_or_else(|| format!("invalid Slint panel size {}x{}", size.width, size.height))
 }
 
-pub(super) fn pixels_to_rgba(pixels: &[PremultipliedRgbaColor]) -> Vec<u8> {
-    let mut rgba = Vec::with_capacity(pixels.len() * 4);
-    for pixel in pixels {
-        rgba.push(pixel.red);
-        rgba.push(pixel.green);
-        rgba.push(pixel.blue);
-        rgba.push(pixel.alpha);
-    }
-    rgba
+pub(super) fn pixels_to_rgba(pixels: &[PremultipliedRgbaColor]) -> Arc<[u8]> {
+    (0..pixels.len() * 4)
+        .map(|index| {
+            let pixel = &pixels[index / 4];
+            match index % 4 {
+                0 => pixel.red,
+                1 => pixel.green,
+                2 => pixel.blue,
+                _ => pixel.alpha,
+            }
+        })
+        .collect()
 }
 
 pub(super) fn to_slint_color(color: crate::Color) -> slint::Color {
@@ -220,4 +223,26 @@ fn avatar_image(avatar: Option<&AvatarBitmap>) -> (bool, Image) {
         avatar.height,
     );
     (true, Image::from_rgba8(buffer))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pixels_to_rgba_produces_shared_frame_storage_directly() {
+        let pixels = [PremultipliedRgbaColor {
+            red: 1,
+            green: 2,
+            blue: 3,
+            alpha: 4,
+        }];
+
+        let rgba: Arc<[u8]> = pixels_to_rgba(&pixels);
+        let data_ptr = rgba.as_ptr();
+        let frame = RgbaFrame::new(OverlaySize::new(1, 1), rgba);
+
+        assert_eq!(frame.data.as_ptr(), data_ptr);
+        assert_eq!(frame.data.as_ref(), &[1, 2, 3, 4]);
+    }
 }

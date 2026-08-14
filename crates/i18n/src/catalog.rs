@@ -13,6 +13,22 @@ struct Catalog {
     locales: BTreeMap<String, BTreeMap<String, String>>,
 }
 
+pub struct LocalizedCatalog {
+    locale: String,
+}
+
+impl LocalizedCatalog {
+    pub fn new(language: &str) -> Self {
+        Self {
+            locale: native_catalog().resolve_locale(language),
+        }
+    }
+
+    pub fn text<K: CatalogKey>(&self, key: K) -> String {
+        native_catalog().text_for_locale(&self.locale, key)
+    }
+}
+
 impl Catalog {
     fn fallback_locale(&self) -> &str {
         &self.fallback_locale
@@ -31,7 +47,11 @@ impl Catalog {
 
     fn text<K: CatalogKey>(&self, language: &str, key: K) -> String {
         let locale = self.resolve_locale(language);
-        self.localized_text(&locale, key)
+        self.text_for_locale(&locale, key)
+    }
+
+    fn text_for_locale<K: CatalogKey>(&self, locale: &str, key: K) -> String {
+        self.localized_text(locale, key)
             .or_else(|| self.localized_text(self.fallback_locale(), key))
             .unwrap_or_else(|| panic!("generated native catalog is missing {}", key.as_str()))
             .to_string()

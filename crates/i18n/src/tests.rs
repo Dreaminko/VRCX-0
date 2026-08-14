@@ -75,3 +75,15 @@ fn typed_keys_serialize_to_stable_strings() {
         serde_json::json!("nativeShell.tray.open")
     );
 }
+
+#[test]
+fn localized_catalog_reuses_one_resolved_locale_for_multiple_keys() {
+    let catalog = LocalizedCatalog::new("zh_Hant");
+
+    for key in [
+        OverlayMessageKey::OverlayAccessPublic,
+        OverlayMessageKey::OverlayAccessFriends,
+    ] {
+        assert_eq!(catalog.text(key), text("zh_Hant", key));
+    }
+}

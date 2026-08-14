@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::BTreeMap};
+use std::{borrow::Cow, collections::BTreeMap, sync::OnceLock};
 
 use vrcx_0_application_activity::OverlayActivityText;
 use vrcx_0_core::location::{
@@ -6,7 +6,7 @@ use vrcx_0_core::location::{
     DisplayLocationLabels, ParsedLocation,
 };
 use vrcx_0_i18n::{
-    collapse_whitespace, interpolate, resolve_locale, text as native_text, OverlayMessageKey,
+    collapse_whitespace, interpolate, resolve_locale, LocalizedCatalog, OverlayMessageKey,
 };
 
 const ACCESS_LABEL_KEYS: [OverlayMessageKey; 8] = [
@@ -90,6 +90,11 @@ impl OverlayLocale {
 pub struct OverlayLocalizer {
     locale: OverlayLocale,
     show_instance_id: bool,
+}
+
+struct OverlayLocaleCatalog {
+    catalog: LocalizedCatalog,
+    access_labels: OnceLock<LocalizedAccessLabels>,
 }
 
 impl OverlayLocalizer {
@@ -187,7 +192,13 @@ impl OverlayLocalizer {
         access_type_label(parsed, &labels).to_string()
     }
 
-    fn access_labels(&self) -> LocalizedAccessLabels {
+    fn access_labels(&self) -> &'static LocalizedAccessLabels {
+        overlay_locale_catalog(self.locale)
+            .access_labels
+            .get_or_init(|| self.build_access_labels())
+    }
+
+    fn build_access_labels(&self) -> LocalizedAccessLabels {
         let [public_key, invite_key, invite_plus_key, friends_key, friends_plus_key, group_key, group_public_key, group_plus_key] =
             ACCESS_LABEL_KEYS;
         let group = self.label(group_key);
@@ -213,11 +224,11 @@ impl OverlayLocalizer {
     }
 
     pub fn label(&self, key: OverlayMessageKey) -> String {
-        collapse_whitespace(&native_text(self.locale.as_str(), key))
+        collapse_whitespace(&overlay_locale_catalog(self.locale).catalog.text(key))
     }
 
     fn message_text(&self, key: OverlayMessageKey, params: &BTreeMap<String, String>) -> String {
-        let template = native_text(self.locale.as_str(), key);
+        let template = overlay_locale_catalog(self.locale).catalog.text(key);
         let params = self.localized_status_params(params);
         collapse_whitespace(&interpolate(&template, params.as_ref()))
     }
@@ -248,6 +259,26 @@ struct LocalizedAccessLabels {
     group: String,
     group_public: String,
     group_plus: String,
+}
+
+fn overlay_locale_catalog(locale: OverlayLocale) -> &'static OverlayLocaleCatalog {
+    static EN: OnceLock<OverlayLocaleCatalog> = OnceLock::new();
+    static ZH_CN: OnceLock<OverlayLocaleCatalog> = OnceLock::new();
+    static ZH_TW: OnceLock<OverlayLocaleCatalog> = OnceLock::new();
+    static JA: OnceLock<OverlayLocaleCatalog> = OnceLock::new();
+    static KO: OnceLock<OverlayLocaleCatalog> = OnceLock::new();
+
+    let catalog = match locale {
+        OverlayLocale::En => &EN,
+        OverlayLocale::ZhCn => &ZH_CN,
+        OverlayLocale::ZhTw => &ZH_TW,
+        OverlayLocale::Ja => &JA,
+        OverlayLocale::Ko => &KO,
+    };
+    catalog.get_or_init(|| OverlayLocaleCatalog {
+        catalog: LocalizedCatalog::new(locale.as_str()),
+        access_labels: OnceLock::new(),
+    })
 }
 
 impl LocalizedAccessLabels {
@@ -345,5 +376,13 @@ mod tests {
         let display = localizer.display_location("wrld_a:12345~region(use)", "Public World", "");
 
         assert!(!display.contains("#12345"));
+    }
+
+    #[test]
+    fn access_labels_are_shared_for_the_same_locale() {
+        let first = OverlayLocalizer::new(OverlayLocale::En);
+        let second = OverlayLocalizer::new(OverlayLocale::En);
+
+        assert!(std::ptr::eq(first.access_labels(), second.access_labels()));
     }
 }
