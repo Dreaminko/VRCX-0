@@ -183,13 +183,13 @@ fn empty_world_summary(id: String, name: String) -> WorldSummaryOutput {
         id,
         author_id: String::new(),
         author_name: String::new(),
-        created_at: String::new(),
+        created_at: Default::default(),
         description: String::new(),
         image_url: String::new(),
         name,
         release_status: Default::default(),
         thumbnail_image_url: String::new(),
-        updated_at: String::new(),
+        updated_at: Default::default(),
         version: 0,
     }
 }

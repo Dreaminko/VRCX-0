@@ -3945,6 +3945,10 @@ export type FriendRecord = Partial<{
     currentAvatarThumbnailImageUrl?: string;
     currentAvatarAuthorId?: string;
     currentAvatarName?: string;
+    date_joined?: string | null;
+    last_activity?: string | null;
+    last_login?: string | null;
+    last_mobile?: string | null;
 };
 export type FriendStateBucketAuthority = 'explicit' | 'preserve';
 export type GameClientEvent =

@@ -241,13 +241,13 @@ pub(crate) fn payload_world_from_row(
         author_id: row.author_id.clone(),
         name: row.name.clone(),
         author_name: row.author_name.clone(),
-        created_at: row.created_at.clone(),
+        created_at: row.created_at.to_string(),
         image_url: row.image_url.clone(),
         description: row.description.clone(),
         release_status: row.release_status.as_str().to_string(),
         thumbnail_image_url,
         comment,
-        updated_at: row.updated_at.clone(),
+        updated_at: row.updated_at.to_string(),
         version: row.version,
     }
 }

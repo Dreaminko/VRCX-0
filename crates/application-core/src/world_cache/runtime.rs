@@ -381,13 +381,13 @@ fn world_summary(value: &Value, id: String, name: String) -> WorldSummaryOutput 
         id,
         author_id: text_field(value, "authorId"),
         author_name: text_field(value, "authorName"),
-        created_at: text_field_with_fallback(value, "created_at", "createdAt"),
+        created_at: text_field_with_fallback(value, "created_at", "createdAt").into(),
         description: text_field(value, "description"),
         image_url: text_field(value, "imageUrl"),
         name,
         release_status: text_field(value, "releaseStatus").into(),
         thumbnail_image_url: text_field(value, "thumbnailImageUrl"),
-        updated_at: text_field_with_fallback(value, "updated_at", "updatedAt"),
+        updated_at: text_field_with_fallback(value, "updated_at", "updatedAt").into(),
         version: value
             .get("version")
             .and_then(Value::as_i64)

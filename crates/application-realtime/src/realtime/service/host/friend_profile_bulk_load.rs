@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use serde_json::Value;
 use vrcx_0_application_core::{Error, Result};
 pub use vrcx_0_application_core::{FriendProfileBulkLoadStatus, FriendProfileLoadStatusPayload};
 use vrcx_0_core::friends::FriendRecord;
@@ -129,12 +128,10 @@ pub(super) fn select_friend_profile_bulk_load_targets(
 }
 
 fn friend_missing_date_joined(friend: &FriendRecord) -> bool {
-    match friend.extra.get("date_joined") {
-        None => true,
-        Some(Value::Null) => true,
-        Some(Value::String(value)) => value.trim().is_empty(),
-        Some(_) => false,
-    }
+    friend
+        .date_joined
+        .as_str()
+        .is_none_or(|value| value.trim().is_empty())
 }
 
 pub(super) fn friend_profile_bulk_load_backoff_delay_ms(attempt: u32) -> u64 {
