@@ -1,1 +1,4 @@
+set -e
+
 npm exec lint-staged
+node ./scripts/stage-formatted-files.mjs
