@@ -277,7 +277,9 @@ fn is_steamvr_process_name(name: &str) -> bool {
 
 #[cfg(not(target_os = "linux"))]
 fn is_steamvr_process_name(name: &str) -> bool {
-    name.to_ascii_lowercase().starts_with("vrserver")
+    name.as_bytes()
+        .get(.."vrserver".len())
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case(b"vrserver"))
 }
 
 #[cfg(test)]
