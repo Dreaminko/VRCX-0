@@ -152,10 +152,7 @@ impl WorldCache {
             .map(|summary| summary.name)
     }
 
-    pub fn hydrate_summary_from_payload(
-        &self,
-        world_value: &Value,
-    ) -> Option<WorldSummaryOutput> {
+    pub fn hydrate_summary_from_payload(&self, world_value: &Value) -> Option<WorldSummaryOutput> {
         self.hydrate_summary_from_payload_with_policy(world_value, false)
     }
 
@@ -218,7 +215,10 @@ impl WorldCache {
         let private_ids_to_insert = if private_ids.is_empty() {
             HashSet::new()
         } else {
-            match world_cache_get_many(self.db.as_ref(), &private_ids.iter().cloned().collect::<Vec<_>>()) {
+            match world_cache_get_many(
+                self.db.as_ref(),
+                &private_ids.iter().cloned().collect::<Vec<_>>(),
+            ) {
                 Ok(existing) => {
                     let existing = existing
                         .into_iter()
@@ -778,11 +778,7 @@ mod tests {
 
         world_cache_upsert(
             db.as_ref(),
-            world_entry(
-                "wrld_private",
-                "Existing World",
-                "2026-01-02T00:00:00.000Z",
-            ),
+            world_entry("wrld_private", "Existing World", "2026-01-02T00:00:00.000Z"),
         )
         .unwrap();
         cache.hydrate_favorite_payloads([&private_world]);
