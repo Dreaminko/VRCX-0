@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     queryGameLog: vi.fn(),
@@ -64,6 +64,8 @@ vi.mock('@/state/sessionStore', () => ({
 import { useGameLogRows } from './useGameLogRows';
 
 describe('useGameLogRows', () => {
+    afterEach(cleanup);
+
     beforeEach(() => {
         mocks.queryGameLog.mockReset();
         mocks.queryGameLog.mockResolvedValue([]);
