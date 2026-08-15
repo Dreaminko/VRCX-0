@@ -1,7 +1,10 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use fast_image_resize::{FilterType as FirFilterType, ResizeAlg, ResizeOptions, Resizer};
+use fast_image_resize::{
+    FilterType as FirFilterType, IntoImageView, IntoImageViewMut, ResizeAlg, ResizeOptions, Resizer,
+};
+use image::{DynamicImage, RgbImage, RgbaImage};
 use sha2::{Digest, Sha256};
 
 use crate::error::Error;
@@ -9,7 +12,7 @@ use crate::error::Error;
 const THUMBNAIL_WIDTH: u32 = 320;
 const THUMBNAIL_HEIGHT: u32 = 180;
 const THUMBNAIL_DIMENSION_KEY: &str = "cover_16x9";
-const THUMBNAIL_RESIZE_FILTER_KEY: &str = "fir_hamming";
+const THUMBNAIL_RESIZE_FILTER_KEY: &str = "fir_hamming_native_color_v2";
 const THUMBNAIL_SHARPEN_KEY: &str = "unsharpen_0_35_8";
 const THUMBNAIL_SHARPEN_SIGMA: f32 = 0.35;
 const THUMBNAIL_SHARPEN_THRESHOLD: i32 = 8;
@@ -118,22 +121,54 @@ pub fn encode_screenshot_thumbnail_webp(source_path: &Path) -> Result<Vec<u8>, E
     let image = image::open(source_path)
         .map_err(|error| Error::Custom(format!("decode screenshot thumbnail: {error}")))?;
 
-    let rgba_image = image.into_rgba8();
-    let mut thumbnail_rgba = image::RgbaImage::new(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
-    let mut resizer = Resizer::new();
-    let resize_options = ResizeOptions::new()
-        .resize_alg(ResizeAlg::Convolution(FirFilterType::Hamming))
-        .fit_into_destination(Some((0.5, 0.5)));
-    resizer
-        .resize(&rgba_image, &mut thumbnail_rgba, Some(&resize_options))
-        .map_err(|error| Error::Custom(format!("resize screenshot thumbnail: {error}")))?;
-
-    let thumbnail = image::DynamicImage::ImageRgba8(thumbnail_rgba)
+    let thumbnail = resize_screenshot_thumbnail(image)?
         .unsharpen(THUMBNAIL_SHARPEN_SIGMA, THUMBNAIL_SHARPEN_THRESHOLD);
 
     let encoder = webp::Encoder::from_image(&thumbnail)
         .map_err(|error| Error::Custom(format!("prepare WebP thumbnail: {error}")))?;
     Ok(encoder.encode(THUMBNAIL_WEBP_QUALITY).as_ref().to_vec())
+}
+
+fn resize_screenshot_thumbnail(image: DynamicImage) -> Result<DynamicImage, Error> {
+    match image {
+        DynamicImage::ImageRgb8(source) => {
+            let mut thumbnail = RgbImage::new(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
+            resize_screenshot_pixels(&source, &mut thumbnail, false)?;
+            Ok(DynamicImage::ImageRgb8(thumbnail))
+        }
+        DynamicImage::ImageRgba8(source) => resize_rgba_thumbnail(source),
+        source => resize_rgba_thumbnail(source.into_rgba8()),
+    }
+}
+
+fn resize_rgba_thumbnail(source: RgbaImage) -> Result<DynamicImage, Error> {
+    let use_alpha = rgba_has_transparency(&source);
+    let mut thumbnail = RgbaImage::new(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);
+    resize_screenshot_pixels(&source, &mut thumbnail, use_alpha)?;
+    Ok(DynamicImage::ImageRgba8(thumbnail))
+}
+
+fn resize_screenshot_pixels(
+    source: &impl IntoImageView,
+    thumbnail: &mut impl IntoImageViewMut,
+    use_alpha: bool,
+) -> Result<(), Error> {
+    let mut resizer = Resizer::new();
+    let resize_options = ResizeOptions::new()
+        .resize_alg(ResizeAlg::Convolution(FirFilterType::Hamming))
+        .fit_into_destination(Some((0.5, 0.5)))
+        .use_alpha(use_alpha);
+    resizer
+        .resize(source, thumbnail, Some(&resize_options))
+        .map_err(|error| Error::Custom(format!("resize screenshot thumbnail: {error}")))?;
+    Ok(())
+}
+
+fn rgba_has_transparency(image: &RgbaImage) -> bool {
+    image
+        .as_raw()
+        .chunks_exact(4)
+        .any(|pixel| pixel[3] != u8::MAX)
 }
 
 pub fn write_thumbnail_atomically(path: &Path, bytes: &[u8]) -> Result<(), Error> {

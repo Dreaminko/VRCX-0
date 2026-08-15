@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use image::{GenericImageView, ImageFormat, Rgba, RgbaImage};
+use image::{DynamicImage, GenericImageView, ImageFormat, Rgb, RgbImage, Rgba, RgbaImage};
 
 use super::*;
 
@@ -30,7 +30,7 @@ impl Drop for TestDir {
 }
 
 fn write_png(path: &Path, width: u32, height: u32) {
-    RgbaImage::from_pixel(width, height, Rgba([30, 90, 180, 255]))
+    RgbImage::from_pixel(width, height, Rgb([30, 90, 180]))
         .save(path)
         .unwrap();
 }
@@ -64,6 +64,33 @@ fn thumbnail_encoding_produces_a_320_by_180_webp() {
         Ok(ImageFormat::WebP)
     ));
     assert_eq!(decoded.dimensions(), (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT));
+}
+
+#[test]
+fn rgb_thumbnail_resize_keeps_native_rgb_pixels() {
+    let source = DynamicImage::ImageRgb8(RgbImage::from_pixel(64, 32, Rgb([30, 90, 180])));
+
+    let thumbnail = resize_screenshot_thumbnail(source).unwrap();
+
+    assert!(matches!(thumbnail, DynamicImage::ImageRgb8(_)));
+    assert_eq!(thumbnail.dimensions(), (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT));
+}
+
+#[test]
+fn transparent_rgba_thumbnail_resize_preserves_alpha_edges() {
+    let mut source = RgbaImage::from_pixel(64, 32, Rgba([0, 0, 0, 0]));
+    for y in 8..24 {
+        for x in 16..48 {
+            source.put_pixel(x, y, Rgba([30, 90, 180, 255]));
+        }
+    }
+
+    let thumbnail = resize_screenshot_thumbnail(DynamicImage::ImageRgba8(source))
+        .unwrap()
+        .into_rgba8();
+
+    assert_eq!(thumbnail.get_pixel(0, 0)[3], 0);
+    assert!(thumbnail.get_pixel(THUMBNAIL_WIDTH / 2, THUMBNAIL_HEIGHT / 2)[3] > 240);
 }
 
 #[test]
