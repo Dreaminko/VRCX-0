@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-
 const CRASH_RELAUNCH_DEDUPE_MS: i64 = 120_000;
 const NOVR_RELAUNCH_DELAY: Duration = Duration::from_secs(2);
 const VR_RELAUNCH_DELAY: Duration = Duration::from_secs(8);
@@ -55,10 +53,7 @@ pub fn plan_crash_relaunch(
 }
 
 fn build_launch_arguments(location: &str, launch_arguments: &str, desktop_mode: bool) -> String {
-    let launch_url = format!(
-        "vrchat://launch?id={}",
-        utf8_percent_encode(location, NON_ALPHANUMERIC)
-    );
+    let launch_url = format!("vrchat://launch?id={location}");
     let mut args = vec![launch_url];
     if !launch_arguments.trim().is_empty() {
         args.push(launch_arguments.trim().to_string());
@@ -109,13 +104,15 @@ mod tests {
     }
 
     #[test]
-    fn builds_relaunch_plan_with_desktop_mode_arguments() {
+    fn preserves_instance_location_in_desktop_relaunch_arguments() {
         let mut cfg = config();
         cfg.is_game_no_vr = true;
-        let plan = plan_crash_relaunch(&cfg, "wrld_test:1", false, 10_000, None).unwrap();
-        assert!(plan.launch_arguments.contains("vrchat://launch?id=wrld"));
-        assert!(plan.launch_arguments.contains("--profile=0"));
-        assert!(plan.launch_arguments.ends_with("--no-vr"));
+        let location = "wrld_4432ea9b-729c-46e3-8eaf-846aa0a37fdd:00001~region(us)";
+        let plan = plan_crash_relaunch(&cfg, location, false, 10_000, None).unwrap();
+        assert_eq!(
+            plan.launch_arguments,
+            format!("vrchat://launch?id={location} --profile=0 --no-vr")
+        );
         assert_eq!(plan.delay.as_secs(), 2);
     }
 
