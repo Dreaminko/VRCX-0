@@ -48,8 +48,9 @@ You only need to do this once — VRCX-0 updates itself from then on.
 - **Years of history won't slow it down** — data that makes VRCX visibly
   sluggish stays smooth in VRCX-0; it runs fine even on a potato PC or a home
   server
-- **About 50%–70% less memory than VRCX** — **Background mode** drops it to
-  just tens of MB while all core features keep running normally
+- **About 50%–70% less memory than VRCX** in normal use
+- **Background mode** brings it down to just tens of MB while all core
+  features keep running
 - **Smaller than a single avatar bundle** — just over 10 MB to download, just
   over 30 MB on disk; over 10× smaller than VRCX
 - **Zero-friction migration** — your VRCX database and settings import
