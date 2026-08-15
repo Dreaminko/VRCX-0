@@ -21,7 +21,7 @@ fn establish_authenticated_session_projection(
             display_name: session.display_name.clone(),
             endpoint: session.endpoint.clone(),
             websocket: session.websocket.clone(),
-            current_user_snapshot: session.current_user.clone(),
+            current_user_snapshot: Arc::new(session.current_user.clone()),
         }),
     }
 }
@@ -129,7 +129,7 @@ pub(super) fn replace_authenticated_session_user_if_session_matches(
     let Some(session) = slot.session.as_mut() else {
         return false;
     };
-    session.current_user_snapshot = snapshot;
+    session.current_user_snapshot = Arc::new(snapshot);
     if let Some(display_name) = string_field(&session.current_user_snapshot, "displayName")
         .or_else(|| string_field(&session.current_user_snapshot, "username"))
     {
@@ -189,6 +189,27 @@ mod authenticated_session_projection_tests {
     }
 
     #[test]
+    fn cloning_a_projection_shares_the_current_user_snapshot() {
+        let projection = establish_authenticated_session_projection(
+            &AuthenticatedSessionProjection::default(),
+            &session(),
+            7,
+        );
+        let cloned = projection.clone();
+        let first = projection.session.as_ref().unwrap();
+        let second = cloned.session.as_ref().unwrap();
+
+        assert!(Arc::ptr_eq(
+            &first.current_user_snapshot,
+            &second.current_user_snapshot,
+        ));
+        assert_eq!(
+            serde_json::to_value(cloned).unwrap()["session"]["currentUserSnapshot"]["id"],
+            "usr_owner"
+        );
+    }
+
+    #[test]
     fn clearing_projection_advances_revision_and_removes_the_session() {
         let established = establish_authenticated_session_projection(
             &AuthenticatedSessionProjection::default(),
@@ -215,7 +236,7 @@ mod authenticated_session_projection_tests {
             current_user_id: "usr_owner".into(),
             endpoint: "https://api.example.test/api/1".into(),
             websocket: "wss://pipeline.example.test".into(),
-            current_user_snapshot: Value::Null,
+            current_user_snapshot: Arc::new(Value::Null),
         };
         assert!(replace_authenticated_session_user_if_session_matches(
             &slot,
@@ -241,7 +262,7 @@ mod authenticated_session_projection_tests {
             current_user_id: "usr_owner".into(),
             endpoint: "https://api.example.test/api/1".into(),
             websocket: "wss://pipeline.example.test".into(),
-            current_user_snapshot: Value::Null,
+            current_user_snapshot: Arc::new(Value::Null),
         };
         assert!(!replace_authenticated_session_user_if_session_matches(
             &slot,

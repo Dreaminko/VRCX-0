@@ -105,8 +105,8 @@ async fn fetch_my_avatar_pages(
         let page_len = page.len() as i64;
 
         if let Some(target) = target_avatar_id {
-            if let Some(found) = page.iter().find(|avatar| record_id(avatar) == target) {
-                return Ok(vec![found.clone()]);
+            if let Some(found) = page.into_iter().find(|avatar| record_id(avatar) == target) {
+                return Ok(vec![found]);
             }
         } else {
             avatars.extend(page);
@@ -139,7 +139,10 @@ async fn execute_json_array(
             response.status,
         )));
     }
-    Ok(payload.as_array().cloned().unwrap_or_default())
+    match payload {
+        Value::Array(rows) => Ok(rows),
+        _ => Ok(Vec::new()),
+    }
 }
 
 fn response_error_message(payload: &Value, status: i32) -> String {

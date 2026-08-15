@@ -74,7 +74,7 @@ pub struct AuthenticatedSessionSnapshot {
     pub display_name: String,
     pub endpoint: String,
     pub websocket: String,
-    pub current_user_snapshot: Value,
+    pub current_user_snapshot: Arc<Value>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, specta::Type)]
@@ -504,7 +504,7 @@ impl RuntimeHostStateBuilder {
                         current_user_id: session.user_id.clone(),
                         endpoint: session.endpoint.clone(),
                         websocket: session.websocket.clone(),
-                        current_user_snapshot: Value::Null,
+                        current_user_snapshot: Arc::new(Value::Null),
                     };
                     replace_authenticated_session_user_if_session_matches(
                         &session_slot,

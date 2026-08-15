@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, Cursor, Read, Seek, SeekFrom};
 use std::path::Path;
 
 use chrono::{Local, NaiveDateTime};
@@ -23,18 +23,103 @@ use super::system::{
     parse_untrusted_url, parse_vote_kick, parse_vote_kick_init, parse_vote_kick_success,
 };
 
+enum LogReaderSource {
+    Empty(Cursor<[u8; 0]>),
+    File(File),
+}
+
+impl Read for LogReaderSource {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        match self {
+            Self::Empty(reader) => reader.read(buffer),
+            Self::File(reader) => reader.read(buffer),
+        }
+    }
+}
+
+impl Seek for LogReaderSource {
+    fn seek(&mut self, position: SeekFrom) -> std::io::Result<u64> {
+        match self {
+            Self::Empty(reader) => reader.seek(position),
+            Self::File(reader) => reader.seek(position),
+        }
+    }
+}
+
+pub(crate) struct LogReader {
+    reader: Option<BufReader<LogReaderSource>>,
+    #[cfg(test)]
+    buffer_initialization_count: usize,
+}
+
+impl LogReader {
+    pub(crate) fn new() -> Self {
+        Self {
+            reader: None,
+            #[cfg(test)]
+            buffer_initialization_count: 0,
+        }
+    }
+
+    fn with_file<T>(
+        &mut self,
+        path: &Path,
+        read: impl FnOnce(&mut BufReader<LogReaderSource>) -> T,
+    ) -> std::io::Result<T> {
+        let file = File::open(path)?;
+        if let Some(reader) = self.reader.as_mut() {
+            *reader.get_mut() = LogReaderSource::File(file);
+        } else {
+            self.reader = Some(BufReader::with_capacity(65536, LogReaderSource::File(file)));
+            #[cfg(test)]
+            {
+                self.buffer_initialization_count += 1;
+            }
+        }
+        let reader = self
+            .reader
+            .as_mut()
+            .expect("GameLog reader was initialized");
+        let result = read(reader);
+        *reader.get_mut() = LogReaderSource::Empty(Cursor::new([]));
+        Ok(result)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn buffer_initialization_count(&self) -> usize {
+        self.buffer_initialization_count
+    }
+
+    #[cfg(test)]
+    pub(crate) fn has_open_file(&self) -> bool {
+        self.reader
+            .as_ref()
+            .is_some_and(|reader| matches!(reader.get_ref(), LogReaderSource::File(_)))
+    }
+}
+
 pub(crate) fn parse_log(
+    log_reader: &mut LogReader,
     out: &mut dyn GameLogParseSink,
     path: &Path,
     file_name: &str,
     ctx: &mut LogContext,
     till_date: NaiveDateTime,
 ) -> bool {
-    let file = match File::open(path) {
-        Ok(f) => f,
-        Err(_) => return false,
-    };
-    let mut reader = BufReader::with_capacity(65536, file);
+    log_reader
+        .with_file(path, |reader| {
+            parse_opened_log(out, reader, file_name, ctx, till_date)
+        })
+        .unwrap_or(false)
+}
+
+fn parse_opened_log(
+    out: &mut dyn GameLogParseSink,
+    reader: &mut BufReader<LogReaderSource>,
+    file_name: &str,
+    ctx: &mut LogContext,
+    till_date: NaiveDateTime,
+) -> bool {
     if reader.seek(SeekFrom::Start(ctx.position)).is_err() {
         return false;
     }

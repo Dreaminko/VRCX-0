@@ -56,7 +56,7 @@ pub(in crate::state) async fn run_social_baseline_refresh_core(
             user_id: session.current_user_id.clone(),
             endpoint: session.endpoint.clone(),
             websocket: session.websocket.clone(),
-            current_user_snapshot: RawJson::from(session.current_user_snapshot.clone()),
+            current_user_snapshot: RawJson::from(session.current_user_snapshot.as_ref().clone()),
             is_first_load: false,
         },
     )
@@ -82,7 +82,7 @@ pub(in crate::state) async fn run_social_baseline_refresh_core(
         SocialFavoritesBaselineRequest {
             user_id: session.current_user_id.clone(),
             endpoint: session.endpoint.clone(),
-            current_user_snapshot: RawJson::from(session.current_user_snapshot.clone()),
+            current_user_snapshot: RawJson::from(session.current_user_snapshot.as_ref().clone()),
         },
         &friend_ids_by_roster_id,
     )

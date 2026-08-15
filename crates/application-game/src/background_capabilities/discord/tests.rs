@@ -75,7 +75,7 @@ fn discord_rpc_world_uses_now_playing_details_and_thumbnail() {
         is_game_running: true,
         is_steamvr_running: true,
         current_location_started_at: "2026-05-19T00:00:00Z".into(),
-        current_user: json!({ "status": "active" }),
+        current_user: json!({ "status": "active" }).into(),
         now_playing: json!({
             "url": "https://video.example/watch",
             "name": "Example Movie",
@@ -139,7 +139,7 @@ fn discord_payload_keeps_platform_spacing_labels_and_session_floor() {
         is_steamvr_running: true,
         last_game_started_at: Some("2026-05-19T02:00:00Z".into()),
         current_location_started_at: "2026-05-19T01:00:00Z".into(),
-        current_user: json!({ "status": "active" }),
+        current_user: json!({ "status": "active" }).into(),
         player_count: 2,
         ..Default::default()
     };
@@ -187,7 +187,7 @@ fn discord_platform_uses_vrchat_launch_mode_instead_of_steamvr_process() {
         is_game_running: true,
         is_steamvr_running: true,
         is_game_no_vr: true,
-        current_user: json!({ "status": "active" }),
+        current_user: json!({ "status": "active" }).into(),
         ..Default::default()
     };
     let parsed = parse_location("wrld_test:12345");
@@ -235,7 +235,7 @@ fn discord_unknown_status_preserves_private_fallback() {
     };
     let facts = BackgroundPresenceFacts {
         is_game_running: true,
-        current_user: json!({ "status": "unknown" }),
+        current_user: json!({ "status": "unknown" }).into(),
         ..Default::default()
     };
     let parsed = parse_location("wrld_test:12345");

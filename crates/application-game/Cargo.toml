@@ -14,7 +14,7 @@ test-utils = [
 [dependencies]
 chrono = { workspace = true }
 percent-encoding = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "rc"] }
 serde_json = { workspace = true }
 specta = { workspace = true }
 tokio = { workspace = true, features = ["rt", "sync", "time"] }

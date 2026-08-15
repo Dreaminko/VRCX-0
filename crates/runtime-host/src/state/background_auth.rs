@@ -211,7 +211,8 @@ mod tests {
             current_user_snapshot: json!({
                 "id": user_id,
                 "displayName": "Pizza"
-            }),
+            })
+            .into(),
         }
     }
 

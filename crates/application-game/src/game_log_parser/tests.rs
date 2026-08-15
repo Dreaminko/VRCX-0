@@ -1,6 +1,7 @@
 use vrcx_0_core::game_log_parser::{parse_log_line_header, GameLogEvent};
 
 use super::context::LogContext;
+use super::reader::{parse_log, LogReader};
 use super::sink::GameLogParseSink;
 use super::{media, presence, system};
 
@@ -34,6 +35,54 @@ fn content(line: &str) -> &str {
 
 fn payload(fields: &[&str]) -> Vec<String> {
     fields.iter().map(|field| (*field).to_string()).collect()
+}
+
+#[test]
+fn incremental_log_parsing_reuses_the_reader_buffer() {
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!(
+        "vrcx-0-game-log-reader-{}-{nonce}.txt",
+        std::process::id()
+    ));
+    std::fs::write(&path, "2020.01.01 00:00:00 Log        -  VR Disabled\n").unwrap();
+    let mut sink = RecordingParseSink::default();
+    let mut ctx = LogContext::new();
+    let mut reader = LogReader::new();
+
+    assert!(parse_log(
+        &mut reader,
+        &mut sink,
+        &path,
+        FILE,
+        &mut ctx,
+        chrono::NaiveDateTime::MIN,
+    ));
+    use std::io::Write as _;
+    writeln!(
+        std::fs::OpenOptions::new()
+            .append(true)
+            .open(&path)
+            .unwrap(),
+        "2020.01.01 00:00:01 Log        -  Initializing VRSDK."
+    )
+    .unwrap();
+    assert!(parse_log(
+        &mut reader,
+        &mut sink,
+        &path,
+        FILE,
+        &mut ctx,
+        chrono::NaiveDateTime::MIN,
+    ));
+
+    assert_eq!(reader.buffer_initialization_count(), 1);
+    assert!(!reader.has_open_file());
+    assert_eq!(sink.rows.len(), 2);
+    drop(reader);
+    std::fs::remove_file(path).unwrap();
 }
 
 #[test]

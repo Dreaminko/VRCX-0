@@ -26,7 +26,7 @@ pub struct BackgroundCapabilitySession {
     pub current_user_id: String,
     pub endpoint: String,
     pub websocket: String,
-    pub current_user_snapshot: Value,
+    pub current_user_snapshot: Arc<Value>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -60,14 +60,28 @@ mod background_capability_session_tests {
             current_user_id: "usr_owner".into(),
             endpoint: "https://api.example.test/api/1".into(),
             websocket: "wss://pipeline.example.test".into(),
-            current_user_snapshot: json!({"large": [1, 2, 3]}),
+            current_user_snapshot: json!({"large": [1, 2, 3]}).into(),
         };
         let second = BackgroundCapabilitySession {
-            current_user_snapshot: json!({"different": true}),
+            current_user_snapshot: json!({"different": true}).into(),
             ..first.clone()
         };
 
         assert_eq!(first.identity(), second.identity());
+    }
+
+    #[test]
+    fn cloning_a_capability_session_shares_the_current_user_snapshot() {
+        let first = BackgroundCapabilitySession {
+            current_user_snapshot: json!({"large": [1, 2, 3]}).into(),
+            ..BackgroundCapabilitySession::default()
+        };
+        let second = first.clone();
+
+        assert!(Arc::ptr_eq(
+            &first.current_user_snapshot,
+            &second.current_user_snapshot,
+        ));
     }
 }
 

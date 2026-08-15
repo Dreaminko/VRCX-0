@@ -271,7 +271,7 @@ pub async fn run_background_presence_automation(
     complete_time_restores(state, &effective.pending_snapshot_completions);
     let updated_user = parse_response_json(&response.data).unwrap_or_else(|| {
         merge_object_patch(
-            facts.current_user.clone(),
+            facts.current_user.as_ref().clone(),
             Value::Object(changed_patch.clone()),
         )
     });
@@ -688,18 +688,18 @@ fn load_stored_rules(config: &ConfigRepository, key: &str) -> Result<Vec<Value>>
 }
 
 fn force_game_running_condition(rule: Value) -> Value {
-    let mut object = rule.as_object().cloned().unwrap_or_default();
-    let conditions: Vec<Value> = object
-        .get("conditions")
-        .and_then(Value::as_array)
-        .cloned()
-        .unwrap_or_default()
-        .into_iter()
-        .filter(|condition| string_field(condition, "type").as_deref() != Some("isGameRunning"))
-        .collect();
-    let mut next_conditions = vec![json!({ "type": "isGameRunning" })];
-    next_conditions.extend(conditions);
-    object.insert("conditions".into(), Value::Array(next_conditions));
+    let mut object = match rule {
+        Value::Object(object) => object,
+        _ => Map::new(),
+    };
+    let mut conditions = match object.remove("conditions") {
+        Some(Value::Array(conditions)) => conditions,
+        _ => Vec::new(),
+    };
+    conditions
+        .retain(|condition| string_field(condition, "type").as_deref() != Some("isGameRunning"));
+    conditions.insert(0, json!({ "type": "isGameRunning" }));
+    object.insert("conditions".into(), Value::Array(conditions));
     Value::Object(object)
 }
 
@@ -810,10 +810,7 @@ fn config_int(config: &ConfigRepository, key: &str, default_value: i64) -> Resul
 }
 
 fn safe_value_array(value: &str) -> Vec<Value> {
-    serde_json::from_str::<Value>(value)
-        .ok()
-        .and_then(|value| value.as_array().cloned())
-        .unwrap_or_default()
+    serde_json::from_str::<Vec<Value>>(value).unwrap_or_default()
 }
 
 fn array_field<'a>(value: &'a Value, key: &str) -> Vec<&'a Value> {
@@ -896,6 +893,27 @@ mod tests {
     }
 
     #[test]
+    fn forcing_game_running_reuses_owned_rule_values() {
+        let rule = json!({
+            "conditions": [{"type": "futureCondition", "value": "future-value"}],
+            "actions": {"status": "join me"},
+        });
+        let action_value = rule["actions"]["status"].as_str().unwrap().as_ptr();
+        let condition_value = rule["conditions"][0]["value"].as_str().unwrap().as_ptr();
+
+        let forced = force_game_running_condition(rule);
+
+        assert_eq!(
+            forced["actions"]["status"].as_str().unwrap().as_ptr(),
+            action_value
+        );
+        assert_eq!(
+            forced["conditions"][1]["value"].as_str().unwrap().as_ptr(),
+            condition_value
+        );
+    }
+
+    #[test]
     fn legacy_company_rule_beats_alone_rule_by_priority() {
         let facts = BackgroundPresenceFacts {
             is_game_running: true,
@@ -968,7 +986,7 @@ mod tests {
         assert_eq!(loaded.scope_key, "https://api.example:usr_1");
 
         let facts = BackgroundPresenceFacts {
-            current_user: json!({ "status": "busy" }),
+            current_user: json!({ "status": "busy" }).into(),
             ..Default::default()
         };
         let effective =

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use crate::game_log_parser::{GameLogEvent, GameLogParseSink};
+use crate::game_log_parser::{GameLogEvent, GameLogParseSink, LogReader};
 use vrcx_0_core::game_log_parser::GameLogEventKind;
 
 use super::sink::{GameLogEventOrigin, GameLogEventSink};
@@ -64,12 +64,14 @@ fn update_tracks_only_vrchat_output_logs_and_removes_deleted_contexts() {
     std::fs::write(dir.path().join("output_log_ignored.log"), []).unwrap();
     std::fs::write(dir.path().join("other.txt"), []).unwrap();
     let watcher = LogWatcher::new(None);
+    let mut reader = LogReader::new();
     let mut contexts = HashMap::new();
     let mut first_run = true;
 
     assert!(!update(
         &watcher.inner,
         dir.path(),
+        &mut reader,
         &mut contexts,
         &mut first_run,
     ));
@@ -81,6 +83,7 @@ fn update_tracks_only_vrchat_output_logs_and_removes_deleted_contexts() {
     assert!(!update(
         &watcher.inner,
         dir.path(),
+        &mut reader,
         &mut contexts,
         &mut first_run,
     ));
@@ -93,12 +96,14 @@ fn update_skips_files_older_than_the_requested_cutoff() {
     std::fs::write(dir.path().join("output_log_2026-08-02.txt"), []).unwrap();
     let watcher = LogWatcher::new(None);
     watcher.set_date_till("2999-01-01T00:00:00.000Z");
+    let mut reader = LogReader::new();
     let mut contexts = HashMap::new();
     let mut first_run = true;
 
     assert!(!update(
         &watcher.inner,
         dir.path(),
+        &mut reader,
         &mut contexts,
         &mut first_run,
     ));
@@ -111,12 +116,14 @@ fn update_handles_a_missing_directory_as_an_empty_completed_scan() {
     let dir = TestDir::new("missing");
     let missing = dir.path().join("not-created");
     let watcher = LogWatcher::new(None);
+    let mut reader = LogReader::new();
     let mut contexts = HashMap::new();
     let mut first_run = true;
 
     assert!(!update(
         &watcher.inner,
         &missing,
+        &mut reader,
         &mut contexts,
         &mut first_run,
     ));
@@ -131,10 +138,17 @@ fn initial_scan_can_limit_replay_to_latest_output_log() {
     std::fs::write(dir.path().join("output_log_second.txt"), []).unwrap();
     let watcher = LogWatcher::new(None);
     watcher.set_initial_scan_latest_file_only(true);
+    let mut reader = LogReader::new();
     let mut contexts = HashMap::new();
     let mut first_run = true;
 
-    update(&watcher.inner, dir.path(), &mut contexts, &mut first_run);
+    update(
+        &watcher.inner,
+        dir.path(),
+        &mut reader,
+        &mut contexts,
+        &mut first_run,
+    );
 
     assert_eq!(contexts.len(), 1);
     assert!(contexts.contains_key("output_log_second.txt"));

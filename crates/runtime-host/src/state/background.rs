@@ -462,7 +462,7 @@ mod background_capability_session_identity_tests {
                 display_name: "Owner".into(),
                 endpoint: "https://api.example.test/api/1".into(),
                 websocket: "wss://pipeline.example.test".into(),
-                current_user_snapshot: json!({"large": [1, 2, 3]}),
+                current_user_snapshot: json!({"large": [1, 2, 3]}).into(),
             }),
         }));
 

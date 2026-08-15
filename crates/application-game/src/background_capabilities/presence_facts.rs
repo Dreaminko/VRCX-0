@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use serde::Serialize;
 use serde_json::Value;
@@ -29,7 +30,7 @@ pub struct BackgroundPresenceFacts {
     pub current_user_id: String,
     pub endpoint: String,
     pub websocket: String,
-    pub current_user: Value,
+    pub current_user: Arc<Value>,
     pub is_game_running: bool,
     pub is_steamvr_running: bool,
     pub is_game_no_vr: bool,
@@ -143,15 +144,17 @@ pub fn build_background_presence_facts(
         now_playing: input.now_playing,
     })
 }
-fn ensure_current_user_id(mut current_user: Value, current_user_id: &str) -> Value {
-    if let Some(object) = current_user.as_object_mut() {
-        if !current_user_id.trim().is_empty() {
-            object
-                .entry("id")
-                .or_insert_with(|| Value::String(current_user_id.trim().to_string()));
-        }
+fn ensure_current_user_id(current_user: Arc<Value>, current_user_id: &str) -> Arc<Value> {
+    let current_user_id = current_user_id.trim();
+    if current_user_id.is_empty() || !current_user.is_object() || current_user.get("id").is_some() {
+        return current_user;
     }
+    let mut current_user = Arc::unwrap_or_clone(current_user);
     current_user
+        .as_object_mut()
+        .expect("current user object was checked")
+        .insert("id".into(), Value::String(current_user_id.to_string()));
+    Arc::new(current_user)
 }
 
 fn resolve_current_location(snapshot: &RuntimeSnapshot, current_user: &Value) -> String {
@@ -317,6 +320,26 @@ fn is_live_current_location(location: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn current_user_id_keeps_an_existing_shared_snapshot() {
+        let snapshot = Arc::new(serde_json::json!({"id": "usr_owner"}));
+
+        let current_user = ensure_current_user_id(Arc::clone(&snapshot), "usr_owner");
+
+        assert!(Arc::ptr_eq(&current_user, &snapshot));
+    }
+
+    #[test]
+    fn current_user_id_is_added_without_mutating_the_session_snapshot() {
+        let snapshot = Arc::new(serde_json::json!({"displayName": "Owner"}));
+
+        let current_user = ensure_current_user_id(Arc::clone(&snapshot), "usr_owner");
+
+        assert_eq!(current_user["id"], "usr_owner");
+        assert!(snapshot.get("id").is_none());
+        assert!(!Arc::ptr_eq(&current_user, &snapshot));
+    }
 
     #[test]
     fn parse_location_matches_group_plus_instance_type() {

@@ -461,7 +461,10 @@ async fn execute_page(
             &payload, status, action,
         )));
     }
-    Ok(payload.as_array().cloned().unwrap_or_default())
+    match payload {
+        Value::Array(rows) => Ok(rows),
+        _ => Ok(Vec::new()),
+    }
 }
 
 fn normalize_avatar_tags(avatar_tags: &[String]) -> Vec<String> {
@@ -528,8 +531,8 @@ fn hydrate_world_details(
         }
     }
     ordered_entities.extend(requested_entities);
-    let payloads = world_cache
-        .hydrate_favorite_payloads(ordered_entities.iter().map(|(_, entity)| entity));
+    let payloads =
+        world_cache.hydrate_favorite_payloads(ordered_entities.iter().map(|(_, entity)| entity));
     let cached_count = payloads.iter().filter(|payload| payload.is_some()).count() as u32;
     for ((id, _), detail) in ordered_entities.into_iter().zip(payloads) {
         if requested.contains(&id) {
